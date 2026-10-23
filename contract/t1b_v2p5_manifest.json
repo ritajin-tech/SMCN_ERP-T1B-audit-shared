@@ -1,0 +1,43 @@
+{
+  "manifest": "T1-B PKC-v2p5 交付物绑定清单",
+  "rule_version": "PKC-v2p5",
+  "generated_utc": "2026-10-23T14:08:03Z",
+  "note": "本 manifest 由提交方生成，绑定交付物实际文件 SHA256（磁盘原始字节）。v2p5 为五议题 T1-T5 默认建议草案（投影规则 P / E1 扩展伪键 / G1 biz 口径 / C2 重复软标记 / 两层口径分层 / T5 提取规则待共识），待 Tom D1 立场确认或反对后定稿。fixture 的 meta.sha256 = meta 置空后 ensure_ascii=False, indent=2 重新序列化的 SHA（Tom 已确认与内置值吻合）。EXIT=0=提交方断言自洽，非 Tom 独立运行/非全部契约验收。键登记表沿用 v2p3 版（t1b_key_registry_v2p3.csv，无变更）。",
+  "deliverables": {
+    "T1B_主键契约与离线设计_v2p5.md": "a531fcf867cb708c477f2b25b564cf68a6f5b49f5734f210cd26a00d25830fcc",
+    "t1b_offline_fixture_v2p5.json": "4b3f666ba326f592a7a7a05fef35c4a6c567679c817b2943372baca3ac557591",
+    "t1b_offline_test_v2p5.py": "f093f346dcd351d0784bc2a85c98211e8b26baf4a7d8c03c1bf2a238cb1b028e",
+    "t1b_key_registry_v2p3.csv": "62d463ce8bd6a08e473a729177616403dca6f905e19fba9558a05879879d5bd9"
+  },
+  "dependencies": {
+    "offline_recompute_scrubbed.py": "4342c24039b8b32c2faa0f42cb82d4371efbea174c5e8b0a8bad0caa8554391f"
+  },
+  "externally_referenced": {
+    "live_scrubbed.json": {
+      "sha256_scrubbed": "056b86e8e9b533498e34b7b72cf75141d98b1e0e48fb536de4c12a0999185f76",
+      "sha256_original": "1a1092b2d4989c6f5cf4abc366a9ed6a6ed7539e51129ef693d8e1e72ccb35bf"
+    },
+    "archives_scrubbed.json": {
+      "copy_sha256": "5ea9b01128a1fedb53b3215ebeff5859ad075892d788b2c0b6d9135122c9fae2",
+      "original_sha256": "69282d6efcec8e4f37284fcec7269acf40c5613e2af3e730f9c5a9212c455a85"
+    },
+    "prod_DB_工时流水_20261015_2325.json": {
+      "sha256": "2a616226300e28b4bb5d51fe34d4d7f8d74325440117d6b8cd649f771b713ba0"
+    }
+  },
+  "example_counts": {
+    "positive": 25,
+    "negative": 28,
+    "total": 53,
+    "state_model_cases": 15,
+    "projection_cases": 8
+  },
+  "changes_vs_v2p4": {
+    "projection_P": "A2 段 PJ1-PJ8：真实 15/9 列布局 -> 规范 9 列视图（Tom v2p3 阻断项「C 段映射放行」正面回应）",
+    "E1_extended_pseudo": "N22：PSEUDO_CONSTANTS 纳入 AUTO_LEAVE（archives 3353 + live 1 + prod 2 行）",
+    "G1_biz_payload": "同键冲突判据剔除提交时间（archives 20246->7924 行、live 96->2、prod 468->20）",
+    "C2_soft_flags": "P21-P24：duplicate_entry / exact_duplicate 软标记，不改硬状态，聚合层 first-seen 去重",
+    "two_layer_sid": "契约层 sid=UUID 原值 vs 合并层 key_of 回退键，分层禁混用"
+  },
+  "disclaimer": "608 = v2 不等于 v2p2/v2p3/v2p4/v2p5；241 基准未锁定；Tom 已有 724fef64/ad3788f0/9bd8bb74 三份不重送；去标识副本不公开共享；姓名假名化受控材料，不认证零 PII。"
+}
