@@ -1,0 +1,1425 @@
+{
+  "meta": {
+    "doc": "T1-B 主键契约离线 fixture v2p4（针对 Tom 18:03：更正重放绑定 + 最终隔离传播闭合 + 报告数字绑定）",
+    "rule_version": "PKC-v2p4",
+    "normalized_sample_schema": "9 列规范样例 schema: [0]=提交时间, [1]=日期, [2]=姓名, [3]=类型, [4]=项目, [5]=工时, [6]=备注, [7]=请假标识, [8]=UUID/来源记录键",
+    "algorithm": "operation_identity_key = 结构化 JSON(source_event_id,op_type,rule_version,namespace,ver)；UPSERT ver=0 基版，CORRECT ver>=1 更正版本；payload_digest 单独存/比；state 仅在 created 或合法 versioned 时提交，conflict/rejected/idempotent 保持原状态；CORRECT 前序须为已接受记录且 ver 严格前驱(pred.ver=ver-1)+se/ns/rv 一致；重放须同身份+同摘要+同前序；硬失败(单例/G1/分页)先行确定，关系(G2/G3)随后不动点传播至稳定；boundary: union 16766 - leave_exclusion 5084 = 11682 - special_key1 = 11681",
+    "expected_output_note": "exit0 = 全部回归常量可复算 + 全部正/负例（含成组关系、映射校验、分页边界与更正链）分类与定位符合 PKC-v2p4 + 实际例数与 example_counts 声明一致；标注为提交方报告，非 Tom 独立运行",
+    "sha256": "82421396559af04684b9e9ec461b5861fb24963aae3d054130cd7da6f9cf00ac",
+    "example_counts": {
+      "positive": 21,
+      "negative": 27,
+      "total": 48,
+      "state_model_cases": 15
+    },
+    "hours_note": "finite_parseable_hours_* = 有限可解析工时合计；非法/非数值工时不计入（不称工时为 0，亦非完整业务总工时）",
+    "pii_boundary": "姓名假名化受控样例（P-####）/ 无姓名映射 / 无全量实名数据；来源记录 ID 为冻结记录真实抽样（非合成）；不认证全体自由文本零 PII"
+  },
+  "entities_versions": {
+    "prod_C": {
+      "file": "prod_DB_工时流水_20261015_2325.json",
+      "sha256": "2a616226300e28b4bb5d51fe34d4d7f8d74325440117d6b8cd649f771b713ba0",
+      "rows": 11999,
+      "schema_cols_declared": 15,
+      "normalized_sample_cols": 9,
+      "schema_version": "C-v20261015",
+      "schema_15_to_9_mapping": "PENDING 待补（提交方无 prod_C 原始 15 列布局，不凭猜测编造；分类器统一 9 列规范样例，15→9 路由待提供）"
+    },
+    "live": {
+      "file": "live_scrubbed.json",
+      "sha256_scrubbed": "056b86e8e9b533498e34b7b72cf75141d98b1e0e48fb536de4c12a0999185f76",
+      "sha256_original": "1a1092b2d4989c6f5cf4abc366a9ed6a6ed7539e51129ef693d8e1e72ccb35bf",
+      "rows": 8157,
+      "schema_version": "LIVE-v20261014"
+    },
+    "archives": {
+      "file": "archives_scrubbed.json",
+      "original_sha256": "69282d6efcec8e4f37284fcec7269acf40c5613e2af3e730f9c5a9212c455a85",
+      "copy_sha256": "5ea9b01128a1fedb53b3215ebeff5859ad075892d788b2c0b6d9135122c9fae2",
+      "rows": 102723,
+      "files": 19,
+      "schema_version": "ARCH-v19",
+      "snapshot_identification": "19 档各自为独立快照，以 namespace(archive:<档名>如 archive:20260831) 标识；ARCH-v19 仅为批级 schema 代，不替代每档识别；同侧跨档即跨快照"
+    },
+    "master": {
+      "ssId": "1oxPj0mzN8poP2vQ7Bm-YKXuU49p9b0c1asyrZn4Py44",
+      "ts_rows": 11682,
+      "leave_rows": 568,
+      "ts_collapse_markers": 0,
+      "leave_markers": 567,
+      "note": "主库行数来自提交方 hktool 只读观测，归提交方报告，不充独立断言"
+    }
+  },
+  "regression_assertions": {
+    "union": 16766,
+    "leave_exclusion_5084": 5084,
+    "after_exclusion_11682": 11682,
+    "final_11681": 11681,
+    "finite_parseable_hours_11682": 46028.0,
+    "finite_parseable_hours_11681": 46028.0,
+    "hours_diff_indep": 0.0,
+    "collapse_4568": 4568,
+    "first_srow_8018": 8018,
+    "live_eff": 8157,
+    "special_key": "U:OFF-WORK / Leave",
+    "special_in_after_excl": true,
+    "special_not_in_final": true,
+    "special_hours_nonfinite": true,
+    "non_finite_in_after_excl": 1,
+    "non_finite_in_final": 0,
+    "first_seen_19_vector": [
+      269,
+      277,
+      75,
+      0,
+      164,
+      2412,
+      0,
+      0,
+      538,
+      1897,
+      248,
+      371,
+      210,
+      3090,
+      2096,
+      822,
+      3736,
+      328,
+      233
+    ],
+    "declared_not_asserted": {
+      "prod_rows": 11999,
+      "master_ts_rows": 11682,
+      "master_leave_rows": 568
+    }
+  },
+  "positive_examples": [
+    {
+      "id": "P1",
+      "namespace": "prod",
+      "source_record_id": "GUID:aaaa",
+      "snapshot_id": "C-v20261015",
+      "row": [
+        "2026-10-10T09:00",
+        "2026-10-10",
+        "P-1",
+        "WORK",
+        "PRJ-A",
+        "8.0",
+        "ok",
+        "",
+        "GUID:aaaa"
+      ],
+      "expected_status": "normal",
+      "expected_reason": "ok"
+    },
+    {
+      "id": "P2",
+      "namespace": "prod",
+      "source_record_id": "TS-1",
+      "snapshot_id": "C-v20261015",
+      "row": [
+        "2026-10-10T09:05",
+        "2026-10-10",
+        "P-2",
+        "WORK",
+        "PRJ-B",
+        "7.5",
+        "ok",
+        "",
+        "TS-1"
+      ],
+      "expected_status": "normal",
+      "expected_reason": "ok"
+    },
+    {
+      "id": "P3",
+      "namespace": "prod",
+      "source_record_id": "LEAVE-42",
+      "snapshot_id": "C-v20261015",
+      "row": [
+        "2026-08-31T00:00",
+        "2026-08-31",
+        "P-3",
+        "OFF-WORK",
+        "8",
+        "0",
+        "系统同步请假",
+        "LEAVE",
+        "LEAVE-42"
+      ],
+      "expected_status": "normal",
+      "expected_reason": "ok"
+    },
+    {
+      "id": "P4",
+      "namespace": "prod",
+      "source_record_id": "AUTO-9",
+      "snapshot_id": "C-v20261015",
+      "row": [
+        "2026-09-01T00:00",
+        "2026-09-01",
+        "P-4",
+        "OFF-WORK",
+        "8",
+        "0",
+        "系统同步请假",
+        "LEAVE",
+        "AUTO-9"
+      ],
+      "expected_status": "normal",
+      "expected_reason": "ok"
+    },
+    {
+      "id": "P5A",
+      "namespace": "archive:20260928",
+      "source_record_id": "GUID:stable",
+      "logical_source_id": "LS-1",
+      "snapshot_id": "ARCH-v19",
+      "row": [
+        "2026-10-10T09:00",
+        "2026-10-10",
+        "P-5",
+        "WORK",
+        "PRJ-C",
+        "6.0",
+        "ok",
+        "",
+        "GUID:stable"
+      ],
+      "expected_status": "normal",
+      "expected_reason": "cross_side_stable_ok_shared_guid"
+    },
+    {
+      "id": "P5B",
+      "namespace": "live",
+      "source_record_id": "GUID:stable",
+      "logical_source_id": "LS-1",
+      "snapshot_id": "LIVE-v20261014",
+      "row": [
+        "2026-10-10T09:00",
+        "2026-10-10",
+        "P-5",
+        "WORK",
+        "PRJ-C",
+        "6.0",
+        "ok",
+        "",
+        "GUID:stable"
+      ],
+      "expected_status": "normal",
+      "expected_reason": "cross_side_stable_ok_shared_guid"
+    },
+    {
+      "id": "P6",
+      "namespace": "prod",
+      "source_record_id": "TS-6",
+      "snapshot_id": "C-v20261015",
+      "row": [
+        "2026-10-10T09:00",
+        "2026-10-10",
+        "P-5",
+        "WORK",
+        "PRJ-C",
+        "6.0",
+        "ok",
+        "",
+        "TS-6"
+      ],
+      "expected_status": "normal",
+      "expected_reason": "ok"
+    },
+    {
+      "id": "P7",
+      "namespace": "archive:20260928",
+      "source_record_id": "ARCH-OLD",
+      "logical_source_id": "LS-2",
+      "mapping_basis": {
+        "maps_to": {
+          "namespace": "live",
+          "source_record_id": "NEWID",
+          "snapshot_id": "LIVE-v20261014"
+        },
+        "evidence": "registry-ref:L2"
+      },
+      "snapshot_id": "ARCH-v19",
+      "row": [
+        "2026-10-10T09:00",
+        "2026-10-10",
+        "P-18",
+        "WORK",
+        "PRJ-K",
+        "5.0",
+        "ok",
+        "",
+        "ARCH-OLD"
+      ],
+      "expected_status": "normal",
+      "expected_reason": "cross_side_stable_ok_valid_mapping"
+    },
+    {
+      "id": "P8",
+      "namespace": "live",
+      "source_record_id": "NEWID",
+      "logical_source_id": "LS-2",
+      "mapping_basis": {
+        "maps_to": {
+          "namespace": "archive:20260928",
+          "source_record_id": "ARCH-OLD",
+          "snapshot_id": "ARCH-v19"
+        },
+        "evidence": "registry-ref:L2"
+      },
+      "snapshot_id": "LIVE-v20261014",
+      "row": [
+        "2026-10-10T09:00",
+        "2026-10-10",
+        "P-18",
+        "WORK",
+        "PRJ-K",
+        "5.0",
+        "ok",
+        "",
+        "NEWID"
+      ],
+      "expected_status": "normal",
+      "expected_reason": "cross_side_stable_ok_valid_mapping"
+    },
+    {
+      "id": "P9",
+      "namespace": "archive:20260928",
+      "source_record_id": "X1",
+      "logical_source_id": "LS-3",
+      "mapping_basis": {
+        "maps_to": {
+          "namespace": "live",
+          "source_record_id": "X2",
+          "snapshot_id": "LIVE-v20261014"
+        },
+        "evidence": "registry-ref:L3"
+      },
+      "snapshot_id": "ARCH-v19",
+      "row": [
+        "2026-10-10T09:00",
+        "2026-10-10",
+        "P-20",
+        "WORK",
+        "PRJ-M",
+        "4.0",
+        "ok",
+        "",
+        "X1"
+      ],
+      "expected_status": "normal",
+      "expected_reason": "cross_side_stable_ok_valid_mapping"
+    },
+    {
+      "id": "P10",
+      "namespace": "live",
+      "source_record_id": "X2",
+      "logical_source_id": "LS-3",
+      "mapping_basis": {
+        "maps_to": {
+          "namespace": "archive:20260928",
+          "source_record_id": "X1",
+          "snapshot_id": "ARCH-v19"
+        },
+        "evidence": "registry-ref:L3"
+      },
+      "snapshot_id": "LIVE-v20261014",
+      "row": [
+        "2026-10-10T09:00",
+        "2026-10-10",
+        "P-20",
+        "WORK",
+        "PRJ-M",
+        "4.0",
+        "ok",
+        "",
+        "X2"
+      ],
+      "expected_status": "normal",
+      "expected_reason": "cross_side_stable_ok_valid_mapping"
+    },
+    {
+      "id": "P11",
+      "namespace": "prod",
+      "source_record_id": "TS-PG",
+      "snapshot_id": "C-v20261015",
+      "row": [
+        "2026-10-10T09:00",
+        "2026-10-10",
+        "P-21",
+        "WORK",
+        "PRJ-P",
+        "6.0",
+        "ok",
+        "",
+        "TS-PG"
+      ],
+      "pagination": {
+        "declared_range": [
+          1,
+          100
+        ],
+        "present": "1-100"
+      },
+      "expected_status": "normal",
+      "expected_reason": "pagination_complete"
+    },
+    {
+      "id": "P12",
+      "namespace": "archive:20260831",
+      "source_record_id": "GUID:snap",
+      "logical_source_id": "LS-5",
+      "snapshot_id": "ARCH-v19",
+      "row": [
+        "2026-10-10T09:00",
+        "2026-10-10",
+        "P-24",
+        "WORK",
+        "PRJ-Q",
+        "6.0",
+        "ok",
+        "",
+        "GUID:snap"
+      ],
+      "expected_status": "normal",
+      "expected_reason": "cross_snapshot_stable_ok_shared_guid"
+    },
+    {
+      "id": "P13",
+      "namespace": "archive:20260928",
+      "source_record_id": "GUID:snap",
+      "logical_source_id": "LS-5",
+      "snapshot_id": "ARCH-v19",
+      "row": [
+        "2026-10-10T09:00",
+        "2026-10-10",
+        "P-24",
+        "WORK",
+        "PRJ-Q",
+        "6.0",
+        "ok",
+        "",
+        "GUID:snap"
+      ],
+      "expected_status": "normal",
+      "expected_reason": "cross_snapshot_stable_ok_shared_guid"
+    },
+    {
+      "id": "P14",
+      "namespace": "archive:20260831",
+      "source_record_id": "ARCH-A",
+      "logical_source_id": "LS-7",
+      "mapping_basis": {
+        "maps_to": {
+          "namespace": "archive:20260928",
+          "source_record_id": "ARCH-B",
+          "snapshot_id": "ARCH-v19"
+        },
+        "evidence": "registry-ref:L7"
+      },
+      "snapshot_id": "ARCH-v19",
+      "row": [
+        "2026-10-10T09:00",
+        "2026-10-10",
+        "P-25",
+        "WORK",
+        "PRJ-R",
+        "5.0",
+        "ok",
+        "",
+        "ARCH-A"
+      ],
+      "expected_status": "normal",
+      "expected_reason": "cross_snapshot_stable_ok_valid_mapping"
+    },
+    {
+      "id": "P15",
+      "namespace": "archive:20260928",
+      "source_record_id": "ARCH-B",
+      "logical_source_id": "LS-7",
+      "mapping_basis": {
+        "maps_to": {
+          "namespace": "archive:20260831",
+          "source_record_id": "ARCH-A",
+          "snapshot_id": "ARCH-v19"
+        },
+        "evidence": "registry-ref:L7"
+      },
+      "snapshot_id": "ARCH-v19",
+      "row": [
+        "2026-10-10T09:00",
+        "2026-10-10",
+        "P-25",
+        "WORK",
+        "PRJ-R",
+        "5.0",
+        "ok",
+        "",
+        "ARCH-B"
+      ],
+      "expected_status": "normal",
+      "expected_reason": "cross_snapshot_stable_ok_valid_mapping"
+    },
+    {
+      "id": "P16",
+      "namespace": "prod",
+      "source_record_id": "GUID:cap",
+      "logical_source_id": "LS-11",
+      "snapshot_id": "C-v20261014",
+      "row": [
+        "2026-10-10T09:00",
+        "2026-10-10",
+        "P-32",
+        "WORK",
+        "PRJ-Y",
+        "6.0",
+        "ok",
+        "",
+        "GUID:cap"
+      ],
+      "expected_status": "normal",
+      "expected_reason": "cross_snapshot_stable_ok_shared_guid"
+    },
+    {
+      "id": "P17",
+      "namespace": "prod",
+      "source_record_id": "GUID:cap",
+      "logical_source_id": "LS-11",
+      "snapshot_id": "C-v20261015",
+      "row": [
+        "2026-10-10T09:00",
+        "2026-10-10",
+        "P-32",
+        "WORK",
+        "PRJ-Y",
+        "6.0",
+        "ok",
+        "",
+        "GUID:cap"
+      ],
+      "expected_status": "normal",
+      "expected_reason": "cross_snapshot_stable_ok_shared_guid"
+    },
+    {
+      "id": "P18",
+      "namespace": "prod",
+      "source_record_id": "DUP-1",
+      "logical_source_id": "LS-12",
+      "mapping_basis": {
+        "maps_to": {
+          "namespace": "live",
+          "source_record_id": "DUP-1",
+          "snapshot_id": "LIVE-v20261014"
+        },
+        "evidence": "registry-ref:L12"
+      },
+      "snapshot_id": "C-v20261014",
+      "row": [
+        "2026-10-10T09:00",
+        "2026-10-10",
+        "P-33",
+        "WORK",
+        "PRJ-Z",
+        "4.0",
+        "ok",
+        "",
+        "DUP-1"
+      ],
+      "expected_status": "normal",
+      "expected_reason": "cross_side_stable_ok_valid_mapping"
+    },
+    {
+      "id": "P19",
+      "namespace": "live",
+      "source_record_id": "DUP-1",
+      "logical_source_id": "LS-12",
+      "mapping_basis": {
+        "maps_to": {
+          "namespace": "prod",
+          "source_record_id": "DUP-1",
+          "snapshot_id": "C-v20261014"
+        },
+        "evidence": "registry-ref:L12"
+      },
+      "snapshot_id": "LIVE-v20261014",
+      "row": [
+        "2026-10-10T09:00",
+        "2026-10-10",
+        "P-33",
+        "WORK",
+        "PRJ-Z",
+        "4.0",
+        "ok",
+        "",
+        "DUP-1"
+      ],
+      "expected_status": "normal",
+      "expected_reason": "cross_side_stable_ok_valid_mapping"
+    },
+    {
+      "id": "P20",
+      "namespace": "archive:20260928",
+      "source_record_id": "UNIQ-3",
+      "logical_source_id": "LS-12",
+      "mapping_basis": {
+        "maps_to": {
+          "namespace": "live",
+          "source_record_id": "DUP-1",
+          "snapshot_id": "LIVE-v20261014"
+        },
+        "evidence": "registry-ref:L12"
+      },
+      "snapshot_id": "ARCH-v19",
+      "row": [
+        "2026-10-10T09:00",
+        "2026-10-10",
+        "P-33",
+        "WORK",
+        "PRJ-Z",
+        "4.0",
+        "ok",
+        "",
+        "UNIQ-3"
+      ],
+      "expected_status": "normal",
+      "expected_reason": "cross_side_stable_ok_valid_mapping"
+    }
+  ],
+  "negative_examples": [
+    {
+      "id": "N1",
+      "namespace": "prod",
+      "source_record_id": "TS-X",
+      "snapshot_id": "C-v20261015",
+      "row": [
+        "2026-10-10T09:00",
+        "2026-10-10",
+        "P-7",
+        "WORK"
+      ],
+      "expected_status": "isolated",
+      "expected_reason": "missing_column"
+    },
+    {
+      "id": "N2",
+      "namespace": "prod",
+      "source_record_id": "TS-Y",
+      "snapshot_id": "C-v20261015",
+      "row": [
+        "2026-10-10T09:00",
+        "2026-10-10",
+        "P-8",
+        "WORK",
+        "PRJ-D",
+        "8.0",
+        "ok",
+        "",
+        "TS-Y",
+        "EXTRA"
+      ],
+      "expected_status": "isolated",
+      "expected_reason": "schema_width_mismatch"
+    },
+    {
+      "id": "N3",
+      "namespace": "prod",
+      "source_record_id": "",
+      "snapshot_id": "C-v20261015",
+      "row": [
+        "2026-10-10T09:00",
+        "2026-10-10",
+        "P-9",
+        "WORK",
+        "PRJ-E",
+        "8.0",
+        "ok",
+        "",
+        ""
+      ],
+      "expected_status": "isolated",
+      "expected_reason": "empty_required_key"
+    },
+    {
+      "id": "N4",
+      "namespace": "prod",
+      "source_record_id": "",
+      "snapshot_id": "C-v20261015",
+      "row": [
+        "",
+        "",
+        "",
+        "",
+        "",
+        "",
+        "",
+        "",
+        ""
+      ],
+      "expected_status": "isolated",
+      "expected_reason": "placeholder_empty_row"
+    },
+    {
+      "id": "N5",
+      "namespace": "archive:20260831",
+      "source_record_id": "U:OFF-WORK / Leave",
+      "snapshot_id": "ARCH-v19",
+      "row": [
+        "2023-01-01T00:00",
+        "2023-01-01",
+        "P-10",
+        "OFF-WORK",
+        "8",
+        "n/a",
+        "系统同步请假",
+        "LEAVE",
+        "OFF-WORK / Leave"
+      ],
+      "expected_status": "isolated",
+      "expected_reason": "pseudo_uuid_collapse"
+    },
+    {
+      "id": "N6",
+      "namespace": "prod",
+      "source_record_id": "TS-30",
+      "snapshot_id": "C-v20261015",
+      "row": [
+        "2026-02-30T09:00",
+        "2026-02-30",
+        "P-11",
+        "WORK",
+        "PRJ-F",
+        "8.0",
+        "ok",
+        "",
+        "TS-30"
+      ],
+      "expected_status": "isolated",
+      "expected_reason": "illegal_calendar"
+    },
+    {
+      "id": "N7",
+      "namespace": "prod",
+      "source_record_id": "TS-31",
+      "snapshot_id": "C-v20261015",
+      "row": [
+        "2026-04-31T09:00",
+        "2026-04-31",
+        "P-12",
+        "WORK",
+        "PRJ-G",
+        "8.0",
+        "ok",
+        "",
+        "TS-31"
+      ],
+      "expected_status": "isolated",
+      "expected_reason": "illegal_calendar"
+    },
+    {
+      "id": "N8",
+      "namespace": "prod",
+      "source_record_id": "TS-32",
+      "snapshot_id": "C-v20261015",
+      "row": [
+        "",
+        "",
+        "P-13",
+        "WORK",
+        "PRJ-H",
+        "8.0",
+        "ok",
+        "",
+        "TS-32"
+      ],
+      "expected_status": "isolated",
+      "expected_reason": "empty_date"
+    },
+    {
+      "id": "N9",
+      "namespace": "prod",
+      "source_record_id": "TS-33",
+      "snapshot_id": "C-v20261015",
+      "row": [
+        "2026-10-10T09:00",
+        "2026-10-10",
+        "P-14",
+        "WORK",
+        "PRJ-I",
+        "NaN",
+        "ok",
+        "",
+        "TS-33"
+      ],
+      "expected_status": "isolated",
+      "expected_reason": "non_finite_nan"
+    },
+    {
+      "id": "N10",
+      "namespace": "prod",
+      "source_record_id": "TS-34",
+      "snapshot_id": "C-v20261015",
+      "row": [
+        "2026-10-10T09:00",
+        "2026-10-10",
+        "P-15",
+        "WORK",
+        "PRJ-J",
+        "Infinity",
+        "ok",
+        "",
+        "TS-34"
+      ],
+      "expected_status": "isolated",
+      "expected_reason": "non_finite_inf"
+    },
+    {
+      "id": "N11A",
+      "namespace": "prod",
+      "source_record_id": "TS-CONF",
+      "snapshot_id": "C-v20261015",
+      "row": [
+        "2026-10-10T09:00",
+        "2026-10-10",
+        "P-16",
+        "WORK",
+        "PRJ-X",
+        "8.0",
+        "ok",
+        "",
+        "TS-CONF"
+      ],
+      "expected_status": "isolated",
+      "expected_reason": "same_key_diff_content"
+    },
+    {
+      "id": "N11B",
+      "namespace": "prod",
+      "source_record_id": "TS-CONF",
+      "snapshot_id": "C-v20261015",
+      "row": [
+        "2026-10-10T09:00",
+        "2026-10-10",
+        "P-17",
+        "WORK",
+        "PRJ-Y",
+        "7.0",
+        "ok",
+        "",
+        "TS-CONF"
+      ],
+      "expected_status": "isolated",
+      "expected_reason": "same_key_diff_content"
+    },
+    {
+      "id": "N12A",
+      "namespace": "archive:20260831",
+      "source_record_id": "ARCH-X",
+      "logical_source_id": "LS-4",
+      "snapshot_id": "ARCH-v19",
+      "row": [
+        "2026-10-10T09:00",
+        "2026-10-10",
+        "P-18",
+        "WORK",
+        "PRJ-K",
+        "5.0",
+        "ok",
+        "",
+        "ARCH-X"
+      ],
+      "expected_status": "isolated",
+      "expected_reason": "mapping_missing"
+    },
+    {
+      "id": "N12B",
+      "namespace": "archive:20260928",
+      "source_record_id": "ARCH-Y",
+      "logical_source_id": "LS-4",
+      "mapping_basis": "maps-to:ARCH-X",
+      "snapshot_id": "ARCH-v19",
+      "row": [
+        "2026-10-10T09:00",
+        "2026-10-10",
+        "P-18",
+        "WORK",
+        "PRJ-K",
+        "5.0",
+        "ok",
+        "",
+        "ARCH-Y"
+      ],
+      "expected_status": "isolated",
+      "expected_reason": "mapping_not_structured"
+    },
+    {
+      "id": "N12C",
+      "namespace": "archive:20260928",
+      "source_record_id": "C1",
+      "logical_source_id": "LS-8",
+      "mapping_basis": {
+        "maps_to": {
+          "namespace": "live",
+          "source_record_id": "GHOST",
+          "snapshot_id": "LIVE-v20261014"
+        },
+        "evidence": "registry-ref:L8"
+      },
+      "snapshot_id": "ARCH-v19",
+      "row": [
+        "2026-10-10T09:00",
+        "2026-10-10",
+        "P-26",
+        "WORK",
+        "PRJ-S",
+        "4.0",
+        "ok",
+        "",
+        "C1"
+      ],
+      "expected_status": "isolated",
+      "expected_reason": "mapping_target_mismatch"
+    },
+    {
+      "id": "N12D",
+      "namespace": "live",
+      "source_record_id": "C2",
+      "logical_source_id": "LS-8",
+      "mapping_basis": {
+        "maps_to": {
+          "namespace": "archive:20260928",
+          "source_record_id": "C1",
+          "snapshot_id": "ARCH-v19"
+        },
+        "evidence": "registry-ref:L8"
+      },
+      "snapshot_id": "LIVE-v20261014",
+      "row": [
+        "2026-10-10T09:00",
+        "2026-10-10",
+        "P-26",
+        "WORK",
+        "PRJ-S",
+        "4.0",
+        "ok",
+        "",
+        "C2"
+      ],
+      "expected_status": "isolated",
+      "expected_reason": "mapping_target_isolated"
+    },
+    {
+      "id": "N13",
+      "namespace": "archive:20260831",
+      "source_record_id": "SEG",
+      "snapshot_id": "ARCH-v19",
+      "pagination": {
+        "declared_range": [
+          1,
+          100
+        ],
+        "present": "1-49,56-100"
+      },
+      "row": [
+        "2026-08-31T00:00",
+        "2026-08-31",
+        "P-19",
+        "WORK",
+        "PRJ-L",
+        "5.0",
+        "ok",
+        "",
+        "SEG-1"
+      ],
+      "expected_status": "isolated",
+      "expected_reason": "pagination_missing_segment"
+    },
+    {
+      "id": "N14",
+      "namespace": "archive:20260831",
+      "source_record_id": "SEG2",
+      "snapshot_id": "ARCH-v19",
+      "pagination": {
+        "declared_range": [
+          1,
+          100
+        ],
+        "present": "1-60,55-100"
+      },
+      "row": [
+        "2026-08-31T00:00",
+        "2026-08-31",
+        "P-22",
+        "WORK",
+        "PRJ-N",
+        "5.0",
+        "ok",
+        "",
+        "SEG2-1"
+      ],
+      "expected_status": "isolated",
+      "expected_reason": "pagination_overlap"
+    },
+    {
+      "id": "N15",
+      "namespace": "archive:20260831",
+      "source_record_id": "SEG3",
+      "snapshot_id": "ARCH-v19",
+      "pagination": {
+        "declared_range": [
+          1,
+          100
+        ],
+        "present": "1-80"
+      },
+      "row": [
+        "2026-08-31T00:00",
+        "2026-08-31",
+        "P-23",
+        "WORK",
+        "PRJ-O",
+        "5.0",
+        "ok",
+        "",
+        "SEG3-1"
+      ],
+      "expected_status": "isolated",
+      "expected_reason": "pagination_truncated"
+    },
+    {
+      "id": "N16A",
+      "namespace": "prod",
+      "source_record_id": "TS-BAD",
+      "logical_source_id": "LS-9",
+      "mapping_basis": {
+        "maps_to": {
+          "namespace": "live",
+          "source_record_id": "NEW-9",
+          "snapshot_id": "LIVE-v20261014"
+        },
+        "evidence": "registry-ref:L9"
+      },
+      "snapshot_id": "C-v20261015",
+      "row": [
+        "2026-02-30T09:00",
+        "2026-02-30",
+        "P-27",
+        "WORK",
+        "PRJ-T",
+        "8.0",
+        "ok",
+        "",
+        "TS-BAD"
+      ],
+      "expected_status": "isolated",
+      "expected_reason": "illegal_calendar"
+    },
+    {
+      "id": "N16B",
+      "namespace": "live",
+      "source_record_id": "NEW-9",
+      "logical_source_id": "LS-9",
+      "mapping_basis": {
+        "maps_to": {
+          "namespace": "prod",
+          "source_record_id": "TS-BAD",
+          "snapshot_id": "C-v20261015"
+        },
+        "evidence": "registry-ref:L9"
+      },
+      "snapshot_id": "LIVE-v20261014",
+      "row": [
+        "2026-10-10T09:00",
+        "2026-10-10",
+        "P-27",
+        "WORK",
+        "PRJ-T",
+        "8.0",
+        "ok",
+        "",
+        "NEW-9"
+      ],
+      "expected_status": "isolated",
+      "expected_reason": "mapping_target_isolated"
+    },
+    {
+      "id": "N17",
+      "namespace": "prod",
+      "source_record_id": "TS-OOB1",
+      "snapshot_id": "C-v20261015",
+      "pagination": {
+        "declared_range": [
+          1,
+          100
+        ],
+        "present": "0-100"
+      },
+      "row": [
+        "2026-10-10T09:00",
+        "2026-10-10",
+        "P-28",
+        "WORK",
+        "PRJ-U",
+        "6.0",
+        "ok",
+        "",
+        "TS-OOB1"
+      ],
+      "expected_status": "isolated",
+      "expected_reason": "pagination_out_of_bounds"
+    },
+    {
+      "id": "N18",
+      "namespace": "prod",
+      "source_record_id": "TS-OOB2",
+      "snapshot_id": "C-v20261015",
+      "pagination": {
+        "declared_range": [
+          1,
+          100
+        ],
+        "present": "1-101"
+      },
+      "row": [
+        "2026-10-10T09:00",
+        "2026-10-10",
+        "P-29",
+        "WORK",
+        "PRJ-V",
+        "6.0",
+        "ok",
+        "",
+        "TS-OOB2"
+      ],
+      "expected_status": "isolated",
+      "expected_reason": "pagination_out_of_bounds"
+    },
+    {
+      "id": "N19",
+      "namespace": "prod",
+      "source_record_id": "TS-REV",
+      "snapshot_id": "C-v20261015",
+      "pagination": {
+        "declared_range": [
+          1,
+          100
+        ],
+        "present": "90-10"
+      },
+      "row": [
+        "2026-10-10T09:00",
+        "2026-10-10",
+        "P-30",
+        "WORK",
+        "PRJ-W",
+        "6.0",
+        "ok",
+        "",
+        "TS-REV"
+      ],
+      "expected_status": "isolated",
+      "expected_reason": "pagination_invalid_range"
+    },
+    {
+      "id": "N20",
+      "namespace": "prod",
+      "source_record_id": "TS-FMT",
+      "snapshot_id": "C-v20261015",
+      "pagination": {
+        "declared_range": [
+          1,
+          100
+        ],
+        "present": "1-abc"
+      },
+      "row": [
+        "2026-10-10T09:00",
+        "2026-10-10",
+        "P-31",
+        "WORK",
+        "PRJ-X2",
+        "6.0",
+        "ok",
+        "",
+        "TS-FMT"
+      ],
+      "expected_status": "isolated",
+      "expected_reason": "pagination_invalid_format"
+    },
+    {
+      "id": "N21A",
+      "namespace": "prod",
+      "source_record_id": "TS-PGF",
+      "logical_source_id": "LS-13",
+      "mapping_basis": {
+        "maps_to": {
+          "namespace": "live",
+          "source_record_id": "NEW-13",
+          "snapshot_id": "LIVE-v20261014"
+        },
+        "evidence": "registry-ref:L13"
+      },
+      "snapshot_id": "C-v20261015",
+      "pagination": {
+        "declared_range": [
+          1,
+          100
+        ],
+        "present": "1-80"
+      },
+      "row": [
+        "2026-10-10T09:00",
+        "2026-10-10",
+        "P-34",
+        "WORK",
+        "PRJ-Y2",
+        "6.0",
+        "ok",
+        "",
+        "TS-PGF"
+      ],
+      "expected_status": "isolated",
+      "expected_reason": "pagination_truncated"
+    },
+    {
+      "id": "N21B",
+      "namespace": "live",
+      "source_record_id": "NEW-13",
+      "logical_source_id": "LS-13",
+      "mapping_basis": {
+        "maps_to": {
+          "namespace": "prod",
+          "source_record_id": "TS-PGF",
+          "snapshot_id": "C-v20261015"
+        },
+        "evidence": "registry-ref:L13"
+      },
+      "snapshot_id": "LIVE-v20261014",
+      "row": [
+        "2026-10-10T09:00",
+        "2026-10-10",
+        "P-34",
+        "WORK",
+        "PRJ-Y2",
+        "8.0",
+        "ok",
+        "",
+        "NEW-13"
+      ],
+      "expected_status": "isolated",
+      "expected_reason": "mapping_target_isolated"
+    }
+  ],
+  "coverage_matrix": {
+    "implemented_and_asserted": [
+      "regression: union/5084/11682/11681/finite_parseable_hours(独立两侧有限可解析求和)/4568/8018/live_eff/special键位置与工时非有限/first_seen_19向量(逐档19项新增键数)/两集合非有限计数",
+      "idempotency: 结构化身份键(含显式 ver) + state 模型；仅 created/合法 versioned 提交状态；UPSERT ver=0 基版、CORRECT ver>=1 多更正版本链；前序须已接受且 ver 严格前驱(pred.ver=ver-1)+se/ns/rv 一致；重放须同身份+同摘要+同前序；覆盖冲突后重放/拒绝后状态不变/假前序拒绝/删前序拒绝/换前序冲突/同更正身份异内容/合法第二更正及其重放与异内容（15 例，实现不读 expected）",
+      "single: missing/extra column, empty_required, placeholder, pseudo_uuid, illegal_calendar(含2026-02-30/04-31/空), non_finite(NaN/Infinity)",
+      "relational: 硬失败(单例/G1/分页)先行确定，关系(G2/G3)不动点传播至稳定且只增不减；索引自建(不带 group 标签)；G2 跨侧(共享 GUID 正例+有效结构化映射正例+伪映射/目标失配负例)；G3 同侧跨档/同 ns 跨 snapshot(共享 GUID 正例+有效映射正例+缺映射负例)；快照坐标=(namespace,snapshot_id)；映射目标按完整坐标索引；三记录重复 sid 不同完整坐标组(P18/P19/P20)；硬失败+映射组合(N16A/B)；目标分页失败+映射传播(N21A/B)",
+      "pagination: 完整/缺段/重叠/截断 + 越界显式失败(0-100/1-101) + 倒序·空区间 invalid_range + 异常格式 invalid_format",
+      "normal_reason: 全部正例断言 expected_reason（不只断言 status）",
+      "example_counts: 测试断言实际例数(21 正+27 负=48，state model 15)与 fixture meta.example_counts 声明一致，并打印测试/fixture/依赖实际 SHA",
+      "manifest: 交付物实际文件 SHA 绑定 + dependencies(offline_recompute_scrubbed.py) SHA 绑定 + archives 原/副本 SHA 分离断言 + fixture meta 自洽"
+    ],
+    "doc_only_or_pending": [
+      "prod_C 15→9 字段映射：待补（提交方无原始 15 列布局，不编造；分类器统一 9 列规范样例）",
+      "4568 矩阵中『提交方源码描述/未核验』层（leave_sync.js 写入路径、『缺陷仅该次回填当前已正确』均非 Tom 确认）",
+      "主库 7 门槛（离线候选，未以 0 标记反证已实现）",
+      "历史引用 / 集合互斥完备 / 确定性：仅文档，未自动断言",
+      "mapping.evidence：仅校验证据引用存在性（非空字符串），不宣称引用内容已经独立核实",
+      "更正链范围：前序须为已接受记录且 ver 严格前驱；不强制跨来源合并链，亦不授权真实落库"
+    ],
+    "uncovered_pending": [
+      "跨快照同键异内容冲突的自动修复建议（当前仅隔离）",
+      "leave_sync.js 源码逐行定位（需固定版本源码，当前仅描述性证据）"
+    ]
+  },
+  "idempotency_state_model": {
+    "note": "state 模型（v2p4 更正链 + 重放前序绑定）：identity_key = 结构化 JSON(se,op,rv,ns,ver)；UPSERT ver=0 基版，CORRECT ver>=1 更正版本；state[key]={digest,predecessor,version} 仅在 created 或合法 versioned 时提交；UPSERT 同键同摘要=idempotent(保持)、异摘要=conflict(保持，不覆写)；CORRECT 前序须为已接受记录且 ver 严格前驱(pred.ver=ver-1)+se/ns/rv 一致，否则 rejected(不写状态)；CORRECT 同键重放须同摘要且同前序才 idempotent，异摘要或异前序=conflict(保持)；支持多更正版本链(ver=1,2,...)。实现禁止读取 expected 计算 got。",
+    "cases": [
+      {
+        "tag": "E1-upsert-1",
+        "source_event_id": "E1",
+        "op": "UPSERT",
+        "rule_version": "PKC-v2p4",
+        "namespace": "prod",
+        "ver": 0,
+        "payload_digest": "dA",
+        "predecessor": null,
+        "expected": "created",
+        "note": "UPSERT 新键(ver=0 基版) -> created（提交状态）"
+      },
+      {
+        "tag": "E1-upsert-2",
+        "source_event_id": "E1",
+        "op": "UPSERT",
+        "rule_version": "PKC-v2p4",
+        "namespace": "prod",
+        "ver": 0,
+        "payload_digest": "dA",
+        "predecessor": null,
+        "expected": "idempotent",
+        "note": "同摘要重放 -> idempotent（状态保持）"
+      },
+      {
+        "tag": "E1-upsert-3",
+        "source_event_id": "E1",
+        "op": "UPSERT",
+        "rule_version": "PKC-v2p4",
+        "namespace": "prod",
+        "ver": 0,
+        "payload_digest": "dB",
+        "predecessor": null,
+        "expected": "conflict",
+        "note": "异摘要 -> conflict（状态保持 dA，不覆写）"
+      },
+      {
+        "tag": "E1-upsert-4",
+        "source_event_id": "E1",
+        "op": "UPSERT",
+        "rule_version": "PKC-v2p4",
+        "namespace": "prod",
+        "ver": 0,
+        "payload_digest": "dA",
+        "predecessor": null,
+        "expected": "idempotent",
+        "note": "冲突后重放 dA -> idempotent（证明 conflict 未污染状态）"
+      },
+      {
+        "tag": "E1-correct-v1-0",
+        "source_event_id": "E1",
+        "op": "CORRECT",
+        "rule_version": "PKC-v2p4",
+        "namespace": "prod",
+        "ver": 1,
+        "payload_digest": "dD",
+        "predecessor": null,
+        "expected": "rejected",
+        "note": "CORRECT 无前序 -> rejected（不写状态；先于 versioned 执行以保证更正键未建立）"
+      },
+      {
+        "tag": "E1-correct-v1-0b",
+        "source_event_id": "E1",
+        "op": "CORRECT",
+        "rule_version": "PKC-v2p4",
+        "namespace": "prod",
+        "ver": 1,
+        "payload_digest": "dD",
+        "predecessor": null,
+        "expected": "rejected",
+        "note": "拒绝后同动作再拒 -> rejected（证明 rejected 未污染状态）"
+      },
+      {
+        "tag": "E1-correct-v1-fake",
+        "source_event_id": "E1",
+        "op": "CORRECT",
+        "rule_version": "PKC-v2p4",
+        "namespace": "prod",
+        "ver": 1,
+        "payload_digest": "dF",
+        "predecessor": "E1-upsert-99",
+        "expected": "rejected",
+        "note": "假前序（未被接受的 tag）-> rejected"
+      },
+      {
+        "tag": "E1-correct-v1",
+        "source_event_id": "E1",
+        "op": "CORRECT",
+        "rule_version": "PKC-v2p4",
+        "namespace": "prod",
+        "ver": 1,
+        "payload_digest": "dC",
+        "predecessor": "E1-upsert-1",
+        "expected": "versioned",
+        "note": "首次更正：前序=已接受 UPSERT(ver=0=1-1) -> versioned（提交更正版本 v1）"
+      },
+      {
+        "tag": "E1-correct-v1b",
+        "source_event_id": "E1",
+        "op": "CORRECT",
+        "rule_version": "PKC-v2p4",
+        "namespace": "prod",
+        "ver": 1,
+        "payload_digest": "dC",
+        "predecessor": "E1-upsert-1",
+        "expected": "idempotent",
+        "note": "更正重放：同身份+同摘要+同前序 -> idempotent"
+      },
+      {
+        "tag": "E1-correct-v1c",
+        "source_event_id": "E1",
+        "op": "CORRECT",
+        "rule_version": "PKC-v2p4",
+        "namespace": "prod",
+        "ver": 1,
+        "payload_digest": "dC",
+        "predecessor": null,
+        "expected": "rejected",
+        "note": "同摘要删前序重放 -> rejected（CORRECT 须带前序；v2p3 此处误判 idempotent）"
+      },
+      {
+        "tag": "E1-correct-v1d",
+        "source_event_id": "E1",
+        "op": "CORRECT",
+        "rule_version": "PKC-v2p4",
+        "namespace": "prod",
+        "ver": 1,
+        "payload_digest": "dC",
+        "predecessor": "E1-upsert-2",
+        "expected": "conflict",
+        "note": "同摘要换前序重放（前序改为另一已接受 tag）-> conflict（重放须同前序；v2p3 此处误判 idempotent）"
+      },
+      {
+        "tag": "E1-correct-v1e",
+        "source_event_id": "E1",
+        "op": "CORRECT",
+        "rule_version": "PKC-v2p4",
+        "namespace": "prod",
+        "ver": 1,
+        "payload_digest": "dE",
+        "predecessor": "E1-upsert-1",
+        "expected": "conflict",
+        "note": "同更正身份(v1)异摘要 -> conflict（状态保持，不反复 versioned）"
+      },
+      {
+        "tag": "E1-correct-v2",
+        "source_event_id": "E1",
+        "op": "CORRECT",
+        "rule_version": "PKC-v2p4",
+        "namespace": "prod",
+        "ver": 2,
+        "payload_digest": "dG",
+        "predecessor": "E1-correct-v1",
+        "expected": "versioned",
+        "note": "合法第二更正：前序=已接受更正 v1(1=2-1) -> versioned（多更正版本链）"
+      },
+      {
+        "tag": "E1-correct-v2b",
+        "source_event_id": "E1",
+        "op": "CORRECT",
+        "rule_version": "PKC-v2p4",
+        "namespace": "prod",
+        "ver": 2,
+        "payload_digest": "dG",
+        "predecessor": "E1-correct-v1",
+        "expected": "idempotent",
+        "note": "第二更正重放：同身份+同摘要+同前序 -> idempotent"
+      },
+      {
+        "tag": "E1-correct-v2c",
+        "source_event_id": "E1",
+        "op": "CORRECT",
+        "rule_version": "PKC-v2p4",
+        "namespace": "prod",
+        "ver": 2,
+        "payload_digest": "dH",
+        "predecessor": "E1-correct-v1",
+        "expected": "conflict",
+        "note": "第二更正身份(v2)异摘要 -> conflict（状态保持）"
+      }
+    ]
+  }
+}

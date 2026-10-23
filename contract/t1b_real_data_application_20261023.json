@@ -1,0 +1,199 @@
+{
+  "report": "T1-B PKC-v2p4 真实数据应用 v2（提交方只读运行，非 Tom 独立运行）",
+  "generated": "2026-10-23T12:00:00+08:00",
+  "projection_P": {
+    "rule": "P[0]=real[0]; P[1]=canon_date(real[1]); P[2]=real[2]; P[3]=real[3]; P[4]=real[5](项目编号); P[5]=real[6](工时); P[6]=real[7](备注); P[7]=请假标识(派生); P[8]=real[8](UUID 原样)",
+    "evidence": "prod C 原始表头（15 列，前 9 列与 live/archives 同构）+ live 同构首行比对 + fixture meta.normalized_sample_schema 声明 + v2 文档 §3『不冒称原 C 布局即规范』",
+    "status": "投影规则待 v2p5 合同确认（Tom/AI 双方），本报告数值均基于 P"
+  },
+  "sources": {
+    "archives": {
+      "rows": 102723,
+      "snapshots": 19,
+      "single_rule_counts": {
+        "ok": 52013,
+        "empty_required_key": 45343,
+        "empty_date": 799,
+        "pseudo_uuid_collapse": 4568
+      },
+      "extended_pseudo_E1_extra": 3353,
+      "g1": {
+        "groups": 3099,
+        "rows_overridden": 20246,
+        "overridden_from_reasons": {
+          "ok": 15470,
+          "empty_date": 208,
+          "pseudo_uuid_collapse": 4568
+        },
+        "payload_basis": "full（规范视图全行含提交时间，测试字面）",
+        "alt_business_content_payload": {
+          "groups": 15,
+          "rows_overridden": 7924,
+          "payload_basis": "biz（剔除提交时间；同一事件重复录入不判冲突）"
+        }
+      },
+      "final_counts_after_g1_override": {
+        "ok": 36543,
+        "empty_required_key": 45343,
+        "empty_date": 591,
+        "same_key_diff_content": 20246
+      },
+      "multi_rule_rows": 20246,
+      "note": "G1 按交付测试既定行为覆写 reason（含 pseudo 行被覆写为 same_key_diff_content）；优先级明确建议列入 v2p5"
+    },
+    "live": {
+      "rows": 8157,
+      "single_rule_counts": {
+        "ok": 4219,
+        "empty_required_key": 3931,
+        "empty_date": 7
+      },
+      "extended_pseudo_E1_extra": 1,
+      "g1": {
+        "groups": 46,
+        "rows_overridden": 96,
+        "overridden_from_reasons": {
+          "ok": 96
+        },
+        "payload_basis": "full（规范视图全行含提交时间，测试字面）",
+        "alt_business_content_payload": {
+          "groups": 1,
+          "rows_overridden": 2,
+          "payload_basis": "biz（剔除提交时间；同一事件重复录入不判冲突）"
+        }
+      },
+      "final_counts_after_g1_override": {
+        "ok": 4123,
+        "empty_required_key": 3931,
+        "empty_date": 7,
+        "same_key_diff_content": 96
+      },
+      "multi_rule_rows": 96
+    },
+    "prod_C": {
+      "rows": 11999,
+      "single_rule_counts": {
+        "ok": 5802,
+        "empty_required_key": 5208,
+        "empty_date": 7,
+        "placeholder_empty_row": 982
+      },
+      "extended_pseudo_E1_extra": 2,
+      "g1": {
+        "groups": 234,
+        "rows_overridden": 468,
+        "overridden_from_reasons": {
+          "ok": 468
+        },
+        "payload_basis": "full（规范视图全行含提交时间，测试字面）",
+        "alt_business_content_payload": {
+          "groups": 10,
+          "rows_overridden": 20,
+          "payload_basis": "biz（剔除提交时间；同一事件重复录入不判冲突）"
+        }
+      },
+      "final_counts_after_g1_override": {
+        "ok": 5334,
+        "empty_required_key": 5208,
+        "empty_date": 7,
+        "placeholder_empty_row": 982,
+        "same_key_diff_content": 468
+      },
+      "multi_rule_rows": 468,
+      "duplicate_structure": {
+        "dup_key_groups": 1778,
+        "same_key_diff_content_groups": 234,
+        "same_key_same_content_groups": 1544,
+        "note": "合同 G1 仅隔离同键异内容；同键同内容（精确重复）当前不隔离——v2p5 待明确"
+      }
+    }
+  },
+  "boundary_math_merged_layer": {
+    "union": 16766,
+    "leave_exclusion": 5084,
+    "after_excl": 11682,
+    "final": 11681,
+    "finite_parseable_hours_after": 46028.0,
+    "finite_parseable_hours_final": 46028.0,
+    "diff": 0.0,
+    "collapse_4568": 4568,
+    "first_srow_8018": 8018,
+    "note": "既定定义原样复算（key_of 含 F: 回退键；leave=阶段=='休假' 或 项目=='OFF-WORK'）；与契约分类视图并列——两套口径的关系统一待 v2p5"
+  },
+  "master_observation": {
+    "ts_rows": 11682,
+    "leave_rows": 568,
+    "ts_collapse_markers": 0,
+    "leave_markers": 567,
+    "note": "主库行数来自提交方 hktool 只读观测，归提交方报告，不充独立断言；leave_markers 567 与 leave_rows 568 差 1、ts_rows 11682 与 final 11681 差 1（special 键）待核"
+  },
+  "cross_check_vs_scan": {
+    "note": "扫描为独立早前测量（扁平计数）；合同分类按优先级顺序（placeholder > empty_required_key > pseudo > empty_date > …），故须按并集比对：",
+    "prod_empty_uuid": {
+      "scan": 6190,
+      "contract_union(empty_required_key + placeholder_empty_row)": 6190,
+      "expect_equal": true,
+      "why": "空 UUID 行中全空占位行先判 placeholder_empty_row，其余判 empty_required_key"
+    },
+    "prod_empty_date": {
+      "scan": 989,
+      "contract_union(empty_date + placeholder_empty_row)": 989,
+      "expect_equal": true,
+      "why": "空日期行中全空占位行先判 placeholder_empty_row"
+    },
+    "prod_illegal_calendar": {
+      "scan": 0,
+      "contract": 0,
+      "expect_equal": true,
+      "why": "prod 日期仅 ISO/ISO+time 两格式，规范化后无非法日历"
+    },
+    "prod_dup_keys": {
+      "scan": 1778,
+      "contract_dup_structure": 1778,
+      "expect_equal": true,
+      "why": "同按 UUID 位原值分组"
+    },
+    "live_empty_uuid": {
+      "scan": 3931,
+      "contract": 3931,
+      "expect_equal": true
+    },
+    "live_empty_date": {
+      "scan": 7,
+      "contract": 7,
+      "expect_equal": true
+    },
+    "archives_empty_date": {
+      "scan": 3166,
+      "contract_union(empty_date + 空日期且空UUID行)": 3166,
+      "expect_equal": true,
+      "why": "archives 空日期行中 2367 行同时空 UUID，先判 empty_required_key（余 799 行有 UUID 判 empty_date）"
+    }
+  },
+  "key_findings": {
+    "within_snapshot_reimport": {
+      "file": "archive:20260824",
+      "rows": 18928,
+      "AUTO_LEAVE_group_rows": 334,
+      "LEAVE_groups": 2949,
+      "LEAVE_group_sizes": "4-5",
+      "evidence": "同一 LEAVE-<hash>-<date> 事件在同一快照内重复 4-5 次（录入时间 8/19、8/20、8/21… 不同）；334 个不同请假事件共享常量 UUID 'AUTO_LEAVE'（单快照内 334 路同键）",
+      "meaning": "leave-sync 在同一快照内多次追加写入口径；AUTO_LEAVE 常量标签即 E1 扩展伪键的实锤",
+      "downstream": "若 G1 采用 biz 口径（剔除提交时间），这些重复录入不再判冲突、以正常行入账——口径选择直接改变隔离面，须 v2p5 钉死"
+    },
+    "exact_duplicate_gap": {
+      "prod_same_key_same_content_groups": 1544,
+      "note": "合同 G1 仅隔离同键异内容；同键同内容（精确重复）当前不隔离，v2p5 待明确"
+    },
+    "pseudo_rule_gap": {
+      "literal": "row[8] == 'OFF-WORK / Leave' → 仅覆盖 archives 4568 行",
+      "extended_E1": "UUID 位常量标签 {'OFF-WORK / Leave', 'AUTO_LEAVE'} → 另覆盖 AUTO_LEAVE 3353(arch)+1(live)+2(prod) 行",
+      "note": "AUTO_LEAVE 为同一异常类（常量标签占 UUID 位）；字面规则下这些行不判 pseudo，依赖 G1 兜底隔离（20260824 单档 334 路同键）——v2p5 建议纳入 E1"
+    },
+    "two_layers_divergence": {
+      "contract_view": "空 UUID 行 → empty_required_key 隔离（fixture N3 字面）：archives 45343 / live 3931 / prod 6190(=5208+982)",
+      "merged_layer": "key_of 的 F: 回退键将其纳管（边界数学 union 16766 含 F: 键）",
+      "note": "契约分类视图与合并层口径并列，关系统一待 v2p5；本报告两套都报、不混用"
+    }
+  }
+}
