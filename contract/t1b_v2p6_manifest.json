@@ -1,0 +1,86 @@
+{
+  "manifest": "T1-B PKC-v2p6 交付物绑定清单",
+  "rule_version": "PKC-v2p6",
+  "generated_utc": "2026-10-23T15:19:54Z",
+  "note": "本 manifest 由提交方生成，绑定交付物实际文件 SHA256（磁盘原始字节）。v2p6 按 Tom 2026-10-23 22:18 五议题技术立场 + 22:17 实现边界登记对 v2p5 草案修订：T1 双轨制（G1 恢复 full 口径硬判定 + biz_digest 版本化并列测量层）、T2 测量标记+first-seen 降级、T3 离线异常候选措辞、T4 三层分开+互斥完备换算表、T5 提取规则可追溯依据+HOLD、投影 P 派生视图声明、三条实现边界登记、两项报告口径修正。差异逐条见 T1B_v2p6_差异矩阵_20261023.md。EXIT=0=提交方断言自洽，非 Tom 独立运行/非全部契约验收。键登记表沿用 v2p3 版（t1b_key_registry_v2p3.csv，无变更）。",
+  "deliverables": {
+    "T1B_主键契约与离线设计_v2p6.md": "478104475e0df526bffebf33eca78a50ae3bfd80ad83951eefaf238a95811331",
+    "t1b_offline_fixture_v2p6.json": "20b9a6b5f5c07a1339f9da2a2a6f9cd92c977c6d013f4d925165dc3f209fa06b",
+    "t1b_offline_test_v2p6.py": "e56a0035e3dda925e4493007fdcdb2db889dd11821344534221b2542f24b9898",
+    "t1b_key_registry_v2p3.csv": "62d463ce8bd6a08e473a729177616403dca6f905e19fba9558a05879879d5bd9"
+  },
+  "supporting": {
+    "T1B_v2p6_差异矩阵_20261023.md": "81c836f0c20d95a111142d810f7e57287e9747e5aadb47c17fd72bd164598140",
+    "t1b_layer_conversion_v2p6.json": "e4c6494c97fd9f7aa94bb08fb79c0e3b69673e2253d60e34687982fd6c20464b",
+    "t1b_layer_conversion_v2p6.py": "e5863e93617d0068e21150751bc6ea2be37b5bcdc96186979c719dd16b43ed4b",
+    "build_fixture_v2p6.py": "8c8a60aa929ab18c1cf265127045850043a9023e053ec00f286005c6ef3bb8f0"
+  },
+  "dependencies": {
+    "offline_recompute_scrubbed.py": "4342c24039b8b32c2faa0f42cb82d4371efbea174c5e8b0a8bad0caa8554391f"
+  },
+  "externally_referenced": {
+    "live_scrubbed.json": {
+      "sha256_scrubbed": "056b86e8e9b533498e34b7b72cf75141d98b1e0e48fb536de4c12a0999185f76",
+      "sha256_original": "1a1092b2d4989c6f5cf4abc366a9ed6a6ed7539e51129ef693d8e1e72ccb35bf"
+    },
+    "archives_scrubbed.json": {
+      "copy_sha256": "5ea9b01128a1fedb53b3215ebeff5859ad075892d788b2c0b6d9135122c9fae2",
+      "original_sha256": "69282d6efcec8e4f37284fcec7269acf40c5613e2af3e730f9c5a9212c455a85"
+    },
+    "prod_DB_工时流水_20261015_2325.json": {
+      "sha256": "2a616226300e28b4bb5d51fe34d4d7f8d74325440117d6b8cd649f771b713ba0"
+    }
+  },
+  "example_counts": {
+    "positive": 25,
+    "negative": 32,
+    "total": 57,
+    "state_model_cases": 15,
+    "projection_cases": 13
+  },
+  "layer_conversion_archives": {
+    "L0_rows": 102723,
+    "L1_single": {
+      "ok": 48868,
+      "empty_required_key": 45343,
+      "pseudo_uuid_collapse": 7921,
+      "empty_date": 591
+    },
+    "L2_final": {
+      "ok": 36540,
+      "same_key_diff_content": 20246,
+      "empty_required_key": 45343,
+      "pseudo_uuid_collapse": 3,
+      "empty_date": 591
+    },
+    "L3_measure": {
+      "duplicate_entry": {
+        "groups": 3084,
+        "rows": 12322
+      },
+      "exact_duplicate": {
+        "groups": 3,
+        "rows": 6
+      }
+    },
+    "L4_merged": {
+      "union": 16766,
+      "leave_exclusion": 5084,
+      "after_excl": 11682,
+      "special_excluded": 1,
+      "final": 11681
+    },
+    "separation": "L4 final(键数 11681) 与 L2 normal(行数 36540) 不同口径，不互代"
+  },
+  "changes_vs_v2p5": {
+    "T1_dual_track": "G1 硬判定恢复 full 口径（Tom：不为降低隔离数选口径）；biz 降级为并列测量层；P21/P22 移入负例",
+    "T2_measure_flag": "软标记改并列测量标记；first-seen 降级为聚合复算代表选择；区分采集重放与实际重复业务",
+    "T3_candidate_wording": "E1 精确常量匹配保持；措辞对齐离线异常候选；不据候选判可删除",
+    "T4_three_layers": "契约/聚合/业务三层分开；互斥完备换算表（同一冻结定位 archives L0-L4）",
+    "T5_extraction": "logical_source 提取规则须可追溯依据+冲突/未知状态；无绑定跨侧关联 HOLD",
+    "projection_P_derived_view": "P 为派生视图非删除；19 档 schema 路由；表头绑定；US 日期歧义声明",
+    "implementation_boundaries": "B2 三条登记：UPSERT ver 无入口强制/accepted tag 身份/坐标重复诊断（N23/N23b）",
+    "report_fixes": "11682 含表头与 11681 数据行分母统一；724fef64 等为冻结材料指纹非 PKC 轮次"
+  },
+  "disclaimer": "608 = v2 不等于 v2p2/v2p3/v2p4/v2p5/v2p6；241 基准未锁定；724fef64/ad3788f0/9bd8bb74 为冻结/对账材料指纹非 PKC 轮次；去标识副本不公开共享；姓名假名化受控材料，不认证零 PII。"
+}

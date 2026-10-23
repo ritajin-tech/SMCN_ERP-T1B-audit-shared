@@ -9,15 +9,22 @@ README.md                                  本文件
 docs/
   T1B_调整方向与两天行动计划_20261023.md      本轮调整方向+两天计划+需拍板项（先读这个）
 contract/
-  T1B_主键契约与离线设计_v2p5.md              现行主键契约草案（PKC-v2p5，五议题默认建议，待确认）
-  t1b_offline_fixture_v2p5.json              离线 fixture（姓名为 P-#### 假名受控样例）
-  t1b_offline_test_v2p5.py                   离线测试（只读、零生产、无网络依赖）
-  t1b_v2p5_manifest.json                     四件套 SHA 绑定 + dependencies
-  build_fixture_v2p5.py                      fixture 生成脚本（供复现）
-  T1B_主键契约与离线设计_v2p4.md              前一版主键契约（PKC-v2p4）
-  t1b_offline_fixture_v2p4.json              前一版离线 fixture
-  t1b_offline_test_v2p4.py                   前一版离线测试
-  t1b_v2p4_manifest.json                     前一版四件套 SHA 绑定
+  T1B_主键契约与离线设计_v2p6.md              现行主键契约（PKC-v2p6，按 Tom 22:18 立场修订，待复核）
+  t1b_offline_fixture_v2p6.json              离线 fixture（姓名为 P-#### 假名受控样例）
+  t1b_offline_test_v2p6.py                   离线测试（只读、零生产、无网络依赖）
+  t1b_v2p6_manifest.json                     四件套 SHA 绑定 + dependencies + 换算表摘要
+  T1B_v2p6_差异矩阵_20261023.md               v2p5 默认建议 vs Tom 22:18 立场 vs v2p6 采纳 逐条对照
+  t1b_layer_conversion_v2p6.json             T4 互斥完备换算表（archives 同一冻结定位 L0-L4，只读真算）
+  t1b_layer_conversion_v2p6.py               换算表脚本（EXIT=0 = 提交方自洽）
+  build_fixture_v2p6.py                      fixture 生成脚本（供复现）
+  T1B_主键契约与离线设计_v2p5.md              v2p5 草案（默认建议版；T1 硬口径已被 v2p6 按 Tom 立场撤回）
+  t1b_offline_fixture_v2p5.json              v2p5 草案 fixture
+  t1b_offline_test_v2p5.py                   v2p5 草案测试
+  t1b_v2p5_manifest.json                     v2p5 草案 manifest
+  T1B_主键契约与离线设计_v2p4.md              v2p4 合同（Tom 22:17 已确认三项整改关闭）
+  t1b_offline_fixture_v2p4.json              v2p4 fixture
+  t1b_offline_test_v2p4.py                   v2p4 测试
+  t1b_v2p4_manifest.json                     v2p4 manifest
   apply_pkc_to_real_data_v2p4.py             真实数据应用脚本（只读；提交方运行，v2p4 口径）
   t1b_real_data_application_20261023.json    应用报告（纯计数，无行级数据）
 ```
@@ -32,12 +39,18 @@ cd SMCN_ERP-T1B-audit-shared/contract
 #   解压 t1b_scrub_package_20261014.zip 到本目录的同级目录 20261014_frozen_scrubbed/
 #   副本自洽校验：python offline_recompute_scrubbed.py  -> EXIT=0（10 项聚合复现）
 
-python t1b_offline_test_v2p5.py
-# 预期：A 段边界链常量全 OK；A2 段投影 8/8；B 段 15/15；C 段 53/53（含 P21-P24 软标记、N22 E1）；
-#       D 段 manifest 七项绑定；F 段例数绑定（25+28=53+15+8）；EXIT=0
+python t1b_offline_test_v2p6.py
+# 预期：A 段边界链常量全 OK；A2a 投影字面 13/13 + A2b 投影后路由 13/13；B 段 15/15；
+#       B2 三条实现边界登记；C 段 57/57（含 P21/P22 移入负例、N22 E1、N23/N23b 坐标诊断、
+#       N24/N24b 阶段差异折叠）；C2 并列测量层 + 投影折叠差异诊断；
+#       D 段严格验收（manifest 四件 + supporting 四件 + 依赖全绑定，缺即 FAIL）；
+#       F 段例数绑定（25+32=57+15+13）；EXIT=0
 
-python t1b_offline_test_v2p4.py
-# 预期：A 段边界链常量全 OK；B 段 15/15；C 段 48/48；D 段含 dependencies；F 段例数绑定；EXIT=0
+python t1b_layer_conversion_v2p6.py
+# 预期：L0-L4 全链真算 + 互斥完备断言（L1/L2 各类和=102723；L4 链式恒等）；EXIT=0
+
+python t1b_offline_test_v2p5.py   # 草案版（G1 硬口径为 biz，已被 v2p6 撤回）EXIT=0
+python t1b_offline_test_v2p4.py   # 前版 EXIT=0
 ```
 
 无数据副本时 A 段会以 MISSING 退出（exit 2）——B/C/D/F 段需数据就位后运行。
@@ -47,15 +60,32 @@ python t1b_offline_test_v2p4.py
 | 版本 | 合同文档 SHA(16) | 状态 |
 |---|---|---|
 | PKC-v1 | — | 首版，已被取代 |
-| v2 | 见邮件登记（724fef64 轮） | 4568 根因矩阵+规范 schema+边界链 |
-| v2p2 | 见邮件登记（ad3788f0 轮） | 回应 16:33 六点 |
-| v2p3 | 见邮件登记（9bd8bb74 轮） | 回应 17:33 两阻断项 |
-| v2p4 | 9d5cf5fe | 回应 18:03 三项；已被 v2p5 草案取代 |
-| **v2p5** | **a531fcf8** | 五议题默认建议草案（投影 P/E1/biz 口径/C2 软标记/两层口径）；**待 Tom D1 立场确认或反对后定稿** |
+| v2 | 见邮件登记 | 4568 根因矩阵+规范 schema+边界链 |
+| v2p2 | 见邮件登记 | 回应 16:33 六点 |
+| v2p3 | 见邮件登记 | 回应 17:33 两阻断项 |
+| v2p4 | 9d5cf5fe | 回应 18:03 三项；Tom 22:17 确认三项整改关闭 |
+| v2p5 | a531fcf8 | 五议题默认建议草案；T1 硬口径已被 v2p6 按 Tom 立场撤回 |
+| **v2p6** | **a355afe1** | 按 Tom 22:18 立场 + 22:17 边界修订；**待 Tom 复核** |
 
-608 = v2 ≠ v2p2 ≠ v2p3 ≠ v2p4 ≠ v2p5（五份各自独立）；241 基准未锁定；前三个邮件轮次文件不重送。
+PKC 版本链以 fixture `meta.rule_version` 为准：608 = v2 ≠ v2p2 ≠ v2p3 ≠ v2p4 ≠ v2p5 ≠ v2p6（六份各自独立）；241 基准未锁定。
+**版本指纹说明（Tom 22:18 修正）**：`724fef64` / `ad3788f0` / `9bd8bb74` 为此前**冻结/对账材料指纹**，非 PKC 测试版本轮次，勿与版本链串线。
 
-## v2p5 交付物 SHA（2026-10-23）
+## v2p6 交付物 SHA（2026-10-23）
+
+| 文件 | SHA-256(16) | 字节 |
+|---|---|---|
+| T1B_主键契约与离线设计_v2p6.md | 47810447 | 23248 |
+| t1b_offline_fixture_v2p6.json | 20b9a6b5 | 62090 |
+| t1b_offline_test_v2p6.py | e56a0035 | 34898 |
+| t1b_v2p6_manifest.json | 2e075f22 | 4823 |
+| T1B_v2p6_差异矩阵_20261023.md | 81c836f0 | 11068 |
+| t1b_layer_conversion_v2p6.json | e4c6494c | 2526 |
+| t1b_layer_conversion_v2p6.py | e5863e93 | 10528 |
+| build_fixture_v2p6.py | 8c8a60aa | 17639 |
+
+> 严格验收模式（Tom 22:22）：`python t1b_offline_test_v2p6.py` 在缺 manifest / 缺依赖 / 缺交付物时**判 FAIL**（EXIT≠0），不输出同一验收 PASS；EXIT=0 才同时证明外部绑定完整。
+
+## v2p5 草案交付物 SHA（2026-10-23）
 
 | 文件 | SHA-256(16) | 字节 |
 |---|---|---|
@@ -79,6 +109,8 @@ python t1b_offline_test_v2p4.py
 ## 边界与纪律
 
 - 零生产操作、零新增授权、不索取生产权限；本仓库所有脚本均为只读。
-- 应用报告为提交方只读运行产物，非复核方独立运行；复核方独立结论以自跑测试为准。
-- 阶段一 PASS 暂缓；106 HOLD、历史 23 行、D241、HOLD/NO-GO、事故安全 OPEN 不变。
+- 应用报告与换算表为提交方只读运行产物，非复核方独立运行；复核方独立结论以自跑测试为准。
+- EXIT=0 = 提交方断言自洽，非 Tom 独立运行/非全部契约验收；阶段一 PASS 暂缓。
+- 106 HOLD、历史 23 行、D241、HOLD/NO-GO、事故安全 OPEN 不变。
+- 不为完成时间表开启生产校验、补键、迁移、去重或修复写入（Tom 22:18）。
 - 登记表（含真实 UUID）与去标识冻结副本走邮件通道，不入本仓库。

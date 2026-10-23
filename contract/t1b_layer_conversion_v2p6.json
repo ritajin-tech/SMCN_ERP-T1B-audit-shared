@@ -1,0 +1,68 @@
+{
+  "report": "T1-B v2p6 互斥完备换算表（T4；同一冻结定位 archives；提交方只读运行，非 Tom 独立运行）",
+  "generated": "2026-10-23",
+  "frozen_position": {
+    "source": "archives_scrubbed.json（19 档去标识冻结副本）",
+    "namespace": "archive:<档名>",
+    "snapshot": "ARCH-v19",
+    "note": "与主库工时 sheet 11682（含 1 行表头）不同定位、不同分母，不可直接相减"
+  },
+  "L0_input_rows": 102723,
+  "L1_contract_single_rule_counts": {
+    "empty_date": 591,
+    "empty_required_key": 45343,
+    "ok": 48868,
+    "pseudo_uuid_collapse": 7921
+  },
+  "L2_contract_final_after_g1_full_override": {
+    "counts": {
+      "empty_date": 591,
+      "empty_required_key": 45343,
+      "ok": 36540,
+      "pseudo_uuid_collapse": 3,
+      "same_key_diff_content": 20246
+    },
+    "g1_full_override": {
+      "groups": 3099,
+      "rows_overridden": 20246,
+      "overridden_from_reasons": {
+        "pseudo_uuid_collapse": 7918,
+        "ok": 12328
+      },
+      "basis": "full（规范视图全行含提交时间；Tom：不为降低隔离数选口径）"
+    }
+  },
+  "L3_measurement_layer_biz_digest": {
+    "groups_with_marker": {
+      "duplicate_entry": 3084,
+      "exact_duplicate": 3
+    },
+    "rows_with_marker": {
+      "duplicate_entry": 12322,
+      "exact_duplicate": 6
+    },
+    "groups_no_marker": 15,
+    "basis": "biz（剔除提交时间）；只标记不改 L2 硬判定；不宣称恢复正常/有效计薪/同一事件",
+    "first_seen_note": "first-seen 仅聚合复算既定代表选择，不证明多条业务事件应合为一条"
+  },
+  "L4_merged_layer_key_of": {
+    "union": 16766,
+    "leave_exclusion": 5084,
+    "after_excl": 11682,
+    "special_key_excluded": 1,
+    "final": 11681,
+    "note": "key_of 回退键口径（含 F: 键）；键级恒等；与 L2 行级口径并列，不可互代"
+  },
+  "key_separation": {
+    "L4_final_keys": 11681,
+    "L2_normal_rows": 36540,
+    "statement": "合并层 final 11681 为键数；契约层 normal 为行数——两者不同口径，不用 11681 代 normal 集（Tom 22:18 T4）"
+  },
+  "invariants": {
+    "L0_eq_L1_sum": true,
+    "L1_eq_L2_sum": true,
+    "L4_chain": true,
+    "L3_mutually_exclusive": true
+  },
+  "disclaimer": "v2p6 口径（E1 采纳：AUTO_LEAVE 行计入 pseudo，不单列 extra）；F 键可复现不等于身份 PROVEN/唯一实体/计薪可信；业务可用性层待有权方。"
+}

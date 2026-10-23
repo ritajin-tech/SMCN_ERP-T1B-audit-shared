@@ -1,0 +1,2022 @@
+{
+  "meta": {
+    "doc": "T1-B 主键契约离线 fixture v2p6（按 Tom 22:18 五议题技术立场修订：T1 双轨制——G1 恢复 full 口径硬判定 + biz_digest 版本化并列测量层；T3 异常候选措辞；投影 P 派生视图声明）",
+    "rule_version": "PKC-v2p6",
+    "normalized_sample_schema": "9 列规范样例 schema: [0]=提交时间, [1]=日期, [2]=姓名, [3]=类型, [4]=项目, [5]=工时, [6]=备注, [7]=请假标识, [8]=UUID/来源记录键",
+    "algorithm": "operation_identity_key = 结构化 JSON(source_event_id,op_type,rule_version,namespace,ver)；UPSERT ver=0 基版，CORRECT ver>=1 更正版本；payload_digest 单独存/比；state 仅在 created 或合法 versioned 时提交，conflict/rejected/idempotent 保持原状态；CORRECT 前序须为已接受记录且 ver 严格前驱(pred.ver=ver-1)+se/ns/rv 一致；重放须同身份+同摘要+同前序；硬失败(单例/G1/分页)先行确定，关系(G2/G3)随后不动点传播至稳定；投影 P：源行(前 9 列同构)→规范视图 [0]提交时间 [1]日期(canon_date 多格式规范化) [2]姓名 [3]类型 [4]项目编号(阶段列不进规范视图) [5]工时 [6]备注 [7]请假标识(派生) [8]UUID 原值——P 为派生视图，原始行在冻结副本完整保留；pseudo E1：UUID 位常量标签 {'OFF-WORK / Leave','AUTO_LEAVE'} → 离线异常候选 pseudo_uuid_collapse（不据此判可删除）；**G1 双轨（v2p6，T1）**：硬判定层 payload_digest 取 full（规范视图全行含提交时间）——同键多例且 full 不同 → same_key_diff_content 硬隔离（不为降低隔离数选口径）；并列测量层 biz_digest（版本化，剔除提交时间）对同键组测量：full 全同 → exact_duplicate；biz 全同且 full 不全同（仅提交时间不同）→ duplicate_entry——测量标记不改变硬判定，不宣称恢复正常/有效计薪/同一事件；first-seen 仅作聚合复算既定代表选择；**投影折叠差异诊断**：biz 是规范化投影后的 row[1:]（阶段列与自动列在 P 时已丢失），故仅阶段不同的两条原始行可得相同 P 与 biz 摘要——另存 source_full_digest（原始全行摘要，不分投影）并在同键组内比对，差异显式登记 source_field_diff（不把差异消掉，也不等同业务有效；业务字段清单裁定依据待有权方）；**project 布局校验**：仅接受 9 / 15 列；其他列宽（10/14/16 等）→ schema_width_mismatch，短行（<9）→ missing_column，不静默取前九列；canon_date 时间尾串为白名单（ISO + HH:MM[:SS][.fff][Z|±HH:MM]），非白名单格式不截断（不把格式错误悄然合法化），业务日期有效性不由解析器裁定；boundary: union 16766 - leave_exclusion 5084 = 11682 - special_key1 = 11681",
+    "expected_output_note": "exit0 = 全部回归常量可复算 + 投影用例逐列相等 + 全部正/负例（含成组关系、映射校验、分页边界、更正链）分类与定位符合 PKC-v2p6 + 并列测量层 expected_measure 断言一致 + 实际例数与 example_counts 声明一致；标注为提交方报告，非 Tom 独立运行",
+    "sha256": "c32dab9f31d32898e214e99830d8e886bb7d7fba9f6bcde6d6fd37ebf63e4556",
+    "example_counts": {
+      "positive": 25,
+      "negative": 32,
+      "total": 57,
+      "state_model_cases": 15,
+      "projection_cases": 13
+    },
+    "hours_note": "finite_parseable_hours_* = 有限可解析工时合计；非法/非数值工时不计入（不称工时为 0，亦非完整业务总工时）",
+    "pii_boundary": "姓名假名化受控样例（P-####）/ 无姓名映射 / 无全量实名数据；来源记录 ID 为冻结记录真实抽样（非合成）；不认证全体自由文本零 PII"
+  },
+  "entities_versions": {
+    "prod_C": {
+      "file": "prod_DB_工时流水_20261015_2325.json",
+      "sha256": "2a616226300e28b4bb5d51fe34d4d7f8d74325440117d6b8cd649f771b713ba0",
+      "rows": 11999,
+      "schema_cols_declared": 15,
+      "normalized_sample_cols": 9,
+      "schema_version": "C-v20261015",
+      "schema_15_to_9_mapping": "P（v2p5 投影，待 Tom 确认后生效）：[0]=real[0] 提交时间；[1]=canon_date(real[1])（ISO / ISO+time 截断 / US M/D/Y → YYYY-MM-DD；不存在日期原样保留交由 illegal_calendar）；[2]=real[2] 姓名；[3]=real[3] 类型；[4]=real[5] 项目编号（真实布局的阶段列 real[4] 不进规范视图）；[5]=real[6] 工时；[6]=real[7] 备注；[7]=请假标识派生（real[4]=='休假' 或 real[5].upper()=='OFF-WORK' → 'LEAVE'，沿用既定 leave 语义保证边界链可复算）；[8]=real[8] UUID/来源记录键原值（空 → empty_required_key）。证据：prod_C 原始表头 15 列逐列确认 + live 15 列与 archives 9 列前 9 列同构首行比对 + 三侧全量应用交叉验证 7/7（见 t1b_real_data_application_20261023.json）"
+    },
+    "live": {
+      "file": "live_scrubbed.json",
+      "sha256_scrubbed": "056b86e8e9b533498e34b7b72cf75141d98b1e0e48fb536de4c12a0999185f76",
+      "sha256_original": "1a1092b2d4989c6f5cf4abc366a9ed6a6ed7539e51129ef693d8e1e72ccb35bf",
+      "rows": 8157,
+      "schema_version": "LIVE-v20261014"
+    },
+    "archives": {
+      "file": "archives_scrubbed.json",
+      "original_sha256": "69282d6efcec8e4f37284fcec7269acf40c5613e2af3e730f9c5a9212c455a85",
+      "copy_sha256": "5ea9b01128a1fedb53b3215ebeff5859ad075892d788b2c0b6d9135122c9fae2",
+      "rows": 102723,
+      "files": 19,
+      "schema_version": "ARCH-v19",
+      "snapshot_identification": "19 档各自为独立快照，以 namespace(archive:<档名>如 archive:20260831) 标识；ARCH-v19 仅为批级 schema 代，不替代每档识别；同侧跨档即跨快照"
+    },
+    "master": {
+      "ssId": "1oxPj0mzN8poP2vQ7Bm-YKXuU49p9b0c1asyrZn4Py44",
+      "ts_rows": 11682,
+      "leave_rows": 568,
+      "ts_collapse_markers": 0,
+      "leave_markers": 567,
+      "note": "主库行数来自提交方 hktool 只读观测，归提交方报告，不充独立断言"
+    }
+  },
+  "regression_assertions": {
+    "union": 16766,
+    "leave_exclusion_5084": 5084,
+    "after_exclusion_11682": 11682,
+    "final_11681": 11681,
+    "finite_parseable_hours_11682": 46028.0,
+    "finite_parseable_hours_11681": 46028.0,
+    "hours_diff_indep": 0.0,
+    "collapse_4568": 4568,
+    "first_srow_8018": 8018,
+    "live_eff": 8157,
+    "special_key": "U:OFF-WORK / Leave",
+    "special_in_after_excl": true,
+    "special_not_in_final": true,
+    "special_hours_nonfinite": true,
+    "non_finite_in_after_excl": 1,
+    "non_finite_in_final": 0,
+    "first_seen_19_vector": [
+      269,
+      277,
+      75,
+      0,
+      164,
+      2412,
+      0,
+      0,
+      538,
+      1897,
+      248,
+      371,
+      210,
+      3090,
+      2096,
+      822,
+      3736,
+      328,
+      233
+    ],
+    "declared_not_asserted": {
+      "prod_rows": 11999,
+      "master_ts_rows": 11682,
+      "master_leave_rows": 568
+    }
+  },
+  "positive_examples": [
+    {
+      "id": "P1",
+      "namespace": "prod",
+      "source_record_id": "GUID:aaaa",
+      "snapshot_id": "C-v20261015",
+      "row": [
+        "2026-10-10T09:00",
+        "2026-10-10",
+        "P-1",
+        "WORK",
+        "PRJ-A",
+        "8.0",
+        "ok",
+        "",
+        "GUID:aaaa"
+      ],
+      "expected_status": "normal",
+      "expected_reason": "ok"
+    },
+    {
+      "id": "P2",
+      "namespace": "prod",
+      "source_record_id": "TS-1",
+      "snapshot_id": "C-v20261015",
+      "row": [
+        "2026-10-10T09:05",
+        "2026-10-10",
+        "P-2",
+        "WORK",
+        "PRJ-B",
+        "7.5",
+        "ok",
+        "",
+        "TS-1"
+      ],
+      "expected_status": "normal",
+      "expected_reason": "ok"
+    },
+    {
+      "id": "P3",
+      "namespace": "prod",
+      "source_record_id": "LEAVE-42",
+      "snapshot_id": "C-v20261015",
+      "row": [
+        "2026-08-31T00:00",
+        "2026-08-31",
+        "P-3",
+        "OFF-WORK",
+        "8",
+        "0",
+        "系统同步请假",
+        "LEAVE",
+        "LEAVE-42"
+      ],
+      "expected_status": "normal",
+      "expected_reason": "ok"
+    },
+    {
+      "id": "P4",
+      "namespace": "prod",
+      "source_record_id": "AL-9",
+      "snapshot_id": "C-v20261015",
+      "row": [
+        "2026-09-01T00:00",
+        "2026-09-01",
+        "P-4",
+        "OFF-WORK",
+        "8",
+        "0",
+        "系统同步请假",
+        "LEAVE",
+        "AL-9"
+      ],
+      "expected_status": "normal",
+      "expected_reason": "ok",
+      "note": "请假行带真实记录 ID（非常量标签）→ 正常路由（与常量 'AUTO_LEAVE' 区分）"
+    },
+    {
+      "id": "P5A",
+      "namespace": "archive:20260928",
+      "source_record_id": "GUID:stable",
+      "logical_source_id": "LS-1",
+      "snapshot_id": "ARCH-v19",
+      "row": [
+        "2026-10-10T09:00",
+        "2026-10-10",
+        "P-5",
+        "WORK",
+        "PRJ-C",
+        "6.0",
+        "ok",
+        "",
+        "GUID:stable"
+      ],
+      "expected_status": "normal",
+      "expected_reason": "cross_side_stable_ok_shared_guid"
+    },
+    {
+      "id": "P5B",
+      "namespace": "live",
+      "source_record_id": "GUID:stable",
+      "logical_source_id": "LS-1",
+      "snapshot_id": "LIVE-v20261014",
+      "row": [
+        "2026-10-10T09:00",
+        "2026-10-10",
+        "P-5",
+        "WORK",
+        "PRJ-C",
+        "6.0",
+        "ok",
+        "",
+        "GUID:stable"
+      ],
+      "expected_status": "normal",
+      "expected_reason": "cross_side_stable_ok_shared_guid"
+    },
+    {
+      "id": "P6",
+      "namespace": "prod",
+      "source_record_id": "TS-6",
+      "snapshot_id": "C-v20261015",
+      "row": [
+        "2026-10-10T09:00",
+        "2026-10-10",
+        "P-5",
+        "WORK",
+        "PRJ-C",
+        "6.0",
+        "ok",
+        "",
+        "TS-6"
+      ],
+      "expected_status": "normal",
+      "expected_reason": "ok"
+    },
+    {
+      "id": "P7",
+      "namespace": "archive:20260928",
+      "source_record_id": "ARCH-OLD",
+      "logical_source_id": "LS-2",
+      "mapping_basis": {
+        "maps_to": {
+          "namespace": "live",
+          "source_record_id": "NEWID",
+          "snapshot_id": "LIVE-v20261014"
+        },
+        "evidence": "registry-ref:L2"
+      },
+      "snapshot_id": "ARCH-v19",
+      "row": [
+        "2026-10-10T09:00",
+        "2026-10-10",
+        "P-18",
+        "WORK",
+        "PRJ-K",
+        "5.0",
+        "ok",
+        "",
+        "ARCH-OLD"
+      ],
+      "expected_status": "normal",
+      "expected_reason": "cross_side_stable_ok_valid_mapping"
+    },
+    {
+      "id": "P8",
+      "namespace": "live",
+      "source_record_id": "NEWID",
+      "logical_source_id": "LS-2",
+      "mapping_basis": {
+        "maps_to": {
+          "namespace": "archive:20260928",
+          "source_record_id": "ARCH-OLD",
+          "snapshot_id": "ARCH-v19"
+        },
+        "evidence": "registry-ref:L2"
+      },
+      "snapshot_id": "LIVE-v20261014",
+      "row": [
+        "2026-10-10T09:00",
+        "2026-10-10",
+        "P-18",
+        "WORK",
+        "PRJ-K",
+        "5.0",
+        "ok",
+        "",
+        "NEWID"
+      ],
+      "expected_status": "normal",
+      "expected_reason": "cross_side_stable_ok_valid_mapping"
+    },
+    {
+      "id": "P9",
+      "namespace": "archive:20260928",
+      "source_record_id": "X1",
+      "logical_source_id": "LS-3",
+      "mapping_basis": {
+        "maps_to": {
+          "namespace": "live",
+          "source_record_id": "X2",
+          "snapshot_id": "LIVE-v20261014"
+        },
+        "evidence": "registry-ref:L3"
+      },
+      "snapshot_id": "ARCH-v19",
+      "row": [
+        "2026-10-10T09:00",
+        "2026-10-10",
+        "P-20",
+        "WORK",
+        "PRJ-M",
+        "4.0",
+        "ok",
+        "",
+        "X1"
+      ],
+      "expected_status": "normal",
+      "expected_reason": "cross_side_stable_ok_valid_mapping"
+    },
+    {
+      "id": "P10",
+      "namespace": "live",
+      "source_record_id": "X2",
+      "logical_source_id": "LS-3",
+      "mapping_basis": {
+        "maps_to": {
+          "namespace": "archive:20260928",
+          "source_record_id": "X1",
+          "snapshot_id": "ARCH-v19"
+        },
+        "evidence": "registry-ref:L3"
+      },
+      "snapshot_id": "LIVE-v20261014",
+      "row": [
+        "2026-10-10T09:00",
+        "2026-10-10",
+        "P-20",
+        "WORK",
+        "PRJ-M",
+        "4.0",
+        "ok",
+        "",
+        "X2"
+      ],
+      "expected_status": "normal",
+      "expected_reason": "cross_side_stable_ok_valid_mapping"
+    },
+    {
+      "id": "P11",
+      "namespace": "prod",
+      "source_record_id": "TS-PG",
+      "snapshot_id": "C-v20261015",
+      "row": [
+        "2026-10-10T09:00",
+        "2026-10-10",
+        "P-21",
+        "WORK",
+        "PRJ-P",
+        "6.0",
+        "ok",
+        "",
+        "TS-PG"
+      ],
+      "pagination": {
+        "declared_range": [
+          1,
+          100
+        ],
+        "present": "1-100"
+      },
+      "expected_status": "normal",
+      "expected_reason": "pagination_complete"
+    },
+    {
+      "id": "P12",
+      "namespace": "archive:20260831",
+      "source_record_id": "GUID:snap",
+      "logical_source_id": "LS-5",
+      "snapshot_id": "ARCH-v19",
+      "row": [
+        "2026-10-10T09:00",
+        "2026-10-10",
+        "P-24",
+        "WORK",
+        "PRJ-Q",
+        "6.0",
+        "ok",
+        "",
+        "GUID:snap"
+      ],
+      "expected_status": "normal",
+      "expected_reason": "cross_snapshot_stable_ok_shared_guid"
+    },
+    {
+      "id": "P13",
+      "namespace": "archive:20260928",
+      "source_record_id": "GUID:snap",
+      "logical_source_id": "LS-5",
+      "snapshot_id": "ARCH-v19",
+      "row": [
+        "2026-10-10T09:00",
+        "2026-10-10",
+        "P-24",
+        "WORK",
+        "PRJ-Q",
+        "6.0",
+        "ok",
+        "",
+        "GUID:snap"
+      ],
+      "expected_status": "normal",
+      "expected_reason": "cross_snapshot_stable_ok_shared_guid"
+    },
+    {
+      "id": "P14",
+      "namespace": "archive:20260831",
+      "source_record_id": "ARCH-A",
+      "logical_source_id": "LS-7",
+      "mapping_basis": {
+        "maps_to": {
+          "namespace": "archive:20260928",
+          "source_record_id": "ARCH-B",
+          "snapshot_id": "ARCH-v19"
+        },
+        "evidence": "registry-ref:L7"
+      },
+      "snapshot_id": "ARCH-v19",
+      "row": [
+        "2026-10-10T09:00",
+        "2026-10-10",
+        "P-25",
+        "WORK",
+        "PRJ-R",
+        "5.0",
+        "ok",
+        "",
+        "ARCH-A"
+      ],
+      "expected_status": "normal",
+      "expected_reason": "cross_snapshot_stable_ok_valid_mapping"
+    },
+    {
+      "id": "P15",
+      "namespace": "archive:20260928",
+      "source_record_id": "ARCH-B",
+      "logical_source_id": "LS-7",
+      "mapping_basis": {
+        "maps_to": {
+          "namespace": "archive:20260831",
+          "source_record_id": "ARCH-A",
+          "snapshot_id": "ARCH-v19"
+        },
+        "evidence": "registry-ref:L7"
+      },
+      "snapshot_id": "ARCH-v19",
+      "row": [
+        "2026-10-10T09:00",
+        "2026-10-10",
+        "P-25",
+        "WORK",
+        "PRJ-R",
+        "5.0",
+        "ok",
+        "",
+        "ARCH-B"
+      ],
+      "expected_status": "normal",
+      "expected_reason": "cross_snapshot_stable_ok_valid_mapping"
+    },
+    {
+      "id": "P16",
+      "namespace": "prod",
+      "source_record_id": "GUID:cap",
+      "logical_source_id": "LS-11",
+      "snapshot_id": "C-v20261014",
+      "row": [
+        "2026-10-10T09:00",
+        "2026-10-10",
+        "P-32",
+        "WORK",
+        "PRJ-Y",
+        "6.0",
+        "ok",
+        "",
+        "GUID:cap"
+      ],
+      "expected_status": "normal",
+      "expected_reason": "cross_snapshot_stable_ok_shared_guid"
+    },
+    {
+      "id": "P17",
+      "namespace": "prod",
+      "source_record_id": "GUID:cap",
+      "logical_source_id": "LS-11",
+      "snapshot_id": "C-v20261015",
+      "row": [
+        "2026-10-10T09:00",
+        "2026-10-10",
+        "P-32",
+        "WORK",
+        "PRJ-Y",
+        "6.0",
+        "ok",
+        "",
+        "GUID:cap"
+      ],
+      "expected_status": "normal",
+      "expected_reason": "cross_snapshot_stable_ok_shared_guid"
+    },
+    {
+      "id": "P18",
+      "namespace": "prod",
+      "source_record_id": "DUP-1",
+      "logical_source_id": "LS-12",
+      "mapping_basis": {
+        "maps_to": {
+          "namespace": "live",
+          "source_record_id": "DUP-1",
+          "snapshot_id": "LIVE-v20261014"
+        },
+        "evidence": "registry-ref:L12"
+      },
+      "snapshot_id": "C-v20261014",
+      "row": [
+        "2026-10-10T09:00",
+        "2026-10-10",
+        "P-33",
+        "WORK",
+        "PRJ-Z",
+        "4.0",
+        "ok",
+        "",
+        "DUP-1"
+      ],
+      "expected_status": "normal",
+      "expected_reason": "cross_side_stable_ok_valid_mapping"
+    },
+    {
+      "id": "P19",
+      "namespace": "live",
+      "source_record_id": "DUP-1",
+      "logical_source_id": "LS-12",
+      "mapping_basis": {
+        "maps_to": {
+          "namespace": "prod",
+          "source_record_id": "DUP-1",
+          "snapshot_id": "C-v20261014"
+        },
+        "evidence": "registry-ref:L12"
+      },
+      "snapshot_id": "LIVE-v20261014",
+      "row": [
+        "2026-10-10T09:00",
+        "2026-10-10",
+        "P-33",
+        "WORK",
+        "PRJ-Z",
+        "4.0",
+        "ok",
+        "",
+        "DUP-1"
+      ],
+      "expected_status": "normal",
+      "expected_reason": "cross_side_stable_ok_valid_mapping"
+    },
+    {
+      "id": "P20",
+      "namespace": "archive:20260928",
+      "source_record_id": "UNIQ-3",
+      "logical_source_id": "LS-12",
+      "mapping_basis": {
+        "maps_to": {
+          "namespace": "live",
+          "source_record_id": "DUP-1",
+          "snapshot_id": "LIVE-v20261014"
+        },
+        "evidence": "registry-ref:L12"
+      },
+      "snapshot_id": "ARCH-v19",
+      "row": [
+        "2026-10-10T09:00",
+        "2026-10-10",
+        "P-33",
+        "WORK",
+        "PRJ-Z",
+        "4.0",
+        "ok",
+        "",
+        "UNIQ-3"
+      ],
+      "expected_status": "normal",
+      "expected_reason": "cross_side_stable_ok_valid_mapping"
+    },
+    {
+      "id": "P23",
+      "namespace": "prod",
+      "source_record_id": "TS-EXACT",
+      "snapshot_id": "C-v20261015",
+      "row": [
+        "2026-10-10T09:00",
+        "2026-10-10",
+        "P-42",
+        "WORK",
+        "PRJ-D2",
+        "6.0",
+        "ok",
+        "",
+        "TS-EXACT"
+      ],
+      "expected_status": "normal",
+      "expected_reason": "ok",
+      "note": "与同组全同（含提交时间）→ 硬判定 normal/ok；并列测量层标记 exact_duplicate（v2p6 双轨：测量不改变硬判定；实证 prod 1544 组同键同内容——是否属实际重复业务待业务裁定，first-seen 仅聚合复算代表选择）",
+      "expected_measure": "exact_duplicate"
+    },
+    {
+      "id": "P24",
+      "namespace": "prod",
+      "source_record_id": "TS-EXACT",
+      "snapshot_id": "C-v20261015",
+      "row": [
+        "2026-10-10T09:00",
+        "2026-10-10",
+        "P-42",
+        "WORK",
+        "PRJ-D2",
+        "6.0",
+        "ok",
+        "",
+        "TS-EXACT"
+      ],
+      "expected_status": "normal",
+      "expected_reason": "ok",
+      "expected_measure": "exact_duplicate",
+      "note": "与同组全同（含提交时间）→ 硬判定 normal/ok；并列测量层标记 exact_duplicate（v2p6 双轨：测量不改变硬判定；实证 prod 1544 组同键同内容——是否属实际重复业务待业务裁定，first-seen 仅聚合复算代表选择）"
+    },
+    {
+      "id": "N24",
+      "namespace": "prod",
+      "source_record_id": "STAGE-DIFF",
+      "snapshot_id": "C-v20261015",
+      "row": [
+        "2026-10-12T09:00",
+        "2026-10-12",
+        "P-44",
+        "WORK",
+        "PRJ-D4",
+        "8.0",
+        "ok",
+        "",
+        "STAGE-DIFF"
+      ],
+      "source_row": [
+        "2026-10-12T09:00",
+        "2026-10-12",
+        "P-44",
+        "WORK",
+        "2. 设计阶段",
+        "PRJ-D4",
+        "8.0",
+        "ok",
+        "STAGE-DIFF"
+      ],
+      "expected_status": "normal",
+      "expected_reason": "ok",
+      "expected_measure": "exact_duplicate",
+      "expected_source_field_diff": true,
+      "note": "阶段差异折叠诊断（Tom 22:22）：与 N24b 原始行仅阶段列不同（2. 设计阶段 vs 3. 施工阶段，均不触发 LEAVE）→ 投影后规范视图全同，biz 摘要亦同，差异被折叠；以 source_full_digest 显式暴露（保留原始全行摘要与字段清单），登记为『投影折叠差异』，不等同业务有效、不据此判合并"
+    },
+    {
+      "id": "N24b",
+      "namespace": "prod",
+      "source_record_id": "STAGE-DIFF",
+      "snapshot_id": "C-v20261015",
+      "row": [
+        "2026-10-12T09:00",
+        "2026-10-12",
+        "P-44",
+        "WORK",
+        "PRJ-D4",
+        "8.0",
+        "ok",
+        "",
+        "STAGE-DIFF"
+      ],
+      "source_row": [
+        "2026-10-12T09:00",
+        "2026-10-12",
+        "P-44",
+        "WORK",
+        "3. 施工阶段",
+        "PRJ-D4",
+        "8.0",
+        "ok",
+        "STAGE-DIFF"
+      ],
+      "expected_status": "normal",
+      "expected_reason": "ok",
+      "expected_measure": "exact_duplicate",
+      "expected_source_field_diff": true,
+      "note": "同 N24（阶段差异对例）；证明『biz 相同』不等于『原始行相同』——不得凭减少隔离面证明口径正确"
+    }
+  ],
+  "negative_examples": [
+    {
+      "id": "N1",
+      "namespace": "prod",
+      "source_record_id": "TS-X",
+      "snapshot_id": "C-v20261015",
+      "row": [
+        "2026-10-10T09:00",
+        "2026-10-10",
+        "P-7",
+        "WORK"
+      ],
+      "expected_status": "isolated",
+      "expected_reason": "missing_column"
+    },
+    {
+      "id": "N2",
+      "namespace": "prod",
+      "source_record_id": "TS-Y",
+      "snapshot_id": "C-v20261015",
+      "row": [
+        "2026-10-10T09:00",
+        "2026-10-10",
+        "P-8",
+        "WORK",
+        "PRJ-D",
+        "8.0",
+        "ok",
+        "",
+        "TS-Y",
+        "EXTRA"
+      ],
+      "expected_status": "isolated",
+      "expected_reason": "schema_width_mismatch"
+    },
+    {
+      "id": "N3",
+      "namespace": "prod",
+      "source_record_id": "",
+      "snapshot_id": "C-v20261015",
+      "row": [
+        "2026-10-10T09:00",
+        "2026-10-10",
+        "P-9",
+        "WORK",
+        "PRJ-E",
+        "8.0",
+        "ok",
+        "",
+        ""
+      ],
+      "expected_status": "isolated",
+      "expected_reason": "empty_required_key"
+    },
+    {
+      "id": "N4",
+      "namespace": "prod",
+      "source_record_id": "",
+      "snapshot_id": "C-v20261015",
+      "row": [
+        "",
+        "",
+        "",
+        "",
+        "",
+        "",
+        "",
+        "",
+        ""
+      ],
+      "expected_status": "isolated",
+      "expected_reason": "placeholder_empty_row"
+    },
+    {
+      "id": "N5",
+      "namespace": "archive:20260831",
+      "source_record_id": "U:OFF-WORK / Leave",
+      "snapshot_id": "ARCH-v19",
+      "row": [
+        "2023-01-01T00:00",
+        "2023-01-01",
+        "P-10",
+        "OFF-WORK",
+        "8",
+        "n/a",
+        "系统同步请假",
+        "LEAVE",
+        "OFF-WORK / Leave"
+      ],
+      "expected_status": "isolated",
+      "expected_reason": "pseudo_uuid_collapse"
+    },
+    {
+      "id": "N6",
+      "namespace": "prod",
+      "source_record_id": "TS-30",
+      "snapshot_id": "C-v20261015",
+      "row": [
+        "2026-02-30T09:00",
+        "2026-02-30",
+        "P-11",
+        "WORK",
+        "PRJ-F",
+        "8.0",
+        "ok",
+        "",
+        "TS-30"
+      ],
+      "expected_status": "isolated",
+      "expected_reason": "illegal_calendar"
+    },
+    {
+      "id": "N7",
+      "namespace": "prod",
+      "source_record_id": "TS-31",
+      "snapshot_id": "C-v20261015",
+      "row": [
+        "2026-04-31T09:00",
+        "2026-04-31",
+        "P-12",
+        "WORK",
+        "PRJ-G",
+        "8.0",
+        "ok",
+        "",
+        "TS-31"
+      ],
+      "expected_status": "isolated",
+      "expected_reason": "illegal_calendar"
+    },
+    {
+      "id": "N8",
+      "namespace": "prod",
+      "source_record_id": "TS-32",
+      "snapshot_id": "C-v20261015",
+      "row": [
+        "",
+        "",
+        "P-13",
+        "WORK",
+        "PRJ-H",
+        "8.0",
+        "ok",
+        "",
+        "TS-32"
+      ],
+      "expected_status": "isolated",
+      "expected_reason": "empty_date"
+    },
+    {
+      "id": "N9",
+      "namespace": "prod",
+      "source_record_id": "TS-33",
+      "snapshot_id": "C-v20261015",
+      "row": [
+        "2026-10-10T09:00",
+        "2026-10-10",
+        "P-14",
+        "WORK",
+        "PRJ-I",
+        "NaN",
+        "ok",
+        "",
+        "TS-33"
+      ],
+      "expected_status": "isolated",
+      "expected_reason": "non_finite_nan"
+    },
+    {
+      "id": "N10",
+      "namespace": "prod",
+      "source_record_id": "TS-34",
+      "snapshot_id": "C-v20261015",
+      "row": [
+        "2026-10-10T09:00",
+        "2026-10-10",
+        "P-15",
+        "WORK",
+        "PRJ-J",
+        "Infinity",
+        "ok",
+        "",
+        "TS-34"
+      ],
+      "expected_status": "isolated",
+      "expected_reason": "non_finite_inf"
+    },
+    {
+      "id": "N11A",
+      "namespace": "prod",
+      "source_record_id": "TS-CONF",
+      "snapshot_id": "C-v20261015",
+      "row": [
+        "2026-10-10T09:00",
+        "2026-10-10",
+        "P-16",
+        "WORK",
+        "PRJ-X",
+        "8.0",
+        "ok",
+        "",
+        "TS-CONF"
+      ],
+      "expected_status": "isolated",
+      "expected_reason": "same_key_diff_content"
+    },
+    {
+      "id": "N11B",
+      "namespace": "prod",
+      "source_record_id": "TS-CONF",
+      "snapshot_id": "C-v20261015",
+      "row": [
+        "2026-10-10T09:00",
+        "2026-10-10",
+        "P-17",
+        "WORK",
+        "PRJ-Y",
+        "7.0",
+        "ok",
+        "",
+        "TS-CONF"
+      ],
+      "expected_status": "isolated",
+      "expected_reason": "same_key_diff_content"
+    },
+    {
+      "id": "N12A",
+      "namespace": "archive:20260831",
+      "source_record_id": "ARCH-X",
+      "logical_source_id": "LS-4",
+      "snapshot_id": "ARCH-v19",
+      "row": [
+        "2026-10-10T09:00",
+        "2026-10-10",
+        "P-18",
+        "WORK",
+        "PRJ-K",
+        "5.0",
+        "ok",
+        "",
+        "ARCH-X"
+      ],
+      "expected_status": "isolated",
+      "expected_reason": "mapping_missing"
+    },
+    {
+      "id": "N12B",
+      "namespace": "archive:20260928",
+      "source_record_id": "ARCH-Y",
+      "logical_source_id": "LS-4",
+      "mapping_basis": "maps-to:ARCH-X",
+      "snapshot_id": "ARCH-v19",
+      "row": [
+        "2026-10-10T09:00",
+        "2026-10-10",
+        "P-18",
+        "WORK",
+        "PRJ-K",
+        "5.0",
+        "ok",
+        "",
+        "ARCH-Y"
+      ],
+      "expected_status": "isolated",
+      "expected_reason": "mapping_not_structured"
+    },
+    {
+      "id": "N12C",
+      "namespace": "archive:20260928",
+      "source_record_id": "C1",
+      "logical_source_id": "LS-8",
+      "mapping_basis": {
+        "maps_to": {
+          "namespace": "live",
+          "source_record_id": "GHOST",
+          "snapshot_id": "LIVE-v20261014"
+        },
+        "evidence": "registry-ref:L8"
+      },
+      "snapshot_id": "ARCH-v19",
+      "row": [
+        "2026-10-10T09:00",
+        "2026-10-10",
+        "P-26",
+        "WORK",
+        "PRJ-S",
+        "4.0",
+        "ok",
+        "",
+        "C1"
+      ],
+      "expected_status": "isolated",
+      "expected_reason": "mapping_target_mismatch"
+    },
+    {
+      "id": "N12D",
+      "namespace": "live",
+      "source_record_id": "C2",
+      "logical_source_id": "LS-8",
+      "mapping_basis": {
+        "maps_to": {
+          "namespace": "archive:20260928",
+          "source_record_id": "C1",
+          "snapshot_id": "ARCH-v19"
+        },
+        "evidence": "registry-ref:L8"
+      },
+      "snapshot_id": "LIVE-v20261014",
+      "row": [
+        "2026-10-10T09:00",
+        "2026-10-10",
+        "P-26",
+        "WORK",
+        "PRJ-S",
+        "4.0",
+        "ok",
+        "",
+        "C2"
+      ],
+      "expected_status": "isolated",
+      "expected_reason": "mapping_target_isolated"
+    },
+    {
+      "id": "N13",
+      "namespace": "archive:20260831",
+      "source_record_id": "SEG",
+      "snapshot_id": "ARCH-v19",
+      "pagination": {
+        "declared_range": [
+          1,
+          100
+        ],
+        "present": "1-49,56-100"
+      },
+      "row": [
+        "2026-08-31T00:00",
+        "2026-08-31",
+        "P-19",
+        "WORK",
+        "PRJ-L",
+        "5.0",
+        "ok",
+        "",
+        "SEG-1"
+      ],
+      "expected_status": "isolated",
+      "expected_reason": "pagination_missing_segment"
+    },
+    {
+      "id": "N14",
+      "namespace": "archive:20260831",
+      "source_record_id": "SEG2",
+      "snapshot_id": "ARCH-v19",
+      "pagination": {
+        "declared_range": [
+          1,
+          100
+        ],
+        "present": "1-60,55-100"
+      },
+      "row": [
+        "2026-08-31T00:00",
+        "2026-08-31",
+        "P-22",
+        "WORK",
+        "PRJ-N",
+        "5.0",
+        "ok",
+        "",
+        "SEG2-1"
+      ],
+      "expected_status": "isolated",
+      "expected_reason": "pagination_overlap"
+    },
+    {
+      "id": "N15",
+      "namespace": "archive:20260831",
+      "source_record_id": "SEG3",
+      "snapshot_id": "ARCH-v19",
+      "pagination": {
+        "declared_range": [
+          1,
+          100
+        ],
+        "present": "1-80"
+      },
+      "row": [
+        "2026-08-31T00:00",
+        "2026-08-31",
+        "P-23",
+        "WORK",
+        "PRJ-O",
+        "5.0",
+        "ok",
+        "",
+        "SEG3-1"
+      ],
+      "expected_status": "isolated",
+      "expected_reason": "pagination_truncated"
+    },
+    {
+      "id": "N16A",
+      "namespace": "prod",
+      "source_record_id": "TS-BAD",
+      "logical_source_id": "LS-9",
+      "mapping_basis": {
+        "maps_to": {
+          "namespace": "live",
+          "source_record_id": "NEW-9",
+          "snapshot_id": "LIVE-v20261014"
+        },
+        "evidence": "registry-ref:L9"
+      },
+      "snapshot_id": "C-v20261015",
+      "row": [
+        "2026-02-30T09:00",
+        "2026-02-30",
+        "P-27",
+        "WORK",
+        "PRJ-T",
+        "8.0",
+        "ok",
+        "",
+        "TS-BAD"
+      ],
+      "expected_status": "isolated",
+      "expected_reason": "illegal_calendar"
+    },
+    {
+      "id": "N16B",
+      "namespace": "live",
+      "source_record_id": "NEW-9",
+      "logical_source_id": "LS-9",
+      "mapping_basis": {
+        "maps_to": {
+          "namespace": "prod",
+          "source_record_id": "TS-BAD",
+          "snapshot_id": "C-v20261015"
+        },
+        "evidence": "registry-ref:L9"
+      },
+      "snapshot_id": "LIVE-v20261014",
+      "row": [
+        "2026-10-10T09:00",
+        "2026-10-10",
+        "P-27",
+        "WORK",
+        "PRJ-T",
+        "8.0",
+        "ok",
+        "",
+        "NEW-9"
+      ],
+      "expected_status": "isolated",
+      "expected_reason": "mapping_target_isolated"
+    },
+    {
+      "id": "N17",
+      "namespace": "prod",
+      "source_record_id": "TS-OOB1",
+      "snapshot_id": "C-v20261015",
+      "pagination": {
+        "declared_range": [
+          1,
+          100
+        ],
+        "present": "0-100"
+      },
+      "row": [
+        "2026-10-10T09:00",
+        "2026-10-10",
+        "P-28",
+        "WORK",
+        "PRJ-U",
+        "6.0",
+        "ok",
+        "",
+        "TS-OOB1"
+      ],
+      "expected_status": "isolated",
+      "expected_reason": "pagination_out_of_bounds"
+    },
+    {
+      "id": "N18",
+      "namespace": "prod",
+      "source_record_id": "TS-OOB2",
+      "snapshot_id": "C-v20261015",
+      "pagination": {
+        "declared_range": [
+          1,
+          100
+        ],
+        "present": "1-101"
+      },
+      "row": [
+        "2026-10-10T09:00",
+        "2026-10-10",
+        "P-29",
+        "WORK",
+        "PRJ-V",
+        "6.0",
+        "ok",
+        "",
+        "TS-OOB2"
+      ],
+      "expected_status": "isolated",
+      "expected_reason": "pagination_out_of_bounds"
+    },
+    {
+      "id": "N19",
+      "namespace": "prod",
+      "source_record_id": "TS-REV",
+      "snapshot_id": "C-v20261015",
+      "pagination": {
+        "declared_range": [
+          1,
+          100
+        ],
+        "present": "90-10"
+      },
+      "row": [
+        "2026-10-10T09:00",
+        "2026-10-10",
+        "P-30",
+        "WORK",
+        "PRJ-W",
+        "6.0",
+        "ok",
+        "",
+        "TS-REV"
+      ],
+      "expected_status": "isolated",
+      "expected_reason": "pagination_invalid_range"
+    },
+    {
+      "id": "N20",
+      "namespace": "prod",
+      "source_record_id": "TS-FMT",
+      "snapshot_id": "C-v20261015",
+      "pagination": {
+        "declared_range": [
+          1,
+          100
+        ],
+        "present": "1-abc"
+      },
+      "row": [
+        "2026-10-10T09:00",
+        "2026-10-10",
+        "P-31",
+        "WORK",
+        "PRJ-X2",
+        "6.0",
+        "ok",
+        "",
+        "TS-FMT"
+      ],
+      "expected_status": "isolated",
+      "expected_reason": "pagination_invalid_format"
+    },
+    {
+      "id": "N21A",
+      "namespace": "prod",
+      "source_record_id": "TS-PGF",
+      "logical_source_id": "LS-13",
+      "mapping_basis": {
+        "maps_to": {
+          "namespace": "live",
+          "source_record_id": "NEW-13",
+          "snapshot_id": "LIVE-v20261014"
+        },
+        "evidence": "registry-ref:L13"
+      },
+      "snapshot_id": "C-v20261015",
+      "pagination": {
+        "declared_range": [
+          1,
+          100
+        ],
+        "present": "1-80"
+      },
+      "row": [
+        "2026-10-10T09:00",
+        "2026-10-10",
+        "P-34",
+        "WORK",
+        "PRJ-Y2",
+        "6.0",
+        "ok",
+        "",
+        "TS-PGF"
+      ],
+      "expected_status": "isolated",
+      "expected_reason": "pagination_truncated"
+    },
+    {
+      "id": "N21B",
+      "namespace": "live",
+      "source_record_id": "NEW-13",
+      "logical_source_id": "LS-13",
+      "mapping_basis": {
+        "maps_to": {
+          "namespace": "prod",
+          "source_record_id": "TS-PGF",
+          "snapshot_id": "C-v20261015"
+        },
+        "evidence": "registry-ref:L13"
+      },
+      "snapshot_id": "LIVE-v20261014",
+      "row": [
+        "2026-10-10T09:00",
+        "2026-10-10",
+        "P-34",
+        "WORK",
+        "PRJ-Y2",
+        "8.0",
+        "ok",
+        "",
+        "NEW-13"
+      ],
+      "expected_status": "isolated",
+      "expected_reason": "mapping_target_isolated"
+    },
+    {
+      "id": "N22",
+      "namespace": "prod",
+      "source_record_id": "AUTO_LEAVE",
+      "snapshot_id": "C-v20261015",
+      "row": [
+        "2026-09-01T00:00",
+        "2026-09-01",
+        "P-40",
+        "",
+        "OFF-WORK",
+        "8.0",
+        "系统同步请假",
+        "LEAVE",
+        "AUTO_LEAVE"
+      ],
+      "expected_status": "isolated",
+      "expected_reason": "pseudo_uuid_collapse",
+      "note": "E1：UUID 位为常量标签 'AUTO_LEAVE'（与 'OFF-WORK / Leave' 同类）→ 离线异常候选 pseudo_uuid_collapse（Tom：支持加入候选及负例，与有稳定后缀的 AUTO_LEAVE-/LEAVE- 事件键分开，不按前缀一刀切，不据候选判可删除；实证 archives 3353 + live 1 + prod 2 行，计数仍为提交方报告）"
+    },
+    {
+      "id": "P21",
+      "namespace": "prod",
+      "source_record_id": "TS-DUP",
+      "snapshot_id": "C-v20261015",
+      "row": [
+        "2026-10-10T09:00",
+        "2026-10-10",
+        "P-41",
+        "WORK",
+        "PRJ-D1",
+        "8.0",
+        "ok",
+        "",
+        "TS-DUP"
+      ],
+      "expected_status": "isolated",
+      "expected_reason": "same_key_diff_content",
+      "expected_measure": "duplicate_entry",
+      "note": "T1 双轨（v2p6）：与 P22 同键仅提交时间不同——full 口径硬判定 same_key_diff_content（Tom：不为降低隔离数选口径，v2p5 曾误放行为 normal）；并列测量层（biz 剔除提交时间）标记 duplicate_entry，不改变硬判定"
+    },
+    {
+      "id": "P22",
+      "namespace": "prod",
+      "source_record_id": "TS-DUP",
+      "snapshot_id": "C-v20261015",
+      "row": [
+        "2026-10-10T09:30",
+        "2026-10-10",
+        "P-41",
+        "WORK",
+        "PRJ-D1",
+        "8.0",
+        "ok",
+        "",
+        "TS-DUP"
+      ],
+      "expected_status": "isolated",
+      "expected_reason": "same_key_diff_content",
+      "expected_measure": "duplicate_entry",
+      "note": "同一事件两次录入（业务内容全同、仅录入时间不同）——实证 live 46 组中 45 组、prod 234 组中 224 组属此类；硬判定 isolated，并列测量 duplicate_entry"
+    },
+    {
+      "id": "N23",
+      "namespace": "prod",
+      "source_record_id": "COORD-DUP",
+      "snapshot_id": "C-v20261015",
+      "logical_source_id": "LS-COORD",
+      "row": [
+        "2026-10-11T09:00",
+        "2026-10-11",
+        "P-43",
+        "WORK",
+        "PRJ-D3",
+        "8.0",
+        "ok",
+        "",
+        "COORD-DUP"
+      ],
+      "expected_status": "isolated",
+      "expected_reason": "logical_source_duplicate_in_snapshot",
+      "expected_measure": "exact_duplicate",
+      "note": "实现边界③（Tom 22:17）：与 N23b 同 logical_source 且完整坐标 (prod,C-v20261015,COORD-DUP) 相同 → logical_source_duplicate_in_snapshot；by_coord 去重索引遇坐标重复须单独登记诊断（不由字典覆盖替代审计）；两行全同，测量层并列标记 exact_duplicate"
+    },
+    {
+      "id": "N23b",
+      "namespace": "prod",
+      "source_record_id": "COORD-DUP",
+      "snapshot_id": "C-v20261015",
+      "logical_source_id": "LS-COORD",
+      "row": [
+        "2026-10-11T09:00",
+        "2026-10-11",
+        "P-43",
+        "WORK",
+        "PRJ-D3",
+        "8.0",
+        "ok",
+        "",
+        "COORD-DUP"
+      ],
+      "expected_status": "isolated",
+      "expected_reason": "logical_source_duplicate_in_snapshot",
+      "expected_measure": "exact_duplicate",
+      "note": "同 N23（完整坐标重复对例）；证明坐标重复被显式诊断而非静默覆盖"
+    }
+  ],
+  "coverage_matrix": {
+    "implemented_and_asserted": [
+      "regression: union/5084/11682/11681/finite_parseable_hours(独立两侧有限可解析求和)/4568/8018/live_eff/special键位置与工时非有限/first_seen_19向量(逐档19项新增键数)/两集合非有限计数",
+      "idempotency: 结构化身份键(含显式 ver) + state 模型；仅 created/合法 versioned 提交状态；UPSERT ver=0 基版、CORRECT ver>=1 多更正版本链；前序须已接受且 ver 严格前驱(pred.ver=ver-1)+se/ns/rv 一致；重放须同身份+同摘要+同前序；覆盖冲突后重放/拒绝后状态不变/假前序拒绝/删前序拒绝/换前序冲突/同更正身份异内容/合法第二更正及其重放与异内容（15 例，实现不读 expected）",
+      "single: missing/extra column, empty_required, placeholder, pseudo_uuid, illegal_calendar(含2026-02-30/04-31/空), non_finite(NaN/Infinity)",
+      "relational: 硬失败(单例/G1/分页)先行确定，关系(G2/G3)不动点传播至稳定且只增不减；索引自建(不带 group 标签)；G2 跨侧(共享 GUID 正例+有效结构化映射正例+伪映射/目标失配负例)；G3 同侧跨档/同 ns 跨 snapshot(共享 GUID 正例+有效映射正例+缺映射负例)；快照坐标=(namespace,snapshot_id)；映射目标按完整坐标索引；三记录重复 sid 不同完整坐标组(P18/P19/P20)；硬失败+映射组合(N16A/B)；目标分页失败+映射传播(N21A/B)",
+      "pagination: 完整/缺段/重叠/截断 + 越界显式失败(0-100/1-101) + 倒序·空区间 invalid_range + 异常格式 invalid_format",
+      "normal_reason: 全部正例断言 expected_reason（不只断言 status）",
+      "example_counts: 测试断言实际例数(21 正+27 负=48，state model 15)与 fixture meta.example_counts 声明一致，并打印测试/fixture/依赖实际 SHA",
+      "manifest: 交付物实际文件 SHA 绑定 + dependencies(offline_recompute_scrubbed.py) SHA 绑定 + archives 原/副本 SHA 分离断言 + fixture meta 自洽",
+      "projection: 源→规范 9 列映射逐列断言（PJ1-PJ8：prod/live 15 列与 archives 9 列前 9 列同构；日期多格式规范化 ISO/ISO+time/US M/D/Y，不存在日期原样保留；请假标识派生；UUID 位原值；自动列与阶段列丢弃）",
+      "pseudo E1: UUID 位常量标签 {'OFF-WORK / Leave','AUTO_LEAVE'} → pseudo_uuid_collapse（N5/N22；实证另覆盖 AUTO_LEAVE 3356 行）",
+      "G1 payload 业务内容口径（biz，剔除提交时间）：同键同业务内容不判冲突；软标记 duplicate_entry（仅提交时间不同 P21/P22）/ exact_duplicate（全同 P23/P24）；同键异业务内容仍硬隔离（N11A/B）；软标记不改变 status（仍 normal），聚合层 first-seen 去重",
+      "请假路由: LEAVE-/AL- 真实记录 ID 行正常路由（P3/P4），常量标签行 pseudo（N5/N22）——两条路径互斥",
+      "G1 双轨（v2p6 T1）：硬判定层 full 口径（同键多例且全行含提交时间不同 → same_key_diff_content；P21/P22 已移入负例，v2p5 误放行已修正）；并列测量层 biz_digest（版本化、剔除提交时间）对同键组测量 duplicate_entry（仅提交时间不同）/ exact_duplicate（全同）——expected_measure 逐例断言，测量不改变硬判定、不宣称恢复/计薪/同一事件",
+      "实现边界登记（Tom 22:17）：UPSERT ver=0/CORRECT ver>=1 无入口强制类型/范围校验（不声称任意输入保证该不变量）；accepted 别名 tag 与稳定事件身份须明确定义（重试 tag 变化不当不同前序）；关系组完整坐标去重索引须单独保留坐标重复诊断（不由字典覆盖替代审计）——测试含对应断言/登记",
+      "报告口径修正：union 16766/after_excl 11682/final 11681 均为离线数据行键数口径；主库工时 sheet 11682 含 1 行表头，与离线 11681 不同分母不可直接相减（差 1 归因 special 仅限离线口径内）；724fef64/ad3788f0/9bd8bb74 为此前冻结/对账材料指纹，非 PKC 版本轮次",
+      "T4 三层分开：契约行级隔离（本 fixture）/ 聚合 F 键回退（offline_recompute_scrubbed.key_of）/ 业务可用性（待有权方）——同一冻结定位互斥完备换算表见合同，F 键可复现不等于身份 PROVEN/唯一实体/计薪可信"
+    ],
+    "doc_only_or_pending": [
+      "4568 矩阵中『提交方源码描述/未核验』层（leave_sync.js 写入路径、『缺陷仅该次回填当前已正确』均非 Tom 确认）",
+      "主库 7 门槛（离线候选，未以 0 标记反证已实现）",
+      "历史引用 / 集合互斥完备 / 确定性：仅文档，未自动断言",
+      "mapping.evidence：仅校验证据引用存在性（非空字符串），不宣称引用内容已经独立核实",
+      "更正链范围：前序须为已接受记录且 ver 严格前驱；不强制跨来源合并链，亦不授权真实落库",
+      "两层口径（T4）：契约视图管行级可信度（空 UUID → empty_required_key 隔离），合并层 key_of F: 键管聚合复算（union 16766 含 F: 键）；换算表见合同，禁混用——文档声明",
+      "软标记的聚合语义（first-seen 去重）属合并层既定行为，合同仅声明不重复实现",
+      "跨侧 logical_source 提取规则（T5）：文档定义；真实数据应用标注「未应用」，G2/G3 正确性由 fixture 保证",
+      "19 档逐档 schema 登记与行级 schema 路由（投影 P 配套）：单行表头同构不证明全档同 schema，已知错位 4568 行档须路由——合同 §1.4 定义，逐档字节摘要绑定见登记表",
+      "logical_source 提取规则（T5）：先出可追溯依据及冲突/未知状态；无绑定依据的跨侧关联 HOLD；不能靠可能塌缩的 U 键或不唯一 F 键循环证明身份",
+      "US 格式日期：5884 行可排除 D/M 解释（实证 M/D/Y），不证明其余歧义日期逐条正确；日期格式解析与业务日期裁定分开"
+    ],
+    "uncovered_pending": [
+      "跨快照同键异内容冲突的自动修复建议（当前仅隔离）",
+      "leave_sync.js 源码逐行定位（需固定版本源码，当前仅描述性证据）"
+    ]
+  },
+  "idempotency_state_model": {
+    "note": "state 模型（v2p4 更正链 + 重放前序绑定）：identity_key = 结构化 JSON(se,op,rv,ns,ver)；UPSERT ver=0 基版，CORRECT ver>=1 更正版本；state[key]={digest,predecessor,version} 仅在 created 或合法 versioned 时提交；UPSERT 同键同摘要=idempotent(保持)、异摘要=conflict(保持，不覆写)；CORRECT 前序须为已接受记录且 ver 严格前驱(pred.ver=ver-1)+se/ns/rv 一致，否则 rejected(不写状态)；CORRECT 同键重放须同摘要且同前序才 idempotent，异摘要或异前序=conflict(保持)；支持多更正版本链(ver=1,2,...)。实现禁止读取 expected 计算 got。",
+    "cases": [
+      {
+        "tag": "E1-upsert-1",
+        "source_event_id": "E1",
+        "op": "UPSERT",
+        "rule_version": "PKC-v2p6",
+        "namespace": "prod",
+        "ver": 0,
+        "payload_digest": "dA",
+        "predecessor": null,
+        "expected": "created",
+        "note": "UPSERT 新键(ver=0 基版) -> created（提交状态）"
+      },
+      {
+        "tag": "E1-upsert-2",
+        "source_event_id": "E1",
+        "op": "UPSERT",
+        "rule_version": "PKC-v2p6",
+        "namespace": "prod",
+        "ver": 0,
+        "payload_digest": "dA",
+        "predecessor": null,
+        "expected": "idempotent",
+        "note": "同摘要重放 -> idempotent（状态保持）"
+      },
+      {
+        "tag": "E1-upsert-3",
+        "source_event_id": "E1",
+        "op": "UPSERT",
+        "rule_version": "PKC-v2p6",
+        "namespace": "prod",
+        "ver": 0,
+        "payload_digest": "dB",
+        "predecessor": null,
+        "expected": "conflict",
+        "note": "异摘要 -> conflict（状态保持 dA，不覆写）"
+      },
+      {
+        "tag": "E1-upsert-4",
+        "source_event_id": "E1",
+        "op": "UPSERT",
+        "rule_version": "PKC-v2p6",
+        "namespace": "prod",
+        "ver": 0,
+        "payload_digest": "dA",
+        "predecessor": null,
+        "expected": "idempotent",
+        "note": "冲突后重放 dA -> idempotent（证明 conflict 未污染状态）"
+      },
+      {
+        "tag": "E1-correct-v1-0",
+        "source_event_id": "E1",
+        "op": "CORRECT",
+        "rule_version": "PKC-v2p6",
+        "namespace": "prod",
+        "ver": 1,
+        "payload_digest": "dD",
+        "predecessor": null,
+        "expected": "rejected",
+        "note": "CORRECT 无前序 -> rejected（不写状态；先于 versioned 执行以保证更正键未建立）"
+      },
+      {
+        "tag": "E1-correct-v1-0b",
+        "source_event_id": "E1",
+        "op": "CORRECT",
+        "rule_version": "PKC-v2p6",
+        "namespace": "prod",
+        "ver": 1,
+        "payload_digest": "dD",
+        "predecessor": null,
+        "expected": "rejected",
+        "note": "拒绝后同动作再拒 -> rejected（证明 rejected 未污染状态）"
+      },
+      {
+        "tag": "E1-correct-v1-fake",
+        "source_event_id": "E1",
+        "op": "CORRECT",
+        "rule_version": "PKC-v2p6",
+        "namespace": "prod",
+        "ver": 1,
+        "payload_digest": "dF",
+        "predecessor": "E1-upsert-99",
+        "expected": "rejected",
+        "note": "假前序（未被接受的 tag）-> rejected"
+      },
+      {
+        "tag": "E1-correct-v1",
+        "source_event_id": "E1",
+        "op": "CORRECT",
+        "rule_version": "PKC-v2p6",
+        "namespace": "prod",
+        "ver": 1,
+        "payload_digest": "dC",
+        "predecessor": "E1-upsert-1",
+        "expected": "versioned",
+        "note": "首次更正：前序=已接受 UPSERT(ver=0=1-1) -> versioned（提交更正版本 v1）"
+      },
+      {
+        "tag": "E1-correct-v1b",
+        "source_event_id": "E1",
+        "op": "CORRECT",
+        "rule_version": "PKC-v2p6",
+        "namespace": "prod",
+        "ver": 1,
+        "payload_digest": "dC",
+        "predecessor": "E1-upsert-1",
+        "expected": "idempotent",
+        "note": "更正重放：同身份+同摘要+同前序 -> idempotent"
+      },
+      {
+        "tag": "E1-correct-v1c",
+        "source_event_id": "E1",
+        "op": "CORRECT",
+        "rule_version": "PKC-v2p6",
+        "namespace": "prod",
+        "ver": 1,
+        "payload_digest": "dC",
+        "predecessor": null,
+        "expected": "rejected",
+        "note": "同摘要删前序重放 -> rejected（CORRECT 须带前序；v2p3 此处误判 idempotent）"
+      },
+      {
+        "tag": "E1-correct-v1d",
+        "source_event_id": "E1",
+        "op": "CORRECT",
+        "rule_version": "PKC-v2p6",
+        "namespace": "prod",
+        "ver": 1,
+        "payload_digest": "dC",
+        "predecessor": "E1-upsert-2",
+        "expected": "conflict",
+        "note": "同摘要换前序重放（前序改为另一已接受 tag）-> conflict（重放须同前序；v2p3 此处误判 idempotent）"
+      },
+      {
+        "tag": "E1-correct-v1e",
+        "source_event_id": "E1",
+        "op": "CORRECT",
+        "rule_version": "PKC-v2p6",
+        "namespace": "prod",
+        "ver": 1,
+        "payload_digest": "dE",
+        "predecessor": "E1-upsert-1",
+        "expected": "conflict",
+        "note": "同更正身份(v1)异摘要 -> conflict（状态保持，不反复 versioned）"
+      },
+      {
+        "tag": "E1-correct-v2",
+        "source_event_id": "E1",
+        "op": "CORRECT",
+        "rule_version": "PKC-v2p6",
+        "namespace": "prod",
+        "ver": 2,
+        "payload_digest": "dG",
+        "predecessor": "E1-correct-v1",
+        "expected": "versioned",
+        "note": "合法第二更正：前序=已接受更正 v1(1=2-1) -> versioned（多更正版本链）"
+      },
+      {
+        "tag": "E1-correct-v2b",
+        "source_event_id": "E1",
+        "op": "CORRECT",
+        "rule_version": "PKC-v2p6",
+        "namespace": "prod",
+        "ver": 2,
+        "payload_digest": "dG",
+        "predecessor": "E1-correct-v1",
+        "expected": "idempotent",
+        "note": "第二更正重放：同身份+同摘要+同前序 -> idempotent"
+      },
+      {
+        "tag": "E1-correct-v2c",
+        "source_event_id": "E1",
+        "op": "CORRECT",
+        "rule_version": "PKC-v2p6",
+        "namespace": "prod",
+        "ver": 2,
+        "payload_digest": "dH",
+        "predecessor": "E1-correct-v1",
+        "expected": "conflict",
+        "note": "第二更正身份(v2)异摘要 -> conflict（状态保持）"
+      }
+    ]
+  },
+  "projection_cases": [
+    {
+      "id": "PJ1",
+      "side": "prod(15列)",
+      "raw": [
+        "2026-04-01 13:05:14",
+        "2026-04-01",
+        "P-1",
+        "执行端",
+        "2. 设计阶段",
+        "24-074-SZ",
+        "4",
+        "招标答疑",
+        "GUID:pj1",
+        "Siemens | SZ",
+        "PM-1",
+        "SUP-1",
+        "Signed",
+        "2026-4",
+        ""
+      ],
+      "expected": [
+        "2026-04-01 13:05:14",
+        "2026-04-01",
+        "P-1",
+        "执行端",
+        "24-074-SZ",
+        "4",
+        "招标答疑",
+        "",
+        "GUID:pj1"
+      ],
+      "note": "prod 常规行 ISO 日期；阶段列/自动列不进规范视图。P 为派生视图非删除：原始 15 列行（含阶段列）在冻结副本完整保留，阶段列语义经请假标识派生保留；单行表头正常不证明 19 档所有行同 schema",
+      "expected_route": "ok"
+    },
+    {
+      "id": "PJ2",
+      "side": "prod(15列)",
+      "raw": [
+        "2026-04-02 09:00:00",
+        "2026-04-01 0:00:00",
+        "P-2",
+        "执行端",
+        "1. 投标",
+        "26-045-BJ",
+        "8",
+        "效果图",
+        "TS-pj2",
+        "NOV | BJ",
+        "",
+        "SUP-2",
+        "",
+        "",
+        ""
+      ],
+      "expected": [
+        "2026-04-02 09:00:00",
+        "2026-04-01",
+        "P-2",
+        "执行端",
+        "26-045-BJ",
+        "8",
+        "效果图",
+        "",
+        "TS-pj2"
+      ],
+      "note": "ISO+time 日期截断为 YYYY-MM-DD（实证 archives 18327 + prod 4729 + live 4383 行）",
+      "expected_route": "ok"
+    },
+    {
+      "id": "PJ3",
+      "side": "archives(9列)",
+      "raw": [
+        "4/1/2026 13:05:14",
+        "8/2/2024",
+        "P-3",
+        "执行端",
+        "2. 设计阶段",
+        "24-074-SZ",
+        "4",
+        "备注",
+        "GUID:pj3"
+      ],
+      "expected": [
+        "4/1/2026 13:05:14",
+        "2024-08-02",
+        "P-3",
+        "执行端",
+        "24-074-SZ",
+        "4",
+        "备注",
+        "",
+        "GUID:pj3"
+      ],
+      "note": "US M/D/Y → ISO（实证：首分量 1-12、次分量 1-31、5884 行次分量>12 → M/D/Y；archives 9605 行）",
+      "expected_route": "ok"
+    },
+    {
+      "id": "PJ4",
+      "side": "prod(15列)",
+      "raw": [
+        "2026-09-05 06:29:37",
+        "2026-07-24",
+        "P-4",
+        "休假",
+        "OFF-WORK",
+        "OFF-WORK",
+        "8.0",
+        "系统同步请假",
+        "LEAVE-pj4",
+        "OFF-WORK / Leave",
+        "",
+        "",
+        "",
+        "2026-7",
+        ""
+      ],
+      "expected": [
+        "2026-09-05 06:29:37",
+        "2026-07-24",
+        "P-4",
+        "休假",
+        "OFF-WORK",
+        "8.0",
+        "系统同步请假",
+        "LEAVE",
+        "LEAVE-pj4"
+      ],
+      "note": "LEAVE- 行：UUID 位为真实记录 ID（非常量）→ 正常路由；请假标识派生；自动列常量标签不进规范视图",
+      "expected_route": "ok"
+    },
+    {
+      "id": "PJ5",
+      "side": "archives(9列)",
+      "raw": [
+        "8/29/2026 06:30:23",
+        "2023-07-27",
+        "P-5",
+        "OFF-WORK",
+        "OFF-WORK",
+        "8",
+        "系统同步请假 | P-5 on leave",
+        "LEAVE-pj5",
+        "OFF-WORK / Leave"
+      ],
+      "expected": [
+        "8/29/2026 06:30:23",
+        "2023-07-27",
+        "P-5",
+        "OFF-WORK",
+        "8",
+        "系统同步请假 | P-5 on leave",
+        "LEAVE-pj5",
+        "",
+        "OFF-WORK / Leave"
+      ],
+      "note": "mangled 伪行（备注位=真实 recordId、UUID 位=常量标签）；请假标识按既定 leave 语义两条件均不满足故为空——该行由 pseudo 规则隔离不经 leave 路由",
+      "expected_route": "pseudo_uuid_collapse"
+    },
+    {
+      "id": "PJ6",
+      "side": "prod(15列)",
+      "raw": [
+        "2026-07-09 21:16:27",
+        "2026-05-01",
+        "P-6",
+        "",
+        "休假",
+        "OFF-WORK",
+        "8.0",
+        "系统同步请假",
+        "AUTO_LEAVE",
+        "休假/非工作",
+        "",
+        "SUP-6",
+        "",
+        "2026-5",
+        ""
+      ],
+      "expected": [
+        "2026-07-09 21:16:27",
+        "2026-05-01",
+        "P-6",
+        "",
+        "OFF-WORK",
+        "8.0",
+        "系统同步请假",
+        "LEAVE",
+        "AUTO_LEAVE"
+      ],
+      "note": "AUTO_LEAVE 行：UUID 位为常量标签 → 投影后由 E1 判 pseudo；请假标识由阶段=='休假' 派生",
+      "expected_route": "pseudo_uuid_collapse"
+    },
+    {
+      "id": "PJ7",
+      "side": "archives(9列)",
+      "raw": [
+        "4/1/2026 13:05:14",
+        "2/30/2026",
+        "P-7",
+        "执行端",
+        "2. 设计阶段",
+        "24-074-SZ",
+        "4",
+        "备注",
+        "GUID:pj7"
+      ],
+      "expected": [
+        "4/1/2026 13:05:14",
+        "2/30/2026",
+        "P-7",
+        "执行端",
+        "24-074-SZ",
+        "4",
+        "备注",
+        "",
+        "GUID:pj7"
+      ],
+      "note": "US 格式但日期不存在 → canon_date 原样保留，下游 valid_calendar 判 illegal_calendar（格式问题与历法问题分离）",
+      "expected_route": "illegal_calendar"
+    },
+    {
+      "id": "PJ8",
+      "side": "live(15列)",
+      "raw": [
+        "2026-04-01 13:05:14",
+        "2026-04-01 0:00:00",
+        "P-8",
+        "执行端",
+        "2. 设计阶段",
+        "24-074-SZ",
+        "4",
+        "招标答疑、建筑答疑",
+        "70a16c63-e559-4db0-9f95-30e2158f3ca1",
+        "Siemens Healthineers | Shenzhen | Design",
+        "PM-8",
+        "SUP-8",
+        "Signed",
+        "",
+        ""
+      ],
+      "expected": [
+        "2026-04-01 13:05:14",
+        "2026-04-01",
+        "P-8",
+        "执行端",
+        "24-074-SZ",
+        "4",
+        "招标答疑、建筑答疑",
+        "",
+        "70a16c63-e559-4db0-9f95-30e2158f3ca1"
+      ],
+      "note": "live 15 列与 prod 同构投影（PM/主管列已假名化；自动列丢弃）",
+      "expected_route": "ok"
+    },
+    {
+      "id": "PJ9",
+      "side": "archives(9列)",
+      "raw": [
+        "4/1/2026 13:05:14",
+        "2026-04-01 garbage",
+        "P-9",
+        "执行端",
+        "2. 设计阶段",
+        "24-074-SZ",
+        "4",
+        "备注",
+        "GUID:pj9"
+      ],
+      "expected": [
+        "4/1/2026 13:05:14",
+        "2026-04-01 garbage",
+        "P-9",
+        "执行端",
+        "24-074-SZ",
+        "4",
+        "备注",
+        "",
+        "GUID:pj9"
+      ],
+      "expected_route": "illegal_calendar",
+      "note": "canon_date 时间尾串改白名单（ISO+HH:MM[:SS] 等），非白名单格式不截断——不把格式错误悄然合法化（Tom 22:22）；业务日期有效性仍不由解析器裁定"
+    },
+    {
+      "id": "PJ10",
+      "side": "未知(10列)",
+      "raw": [
+        "2026-04-01 13:05:14",
+        "2026-04-01",
+        "P-10",
+        "执行端",
+        "2. 设计阶段",
+        "24-074-SZ",
+        "4",
+        "备注",
+        "GUID:pj10",
+        "EXTRA-10"
+      ],
+      "expected": null,
+      "expected_route": "schema_width_mismatch",
+      "note": "未知列宽 10：project 不静默取前九列，先隔离（Tom 22:22：不能声称未知布局失败关闭）"
+    },
+    {
+      "id": "PJ11",
+      "side": "未知(14列)",
+      "raw": [
+        "2026-04-01 13:05:14",
+        "2026-04-01",
+        "P-11",
+        "执行端",
+        "2. 设计阶段",
+        "24-074-SZ",
+        "4",
+        "备注",
+        "GUID:pj11",
+        "X",
+        "X",
+        "X",
+        "X",
+        "X"
+      ],
+      "expected": null,
+      "expected_route": "schema_width_mismatch",
+      "note": "未知列宽 14：隔离；PJ5 由已知常量拦截不等于其他错位布局都能识别"
+    },
+    {
+      "id": "PJ12",
+      "side": "未知(16列)",
+      "raw": [
+        "2026-04-01 13:05:14",
+        "2026-04-01",
+        "P-12",
+        "执行端",
+        "2. 设计阶段",
+        "24-074-SZ",
+        "4",
+        "备注",
+        "GUID:pj12",
+        "X",
+        "X",
+        "X",
+        "X",
+        "X",
+        "X",
+        "X"
+      ],
+      "expected": null,
+      "expected_route": "schema_width_mismatch",
+      "note": "未知列宽 16：隔离；源 schema 版本/列宽/字段语义与原行定位须绑定，这里仅登记不声称全档同 schema"
+    },
+    {
+      "id": "PJ13",
+      "side": "短行(8列)",
+      "raw": [
+        "2026-04-01 13:05:14",
+        "2026-04-01",
+        "P-13",
+        "执行端",
+        "2. 设计阶段",
+        "24-074-SZ",
+        "4",
+        "备注"
+      ],
+      "expected": null,
+      "expected_route": "missing_column",
+      "note": "短行 8 列：missing_column（短行索引异常不得被投影吞掉）"
+    }
+  ]
+}
