@@ -17,6 +17,8 @@ contract/
   t1b_layer_conversion_v2p6.json             T4 互斥完备换算表（archives 同一冻结定位 L0-L4，只读真算）
   t1b_layer_conversion_v2p6.py               换算表脚本（EXIT=0 = 提交方自洽）
   build_fixture_v2p6.py                      fixture 生成脚本（供复现）
+  t1b_schema_registry_v2p6.json              19 档逐档 schema 登记（§0.10；真实 UUID 列已掩码）
+  t1b_schema_registry_v2p6.py                登记表生成脚本（只读真算，EXIT=0；需冻结副本）
   T1B_主键契约与离线设计_v2p5.md              v2p5 草案（默认建议版；T1 硬口径已被 v2p6 按 Tom 立场撤回）
   t1b_offline_fixture_v2p5.json              v2p5 草案 fixture
   t1b_offline_test_v2p5.py                   v2p5 草案测试
@@ -49,6 +51,9 @@ python t1b_offline_test_v2p6.py
 python t1b_layer_conversion_v2p6.py
 # 预期：L0-L4 全链真算 + 互斥完备断言（L1/L2 各类和=102723；L4 链式恒等）；EXIT=0
 
+python t1b_schema_registry_v2p6.py
+# 预期：19 档列宽分布全 9、错位 4568 行 100% 归 20260831 档、前两列空 3166 三分解；EXIT=0
+
 python t1b_offline_test_v2p5.py   # 草案版（G1 硬口径为 biz，已被 v2p6 撤回）EXIT=0
 python t1b_offline_test_v2p4.py   # 前版 EXIT=0
 ```
@@ -65,7 +70,7 @@ python t1b_offline_test_v2p4.py   # 前版 EXIT=0
 | v2p3 | 见邮件登记 | 回应 17:33 两阻断项 |
 | v2p4 | 9d5cf5fe | 回应 18:03 三项；Tom 22:17 确认三项整改关闭 |
 | v2p5 | a531fcf8 | 五议题默认建议草案；T1 硬口径已被 v2p6 按 Tom 立场撤回 |
-| **v2p6** | **a355afe1** | 按 Tom 22:18 立场 + 22:17 边界修订；**待 Tom 复核** |
+| **v2p6** | **9911615f** | 按 Tom 22:18 立场 + 22:17 边界 + 22:22 四项修订；**待 Tom 复核**；23:3x 补 §0.10 十九档 schema 登记（同版本内修订，非新轮次） |
 
 PKC 版本链以 fixture `meta.rule_version` 为准：608 = v2 ≠ v2p2 ≠ v2p3 ≠ v2p4 ≠ v2p5 ≠ v2p6（六份各自独立）；241 基准未锁定。
 **版本指纹说明（Tom 22:18 修正）**：`724fef64` / `ad3788f0` / `9bd8bb74` 为此前**冻结/对账材料指纹**，非 PKC 测试版本轮次，勿与版本链串线。
@@ -74,16 +79,29 @@ PKC 版本链以 fixture `meta.rule_version` 为准：608 = v2 ≠ v2p2 ≠ v2p3
 
 | 文件 | SHA-256(16) | 字节 |
 |---|---|---|
-| T1B_主键契约与离线设计_v2p6.md | 47810447 | 23248 |
+| T1B_主键契约与离线设计_v2p6.md | 9911615f | 25937 |
 | t1b_offline_fixture_v2p6.json | 20b9a6b5 | 62090 |
 | t1b_offline_test_v2p6.py | e56a0035 | 34898 |
-| t1b_v2p6_manifest.json | 2e075f22 | 4823 |
+| t1b_v2p6_manifest.json | 26913565 | 7210 |
 | T1B_v2p6_差异矩阵_20261023.md | 81c836f0 | 11068 |
 | t1b_layer_conversion_v2p6.json | e4c6494c | 2526 |
 | t1b_layer_conversion_v2p6.py | e5863e93 | 10528 |
 | build_fixture_v2p6.py | 8c8a60aa | 17639 |
+| t1b_schema_registry_v2p6.json | c0bb162e | 21529 |
+| t1b_schema_registry_v2p6.py | 1751bb92 | 9919 |
 
 > 严格验收模式（Tom 22:22）：`python t1b_offline_test_v2p6.py` 在缺 manifest / 缺依赖 / 缺交付物时**判 FAIL**（EXIT≠0），不输出同一验收 PASS；EXIT=0 才同时证明外部绑定完整。
+> 注：`t1b_key_registry_v2p3.csv`（含真实 UUID，manifest `deliverables`）与去标识冻结副本**走邮件通道**，不在本仓库；仅用本仓库文件跑 D 段会因缺少该件而判 FAIL（严格模式的预期行为），完整绑定需邮件通道件就位。
+
+### v2p6 §0.10 十九档 schema 登记要点（2026-10-23 23:3x 补做）
+
+| 项 | 结果 |
+|---|---|
+| 19 档列宽分布（102723 行） | 全 9 列，**无列宽异构** |
+| 行级 schema 路由 | 19 档全部 `project_P`；未知列宽行 0 |
+| 错位 4568 行档级归属 | **100% 落在 20260831 单档**（占该档 12583 行的 36.3%）；其余 18 档均为 0 |
+| 前两列空 3166 行三分解 | sid 空 2367 + AUTO_LEAVE 208 + 其余 591（= v2p4 口径 799 = 591 + 208） |
+| 明确不主张 | 列宽一致 ≠ 字段语义一致；PJ10-PJ13 在本副本未触发属防御性覆盖；表头来源/源码身份仍**未持有、未核验** |
 
 ## v2p5 草案交付物 SHA（2026-10-23）
 
