@@ -1,8 +1,8 @@
-# 生产工时表 FY27H1 关账 — 离线设计交付件（证据矩阵 v1.2）
+# 生产工时表 FY27H1 关账 — 离线设计交付件（证据矩阵 v1.3）
 
 > 配套：`FY27H1_closeout_plan.md`（commit `2aa260c3f6f19a017c1231f33fa7fa9511017d76`，文档 SHA-256 `2df9d9ed3c189f1e6b186407ae3e09cb1e503711416095125f290ca461b41cea`）
 > 目的：响应 Tom 2026-10-24 15:58 复核函（msg_WLx25pd…）4 项待办 + **16:57 复核函（msg_Pl7JcoN…）6 条设计收敛**——本件为**纯规划/设计交付，零生产写、零权限变更**。**Phase 1 身份与写入口已于 2026-10-24 16:48 经 `gas_auth` 只读实读 HEAD 解开**（HTTP 200，非 400），§1/§2/§7 已升级为实时核验。
-> 状态：规划方向 + 文档整改接受 + Phase1 写入口/身份只读核验完成 + **v1.2 按 16:57 六条收敛原子机制/入口覆盖/例外状态机/到期语义/九类映射/归因更正**；**非阶段一 PASS、非生产写许可、非 GO**。
+> 状态：规划方向 + 文档整改接受 + Phase1 写入口/身份只读核验完成 + **v1.2 按 16:57 六条收敛** + **v1.3 按 17:29 复核函收敛（恢复 stage 状态机消歧/隔离前置拦截/metadata-fail 拒写路径/删除并入入口矩阵/拟实现标注/node-400 归因保留待证）**；**非阶段一 PASS、非执行 clearance、非生产写许可、非 GO**。
 
 ---
 
@@ -34,13 +34,14 @@
 
 **入口覆盖总表（v1.2，含显式未覆盖项）**：
 
-| 路径 | 是否前置拒绝 | 说明 |
-|---|---|---|
-| W1 `submitBatch` / W2 `updateTimesheet`（Web/移动端） | ✅ 服务端函数入口 guard，提交前拒绝 | 主拦截层 |
-| W3 `tsAppendRows` / W3b `tsPatchCells`（脚本/远程批量） | ✅ 入库前逐行校验 | 含批量回填/恢复 |
-| 既有直接编辑（有编辑权者在 Sheet 界面手改） | ❌ **不覆盖** | onEdit/change 属事后事件，**不作为拦截证据**； mitigation = Sheet 保护 + 只读灰标为威慑 + 事后审计检测，并在上线说明中**显式声明该入口未前置拦截** |
-| 其他脚本/触发器/API/管理员/批量改删（非 W3/W3b 路径） | ❌ **不覆盖** | 显式声明未覆盖；依赖部署身份收敛（executionApi=MYSELF）与所有者侧纪律，逐项列入 Phase 3 上线核对清单 |
-| W7 物理删类（purgeRows 等） | ❌ 锁不覆盖 | token 门控维护动作，维持现有门控 |
+| 路径 | 是否前置拒绝 | 状态 | 说明 |
+|---|---|---|---|
+| W1 `submitBatch` / W2 `updateTimesheet`（Web/移动端） | ✅ 服务端函数入口 guard，提交前拒绝 | **拟实现**（guard 待挂） | 主拦截层，非已生效 |
+| W3 `tsAppendRows` / W3b `tsPatchCells`（脚本/远程批量） | ✅ 入库前逐行校验 | **拟实现** | 批量回填/恢复，非已生效 |
+| `softDeleteRecord`（软删历史行） | ❌ 锁不覆盖（仅软删标记） | **拟实现**（guard 待挂） | 删除用例并入本矩阵（§6 T-delete），不脱节 |
+| 既有直接编辑（有编辑权者在 Sheet 界面手改） | ❌ **不覆盖** | 现状（无前置拦截） | onEdit/change 事后事件，**不作拦截证据**；mitigation=Sheet 保护+灰标威慑+事后审计；上线说明显式声明未前置拦截 |
+| 其他脚本/触发器/API/管理员（非 W3/W3b） | ❌ **不覆盖** | 现状 | 显式声明未覆盖；脚本锁仅约束同锁路径，不能据此覆盖外部写者；依赖所有者侧纪律，列 Phase 3 核对清单 |
+| W7 物理删类（purgeRows 等） | ❌ 锁不覆盖 | 现状（token 门控） | 维护动作，维持现有门控 |
 
 > 灰标/保护/监听**不是**统一授权网关；凡无前置拦截能力的入口一律标「未覆盖」，不以事后监听冒称拦截。修改/删除校验均核原记录期间 + 目标期间 + 稳定行 UUID/版本。
 
@@ -55,13 +56,14 @@
 ## 2. Phase 1 身份诊断 — ✅ 已只读解开（2026-10-24 16:48）
 
 - **实测结论**：经 `tools/gas_auth.py`（`~/.clasprc.json` 默认令牌）对 `1FPAwV50…` 调 `script.googleapis.com/v1/projects/{sid}/content` → **HTTP 200，返回正确 scriptId 与完整源码**。身份与项目均确认无误。
-- **400 根因定位**：此前 `pull_ts_code.js` / `ts_healthcheck.js`（node，用另一套令牌 `j.access_token`）报 400，**属该 node 通道令牌过期/范围不足，非项目身份或权限真被锁**。→ 修复建议（Rita 回电脑后可选）：让 node 脚本改用 `gas_auth` 通道，或刷新 node 侧令牌；**非浏览器重授权、非新增权限**（符合 §8 不主动扩权）。
+- **400 根因定位（保留待证归因）**：此前 `pull_ts_code.js` / `ts_healthcheck.js`（node，用另一套令牌 `j.access_token`）报 400；`gas_auth` 通道 200 能证明「可只读实读」，但**不能单独证明原 node 400 必为令牌过期/scope 不足**——在缺对应错误与令牌诊断证据时，本件将其**保留为待证归因，不要求提供任何令牌**，亦不据其断言授权结论。修复建议（Rita 回电脑后可选）：让 node 脚本改走 `gas_auth` 通道或刷新 node 令牌；**非浏览器重授权、非新增权限**（符合 §8 不主动扩权）。
 - **已核验项（只读）**：
   1. ✅ 真实项目身份：`scriptId` 匹配 `1FPAwV50…`（即 TimeSheet 正式填报页 / 生产工时系统）。
   2. ✅ 部署身份：`ANYONE_ANONYMOUS` + `USER_DEPLOYING`（见 §1，Tom 关注点已坐实）。
   3. ✅ 全部写入口函数名 + 行号（§1 W1–W7，实时 HEAD）。
   4. ✅ 现有护栏模式可复用（`_tsSetValuesGuarded` / `_TS_WRITE_LOG` / `masterCreate` 禁用清单）。
 - **未变铁律**：本节及 §1 均为**只读核验产物**；未做任何生产写、未 push、未 deploy。Phase 3 执行 clearance 仍须 **Tom clearance + Rita GO 双闸门**。
+- **生产部署身份闭合声明边界**：本件以读到实时 HEAD + 其 `appsscript.json` manifest 字段断言「部署身份配置」真实存在；但**实际服务中的部署版本/访问配置须由 Rita/所有者侧受控诊断单另列**，读到 HEAD 不自动断言当前生产部署身份已闭合。HTTP200/16 文件/行号/`4.3.72`/组合指纹均为**提交方报告**，你未持有该快照、组合 SHA 不可由你独立复算——归为待降级证据层级，非执行验收（v1.3 按 17:29 函）。
 - **实时 HEAD 指纹**：版本 `TS_APP_VERSION='4.3.72'`(Code.gs L123)；源码快照 `tools/_staging_period_lock/_ts_head_live/`（16 文件）；**组合 SHA-256 = `26471b4103c569851391ae3f70058b06c2828b8916674a0bd8dd3d3f72693c18`**（计算方法见 §9：按文件名升序拼接 16 文件原始字节后取 SHA-256，可复现）。
 
 ---
@@ -75,30 +77,32 @@
 - **稳定行 ID**：以生产表现有行级 UUID（`f.uuid` 所在列，submitBatch/updateTimesheet 已在用）为稳定行 ID；**一切锁判定、例外授权、审计引用均绑定 UUID 集合，不用行号/rowRange**（行号可漂移）。
 - **旧值快照**：写前整行读出（值+UUID），存入意图记录 `oldValues`。
 
-### 3.2 写序列（每入口 W1/W2/W3/W3b 适用）
+### 3.2 写序列（每入口 W1/W2/W3/W3b 适用）— 含阶段持久化与隔离前置
 ```
-1. check    行锁态 + 例外状态 + 双签 + expiresAt（服务端时钟）→ 不满足即 REJECT（零写）
-2. opId     生成持久操作ID（UUID）；向操作日志 tab 预写意图行：
-            {opId, uuidSet, oldValues, newValues, state:INTENT, ts}
-3. write    业务单元格写入
-4. verify   写后回读比对（复用 _tsSetValuesGuarded 模式：回读≠期望 → 用 oldValues 还原 → state=ROLLED_BACK）
-5. audit    审计 tab 追加（opId/操作人/旧值/新值/锁态/例外引用）→ state=COMMITTED
+1. check    行锁态 + 例外状态 + 双签 + expiresAt（服务端时钟）→ 不满足即 REJECT（零写）；**并查操作日志：本 UUID 集合若存在任一非终态 INTENT（INTENT/WRITTEN/VERIFIED/AUDITED）→ 立即 REJECT（不等 dailyWatchdog 成功标记），隔离在进入新写之前生效**（v1.3 消歧）。
+2. opId     生成持久操作ID（UUID）；向操作日志 tab 预写意图行 {opId, stage:INTENT, uuidSet, oldValues(含行版本指纹), newValues, ts}。**若此意图写失败 → 整 op REJECT（fail-closed，即确定拒写路径，不进入后续）**。
+3. write    业务单元格写入 → stage=WRITTEN。
+4. verify   写后回读比对（复用 _tsSetValuesGuarded）→ 值不符且行版本==oldValues 基线 → 写回旧值还原, stage=ROLLED_BACK；值不符且版本已变（并发新值） → 标记 OPEN_BROKEN（不清不覆盖）；符合 → stage=VERIFIED。
+5. audit    审计 tab 追加（opId/操作人/旧值/新值/锁态/例外引用）→ stage=AUDITED（审计 tab 已有该 opId → 视为 AUDITED，去重不重追加）。
+6. mark     stage=COMMITTED（终态）。
 ```
 
-### 3.3 失败/崩溃恢复状态机（操作日志唯一事实源）
-每个 opId 只能处于以下终态之一，启动时与 `dailyWatchdog` 恢复扫描时按**当前单元格实际值 vs 意图记录**判定：
+### 3.3 失败/崩溃恢复状态机（操作日志 stage 唯一事实源）
+恢复扫描按**持久 stage 字段**（非仅值比对）判定并键入动作；覆盖「审计已追加但 COMMITTED 标记前崩溃」（opId 去重：审计 tab 已有该 opId → 直接 COMMITTED，不重追加）。v1.3 以 stage 区分「业务已写未 verify」与「已 verify 未 audit」两种中间态，消除旧版歧义。
 
-| 崩溃点 | 判定 | 恢复动作 | 终态 |
+| 持久 stage | 恢复判定 | 恢复动作 | 终态 |
 |---|---|---|---|
-| 2 后（仅 intent 落盘） | 单元格值 == oldValues（或未变） | 无需动作 | ROLLED_BACK |
-| 3 后 4 前 | 值 == newValues | 用 oldValues 还原（**clearContent 不作还原手段**，必须写回旧值；oldValues 不可靠时不清不覆盖，见 3.4） | ROLLED_BACK |
-| 4 后 5 前（业务新值在、审计缺） | 值 == newValues | 先尝试补写审计；**补偿（还原）若也失败** → 见 3.4 | COMMITTED（补审计成功）/ OPEN_BROKEN |
-| 还原中途失败 | 值既≠oldValues 也≠newValues，或 oldValues 不可信 | **不清空、不覆盖**；把该 UUID 集合标记隔离 | OPEN_BROKEN |
+| INTENT | 单元格 == oldValues（或未变） | 无需动作 | ROLLED_BACK |
+| WRITTEN | 值 == newValues | 行版本==oldValues 基线 → 写回旧值还原；版本已变（并发新值）→ OPEN_BROKEN（不覆盖并发新值） | ROLLED_BACK / OPEN_BROKEN |
+| VERIFIED | 值 == newValues | 补审计；成功 → COMMITTED，失败 → OPEN_BROKEN | COMMITTED / OPEN_BROKEN |
+| AUDITED | 审计 tab 已有 opId 行 | 直接 mark COMMITTED（去重，不重追加） | COMMITTED |
+| （隔离元数据写失败） | 任一 stage 写/状态写失败 | 该 op 整体 REJECT（见 §3.4），不进入新写 | — |
 
 ### 3.4 补偿失败 = OPEN_BROKEN（不冒称恢复）
-- OPEN_BROKEN 的 UUID 集合由 check 步骤强制拦截：凡涉及隔离行的写入一律 REJECT（fail-closed），等待人工处置；处置动作本身也走 opId 流程。
-- 审计 tab 追加一条 `{opId, state:OPEN_BROKEN, reason}`；若连这条审计都写失败，操作日志 intent 行保留 INTENT 不改写，恢复扫描会再次发现并重试标记。
-- **显式不承诺**：补偿失败场景下数据可能停在新旧之间的中间态直至人工介入——系统保证的是「不再接受新写 + 全程留痕 + 人工可判定」，不是自动无损。
+- OPEN_BROKEN 的 UUID 集合由 §3.2 step1 的 check **在进入新写之前**强制拦截（不依赖 dailyWatchdog 跑成功）：凡涉及隔离行的写入一律 REJECT，等待人工处置；处置动作本身也走 opId 流程。
+- **隔离元数据写失败也有确定拒写路径**：若写入 OPEN_BROKEN 隔离标记本身失败（隔离元数据写失败）→ 该 op 在 §3.2 step2/3 即已 REJECT（意图/状态行写失败），恢复扫描见该 UUID 仍有非终态 INTENT 即继续拒写——**不静默放行**。
+- 审计 tab 追加 `{opId, stage:OPEN_BROKEN, reason}` 仅作留痕；审计写失败不改写意图行，恢复扫描再次发现。
+- **显式不承诺**：补偿失败场景下数据可能停中间态直至人工介入——系统保证「不再接受新写 + 全程留痕 + 人工可判定」，不是自动无损；前述闭环**未实现、未测试前不宣称原子迁移或全程留痕已保证**。
 
 ---
 
@@ -169,7 +173,7 @@ ACTIVE/任意态 ──expiresAt 过──▶ EXPIRED_AUTO_RELOCK
 
 | 约束 | 设计落点 | 当前证据（2026-10-24 只读核验） | 待补证据（Rita GO 后实现） |
 |---|---|---|---|
-| 写入口拦截 | §1 W1–W7 + 覆盖总表 | ✅ 实时 HEAD 函数名+行号（`submitBatch` L386 / `updateTimesheet` L460 / `tsAppendRows` / `tsPatchCells` 等）+ 组合 SHA `26471b4…` + 未覆盖项显式声明 | 挂锁代码 + SHA |
+| 写入口拦截 | §1 W1–W7 + 覆盖总表 | ✅ 实时 HEAD 函数名+行号（`submitBatch` L386 / `updateTimesheet` L460 / `tsAppendRows` / `tsPatchCells` 等）+ 组合 SHA `26471b4…` + 未覆盖项显式声明；**§1 前置 guard 标「拟实现」，非已生效** | 挂锁代码 + SHA |
 | 身份核验 | §2 | ✅ HTTP200 实读 HEAD；scriptId 匹配；部署身份 `ANYONE_ANONYMOUS` 已坐实 | —（已只读闭合） |
 | 原子写+补偿 | §3 | opId+预写意图+恢复状态机+OPEN_BROKEN（具体机制设计，非伪序列） | `atomic_write_tests.js` + 结果 |
 | 锁持久化+恢复 | §4 | 存储设计（ScriptProperties，独立于 `FEATURE_ENABLED`，逐次 check 实时读） | `lockstate_persist_tests.js` |
@@ -194,6 +198,14 @@ ACTIVE/任意态 ──expiresAt 过──▶ EXPIRED_AUTO_RELOCK
 4. 到期语义 → §5.4：**每次写入按服务端可信时间 check expiresAt**，不依赖 dailyWatchdog/触发器；完成即 COMPLETED 失效；到期审计失败仍拒写；含撤销/重复/时钟异常反例。
 5. C1–C9 非等价覆盖 → §6 重写为九类逐类映射表（旧改新/新改旧/删除/批量/身份配置失败/例外到期/中途崩溃/审计失败+补偿失败/重放），各配测试 ID；先在合成 fixture 上设计，不为补测试读现场。
 6. **归因更正**：15:39「好」为 **Rita 本人**对 §8.1 四项参数的业务确认，由我方（提交方）转述；此前函件如出现主语错置（将该确认表述为与 Tom 相关），**特此更正**。该确认按你登记口径维持为「提交方报告」；公开仓固定 commit **不构成**受控非公开通道，亦不供你独立核验原确认上下文——不公开原始确认或人员资料，维持。
+
+**17:29 函（合并复 v1.1+v1.2）→ v1.3 对应**：
+- ✅ v1.2 六条设计整改**采纳**（撤回无损承诺、opId/预写意图/旧值回写/OPEN_BROKEN、未覆盖入口诚实列出、UUID 集合+双签状态机、逐次到期、九类映射、15:39 归因更正）——不再重复要求同项说明。
+- ⏳ 恢复状态机 stage 歧义 → §3.2 写序列增**持久 stage 字段**（INTENT→WRITTEN→VERIFIED→AUDITED→COMMITTED）+ §3.3 以 stage 为唯一事实源区分「已写未verify」与「已verify未audit」两类中间态；补审计前崩溃由 opId 去重直接 COMMITTED；旧值还原核版本、不覆盖并发新值。
+- ⏳ 隔离前置拦截 → §3.2 step1 在**进入新写之前**查非终态 INTENT 即拒（不等 watchdog）；§3.4 明确「隔离元数据写失败」也有确定拒写路径（意图/状态行写失败即整 op REJECT）。
+- ⏳ 入口矩阵 → §1 增「状态」列：W1–W3b/softDeleteRecord guard 标**拟实现（非已生效）**，直接编辑/其他脚本/管理员/W7 标「现状（未覆盖）」；softDeleteRecord 已并入矩阵（§6 T-delete 不脱节）；明确未覆盖≠「全部历史已冻结」证明。
+- ⏳ 归因降级 → §2 将 node 400 归因**保留为待证**（gas_auth 200 不能单独证明原 400 必为令牌过期/scope 不足，不要求提供令牌）；HTTP200/16文件/行号/`4.3.72`/组合指纹均标为**提交方报告、待降级证据层级**；实际服务部署版本/访问配置须由所有者侧受控诊断单另列，读到 HEAD 不断言生产部署身份已闭合。
+- 结论（Tom）：设计整改实质进展，但**实现与执行 clearance 未就绪**；阶段一最终 PASS 继续暂缓，HOLD/NO-GO、事故安全 OPEN、零生产操作边界不变；本函不授权执行仓库测试/现场读取/编码部署/任何生产动作。
 
 ---
 ## 9. 附录 — 实时 HEAD 快照指纹（可复现）
