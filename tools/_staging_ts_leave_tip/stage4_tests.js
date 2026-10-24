@@ -1,7 +1,7 @@
-// T1-B 生产表 Step1 · 阶段四哈希复核 · 单元 + 集成测试（回应 Tom 2026-10-24 12:27 Pt4 / Pt5 / Pt6 第三轮）
-// 自包含：不依赖 ts_leave_tip_core.js。覆盖 colToIndex / CSV 引号解析 / 畸形 CSV 拒绝 /
-// readNonTargetRegion(AA 第27列真实数据提取 + JSON 无歧义序列化) / manifest 合法性反例(含 capturedAt ISO) /
-// 全链路 PASS 与 FAIL-CLOSE（缺 dataWrite / 空列 / 数据漂移 / 证据 SHA 不符）。
+// T1-B 生产表 Step1 · 阶段四哈希复核 · 单元 + 集成测试（回应 Tom 2026-10-24 12:27 Pt4 / Pt5 / Pt6 第三轮 + 13:26 Pt4 残项）
+// 自包含：不依赖 ts_leave_tip_core.js。覆盖 colToIndex / CSV 引号解析 / 畸形 CSV 拒绝(解析器拦截非 SHA 先行) /
+// readNonTargetRegion(AA 第27列真实数据提取 + JSON 无歧义序列化) / manifest 合法性反例(含 capturedAt 真实日历校验) /
+// CSV 边界(空引号字段 / CRLF / 裸CR) / 全链路 PASS 与 FAIL-CLOSE（缺 dataWrite / 空列 / 数据漂移 / 证据 SHA 不符）。
 // 运行：node stage4_tests.js   exit 0 = 全部通过
 
 'use strict';
@@ -45,11 +45,15 @@ let t1 = false; try { S.parseCsv('a,b\n"unclosed'); } catch (e) { t1 = /CSV_MALF
 check('parseCsv 未闭合引号→抛错', t1);
 let t2 = false; try { S.parseCsv('a"b,c'); } catch (e) { t2 = /CSV_MALFORMED/.test(e.message); }
 check('parseCsv 非字段起始位置的引号→抛错', t2);
-let t3 = false; try { S.parseCsv('a"x,b'); } catch (e) { t3 = /CSV_MALFORMED/.test(e.message); }
-check('parseCsv 闭合引号后非法字符→抛错', t3);
+let t3 = false; try { S.parseCsv('"a"x,b'); } catch (e) { t3 = /CSV_MALFORMED/.test(e.message); }
+check('parseCsv 闭合引号后非法字符→抛错(覆盖闭合后非法分支)', t3);
 // 合法：引号在字段起始
 let t4 = false; try { S.parseCsv('"ok",v'); t4 = true; } catch (e) { t4 = false; }
 check('parseCsv 字段起始引号→合法不抛错', t4);
+// CSV 边界（Pt4 明确接受/拒绝规则）：空引号字段保留单格空行；CRLF 与裸 CR 均作行终止符（不合并）
+check('parseCsv 空引号字段""→保留单格空行(不静默丢弃)', (() => { const r = S.parseCsv('""'); return r.length === 1 && r[0].length === 1 && r[0][0] === ''; })());
+check('parseCsv CRLF→两行', (() => { const r = S.parseCsv('a\r\nb'); return r.length === 2 && r[0][0] === 'a' && r[1][0] === 'b'; })());
+check('parseCsv 裸CR→两行(不合并)', (() => { const r = S.parseCsv('a\rb'); return r.length === 2 && r[0][0] === 'a' && r[1][0] === 'b'; })());
 
 // ===== readNonTargetRegion（Pt6：真实提取第27列 AA 数据 + JSON 无歧义序列化）=====
 const header27 = [];
@@ -76,6 +80,12 @@ check('manifest 空 nonTargetColumns→不合法', S.validateManifest({ frozenVe
 check('manifest 非法列字母→不合法', S.validateManifest({ frozenVersion: 'V', table: 'T', capturedAt: '2026-10-24T08:15:00+08:00', nonTargetColumns: ['A', '1B'], authorizedTarget: { dataWrite: false }, beforeSha256: '0'.repeat(64), afterSha256: '0'.repeat(64) }).ok === false);
 check('manifest capturedAt 非ISO(如"C")→不合法', S.validateManifest({ frozenVersion: 'V', table: 'T', capturedAt: 'C', nonTargetColumns: ['A'], authorizedTarget: { dataWrite: false }, beforeSha256: '0'.repeat(64), afterSha256: '0'.repeat(64) }).ok === false);
 check('manifest 合法(ISO capturedAt)→ok', S.validateManifest({ frozenVersion: 'V', table: 'T', capturedAt: '2026-10-24T08:15:00+08:00', nonTargetColumns: ['A'], authorizedTarget: { dataWrite: false }, beforeSha256: '0'.repeat(64), afterSha256: '0'.repeat(64) }).ok === true);
+// Pt4（v5）：capturedAt 真实日历/时标/偏移校验——拒绝形状合法但值非法的字符串
+check('manifest capturedAt 非法日历(2026-02-30)→不合法', S.validateManifest({ frozenVersion: 'V', table: 'T', capturedAt: '2026-02-30T08:15:00+08:00', nonTargetColumns: ['A'], authorizedTarget: { dataWrite: false }, beforeSha256: '0'.repeat(64), afterSha256: '0'.repeat(64) }).ok === false);
+check('manifest capturedAt 非法月(2026-13-01)→不合法', S.validateManifest({ frozenVersion: 'V', table: 'T', capturedAt: '2026-13-01', nonTargetColumns: ['A'], authorizedTarget: { dataWrite: false }, beforeSha256: '0'.repeat(64), afterSha256: '0'.repeat(64) }).ok === false);
+check('manifest capturedAt 非法时(2026-10-24T25:00:00+08:00)→不合法', S.validateManifest({ frozenVersion: 'V', table: 'T', capturedAt: '2026-10-24T25:00:00+08:00', nonTargetColumns: ['A'], authorizedTarget: { dataWrite: false }, beforeSha256: '0'.repeat(64), afterSha256: '0'.repeat(64) }).ok === false);
+check('manifest capturedAt 非法偏移(2026-10-24T08:15:00+15:00)→不合法', S.validateManifest({ frozenVersion: 'V', table: 'T', capturedAt: '2026-10-24T08:15:00+15:00', nonTargetColumns: ['A'], authorizedTarget: { dataWrite: false }, beforeSha256: '0'.repeat(64), afterSha256: '0'.repeat(64) }).ok === false);
+check('manifest capturedAt 纯日期(2026-10-24)→合法', S.validateManifest({ frozenVersion: 'V', table: 'T', capturedAt: '2026-10-24', nonTargetColumns: ['A'], authorizedTarget: { dataWrite: false }, beforeSha256: '0'.repeat(64), afterSha256: '0'.repeat(64) }).ok === true);
 check('manifest 缺 beforeSha256→不合法', S.validateManifest({ frozenVersion: 'V', table: 'T', capturedAt: '2026-10-24T08:15:00+08:00', nonTargetColumns: ['A'], authorizedTarget: { dataWrite: false }, afterSha256: '0'.repeat(64) }).ok === false);
 
 // ===== verifyWriteSet（dataWrite 非 false → fail）=====
@@ -137,10 +147,16 @@ const badShaManifest = JSON.parse(JSON.stringify(goodManifest));
 badShaManifest.beforeSha256 = '0'.repeat(64);
 check('stage4 证据 SHA 不符→exit 1 FAIL', runStage4(badShaManifest) === 1);
 
-// 畸形 CSV → FAIL-CLOSE（exit 1）
+// 畸形 CSV → 解析器拦截（FAIL-CLOSE，exit 1）：before/after 用相同畸形字节且双 SHA 均更新，
+// 使证据 SHA 比对通过、失败必须来自解析器（排除字节漂移/SHA 先行拒绝的误判）。
+const malBytes = 'A,B\n"unclosed';
+fs.writeFileSync(beforePath, malBytes);
+fs.writeFileSync(afterPath, malBytes);
+const malSha = crypto.createHash('sha256').update(malBytes).digest('hex');
 const malManifest = JSON.parse(JSON.stringify(goodManifest));
-fs.writeFileSync(beforePath, 'A,B\n"unclosed');
-check('stage4 畸形 CSV→exit 1 FAIL', runStage4(malManifest) === 1);
+malManifest.beforeSha256 = malSha;
+malManifest.afterSha256 = malSha;
+check('stage4 畸形 CSV→解析器拦截 exit 1 FAIL（非 SHA 先行拒绝）', runStage4(malManifest) === 1);
 
 console.log(`\n结果: ${pass} 通过 / ${fail} 失败`);
 process.exit(fail === 0 ? 0 : 1);

@@ -1,4 +1,4 @@
-// T1-B 生产表 Step1 · 包装负例测试（回应 Tom 2026-10-24 12:27 Pt1/2/3/6 第三轮）
+// T1-B 生产表 Step1 · 包装负例测试（回应 Tom 2026-10-24 12:27 Pt1/2/3/6 第三轮 + 13:26 Pt1/Pt2 残项）
 // 离线验证（不执行生产）：覆盖 开关关(不加载/不读/不解析) / 真实加载失败(require catch) /
 // 镜像缺失 / 身份不可解析 / employeeId 恶意值(空白串/数组/对象)+解析器抛错+双入口 /
 // 异步 reject / 同步抛错 / opts.now=0 透传 / 跨用户行纵深拦截 / handleRequestSafe 同路径 /
@@ -191,6 +191,40 @@ async function run() {
   W.__test_setCore({ getLeaveTip: (o) => ({ status: 'OK', tip: '你有 1 条请假', submitAllowed: true, events: [{ instanceId: 'I3', date: '2026-10-20', type: '事假', half: 'AM', state: 'ACTIVE', version: 1 }] }), handleRequest: () => ({}) });
   const okRes = W.getLeaveTipSafe({ session: { loginUser: 'alice@sm' }, fillDate: '2026-10-20', mirror: { status: 'ok', syncComplete: true, lastSuccessfulSyncAt: '2026-10-20T06:30:00+08:00', rows: [{ instanceId: 'I3', who: 'E1001', date: '2026-10-20', type: '事假', half: 'AM', state: 'ACTIVE', version: 1 }] }, now: new Date('2026-10-20T08:00:00+08:00') });
   check('合法本人+新鲜镜像→OK 且仅 1 条本人事件(who 已最小化剔除)', okRes.status === 'OK' && Array.isArray(okRes.events) && okRes.events.length === 1 && okRes.submitAllowed === true);
+
+  // ---- 12) 真实核心 resolver 契约兼容性（Tom 13:26 Pt1 残项修复验证）----
+  // 既有核心 getLeaveTip 第191行要求解析器返回 {status:'OK', employeeId}，否则 pr.status 为 undefined
+  // !== 'OK' → 永远走"身份未通过校验"分支（功能整体失效）。用真实核心验证修复后冻结快照满足契约。
+  // 注：既有核心不随 staging 分发（避免重复分发核心/人员数据，Tom 明示），故本节约在 clone 中
+  //     自动跳过并由提交方本地（核心同仓）另行验证；缺失时不得使整套件崩溃（self-contained 契约）。
+  let realCore = null;
+  try { realCore = require('../ts_leave_tip_core.js'); } catch (e) { realCore = null; }
+  if (realCore) {
+  W.__test_setCore(realCore);
+  W.setFeatureEnabled(true);
+  W.setTrustedResolver((s) => ({ status: 'OK', employeeId: 'E1001' })); // 模拟服务端已解析可信主体
+  const compatMirror = { status: 'ok', syncComplete: true, lastSuccessfulSyncAt: '2026-10-20T06:30:00+08:00', rows: [
+    { instanceId: 'OWN', who: 'E1001', date: '2026-10-20', type: '事假', half: 'AM', state: 'ACTIVE', version: 1 },
+  ] };
+  const compat = W.getLeaveTipSafe({ session: {}, fillDate: '2026-10-20', mirror: compatMirror, now: new Date('2026-10-20T08:00:00+08:00') });
+  check('真实核心兼容：冻结快照含 status:OK → 实际产出本人请假(OK)', compat.status === 'OK' && Array.isArray(compat.events) && compat.events.length === 1 && compat.events[0].instanceId === 'OWN' && compat.events[0].who === undefined);
+  // 回归守卫：若冻结快照仅 {employeeId}（修复前形态），真实核心应产出非 OK（证明该 bug 确会失效）
+  const coreNoStatus = realCore.getLeaveTip({ session: {}, fillDate: '2026-10-20', mirror: compatMirror, now: new Date('2026-10-20T08:00:00+08:00'), identityResolver: () => ({ employeeId: 'E1001' }) });
+  check('回归守卫：缺 status 的解析结果→真实核心非 OK（故修复必须冻结 status:OK）', coreNoStatus.status !== 'OK');
+  W.setFeatureEnabled(false);
+  } else {
+    console.log('  ⏭️ 真实核心契约兼容(第12节)：跳过——既有核心不随 staging 分发，由提交方本地另行验证');
+  }
+
+  // ---- 13) wrapResponse fail-closed（Tom 13:26 Pt2）：未知态/失败态/隐私态不得携带敏感 tip/events ----
+  const sentinelUnknown = W.wrapResponse({ status: 'INTERNAL_SECRET_STATE', tip: 'SECRET_TIP_SENTINEL', events: [{ instanceId: 'X', who: 'E9999', date: '2026-10-20', type: '病假', half: 'PM', state: 'ACTIVE', version: 1 }] }, { employeeId: 'E1001' });
+  check('wrapResponse 未知态→tip/events 清空(无敏感哨兵)', sentinelUnknown.status === 'FETCH_FAILED' && sentinelUnknown.tip === null && sentinelUnknown.events.length === 0 && !JSON.stringify(sentinelUnknown).includes('SECRET_TIP_SENTINEL') && !JSON.stringify(sentinelUnknown).includes('E9999'));
+  const sentinelFail = W.wrapResponse({ status: 'MIRROR_STALE', tip: 'SECRET_TIP_SENTINEL', events: [{ instanceId: 'X', who: 'E9999' }] }, { employeeId: 'E1001' });
+  check('wrapResponse 失败态(MIRROR_STALE)→tip/events 清空(无敏感哨兵)', sentinelFail.tip === null && sentinelFail.events.length === 0 && !JSON.stringify(sentinelFail).includes('SECRET_TIP_SENTINEL') && !JSON.stringify(sentinelFail).includes('E9999'));
+  const privacyResp = W.wrapResponse({ status: 'PRIVACY_BLOCKED', tip: 'SECRET_TIP_SENTINEL', events: [{ instanceId: 'X', who: 'E9999' }] }, { employeeId: 'E1001' });
+  check('wrapResponse 隐私态→固定隐私封闭(无敏感数据)', privacyResp.status === 'PRIVACY_BLOCKED' && privacyResp.tip === null && privacyResp.events.length === 0);
+  const okResp = W.wrapResponse({ status: 'OK', tip: '你有 1 条请假', submitAllowed: true, events: [{ instanceId: 'OWN', date: '2026-10-20', type: '事假', half: 'AM', state: 'ACTIVE', version: 1 }] }, { employeeId: 'E1001' });
+  check('wrapResponse OK→透传本人业务内容(tip/events)', okResp.status === 'OK' && okResp.tip === '你有 1 条请假' && okResp.events.length === 1);
 
   W.setFeatureEnabled(false);
   console.log(`\n结果: ${pass} 通过 / ${fail} 失败`);

@@ -9,6 +9,11 @@
 //        非目标投影改用 JSON 逐行序列化(逗号/引号转义)，消除 join(',')/join('\n') 的碰撞歧义；
 //        同时重申 dataWrite=false 的逐字节比较仍是有效的第二道拦截，本件不夸大格式/覆盖完整性已验证。
 //
+// v5 针对 Tom 2026-10-24 13:26 复核函 Pt4 残项的再修复：
+//   - capturedAt 由"正则形状"升级为【真实日历 + 时标范围 + 偏移范围】校验，拒绝 2026-99-99T99:99:99+99:99 这类值；
+//   - parseCsv 明确行终止符规则：CRLF 作单一终止符、裸 CR 亦终止（不静默跳过致行合并）；
+//     空引号字段 '""' 显式保留为单格空行（不静默丢弃）；畸形抛错维持 fail-close。
+//
 // 用法：
 //   node stage4_hash_check.js --manifest manifest.json --before before.csv --after after.csv
 //   exit 0 = manifest 合法 + 证据 SHA 绑定 + 非目标区域一致 + 写集校验通过；非 0 = 漂移/越权/缺件（必须回滚/排查）。
@@ -23,6 +28,40 @@ const path = require('path');
 const SCOPE = '本工具仅验证两个指定证据 CSV（before/after）的非目标区域字节稳定与 dataWrite=false 逐字节一致；不验证数据来源(provenance)、不承载"覆盖全部非目标/现场完整性"的门槛；provenance 须由部署期 owner 受控采集步骤另行保证。';
 
 function sha256(buf) { return crypto.createHash('sha256').update(buf).digest('hex'); }
+
+// Pt4（v5，回应 Tom 13:26 Pt4 残项）：capturedAt 真实 ISO 校验——
+// 拒绝 "2026-99-99T99:99:99+99:99" 这类"形状合法但日历/时标/偏移非法"的值。
+// 允许"纯日期"或"完整时间戳"；时间戳须含合法时标(时/分/秒 + 显式偏移)。
+function isLeap(y) { return (y % 4 === 0 && y % 100 !== 0) || y % 400 === 0; }
+function _daysInMonth(y, mo) { const d = [31, isLeap(y) ? 29 : 28, 31, 30, 31, 30, 31, 31, 30, 31, 30, 31]; return d[mo - 1]; }
+function _validOffset(tz) {
+  if (tz === 'Z') return true;
+  const m = /^([+-])(\d{2}):?(\d{2})$/.exec(tz);
+  if (!m) return false;
+  const sign = m[1] === '-' ? -1 : 1;
+  const oh = +m[2], om = +m[3];
+  if (om > 59) return false;
+  const total = sign * (oh * 60 + om);
+  return total >= -12 * 60 && total <= 14 * 60;
+}
+function isValidIsoDateTime(s) {
+  const str = String(s == null ? '' : s).trim();
+  const m = /^(\d{4})-(\d{2})-(\d{2})(?:[T\s](\d{2}):(\d{2})(?::(\d{2})(?:\.\d+)?)?(Z|[+-]\d{2}:?\d{2}))?$/.exec(str);
+  if (!m) return false;
+  const y = +m[1], mo = +m[2], d = +m[3];
+  if (mo < 1 || mo > 12) return false;
+  if (d < 1 || d > _daysInMonth(y, mo)) return false; // 禁 2/30、4/31、非闰年 2/29
+  if (m[4] != null) {
+    const hh = +m[4], mm = +m[5], ss = m[6] != null ? +m[6] : null;
+    if (hh < 0 || hh > 23) return false;
+    if (mm < 0 || mm > 59) return false;
+    if (ss != null && (ss < 0 || ss > 59)) return false;
+    const tz = m[7];
+    if (tz == null) return false;        // 含时间无偏移 → 拒
+    if (!_validOffset(tz)) return false; // 偏移越界(+15:00 等) → 拒
+  }
+  return true;
+}
 
 // ===== Pt5：列字母 → 索引（支持多字母：A=0, Z=25, AA=26, AB=27…）=====
 function colToIndex(letters) {
@@ -40,6 +79,7 @@ function parseCsv(text) {
   let row = [];
   let field = '';
   let inQuotes = false;
+  let lastFieldQuoted = false; // 区分"尾随换行产生的空行"与显式空引号字段 '""'
   const n = text.length;
   let i = 0;
   while (i < n) {
@@ -48,6 +88,7 @@ function parseCsv(text) {
       if (c === '"') {
         if (text[i + 1] === '"') { field += '"'; i += 2; continue; } // 转义引号
         inQuotes = false; i++; // 闭合
+        lastFieldQuoted = true;
         // 闭合后紧跟字符必须为空/逗号/回车/换行，否则畸形
         const next = text[i];
         if (next !== undefined && next !== ',' && next !== '\r' && next !== '\n') {
@@ -61,14 +102,20 @@ function parseCsv(text) {
         if (field.length !== 0) throw new Error('CSV_MALFORMED: 引号出现在非字段起始位置');
         inQuotes = true; i++; continue;
       }
-      if (c === ',') { row.push(field); field = ''; i++; continue; }
-      if (c === '\r') { i++; continue; } // CRLF：跳过 \r，由 \n 结束行
-      if (c === '\n') { row.push(field); rows.push(row); row = []; field = ''; i++; continue; }
+      if (c === ',') { lastFieldQuoted = false; row.push(field); field = ''; i++; continue; }
+      // 行终止符：CRLF(\r\n) 作为单一终止符消费两者；裸 CR 亦作终止符（明确规则，避免静默跳过导致行合并）
+      if (c === '\r') {
+        if (text[i + 1] === '\n') i++; // 消费 \n，使 \r\n 只结束一次行
+        lastFieldQuoted = false; row.push(field); rows.push(row); row = []; field = ''; i++; continue;
+      }
+      if (c === '\n') { lastFieldQuoted = false; row.push(field); rows.push(row); row = []; field = ''; i++; continue; }
       field += c; i++; continue;
     }
   }
   if (inQuotes) throw new Error('CSV_MALFORMED: 引号未闭合');
-  if (field !== '' || row.length > 0) { row.push(field); rows.push(row); } // 收尾最后一行
+  // 收尾：普通字段/非空行正常收尾；显式空引号字段 '""' 保留为单格空行(lastFieldQuoted=true)；
+  // 纯尾随换行产生的空字段(lastFieldQuoted=false) 不额外生成空行（避免漂移假 PASS）。
+  if (field !== '' || row.length > 0 || lastFieldQuoted) { row.push(field); rows.push(row); }
   return rows;
 }
 
@@ -78,9 +125,9 @@ function validateManifest(m) {
   if (!m || typeof m !== 'object') { errors.push('manifest 缺失或非对象'); return { ok: false, errors, cols: [] }; }
   if (!m.frozenVersion || typeof m.frozenVersion !== 'string' || !m.frozenVersion.trim()) errors.push('frozenVersion 必填且非空');
   if (!m.table || typeof m.table !== 'string' || !m.table.trim()) errors.push('table 必填且非空');
-  // Pt4：capturedAt 收紧为 ISO-8601 日期/时间（'C' 这类占位不再合法）
-  if (!/^\d{4}-\d{2}-\d{2}(T\d{2}:\d{2}(:\d{2})?([+-]\d{2}:\d{2}|Z)?)?$/.test(String(m.capturedAt || '').trim())) {
-    errors.push('capturedAt 须为 ISO-8601 日期/时间(如 2026-10-24 或 2026-10-24T08:15:00+08:00)');
+  // Pt4（v5）：capturedAt 真实 ISO 校验（日历/时标/偏移范围），拒绝形状合法但值非法的字符串
+  if (!isValidIsoDateTime(m.capturedAt)) {
+    errors.push('capturedAt 须为合法 ISO-8601 日期/时间(如 2026-10-24 或 2026-10-24T08:15:00+08:00；拒绝 2026-02-30/2026-13-01/非法时标/越界偏移)');
   }
   const cols = m.nonTargetColumns;
   const validIdxs = [];
