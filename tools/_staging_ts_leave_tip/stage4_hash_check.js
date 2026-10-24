@@ -1,31 +1,19 @@
-// T1-B 生产表 Step1 · 阶段四切换复核 · 非目标区域哈希比对（STAGING 评审件 · v2）
+// T1-B 生产表 Step1 · 阶段四切换复核 · 非目标区域哈希比对（STAGING 评审件 · v3）
 //
-// v2 针对 Tom 2026-10-24 Block4 的修复：
-//   - 哈希前【先绑定冻结版本/表/范围/时刻】（manifest），不再比对两份任意整 CSV 字节；
-//   - 显式定义【非目标区域】（列清单），只对该区域算哈希，证明"无关数据无变更"有覆盖依据；
-//   - 增加【授权写集校验】：断言 after 相对 before 的【唯一差异】落在 manifest.authorizedTarget 内
-//     （本功能只新增/改 UI 提示代码，不写任何数据列），即"无未授权数据写集"；
-//   - 增加【回滚设计】rollback()，但不自动执行（须所有者显式授权 + 写权限）。
+// v3 针对 Tom 2026-10-24 复核函 Pt4 / Pt5 的二次修复：
+//   Pt4: manifest 必填校验（frozenVersion/table/capturedAt 非空；nonTargetColumns 非空+合法列字母+唯一；
+//        authorizedTarget.dataWrite 必须显式为 false；before/after SHA-256 绑定证据文件）；
+//        任一缺失/非法 → 失败关闭（exit 1），不再"只打印"或"缺省 []"或"dataWrite 缺失即跳过写集断言"。
+//        空投影（非目标区域两端皆空）亦判失败关闭，杜绝空投影假 PASS。
+//   Pt5: CSV 解析改为 RFC4180 风格（支持引号内逗号/换行、转义引号）；列字母支持多字母(AA/AB…)；
+//        列合法性/唯一性/边界(索引<文件列数)校验；引号 CSV / AA 列均能正确提取。
 //
-// 重要边界（回应 Block4/5）：哈希相同【仅】证明非目标区域字节稳定，
-//   不证明部署身份/权限/逻辑正确 —— 那些须由 gas_pull 真实 HEAD diff + 身份核实另行保证。
+// 边界（重申）：哈希相同【仅】证明非目标区域字节稳定 + 数据文件未变，不证明部署身份/权限/逻辑正确 ——
+//   那些须由 gas_pull 真实 HEAD diff + 身份核实另行保证（部署期验证，不在本件范围）。
 //
 // 用法：
 //   node stage4_hash_check.js --manifest manifest.json --before before.csv --after after.csv
-//   exit 0 = 非目标区域一致 + 写集校验通过（可放行）；非 0 = 漂移/越权写集（必须回滚/排查）。
-//
-// manifest.json 示例：
-// {
-//   "frozenVersion": "VP-20261018-R5729",
-//   "table": "DB_工时流水",
-//   "capturedAt": "2026-10-24T08:15:00+08:00",
-//   "nonTargetColumns": ["A","B","C","D","E"],   // 不被本功能触碰的列；本功能不在数据表写任何列
-//   "authorizedTarget": {                          // 唯一允许变更的范围（仅代码/UI，非数据）
-//     "kind": "code-module-addition",
-//     "module": "ts_leave_tip",
-//     "dataWrite": false
-//   }
-// }
+//   exit 0 = manifest 合法 + 证据 SHA 绑定 + 非目标区域一致 + 写集校验通过；非 0 = 漂移/越权/缺件（必须回滚/排查）。
 
 'use strict';
 
@@ -35,37 +23,90 @@ const path = require('path');
 
 function sha256(buf) { return crypto.createHash('sha256').update(buf).digest('hex'); }
 
-// 读 CSV 并按非目标列提取子区域（列字母 → 索引；A=0）
-function readNonTargetRegion(csvPath, nonTargetColumns) {
-  const raw = fs.readFileSync(csvPath);
-  const text = raw.toString('utf8');
-  const lines = text.split(/\r?\n/);
-  const header = lines[0] ? lines[0].split(',') : [];
-  const idxs = nonTargetColumns.map(col => {
-    const i = col.charCodeAt(0) - 65; // A->0
-    return i;
-  });
-  // 仅保留非目标列的内容（逐行），重组为待哈希文本
+// ===== Pt5：列字母 → 索引（支持多字母：A=0, Z=25, AA=26, AB=27…）=====
+function colToIndex(letters) {
+  const s = String(letters == null ? '' : letters).toUpperCase();
+  if (!/^[A-Z]+$/.test(s)) return null; // 非法（含数字/小写/空）
+  let n = 0;
+  for (const ch of s) n = n * 26 + (ch.charCodeAt(0) - 64);
+  return n - 1;
+}
+
+// ===== Pt5：RFC4180 风格 CSV 解析（支持引号内逗号/换行、转义引号 ""）=====
+function parseCsv(text) {
+  const rows = [];
+  let row = [];
+  let field = '';
+  let inQuotes = false;
+  const n = text.length;
+  let i = 0;
+  while (i < n) {
+    const c = text[i];
+    if (inQuotes) {
+      if (c === '"') {
+        if (text[i + 1] === '"') { field += '"'; i += 2; continue; } // 转义引号
+        inQuotes = false; i++; continue;
+      }
+      field += c; i++; continue;
+    } else {
+      if (c === '"') { inQuotes = true; i++; continue; }
+      if (c === ',') { row.push(field); field = ''; i++; continue; }
+      if (c === '\r') { i++; continue; } // CRLF：跳过 \r，由 \n 结束行
+      if (c === '\n') { row.push(field); rows.push(row); row = []; field = ''; i++; continue; }
+      field += c; i++; continue;
+    }
+  }
+  if (field !== '' || row.length > 0) { row.push(field); rows.push(row); } // 收尾最后一行
+  return rows;
+}
+
+// ===== Pt4：manifest 合法性校验（失败关闭）=====
+function validateManifest(m) {
+  const errors = [];
+  if (!m || typeof m !== 'object') { errors.push('manifest 缺失或非对象'); return { ok: false, errors, cols: [] }; }
+  if (!m.frozenVersion || typeof m.frozenVersion !== 'string' || !m.frozenVersion.trim()) errors.push('frozenVersion 必填且非空');
+  if (!m.table || typeof m.table !== 'string' || !m.table.trim()) errors.push('table 必填且非空');
+  if (!m.capturedAt || typeof m.capturedAt !== 'string' || !m.capturedAt.trim()) errors.push('capturedAt 必填且非空');
+  const cols = m.nonTargetColumns;
+  const validIdxs = [];
+  const seen = {};
+  if (!Array.isArray(cols) || cols.length === 0) {
+    errors.push('nonTargetColumns 必填且为非空数组');
+  } else {
+    for (const c of cols) {
+      const idx = colToIndex(c);
+      if (idx === null) { errors.push('非法列字母: ' + String(c)); continue; }
+      if (seen[idx]) { errors.push('重复列: ' + String(c)); continue; }
+      seen[idx] = true;
+      validIdxs.push(idx);
+    }
+  }
+  const at = m.authorizedTarget;
+  if (!at || at.dataWrite !== false) errors.push('authorizedTarget.dataWrite 必须显式为 false');
+  if (!m.beforeSha256 || !/^[0-9A-Fa-f]{64}$/.test(m.beforeSha256)) errors.push('beforeSha256 必填且为 64 位 hex');
+  if (!m.afterSha256 || !/^[0-9A-Fa-f]{64}$/.test(m.afterSha256)) errors.push('afterSha256 必填且为 64 位 hex');
+  return { ok: errors.length === 0, errors, cols: (Array.isArray(cols) ? cols : []), validIdxs };
+}
+
+// ===== Pt5：按非目标列提取子区域（解析后按索引取列）=====
+function readNonTargetRegion(rows, cols) {
+  const idxs = cols.map(colToIndex).filter(i => i !== null);
   const out = [];
-  for (const line of lines) {
-    if (!line) continue;
-    const cells = line.split(',');
-    out.push(idxs.map(i => cells[i] != null ? cells[i] : '').join(','));
+  for (const r of rows) {
+    if (!r || r.length === 0) continue; // 跳过零字段空行（两端一致处理）
+    out.push(idxs.map(i => (r[i] != null ? r[i] : '')).join(','));
   }
   return out.join('\n');
 }
 
-// 写集校验：after 相对 before 的【数据】差异必须为空（本功能 dataWrite=false）。
-// 这里以"整文件"做第二道校验：若 authorizedTarget.dataWrite=false，则 before 与 after 数据 CSV 必须逐字节相同。
-function verifyWriteSet(beforePath, afterPath, manifest) {
+// ===== 写集校验：dataWrite===false（已由 manifest 校验保证）→ 数据文件必须逐字节一致 =====
+function verifyWriteSet(beforeBuf, afterBuf, manifest) {
   const dataWrite = manifest && manifest.authorizedTarget && manifest.authorizedTarget.dataWrite;
-  if (dataWrite === false) {
-    const b = fs.readFileSync(beforePath);
-    const a = fs.readFileSync(afterPath);
-    if (b.equals(a)) return { ok: true, note: 'dataWrite=false → 数据文件逐字节一致，无授权外数据写集' };
-    return { ok: false, note: 'dataWrite=false 但数据文件发生变更 → 存在未授权数据写集，必须回滚' };
+  if (dataWrite !== false) {
+    return { ok: false, note: 'dataWrite 未显式为 false → 不得放行（须人工核对代码变更范围）' };
   }
-  return { ok: true, note: 'manifest 未声明 dataWrite=false，跳过数据写集断言（须人工核对代码变更范围）' };
+  if (beforeBuf.equals(afterBuf)) return { ok: true, note: 'dataWrite=false → 数据文件逐字节一致，无授权外数据写集' };
+  return { ok: false, note: 'dataWrite=false 但数据文件发生变更 → 存在未授权数据写集，必须回滚' };
 }
 
 // 回滚设计：仅返回回滚指令，【不】自动执行（须所有者显式授权 + 写权限）。
@@ -89,21 +130,61 @@ function main() {
     console.error('用法: node stage4_hash_check.js --manifest manifest.json --before before.csv --after after.csv');
     process.exit(2);
   }
-  const manifest = JSON.parse(fs.readFileSync(manifestPath, 'utf8'));
-  const cols = manifest.nonTargetColumns || [];
+  let manifest;
+  try { manifest = JSON.parse(fs.readFileSync(manifestPath, 'utf8')); }
+  catch (e) { console.error('STAGE4 FAIL ❌ manifest 解析失败:', e && e.message); process.exit(1); }
 
-  // 1) 非目标区域哈希比对
-  const r1 = readNonTargetRegion(before, cols);
-  const r2 = readNonTargetRegion(after, cols);
+  // 1) manifest 合法性（Pt4：缺件即失败关闭）
+  const v = validateManifest(manifest);
+  if (!v.ok) {
+    console.error('STAGE4 FAIL ❌ manifest 非法：');
+    for (const e of v.errors) console.error('   -', e);
+    process.exit(1);
+  }
+
+  const beforeBuf = fs.readFileSync(before);
+  const afterBuf = fs.readFileSync(after);
+
+  // 2) 证据 SHA 绑定（Pt4：确保比对的是预期证据文件，而非被替换的任意文件）
+  const bSha = sha256(beforeBuf), aSha = sha256(afterBuf);
+  if (bSha !== manifest.beforeSha256.toLowerCase()) {
+    console.error('STAGE4 FAIL ❌ before 文件 SHA 与 manifest.beforeSha256 不符（证据文件非预期）');
+    console.error('   manifest:', manifest.beforeSha256.toLowerCase());
+    console.error('   actual  :', bSha);
+    process.exit(1);
+  }
+  if (aSha !== manifest.afterSha256.toLowerCase()) {
+    console.error('STAGE4 FAIL ❌ after 文件 SHA 与 manifest.afterSha256 不符（证据文件非预期）');
+    process.exit(1);
+  }
+
+  // 3) 列边界校验（Pt5：最大索引须 < 文件列数）
+  const rowsB = parseCsv(beforeBuf.toString('utf8'));
+  const rowsA = parseCsv(afterBuf.toString('utf8'));
+  const colCount = Math.max(rowsB[0] ? rowsB[0].length : 0, rowsA[0] ? rowsA[0].length : 0);
+  const maxIdx = v.validIdxs.length ? Math.max.apply(null, v.validIdxs) : -1;
+  if (maxIdx >= colCount) {
+    console.error('STAGE4 FAIL ❌ 非目标列索引越界：maxIdx=' + maxIdx + ' >= 文件列数 ' + colCount);
+    process.exit(1);
+  }
+
+  // 4) 非目标区域哈希比对
+  const r1 = readNonTargetRegion(rowsB, v.cols);
+  const r2 = readNonTargetRegion(rowsA, v.cols);
+  if ((!r1 || r1.length === 0) && (!r2 || r2.length === 0)) {
+    console.error('STAGE4 FAIL ❌ 非目标区域两端皆空（空投影可相等 → 假 PASS 风险），必须声明有效非目标范围');
+    process.exit(1);
+  }
   const h1 = sha256(Buffer.from(r1, 'utf8'));
   const h2 = sha256(Buffer.from(r2, 'utf8'));
 
-  // 2) 写集校验
-  const ws = verifyWriteSet(before, after, manifest);
+  // 5) 写集校验（dataWrite=false → 逐字节一致）
+  const ws = verifyWriteSet(beforeBuf, afterBuf, manifest);
 
   if (h1 === h2 && ws.ok) {
     console.log('STAGE4 PASS ✅');
     console.log('  frozenVersion :', manifest.frozenVersion, '| table:', manifest.table, '| capturedAt:', manifest.capturedAt);
+    console.log('  nonTargetCols :', v.cols.join(','));
     console.log('  nonTargetHash :', h1);
     console.log('  writeSet      :', ws.note);
     console.log('  note          : 哈希相同仅证明非目标区域字节稳定，不证明部署身份/权限/逻辑正确');
@@ -123,4 +204,4 @@ function main() {
 
 if (require.main === module) main();
 
-module.exports = { sha256, readNonTargetRegion, verifyWriteSet, planRollback };
+module.exports = { sha256, colToIndex, parseCsv, validateManifest, readNonTargetRegion, verifyWriteSet, planRollback };
