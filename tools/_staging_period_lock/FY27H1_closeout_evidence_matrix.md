@@ -1,8 +1,8 @@
-# 生产工时表 FY27H1 关账 — 离线设计交付件（证据矩阵 v1.4）
+# 生产工时表 FY27H1 关账 — 离线设计交付件（证据矩阵 v1.6）
 
 > 配套：`FY27H1_closeout_plan.md`（commit `2aa260c3f6f19a017c1231f33fa7fa9511017d76`，文档 SHA-256 `2df9d9ed3c189f1e6b186407ae3e09cb1e503711416095125f290ca461b41cea`）
 > 目的：响应 Tom 2026-10-24 15:58 复核函（msg_WLx25pd…）4 项待办 + **16:57 复核函（msg_Pl7JcoN…）6 条设计收敛**——本件为**纯规划/设计交付，零生产写、零权限变更**。**Phase 1 身份与写入口已于 2026-10-24 16:48 经 `gas_auth` 只读实读 HEAD 解开**（HTTP 200，非 400），§1/§2/§7 为**实时 HEAD 只读核验产物（提交方报告，HEAD 与实际部署分列，非执行验收）**。
-> 状态：规划方向 + 文档整改接受 + Phase1 写入口/身份只读核验完成 + **v1.2 按 16:57 六条收敛** + **v1.3 按 17:29 收敛（stage/隔离前置/删除并入矩阵/400 归因降级）** + **v1.4 按 17:57 收敛（写入↔记stage 崩溃窗口保守处置/副作用不确定性建模/文档内部一致性修正）** + **v1.5 按 18:26 收敛（恢复表↔写序列一致/合成状态组合总表/WRITTEN_ATTEMPTED/回滚按预期写后版本/AUDITED 校验意图/意图读失败门禁）**；**非阶段一 PASS、非执行 clearance、非生产写许可、非 GO**。
+> 状态：规划方向 + 文档整改接受 + Phase1 写入口/身份只读核验完成 + **v1.2 按 16:57 六条收敛** + **v1.3 按 17:29 收敛（stage/隔离前置/删除并入矩阵/400 归因降级）** + **v1.4 按 17:57 收敛（写入↔记stage 崩溃窗口保守处置/副作用不确定性建模/文档内部一致性修正）** + **v1.5 按 18:26 收敛（恢复表↔写序列一致/合成状态组合总表/WRITTEN_ATTEMPTED/回滚按预期写后版本/AUDITED 校验意图/意图读失败门禁）** + **v1.6 按 Tom 20:42 复核（删除 §3.5「或UNCERTAIN」放行分支/写前门禁冲突消除；§3.2 比对改类型显式双条件 currentValues==newValues ∧ currentVersion==expectedVersion；§3.3「—」审计列明确为已完整查询确认无审计、补审计按 opId+内容去重）**；**非阶段一 PASS、非执行 clearance、非生产写许可、非 GO**。
 
 ---
 
@@ -81,13 +81,12 @@
 > v1.4 关键修正：**业务写入与 stage 持久化是两个独立外部副作用，任一可在其间崩溃**；且「写请求返回错误」≠「服务端必未落盘」。故每一步均**标 UNCERTAIN（不确定）而非假定成功/失败**，恢复扫描据可观测状态封禁后续写入。另区分**写前版本 baselineVersion / 预期写后版本 expectedVersion / 实际当前版本**三者，避免把本次正常写入误判为并发、也不覆盖未知中间值。
 ```
 1. check    行锁态 + 例外状态 + 双签 + expiresAt（服务端时钟）→ 不满足即 REJECT（零写）；**并查操作日志：本 UUID 集合存在任一非终态/UNCERTAIN INTENT → 立即 REJECT（隔离在进入新写之前生效）**。**意图日志读取失败/查询不完整 → 拒绝本 UUID 集合所有可能受影响的新写**。
-2. opId     生成持久操作ID（UUID）；预写意图行 {opId, stage:INTENT, uuidSet, baselineVersion(写前版本指纹), oldValues, expectedVersion(预期写后版本), newValues, ts}。**意图写请求返回错误 → 标记 op 为 UNCERTAIN（非终端）；REJECT 仅表本次返回结果，不能追溯撤销可能已落盘的服务端副作用；意图写未确认前不得进入业务写**.
+2. opId     生成持久操作ID（UUID）；预写意图行 {opId, stage:INTENT, uuidSet, baselineVersion(写前版本指纹), oldValues, expectedVersion(预期写后版本), newValues, ts} 并**立即回读确认该行已落盘且内容与写入一致（持久化可信）**。仅当意图行**完整可信持久化（写成功 + 回读一致）**后，才允许 step3 业务写；意图写请求返回错误 / 回读不一致 / 超时未确认 → 标记 op 为 UNCERTAIN（非终端）并**停止、隔离，绝不进入业务写**（不得以「再次标记 UNCERTAIN 成功」替代拒写）。REJECT 仅表本次返回结果，不能追溯撤销可能已落盘的服务端副作用。
 3. write    业务单元格写入 → 标记 WRITTEN_ATTEMPTED（写请求返回即标，结果未知；写请求错误仍 WRITTEN_ATTEMPTED）。
-4. verify   写后回读比对 当前值/当前版本 vs {baselineVersion(写前), expectedVersion(预期写后), oldValues, newValues}：
-         - 当前==expectedVersion 且 版本已推进(==预期写后版本) → stage=WRITTEN（写已确认落盘）；
-         - 当前==oldValues 且 版本==baselineVersion → 本次写未生效（被并发还原/未落盘）→ stage=ROLLED_BACK；
-         - 当前 既≠oldValues 也≠expectedVersion（未知中间值）→ OPEN_BROKEN（不清不覆盖）;
-         - 版本已变但值非预期（外部并发新值）→ OPEN_BROKEN（不覆盖并发新值）。
+4. verify   写后回读得到**（currentValues, currentVersion）**，与意图的（newValues, expectedVersion）/（oldValues, baselineVersion）做**类型显式双条件**比对（值对象与版本指纹分别比较，不混比）：
+         - **currentValues==newValues 且 currentVersion==expectedVersion**（值对象相等 ∧ 版本指纹相等）→ stage=WRITTEN（写已确认落盘）；
+         - **currentValues==oldValues 且 currentVersion==baselineVersion** → 本次写未生效（被并发还原/未落盘）→ stage=ROLLED_BACK；
+         - 其余情形（currentValues/currentVersion 任一不匹配上述两组）→ OPEN_BROKEN（不清不覆盖、不覆盖并发新值）。
 5. audit    审计 tab 追加（opId/操作人/旧值/新值/锁态/例外引用 + expectedVersion 一并记入）→ stage=AUDITED（审计已有该 opId → 视为 AUDITED，去重不重追加；审计写请求错误 → UNCERTAIN）。
 6. mark     stage=COMMITTED（终态）。
 ```
@@ -110,15 +109,17 @@
 | AUDITED | !=expectedVersion 或 审计内容!=意图 | 不一致 | 业务值/审计与意图不一致 | 隔离(不无条件 COMMIT) | OPEN_BROKEN |
 | UNCERTAIN | 任一 | 任一 | 请求错误, 服务端可能已落盘 | 封禁后续写入, 受控重试/人工 | OPEN_BROKEN |
 
+> **审计列「—」的强制语义（v1.6 修正）**：表中审计列标「—」的行的判定，**前提是已对该 opId 完整查询审计 tab 并确认无对应记录**（已查询无 = 干净；忽略未查 ≠ 干净）。若查询过程读取不确定、或审计 tab 已存在该 opId 记录（无论内容一致与否），则该行**不可归为干净 ROLLED_BACK**，须按 AUDITED 行或 OPEN_BROKEN 处理。补审计（VERIFIED→COMMITTED 的审计追加）须按 **opId + 内容（expectedVersion/oldValues/newValues）匹配去重**，不只在 AUDITED 阶段才核一致性——任一阶段发现审计已存在且内容一致即复用，内容不一致即 OPEN_BROKEN。
+
 ### 3.4 补偿失败 = OPEN_BROKEN（不冒称恢复）
 - OPEN_BROKEN 的 UUID 集合由 §3.2 step1 的 check **在进入新写之前**强制拦截（不依赖 dailyWatchdog 跑成功）：凡涉及隔离行的写入一律 REJECT，等待人工处置；处置动作本身也走 opId 流程。
 - **「REJECT」仅表本次调用返回结果，不追溯撤销可能已发生的服务端副作用**：写请求/状态写请求返回错误 ≠ 服务端必未落盘，也 ≠ 业务零写。故恢复判定一律以**可观测状态**（非终态/UNCERTAIN 的 stage、审计 tab 是否有 opId）为准——只要该 UUID 集合存在未决 op，即持续封禁后续写入，不因「客户端曾收到错误」而假定已干净回滚。
 - 审计 tab 追加 `{opId, stage:OPEN_BROKEN, reason}` 仅作留痕；审计写失败不改写意图行，恢复扫描再次发现。
 - **显式不承诺**：补偿失败 / 不确定性场景下数据可能停中间态直至人工介入——系统保证「不再接受新写 + 全程留痕 + 人工可判定」，不是自动无损；前述闭环**未实现、未测试前不宣称原子迁移或全程留痕已保证**。
 
-### 3.5 意图日志读取失败与写前门禁
+### 3.5 意图日志读取失败与写前门禁（v1.6：消除放行分支）
+- **意图写未确认前不得进入业务写（唯一放行条件）**：仅当 §3.2 step2 意图行**完整可信持久化（写成功 + 回读一致）**后，才允许 step3 业务写。**任何不确定情形（意图写返回错误 / 回读不一致 / 超时未确认 / 显式 UNCERTAIN 标记）一律停止并隔离，绝不进入业务写**——删除「或显式 UNCERTAIN 标记后放行」分支，不以再次标记成功替代拒写能力。
 - **意图日志读取失败 / 查询不完整** → 无法判定某 UUID 集合是否存在未决 op 时，**一律拒绝该集合所有可能受影响的新写**（fail-closed），不假定干净。
-- **意图写未确认前不得进入业务写**：§3.2 step2 意图行落盘并读回确认（或显式 UNCERTAIN 标记后）才允许 step3 业务写；**不能依赖「把 UNCERTAIN 再次写成功」才具备拒写能力**。
 - 幂等键（opId/reqId 内容绑定）、例外一次更正如何消耗/更新基线，沿用 17:29 待办，在合成 fixture 上设计。
 
 ---
@@ -231,6 +232,14 @@ ACTIVE/任意态 ──expiresAt 过──▶ EXPIRED_AUTO_RELOCK
 - ⏳ **意图日志读失败门禁** → 新增 §3.5：意图日志读取失败/查询不完整 → 拒绝该 UUID 集合所有可能受影响新写；意图写未确认前不得进入业务写，不依赖「把 UNCERTAIN 再次写成功」才具备拒写能力。
 - ⏳ **文档一致性** → 导语「崩溃窗口消除」改「崩溃窗口保守处置」（当前是保守设计非消除）；§8 17:29 段中「stage 唯一事实源」「意图状态失败即整 op 拒绝」等旧表述标为历史已废止（已被 v1.4/v1.5 改写）。
 - 结论（Tom）：可采纳上述设计改进，但**恢复规则一致性、实现/测试证据及执行 clearance 仍未闭合**；此回复不授予编码部署/执行测试/现场读取/生产写入许可；阶段一 PASS 暂缓、106 HOLD、历史 23 行/D241、HOLD/NO-GO、事故安全 OPEN、零生产操作不变。
+
+**20:42 函（复 v1.5）→ v1.6 对应**：
+- ⏳ **写前门禁冲突（必须消除）** → §3.5 删除「或显式 UNCERTAIN 标记后放行」分支：仅意图行**完整可信持久化（写成功+回读一致）**才允许 step3 业务写；任何不确定（写错误/回读不一致/超时/UNCERTAIN）→ 停止+隔离，不进入业务写。
+- ⏳ **比对类型显式** → §3.2 step4 改为 **currentValues==newValues ∧ currentVersion==expectedVersion** 两条件分别比较（值对象与版本指纹不混比）；ROLLED_BACK 同理 currentValues==oldValues ∧ currentVersion==baselineVersion。
+- ⏳ **审计列「—」语义** → §3.3 明确「—」= 已完整查询确认无审计（非忽略）；读取不确定/已存在审计记录/内容不一致 → 不可归干净 ROLLED_BACK；补审计按 **opId+内容匹配去重**，不只在 AUDITED 阶段核一致性。
+- ⏳ **版本标识** → 文档首行 v1.4→v1.6。
+- 仍沿原待办（幂等键内容绑定、例外一次更正消耗/基线更新、外部写者未覆盖）不重复列。
+- 结论（Tom）：整改方向采纳，但**写前门禁冲突未消除，不能据此给推进实现/执行 clearance**；本函不新增编码/测试/现场读取/部署/生产写授权；阶段一 PASS 暂缓、106 HOLD、历史 23 行/D241、HOLD/NO-GO、事故安全 OPEN 维持。
 
 **17:57 函（复 v1.3）→ v1.4 对应**：
 - ⏳ **写入↔记 stage 崩溃窗口** → §3.2 明确业务写入与 stage 持久化为两个独立外部副作用，任一可其间崩溃；每步标 UNCERTAIN（不假定成功/失败）；区分写前版本 baselineVersion / 预期写后 expectedVersion / 实际当前版本三者，避免误判正常写入为并发、不覆盖未知中间值。§3.3 重写为**确定性恢复决策函数**：stage 非唯一事实源，仅依可观测状态（stage + 值/版本 + 审计 opId）+ 可信意图判定；**INTENT 但 cell==newValues（写成功但 stage 未记）→ 判 UNCERTAIN→OPEN_BROKEN 隔离，不自动回滚/提交**；补「补偿写后、ROLLED_BACK 标记前崩溃」由 WRITTEN 行覆盖。
