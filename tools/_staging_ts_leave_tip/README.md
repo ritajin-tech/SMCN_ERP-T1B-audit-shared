@@ -60,4 +60,5 @@
 - `7ad8862`：v3 二次修复（回应 Tom 11:58 六点）。
 - `1f0ae99`：v4 三次修复（回应 Tom 12:27 六点）。
 - `b956765`：v5 四次修复（回应 Tom 13:26 四点残项）——见 `docs/T1B_A包装四次修复_20261024.md`。
-- **本轮新固定 commit**：测试精度增强（回应 Tom 14:26 两条建议：stage4 失败路径结构化错误码 + 断言锚定 [ERR_CSV_PARSE] CSV 解析阶段；wrapper 第12节三态区分 executed/skipped_missing/load_failed）——见 `docs/T1B_测试精度增强_20261024.md`。完整 SHA 见上表。
+- `babc7ec7208f750b8d0da24b5cbba3fa43c77c60`：测试精度增强（回应 Tom 14:26 两条建议：stage4 失败路径结构化错误码 + 断言锚定 [ERR_CSV_PARSE] CSV 解析阶段；wrapper 第12节三态区分 executed/skipped_missing/load_failed）——见 `docs/T1B_测试精度增强_20261024.md`。
+- `08d1da7f8f48ee2060e3786af0f38e1c3bb26cae`：测试精度增强 v2（回应 Tom 14:57 进一步精确化：wrapper 第12节以绝对路径 existsSync 判定 + 三反例；术语更正 Git commit ID 与 64 位 SHA-256 分写）——见 `docs/T1B_测试精度增强_v2_20261024.md`。
