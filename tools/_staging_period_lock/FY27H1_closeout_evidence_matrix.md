@@ -1,8 +1,8 @@
-# 生产工时表 FY27H1 关账 — 离线设计交付件（证据矩阵 v1.3）
+# 生产工时表 FY27H1 关账 — 离线设计交付件（证据矩阵 v1.4）
 
 > 配套：`FY27H1_closeout_plan.md`（commit `2aa260c3f6f19a017c1231f33fa7fa9511017d76`，文档 SHA-256 `2df9d9ed3c189f1e6b186407ae3e09cb1e503711416095125f290ca461b41cea`）
-> 目的：响应 Tom 2026-10-24 15:58 复核函（msg_WLx25pd…）4 项待办 + **16:57 复核函（msg_Pl7JcoN…）6 条设计收敛**——本件为**纯规划/设计交付，零生产写、零权限变更**。**Phase 1 身份与写入口已于 2026-10-24 16:48 经 `gas_auth` 只读实读 HEAD 解开**（HTTP 200，非 400），§1/§2/§7 已升级为实时核验。
-> 状态：规划方向 + 文档整改接受 + Phase1 写入口/身份只读核验完成 + **v1.2 按 16:57 六条收敛** + **v1.3 按 17:29 复核函收敛（恢复 stage 状态机消歧/隔离前置拦截/metadata-fail 拒写路径/删除并入入口矩阵/拟实现标注/node-400 归因保留待证）**；**非阶段一 PASS、非执行 clearance、非生产写许可、非 GO**。
+> 目的：响应 Tom 2026-10-24 15:58 复核函（msg_WLx25pd…）4 项待办 + **16:57 复核函（msg_Pl7JcoN…）6 条设计收敛**——本件为**纯规划/设计交付，零生产写、零权限变更**。**Phase 1 身份与写入口已于 2026-10-24 16:48 经 `gas_auth` 只读实读 HEAD 解开**（HTTP 200，非 400），§1/§2/§7 为**实时 HEAD 只读核验产物（提交方报告，HEAD 与实际部署分列，非执行验收）**。
+> 状态：规划方向 + 文档整改接受 + Phase1 写入口/身份只读核验完成 + **v1.2 按 16:57 六条收敛** + **v1.3 按 17:29 收敛（stage/隔离前置/删除并入矩阵/400 归因降级）** + **v1.4 按 17:57 收敛（写入↔记stage 崩溃窗口消除/副作用不确定性建模/文档内部一致性修正）**；**非阶段一 PASS、非执行 clearance、非生产写许可、非 GO**。
 
 ---
 
@@ -28,7 +28,7 @@
 | W3b | `tsPatchCells`(RemoteActions.gs，action `patchCells`) | 批量改格前校验 | 校验目标行 B 列 | 补类型列等批量改 |
 | W4 | 解锁申请提交 | 双签校验（Rita+sysadmin） | 仅双签生效 | 见 §5 |
 | W5 | 锁状态写（`lockState` 持久化，ScriptProperties） | 自身原子写 | — | 见 §4 |
-| W6 | 审计 tab 追加（`_TS_WRITE_LOG`，已有） | 与业务写同事务 | — | 见 §3 补偿 |
+| W6 | 审计 tab 追加（`_TS_WRITE_LOG`，已有） | 与业务写同事务（**待证明设计目标**，见 §3.3 确定性恢复） | — | 见 §3 补偿 |
 
 **W3/W3b 关键**：`tsAppendRows` 已有护栏（限 3000 行、默认拒请假行 `force=1` 才放行、`_tsIsLeaveRowForGuard`、幂等 UUID 去重、`_TS_WRITE_LOG` 留痕）——锁 guard 应叠加在现有护栏之后，按 B 列业务日期拦截 `fillDate < 2026-10-01`。`tsPatchCells` 同理。
 
@@ -38,7 +38,7 @@
 |---|---|---|---|
 | W1 `submitBatch` / W2 `updateTimesheet`（Web/移动端） | ✅ 服务端函数入口 guard，提交前拒绝 | **拟实现**（guard 待挂） | 主拦截层，非已生效 |
 | W3 `tsAppendRows` / W3b `tsPatchCells`（脚本/远程批量） | ✅ 入库前逐行校验 | **拟实现** | 批量回填/恢复，非已生效 |
-| `softDeleteRecord`（软删历史行） | ❌ 锁不覆盖（仅软删标记） | **拟实现**（guard 待挂） | 删除用例并入本矩阵（§6 T-delete），不脱节 |
+| `softDeleteRecord`（软删历史行） | ❌ 现状锁不覆盖（仅软删标记） | **拟实现**（guard 待挂，**目标 REJECT**，见 §6 T-delete） | 删除用例并入本矩阵，不脱节 |
 | 既有直接编辑（有编辑权者在 Sheet 界面手改） | ❌ **不覆盖** | 现状（无前置拦截） | onEdit/change 事后事件，**不作拦截证据**；mitigation=Sheet 保护+灰标威慑+事后审计；上线说明显式声明未前置拦截 |
 | 其他脚本/触发器/API/管理员（非 W3/W3b） | ❌ **不覆盖** | 现状 | 显式声明未覆盖；脚本锁仅约束同锁路径，不能据此覆盖外部写者；依赖所有者侧纪律，列 Phase 3 核对清单 |
 | W7 物理删类（purgeRows 等） | ❌ 锁不覆盖 | 现状（token 门控） | 维护动作，维持现有门控 |
@@ -53,15 +53,15 @@
 
 ---
 
-## 2. Phase 1 身份诊断 — ✅ 已只读解开（2026-10-24 16:48）
+## 2. Phase 1 身份诊断 — 只读核验产物（提交方报告，2026-10-24 16:48）
 
-- **实测结论**：经 `tools/gas_auth.py`（`~/.clasprc.json` 默认令牌）对 `1FPAwV50…` 调 `script.googleapis.com/v1/projects/{sid}/content` → **HTTP 200，返回正确 scriptId 与完整源码**。身份与项目均确认无误。
+- **实测结论（提交方报告）**：经 `tools/gas_auth.py`（`~/.clasprc.json` 默认令牌）对 `1FPAwV50…` 调 `script.googleapis.com/v1/projects/{sid}/content` → **HTTP 200，返回正确 scriptId 与完整源码**。身份与项目**匹配**（HEAD 与实际部署分列，非执行验收）。
 - **400 根因定位（保留待证归因）**：此前 `pull_ts_code.js` / `ts_healthcheck.js`（node，用另一套令牌 `j.access_token`）报 400；`gas_auth` 通道 200 能证明「可只读实读」，但**不能单独证明原 node 400 必为令牌过期/scope 不足**——在缺对应错误与令牌诊断证据时，本件将其**保留为待证归因，不要求提供任何令牌**，亦不据其断言授权结论。修复建议（Rita 回电脑后可选）：让 node 脚本改走 `gas_auth` 通道或刷新 node 令牌；**非浏览器重授权、非新增权限**（符合 §8 不主动扩权）。
-- **已核验项（只读）**：
-  1. ✅ 真实项目身份：`scriptId` 匹配 `1FPAwV50…`（即 TimeSheet 正式填报页 / 生产工时系统）。
-  2. ✅ 部署身份：`ANYONE_ANONYMOUS` + `USER_DEPLOYING`（见 §1，Tom 关注点已坐实）。
-  3. ✅ 全部写入口函数名 + 行号（§1 W1–W7，实时 HEAD）。
-  4. ✅ 现有护栏模式可复用（`_tsSetValuesGuarded` / `_TS_WRITE_LOG` / `masterCreate` 禁用清单）。
+- **已核验项（提交方报告，待降级证据层级）**：
+  1. 真实项目身份：`scriptId` 匹配 `1FPAwV50…`（TimeSheet 正式填报页 / 生产工时系统）——据 HEAD 断言，实际服务部署另列。
+  2. 部署身份：据 HEAD `appsscript.json` manifest 断言 `ANYONE_ANONYMOUS` + `USER_DEPLOYING`（§1）；**实际服务中的部署版本/访问配置须所有者侧受控诊断单另列，读到 HEAD 不自动断言生产部署身份已闭合**。
+  3. 全部写入口函数名 + 行号（§1 W1–W7，实时 HEAD）——HEAD 源码，非实时生产部署。
+  4. 现有护栏模式可复用（`_tsSetValuesGuarded` / `_TS_WRITE_LOG` / `masterCreate` 禁用清单）。
 - **未变铁律**：本节及 §1 均为**只读核验产物**；未做任何生产写、未 push、未 deploy。Phase 3 执行 clearance 仍须 **Tom clearance + Rita GO 双闸门**。
 - **生产部署身份闭合声明边界**：本件以读到实时 HEAD + 其 `appsscript.json` manifest 字段断言「部署身份配置」真实存在；但**实际服务中的部署版本/访问配置须由 Rita/所有者侧受控诊断单另列**，读到 HEAD 不自动断言当前生产部署身份已闭合。HTTP200/16 文件/行号/`4.3.72`/组合指纹均为**提交方报告**，你未持有该快照、组合 SHA 不可由你独立复算——归为待降级证据层级，非执行验收（v1.3 按 17:29 函）。
 - **实时 HEAD 指纹**：版本 `TS_APP_VERSION='4.3.72'`(Code.gs L123)；源码快照 `tools/_staging_period_lock/_ts_head_live/`（16 文件）；**组合 SHA-256 = `26471b4103c569851391ae3f70058b06c2828b8916674a0bd8dd3d3f72693c18`**（计算方法见 §9：按文件名升序拼接 16 文件原始字节后取 SHA-256，可复现）。
@@ -77,32 +77,40 @@
 - **稳定行 ID**：以生产表现有行级 UUID（`f.uuid` 所在列，submitBatch/updateTimesheet 已在用）为稳定行 ID；**一切锁判定、例外授权、审计引用均绑定 UUID 集合，不用行号/rowRange**（行号可漂移）。
 - **旧值快照**：写前整行读出（值+UUID），存入意图记录 `oldValues`。
 
-### 3.2 写序列（每入口 W1/W2/W3/W3b 适用）— 含阶段持久化与隔离前置
+### 3.2 写序列（每入口 W1/W2/W3/W3b 适用）— 含副作用不确定性与隔离前置
+> v1.4 关键修正：**业务写入与 stage 持久化是两个独立外部副作用，任一可在其间崩溃**；且「写请求返回错误」≠「服务端必未落盘」。故每一步均**标 UNCERTAIN（不确定）而非假定成功/失败**，恢复扫描据可观测状态封禁后续写入。另区分**写前版本 baselineVersion / 预期写后版本 expectedVersion / 实际当前版本**三者，避免把本次正常写入误判为并发、也不覆盖未知中间值。
 ```
-1. check    行锁态 + 例外状态 + 双签 + expiresAt（服务端时钟）→ 不满足即 REJECT（零写）；**并查操作日志：本 UUID 集合若存在任一非终态 INTENT（INTENT/WRITTEN/VERIFIED/AUDITED）→ 立即 REJECT（不等 dailyWatchdog 成功标记），隔离在进入新写之前生效**（v1.3 消歧）。
-2. opId     生成持久操作ID（UUID）；向操作日志 tab 预写意图行 {opId, stage:INTENT, uuidSet, oldValues(含行版本指纹), newValues, ts}。**若此意图写失败 → 整 op REJECT（fail-closed，即确定拒写路径，不进入后续）**。
-3. write    业务单元格写入 → stage=WRITTEN。
-4. verify   写后回读比对（复用 _tsSetValuesGuarded）→ 值不符且行版本==oldValues 基线 → 写回旧值还原, stage=ROLLED_BACK；值不符且版本已变（并发新值） → 标记 OPEN_BROKEN（不清不覆盖）；符合 → stage=VERIFIED。
-5. audit    审计 tab 追加（opId/操作人/旧值/新值/锁态/例外引用）→ stage=AUDITED（审计 tab 已有该 opId → 视为 AUDITED，去重不重追加）。
+1. check    行锁态 + 例外状态 + 双签 + expiresAt（服务端时钟）→ 不满足即 REJECT（零写）；**并查操作日志：本 UUID 集合存在任一非终态/UNCERTAIN INTENT → 立即 REJECT（隔离在进入新写之前生效）**。
+2. opId     生成持久操作ID（UUID）；预写意图行 {opId, stage:INTENT, uuidSet, baselineVersion(写前版本指纹), oldValues, expectedValues(预期写后), newValues, ts}。**意图写请求返回错误 → 标记 op 为 UNCERTAIN（非终端）；REJECT 仅表本次返回结果，不能追溯撤销可能已落盘的服务端副作用**。
+3. write    业务单元格写入。**写请求返回错误 → stage 标记 WRITTEN_ATTEMPTED（不确定），不假定已写或已回滚**。
+4. verify   写后回读比对当前值/当前版本 vs {baselineVersion(写前), expectedValues(预期写后), newValues}：
+         - 当前==expectedValues 且版本已推进 → 正常路径, stage=VERIFIED；
+         - 当前==oldValues 且版本==baselineVersion → 本次写未生效（被并发还原/未落盘）, stage=ROLLED_BACK；
+         - 当前既≠oldValues 也≠newValues（未知中间值）→ OPEN_BROKEN（不清不覆盖）;
+         - 版本已变但值非预期（外部并发新值）→ OPEN_BROKEN（不覆盖并发新值）。
+5. audit    审计 tab 追加（opId/操作人/旧值/新值/锁态/例外引用）→ stage=AUDITED（审计 tab 已有该 opId → 视为 AUDITED，去重不重追加；审计写请求错误 → UNCERTAIN）。
 6. mark     stage=COMMITTED（终态）。
 ```
+> 补偿（回滚写）本身也是外部副作用：若回滚写后、ROLLED_BACK 标记前崩溃，恢复时按 §3.3 WRITTEN 行处理（当前==oldValues→ROLLED_BACK；中间值→OPEN_BROKEN）。
 
-### 3.3 失败/崩溃恢复状态机（操作日志 stage 唯一事实源）
-恢复扫描按**持久 stage 字段**（非仅值比对）判定并键入动作；覆盖「审计已追加但 COMMITTED 标记前崩溃」（opId 去重：审计 tab 已有该 opId → 直接 COMMITTED，不重追加）。v1.3 以 stage 区分「业务已写未 verify」与「已 verify 未 audit」两种中间态，消除旧版歧义。
+### 3.3 失败/崩溃恢复状态机（确定性恢复决策函数）
+> v1.4 修正：**stage 不是唯一事实源**。恢复决策仅依赖**可观测状态**（持久 stage + 单元格当前值/版本 + 审计 tab 是否有 opId），结合可信意图（oldValues / baselineVersion / expectedValues）做确定性恢复；**凡状态组合无法安全区分「已发生 / 未发生」→ 判 UNCERTAIN → OPEN_BROKEN 隔离，不假定未写、不自动回滚、不自动提交**。覆盖「审计已追加但 COMMITTED 标记前崩溃」（审计 tab 已有 opId → 直接 COMMITTED，去重不重追加）。
 
-| 持久 stage | 恢复判定 | 恢复动作 | 终态 |
-|---|---|---|---|
-| INTENT | 单元格 == oldValues（或未变） | 无需动作 | ROLLED_BACK |
-| WRITTEN | 值 == newValues | 行版本==oldValues 基线 → 写回旧值还原；版本已变（并发新值）→ OPEN_BROKEN（不覆盖并发新值） | ROLLED_BACK / OPEN_BROKEN |
-| VERIFIED | 值 == newValues | 补审计；成功 → COMMITTED，失败 → OPEN_BROKEN | COMMITTED / OPEN_BROKEN |
-| AUDITED | 审计 tab 已有 opId 行 | 直接 mark COMMITTED（去重，不重追加） | COMMITTED |
-| （隔离元数据写失败） | 任一 stage 写/状态写失败 | 该 op 整体 REJECT（见 §3.4），不进入新写 | — |
+| 持久 stage | 当前单元格（值/版本）vs 意图 | 判定 | 恢复动作 | 终态 |
+|---|---|---|---|---|
+| INTENT | == oldValues（值+版本==baseline） | 本次写未生效 | 无需动作 | ROLLED_BACK |
+| INTENT | == newValues（值+版本已推进） | 业务已写但 stage 未记 → 不确定已落盘/是否重复 | **OPEN_BROKEN（隔离），不自动回滚/提交** | OPEN_BROKEN |
+| INTENT | 既≠oldValues 也≠newValues（未知中间值） | 外部并发/部分写 | OPEN_BROKEN | OPEN_BROKEN |
+| WRITTEN | == newValues | 业务新值在、待 verify/回滚 | 按意图：需回滚→版本==baseline 才写回 oldValues，否则 OPEN_BROKEN；正常→VERIFIED | ROLLED_BACK / VERIFIED / OPEN_BROKEN |
+| VERIFIED | == newValues | 待补审计 | 补审计；成功→COMMITTED，失败→OPEN_BROKEN | COMMITTED / OPEN_BROKEN |
+| AUDITED | 审计 tab 已有 opId 行 | 审计已落 | 直接 COMMITTED（去重不重追加） | COMMITTED |
+| UNCERTAIN | 任一 | 写/状态/审计请求返回错误，服务端可能已落盘 | 封禁该 UUID 集合后续写入，受控重试或人工处置 | OPEN_BROKEN |
 
 ### 3.4 补偿失败 = OPEN_BROKEN（不冒称恢复）
 - OPEN_BROKEN 的 UUID 集合由 §3.2 step1 的 check **在进入新写之前**强制拦截（不依赖 dailyWatchdog 跑成功）：凡涉及隔离行的写入一律 REJECT，等待人工处置；处置动作本身也走 opId 流程。
-- **隔离元数据写失败也有确定拒写路径**：若写入 OPEN_BROKEN 隔离标记本身失败（隔离元数据写失败）→ 该 op 在 §3.2 step2/3 即已 REJECT（意图/状态行写失败），恢复扫描见该 UUID 仍有非终态 INTENT 即继续拒写——**不静默放行**。
+- **「REJECT」仅表本次调用返回结果，不追溯撤销可能已发生的服务端副作用**：写请求/状态写请求返回错误 ≠ 服务端必未落盘，也 ≠ 业务零写。故恢复判定一律以**可观测状态**（非终态/UNCERTAIN 的 stage、审计 tab 是否有 opId）为准——只要该 UUID 集合存在未决 op，即持续封禁后续写入，不因「客户端曾收到错误」而假定已干净回滚。
 - 审计 tab 追加 `{opId, stage:OPEN_BROKEN, reason}` 仅作留痕；审计写失败不改写意图行，恢复扫描再次发现。
-- **显式不承诺**：补偿失败场景下数据可能停中间态直至人工介入——系统保证「不再接受新写 + 全程留痕 + 人工可判定」，不是自动无损；前述闭环**未实现、未测试前不宣称原子迁移或全程留痕已保证**。
+- **显式不承诺**：补偿失败 / 不确定性场景下数据可能停中间态直至人工介入——系统保证「不再接受新写 + 全程留痕 + 人工可判定」，不是自动无损；前述闭环**未实现、未测试前不宣称原子迁移或全程留痕已保证**。
 
 ---
 
@@ -135,7 +143,7 @@ ACTIVE ──主动关闭/撤销──▶ CLOSED
 ACTIVE/任意态 ──expiresAt 过──▶ EXPIRED_AUTO_RELOCK
 任意非 ACTIVE 态 ──任何写入──▶ REJECT
 ```
-- 状态迁移全部走 §3 的 opId 序列（检查→写状态→写审计），迁移本身原子；并发双签竞争由脚本锁串行化，不存在「首签即胜出放行写入」——**双签齐备前例外不生效，写入一律拒**。
+- 状态迁移全部走 §3 的 opId 序列（检查→写状态→写审计），**迁移本身原子（待证明设计目标）**；并发双签竞争由脚本锁串行化，不存在「首签即胜出放行写入」——**双签齐备前例外不生效，写入一律拒**。
 
 ### 5.4 到期语义
 - `expiresAt` 在**每次写入 check**按服务端时钟判定；过期即拒，即使 ACTIVE 未手动关闭。
@@ -174,7 +182,7 @@ ACTIVE/任意态 ──expiresAt 过──▶ EXPIRED_AUTO_RELOCK
 | 约束 | 设计落点 | 当前证据（2026-10-24 只读核验） | 待补证据（Rita GO 后实现） |
 |---|---|---|---|
 | 写入口拦截 | §1 W1–W7 + 覆盖总表 | ✅ 实时 HEAD 函数名+行号（`submitBatch` L386 / `updateTimesheet` L460 / `tsAppendRows` / `tsPatchCells` 等）+ 组合 SHA `26471b4…` + 未覆盖项显式声明；**§1 前置 guard 标「拟实现」，非已生效** | 挂锁代码 + SHA |
-| 身份核验 | §2 | ✅ HTTP200 实读 HEAD；scriptId 匹配；部署身份 `ANYONE_ANONYMOUS` 已坐实 | —（已只读闭合） |
+| 身份核验 | §2 | 提交方报告：HTTP200 实读 HEAD；scriptId 匹配；部署身份据 HEAD manifest 断言（实际服务部署另列，待降级） | —（提交方报告，非执行验收） |
 | 原子写+补偿 | §3 | opId+预写意图+恢复状态机+OPEN_BROKEN（具体机制设计，非伪序列） | `atomic_write_tests.js` + 结果 |
 | 锁持久化+恢复 | §4 | 存储设计（ScriptProperties，独立于 `FEATURE_ENABLED`，逐次 check 实时读） | `lockstate_persist_tests.js` |
 | 限时例外 | §5 | 双签状态机 + UUID集合+allowedFields+基线版本 + 逐次到期 check | `exception_tests.js` |
@@ -187,7 +195,7 @@ ACTIVE/任意态 ──expiresAt 过──▶ EXPIRED_AUTO_RELOCK
 
 **15:58 函（4 项待办）**：
 - ✅ 接受「规划方向 + 文档整改，实现证据未就绪」定位。
-- ✅ Phase 1 **已只读解开**：经 `gas_auth` 实读 HEAD HTTP200，身份/写入口/部署身份（`ANYONE_ANONYMOUS`）均核验；400 确为 node 通道令牌问题，非浏览器重授权、非新增权限；§8 不扩权有效。
+- ✅ Phase 1 **已只读解开**：经 `gas_auth` 实读 HEAD HTTP200，身份/写入口/部署身份（`ANYONE_ANONYMOUS`）均据 HEAD 核验；node 400 归因**保留为待证**（见 §2），不据其断言授权结论；非浏览器重授权、非新增权限；§8 不扩权有效。
 - ✅ 本件给出对象/入口/状态/并发边界（§1/3/4/5/6）与证据矩阵（§7）。
 - ⏳ 实现/测试证据仍须 **Rita GO + 双闸门** 后方可编写并实跑。
 
@@ -206,6 +214,12 @@ ACTIVE/任意态 ──expiresAt 过──▶ EXPIRED_AUTO_RELOCK
 - ⏳ 入口矩阵 → §1 增「状态」列：W1–W3b/softDeleteRecord guard 标**拟实现（非已生效）**，直接编辑/其他脚本/管理员/W7 标「现状（未覆盖）」；softDeleteRecord 已并入矩阵（§6 T-delete 不脱节）；明确未覆盖≠「全部历史已冻结」证明。
 - ⏳ 归因降级 → §2 将 node 400 归因**保留为待证**（gas_auth 200 不能单独证明原 400 必为令牌过期/scope 不足，不要求提供令牌）；HTTP200/16文件/行号/`4.3.72`/组合指纹均标为**提交方报告、待降级证据层级**；实际服务部署版本/访问配置须由所有者侧受控诊断单另列，读到 HEAD 不断言生产部署身份已闭合。
 - 结论（Tom）：设计整改实质进展，但**实现与执行 clearance 未就绪**；阶段一最终 PASS 继续暂缓，HOLD/NO-GO、事故安全 OPEN、零生产操作边界不变；本函不授权执行仓库测试/现场读取/编码部署/任何生产动作。
+
+**17:57 函（复 v1.3）→ v1.4 对应**：
+- ⏳ **写入↔记 stage 崩溃窗口** → §3.2 明确业务写入与 stage 持久化为两个独立外部副作用，任一可其间崩溃；每步标 UNCERTAIN（不假定成功/失败）；区分写前版本 baselineVersion / 预期写后 expectedVersion / 实际当前版本三者，避免误判正常写入为并发、不覆盖未知中间值。§3.3 重写为**确定性恢复决策函数**：stage 非唯一事实源，仅依可观测状态（stage + 值/版本 + 审计 opId）+ 可信意图判定；**INTENT 但 cell==newValues（写成功但 stage 未记）→ 判 UNCERTAIN→OPEN_BROKEN 隔离，不自动回滚/提交**；补「补偿写后、ROLLED_BACK 标记前崩溃」由 WRITTEN 行覆盖。
+- ⏳ **REJECT 过度声明** → §3.4 改写：「REJECT 仅表本次返回结果，不追溯撤销可能已发生的服务端副作用」；写/状态请求错误 ≠ 服务端必未落盘、≠ 业务零写；恢复判定一律以可观测状态（非终态/UNCERTAIN 的 stage、审计 opId）为准，不因客户端曾收错误而假定已干净回滚。
+- ⏳ **文档内部一致性** → 标题/§2 标题/§2 已核验项/§7 身份行去掉「已坐实/已只读闭合」等旧断言，改标「提交方报告、HEAD 与实际部署分列、待降级」；§8 15:58 段「400 确为 node 令牌」改为「保留待证（与 §2 一致）」；§1 softDeleteRecord 行统一「现状锁不覆盖 + 目标 REJECT（拟实现）」；W6「与业务写同事务」、§5.3「迁移本身原子」标为**待证明设计目标**。
+- 结论（Tom）：文档有实质收敛，但**恢复闭环与内部一致性尚未完成**；实现/测试证据及执行 clearance 仍未就绪；阶段一 PASS 暂缓、106 HOLD、历史 23 行/D241、HOLD/NO-GO、事故安全 OPEN、零生产操作不变；本函非上线/写入/执行测试/现场读取授权。
 
 ---
 ## 9. 附录 — 实时 HEAD 快照指纹（可复现）
