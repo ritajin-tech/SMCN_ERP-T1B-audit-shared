@@ -9,7 +9,7 @@
 |---|---|---|
 | `deploy_wrapper.js` | `B550E5A2C1E7ED50619619ED2FA2F44770B6CEC324892502DD6B3046B91CEED5` | 统一受控入口 + 单点解析 + 最小冻结快照(含受控 status:'OK') + 响应/日志去敏 + wrapResponse fail-closed |
 | `stage4_hash_check.js` | `E0C23B950DCE34E427BBA07F47D810C5AF46B3B1A82EDD423B517456A63DE722` | manifest 校验(真实日历/时标/偏移) + 真实 CSV 解析(明确终止符/空引号字段) + 逐记录宽度校验 + 无歧义序列化；失败路径结构化错误码([ERR_CSV_PARSE]/[ERR_SHA_BEFORE]等) |
-| `wrapper_negative_tests.js` | `649C25F5D77AE6DD58333F6C1E4A33EC77091ED70AF40968DAD8F0666109BB84` | 包装负例（35 项含真实核心契约兼容；核心不在则第12节三态显式标记 skipped_missing→34/34，仍 exit 0） |
+| `wrapper_negative_tests.js` | `BB4B1700963AAD32BC5CB18E8B11E653F1175522A64AE7B1A7B40C1945045824` | 包装负例（38 项；第12节以绝对路径 existsSync 确认核心存在性再加载，三反例 executed/skipped_missing/load_failed；核心不在→skipped_missing 标记 37/37，仍 exit 0） |
 | `stage4_tests.js` | `A45116828B8713C9291DC2B0A0F599CE68F8BDF239098D54512EBF226869EFD6` | 阶段四单元+集成（43 项，含 capturedAt 边界 / CSV 边界 / 畸形解析器拦截非 SHA 先行，且断言锚定 [ERR_CSV_PARSE] 阶段） |
 
 ## 设计目标（不变）
@@ -38,7 +38,7 @@
 
 ## 测试（提交方本地 `node` 实跑，非仅声明）
 
-- `node wrapper_negative_tests.js` → **提交方本地（核心同仓）35/35 exit 0**；**分发 clone（核心不在，第12节真实核心契约兼容三态显式标记 skipped_missing→34/34 exit 0）**。第12节三态：executed(核心同仓跑契约兼容+缺 status 回归守卫) / skipped_missing(核心不随 staging 分发，预期跳过) / load_failed(核心存在但 require 抛错→显式失败，不静默归为跳过)；缺失核心时整套件不崩溃（self-contained 契约）。
+- `node wrapper_negative_tests.js` → **提交方本地（核心同仓）38/38 exit 0**；**分发 clone（核心不在，第12节三态：executed 跑 2 项真实核心断言 / skipped_missing 显式标记 0 断言 / load_failed 显式失败，本场景命 skipped_missing→37/37 exit 0）**。第12节判定先以 `fs.existsSync(绝对路径)` 独立确认目标核心文件本身存在性：仅目标不存在→skipped_missing；目标存在但任何 require 抛错（语法错误/内部依赖缺失/其他）→load_failed 显式失败（不靠 require 报错 message 含核心路径判定，杜绝内部依赖缺失误判 skip）。缺失核心时整套件不崩溃（self-contained 契约）。
 - `node stage4_tests.js` → **43/43 exit 0**（含 capturedAt 真实日历边界 / CSV 边界 / 畸形 CSV 解析器拦截非 SHA 先行 / AA 第27列真实提取 / manifest 反例 / 全链路 PASS 与 FAIL-CLOSE）。
 - 核心 82 例隔离测试（`ts_leave_tip_core.js`）本轮**未改动**，状态保持 exit 0。
 

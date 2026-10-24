@@ -8,6 +8,8 @@
 
 'use strict';
 const assert = require('assert');
+const fs = require('fs');
+const path = require('path');
 const W = require('./deploy_wrapper.js');
 
 let pass = 0, fail = 0;
@@ -196,40 +198,55 @@ async function run() {
   // 既有核心 getLeaveTip 第191行要求解析器返回 {status:'OK', employeeId}，否则 pr.status 为 undefined
   // !== 'OK' → 永远走"身份未通过校验"分支（功能整体失效）。用真实核心验证修复后冻结快照满足契约。
   // 注：既有核心不随 staging 分发（避免重复分发核心/人员数据，Tom 明示），故本节约在 clone 中自动跳过。
-  // Tom 14:26 测试精度建议：显式区分"核心文件确不存在"(MODULE_NOT_FOUND) 与"核心存在但加载失败"(syntax/其他)——
-  //   二者不得同一 PASS：缺失是预期的干净跳过；加载失败是真实缺陷，须显式标记而非静默归为跳过。
-  let realCore = null;
-  let coreLoadState = 'unknown'; // 'executed' | 'skipped_missing' | 'load_failed'
-  try {
-    realCore = require('../ts_leave_tip_core.js');
-    coreLoadState = 'executed';
-  } catch (e) {
-    if (e && e.code === 'MODULE_NOT_FOUND' && /ts_leave_tip_core/.test(String(e.message))) {
-      coreLoadState = 'skipped_missing'; // 预期：核心不随 staging 分发
-    } else {
-      coreLoadState = 'load_failed';     // 真实缺陷：核心存在但 require 抛错
-    }
+  //
+  // Tom 14:26→14:57 测试精度建议（最终收敛版）：
+  //   先以【绝对路径 existsSync】独立确认目标核心文件本身存在性，再 require 加载；
+  //   仅目标文件本身不存在 → skipped_missing（预期干净跳过）；
+  //   目标存在但 require 抛错（语法错误 / 内部依赖缺失 / 其他）→ load_failed（真实缺陷，显式失败，不得静默归为跳过）。
+  //   禁止仅靠 require 报错 message 是否含核心路径来判定（内部依赖缺失时 stack 也含核心路径，会误判）。
+  const coreAbs = path.resolve(__dirname, '../ts_leave_tip_core.js');
+  function classifyCoreLoad(p) {
+    if (!fs.existsSync(p)) return 'skipped_missing';   // 目标本身不存在：预期跳过
+    try { require(p); return 'executed'; }              // 目标存在且可加载：执行
+    catch (e) { return 'load_failed'; }                // 目标存在但加载失败：真实缺陷
   }
+  // 三种反例（覆盖 Tom 要求：目标缺失 / 核心语法错误 / 核心内部依赖缺失，后两者不得同一 PASS）
+  const probeDir = path.join(require('os').tmpdir(), 't1b_core_probe_' + Date.now());
+  fs.mkdirSync(probeDir, { recursive: true });
+  const pMissing = path.join(probeDir, 'no_such_core_' + Date.now() + '.js');                       // ① 目标缺失
+  const pSyntax = path.join(probeDir, 'syntax_err_core.js');                                          // ② 核心语法错误
+  fs.writeFileSync(pSyntax, 'this is not valid js @@@ (((\n');
+  const pDepMiss = path.join(probeDir, 'dep_missing_core.js');                                       // ③ 核心内部依赖缺失
+  fs.writeFileSync(pDepMiss, "const x = require('./__nonexistent_internal_module_xyz__'); module.exports = {};\n");
+  check('第12节反例①目标缺失→skipped_missing', classifyCoreLoad(pMissing) === 'skipped_missing');
+  check('第12节反例②核心语法错误→load_failed(非skip)', classifyCoreLoad(pSyntax) === 'load_failed');
+  check('第12节反例③核心内部依赖缺失→load_failed(非skip)', classifyCoreLoad(pDepMiss) === 'load_failed');
+
+  const coreLoadState = classifyCoreLoad(coreAbs);
+  const REAL_CORE_ASSERTS = 2; // 契约兼容 + 缺status回归守卫
   if (coreLoadState === 'executed') {
-  W.__test_setCore(realCore);
-  W.setFeatureEnabled(true);
-  W.setTrustedResolver((s) => ({ status: 'OK', employeeId: 'E1001' })); // 模拟服务端已解析可信主体
-  const compatMirror = { status: 'ok', syncComplete: true, lastSuccessfulSyncAt: '2026-10-20T06:30:00+08:00', rows: [
-    { instanceId: 'OWN', who: 'E1001', date: '2026-10-20', type: '事假', half: 'AM', state: 'ACTIVE', version: 1 },
-  ] };
-  const compat = W.getLeaveTipSafe({ session: {}, fillDate: '2026-10-20', mirror: compatMirror, now: new Date('2026-10-20T08:00:00+08:00') });
-  check('真实核心兼容：冻结快照含 status:OK → 实际产出本人请假(OK)', compat.status === 'OK' && Array.isArray(compat.events) && compat.events.length === 1 && compat.events[0].instanceId === 'OWN' && compat.events[0].who === undefined);
-  // 回归守卫：若冻结快照仅 {employeeId}（修复前形态），真实核心应产出非 OK（证明该 bug 确会失效）
-  const coreNoStatus = realCore.getLeaveTip({ session: {}, fillDate: '2026-10-20', mirror: compatMirror, now: new Date('2026-10-20T08:00:00+08:00'), identityResolver: () => ({ employeeId: 'E1001' }) });
-  check('回归守卫：缺 status 的解析结果→真实核心非 OK（故修复必须冻结 status:OK）', coreNoStatus.status !== 'OK');
-  W.setFeatureEnabled(false);
+    const realCore = require(coreAbs);
+    W.__test_setCore(realCore);
+    W.setFeatureEnabled(true);
+    W.setTrustedResolver((s) => ({ status: 'OK', employeeId: 'E1001' })); // 模拟服务端已解析可信主体
+    const compatMirror = { status: 'ok', syncComplete: true, lastSuccessfulSyncAt: '2026-10-20T06:30:00+08:00', rows: [
+      { instanceId: 'OWN', who: 'E1001', date: '2026-10-20', type: '事假', half: 'AM', state: 'ACTIVE', version: 1 },
+    ] };
+    const compat = W.getLeaveTipSafe({ session: {}, fillDate: '2026-10-20', mirror: compatMirror, now: new Date('2026-10-20T08:00:00+08:00') });
+    check('真实核心兼容：冻结快照含 status:OK → 实际产出本人请假(OK)', compat.status === 'OK' && Array.isArray(compat.events) && compat.events.length === 1 && compat.events[0].instanceId === 'OWN' && compat.events[0].who === undefined);
+    // 回归守卫：若冻结快照仅 {employeeId}（修复前形态），真实核心应产出非 OK（证明该 bug 确会失效）
+    const coreNoStatus = realCore.getLeaveTip({ session: {}, fillDate: '2026-10-20', mirror: compatMirror, now: new Date('2026-10-20T08:00:00+08:00'), identityResolver: () => ({ employeeId: 'E1001' }) });
+    check('回归守卫：缺 status 的解析结果→真实核心非 OK（故修复必须冻结 status:OK）', coreNoStatus.status !== 'OK');
+    W.setFeatureEnabled(false);
+    console.log(`  🔎 第12节 coreLoadState=executed：真实核心断言执行数 = ${REAL_CORE_ASSERTS}（契约兼容 + 缺status回归守卫）`);
   } else if (coreLoadState === 'skipped_missing') {
-    console.log('  ⏭️ 真实核心契约兼容(第12节)：SKIPPED_MISSING——既有核心不随 staging 分发（预期），由提交方本地另行验证');
-    check('第12节 coreLoadState=skipped_missing 显式标记(三分态：executed/skipped_missing/load_failed)', true);
-  } else if (coreLoadState === 'load_failed') {
-    console.log('  ❌ 真实核心契约兼容(第12节)：LOAD_FAILED——核心文件存在但 require 抛错，须排查核心语法/依赖（不得静默归为跳过）');
+    console.log('  ⏭️ 真实核心契约兼容(第12节)：SKIPPED_MISSING——既有核心不随 staging 分发（预期），真实核心断言执行数 = 0，由提交方本地另行验证');
+    check('第12节 coreLoadState=skipped_missing 显式标记(三分态)', true);
+  } else { // load_failed
+    console.log('  ❌ 真实核心契约兼容(第12节)：LOAD_FAILED——核心文件存在但 require 抛错，真实核心断言执行数 = 0，须排查核心语法/依赖（不得静默归为跳过）');
     check('第12节 coreLoadState=load_failed 必须显式失败(不得静默跳过)', false);
   }
+  try { fs.rmSync(probeDir, { recursive: true, force: true }); } catch (e) {}
 
   // ---- 13) wrapResponse fail-closed（Tom 13:26 Pt2）：未知态/失败态/隐私态不得携带敏感 tip/events ----
   const sentinelUnknown = W.wrapResponse({ status: 'INTERNAL_SECRET_STATE', tip: 'SECRET_TIP_SENTINEL', events: [{ instanceId: 'X', who: 'E9999', date: '2026-10-20', type: '病假', half: 'PM', state: 'ACTIVE', version: 1 }] }, { employeeId: 'E1001' });
