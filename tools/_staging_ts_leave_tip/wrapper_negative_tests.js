@@ -195,11 +195,22 @@ async function run() {
   // ---- 12) 真实核心 resolver 契约兼容性（Tom 13:26 Pt1 残项修复验证）----
   // 既有核心 getLeaveTip 第191行要求解析器返回 {status:'OK', employeeId}，否则 pr.status 为 undefined
   // !== 'OK' → 永远走"身份未通过校验"分支（功能整体失效）。用真实核心验证修复后冻结快照满足契约。
-  // 注：既有核心不随 staging 分发（避免重复分发核心/人员数据，Tom 明示），故本节约在 clone 中
-  //     自动跳过并由提交方本地（核心同仓）另行验证；缺失时不得使整套件崩溃（self-contained 契约）。
+  // 注：既有核心不随 staging 分发（避免重复分发核心/人员数据，Tom 明示），故本节约在 clone 中自动跳过。
+  // Tom 14:26 测试精度建议：显式区分"核心文件确不存在"(MODULE_NOT_FOUND) 与"核心存在但加载失败"(syntax/其他)——
+  //   二者不得同一 PASS：缺失是预期的干净跳过；加载失败是真实缺陷，须显式标记而非静默归为跳过。
   let realCore = null;
-  try { realCore = require('../ts_leave_tip_core.js'); } catch (e) { realCore = null; }
-  if (realCore) {
+  let coreLoadState = 'unknown'; // 'executed' | 'skipped_missing' | 'load_failed'
+  try {
+    realCore = require('../ts_leave_tip_core.js');
+    coreLoadState = 'executed';
+  } catch (e) {
+    if (e && e.code === 'MODULE_NOT_FOUND' && /ts_leave_tip_core/.test(String(e.message))) {
+      coreLoadState = 'skipped_missing'; // 预期：核心不随 staging 分发
+    } else {
+      coreLoadState = 'load_failed';     // 真实缺陷：核心存在但 require 抛错
+    }
+  }
+  if (coreLoadState === 'executed') {
   W.__test_setCore(realCore);
   W.setFeatureEnabled(true);
   W.setTrustedResolver((s) => ({ status: 'OK', employeeId: 'E1001' })); // 模拟服务端已解析可信主体
@@ -212,8 +223,12 @@ async function run() {
   const coreNoStatus = realCore.getLeaveTip({ session: {}, fillDate: '2026-10-20', mirror: compatMirror, now: new Date('2026-10-20T08:00:00+08:00'), identityResolver: () => ({ employeeId: 'E1001' }) });
   check('回归守卫：缺 status 的解析结果→真实核心非 OK（故修复必须冻结 status:OK）', coreNoStatus.status !== 'OK');
   W.setFeatureEnabled(false);
-  } else {
-    console.log('  ⏭️ 真实核心契约兼容(第12节)：跳过——既有核心不随 staging 分发，由提交方本地另行验证');
+  } else if (coreLoadState === 'skipped_missing') {
+    console.log('  ⏭️ 真实核心契约兼容(第12节)：SKIPPED_MISSING——既有核心不随 staging 分发（预期），由提交方本地另行验证');
+    check('第12节 coreLoadState=skipped_missing 显式标记(三分态：executed/skipped_missing/load_failed)', true);
+  } else if (coreLoadState === 'load_failed') {
+    console.log('  ❌ 真实核心契约兼容(第12节)：LOAD_FAILED——核心文件存在但 require 抛错，须排查核心语法/依赖（不得静默归为跳过）');
+    check('第12节 coreLoadState=load_failed 必须显式失败(不得静默跳过)', false);
   }
 
   // ---- 13) wrapResponse fail-closed（Tom 13:26 Pt2）：未知态/失败态/隐私态不得携带敏感 tip/events ----

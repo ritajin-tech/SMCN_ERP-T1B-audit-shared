@@ -105,13 +105,17 @@ fs.writeFileSync(afterPath, dataCsv);
 const bSha = crypto.createHash('sha256').update(fs.readFileSync(beforePath)).digest('hex');
 const aSha = crypto.createHash('sha256').update(fs.readFileSync(afterPath)).digest('hex');
 
+// Tom 14:26 测试精度建议：捕获 stderr，使断言可锚定"失败来自哪个阶段"（防其他失败路径假绿）。
+let lastStderr = '';
 function runStage4(manifest) {
   const mp = path.join(tmp, 'manifest.json');
   fs.writeFileSync(mp, JSON.stringify(manifest, null, 2));
   try {
-    execFileSync(process.execPath, [path.join(__dirname, 'stage4_hash_check.js'), '--manifest', mp, '--before', beforePath, '--after', afterPath], { stdio: 'pipe' });
+    execFileSync(process.execPath, [path.join(__dirname, 'stage4_hash_check.js'), '--manifest', mp, '--before', beforePath, '--after', afterPath], { stdio: ['pipe', 'pipe', 'pipe'] });
+    lastStderr = '';
     return 0;
   } catch (e) {
+    lastStderr = (e.stderr && e.stderr.toString()) || '';
     return (e.status != null) ? e.status : 2;
   }
 }
@@ -149,6 +153,8 @@ check('stage4 证据 SHA 不符→exit 1 FAIL', runStage4(badShaManifest) === 1)
 
 // 畸形 CSV → 解析器拦截（FAIL-CLOSE，exit 1）：before/after 用相同畸形字节且双 SHA 均更新，
 // 使证据 SHA 比对通过、失败必须来自解析器（排除字节漂移/SHA 先行拒绝的误判）。
+// Tom 14:26 精度建议：断言额外锚定到 CSV 解析阶段([ERR_CSV_PARSE] / CSV_MALFORMED)，
+//   证明是解析器拦截、而非 manifest/SHA 等其他失败路径先拒（防假绿）。
 const malBytes = 'A,B\n"unclosed';
 fs.writeFileSync(beforePath, malBytes);
 fs.writeFileSync(afterPath, malBytes);
@@ -156,7 +162,8 @@ const malSha = crypto.createHash('sha256').update(malBytes).digest('hex');
 const malManifest = JSON.parse(JSON.stringify(goodManifest));
 malManifest.beforeSha256 = malSha;
 malManifest.afterSha256 = malSha;
-check('stage4 畸形 CSV→解析器拦截 exit 1 FAIL（非 SHA 先行拒绝）', runStage4(malManifest) === 1);
+const malCode = runStage4(malManifest);
+check('stage4 畸形 CSV→解析器拦截 exit 1 FAIL（非 SHA 先行拒绝），且失败锚定 [ERR_CSV_PARSE] CSV 解析阶段', malCode === 1 && /\[ERR_CSV_PARSE\]|CSV_MALFORMED/.test(lastStderr));
 
 console.log(`\n结果: ${pass} 通过 / ${fail} 失败`);
 process.exit(fail === 0 ? 0 : 1);

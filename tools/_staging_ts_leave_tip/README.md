@@ -3,14 +3,14 @@
 > 本目录为 **STAGING 评审件**，尚未推生产。评审对象：独立技术审阅者 Tom（1252293966@qq.com）。
 > 配套核心 `ts_leave_tip_core.js`（既有、零线上写入、82 例隔离测试 exit 0，本轮未改动）不在此目录，避免重复分发既有核心/人员数据。
 
-## 文件与固定 SHA（本轮第四轮修订 = 新固定 commit，见文末）
+## 文件与固定 SHA（本轮第五轮修订 = 新固定 commit，见文末）
 
 | 文件 | SHA-256（大写） | 说明 |
 |---|---|---|
 | `deploy_wrapper.js` | `B550E5A2C1E7ED50619619ED2FA2F44770B6CEC324892502DD6B3046B91CEED5` | 统一受控入口 + 单点解析 + 最小冻结快照(含受控 status:'OK') + 响应/日志去敏 + wrapResponse fail-closed |
-| `stage4_hash_check.js` | `10D84470C66FC29207D337AC04A11D52F760E180D7CD79799820565D35979DCF` | manifest 校验(真实日历/时标/偏移) + 真实 CSV 解析(明确终止符/空引号字段) + 逐记录宽度校验 + 无歧义序列化 |
-| `wrapper_negative_tests.js` | `23E37B3F5D14A693DCB6FF986D98CDCF3849206A61A587EAABF89A5F847A7781` | 包装负例（35 项含真实核心契约兼容；核心不随 staging 分发故 clone 中第12节自动跳过→33/33，仍 exit 0） |
-| `stage4_tests.js` | `59948CDE527530657E831673CB24FEB0ACDB284EE29EFBAA2B013D3DBAE63229` | 阶段四单元+集成（43 项，含 capturedAt 边界 / CSV 边界 / 畸形解析器拦截非 SHA 先行） |
+| `stage4_hash_check.js` | `E0C23B950DCE34E427BBA07F47D810C5AF46B3B1A82EDD423B517456A63DE722` | manifest 校验(真实日历/时标/偏移) + 真实 CSV 解析(明确终止符/空引号字段) + 逐记录宽度校验 + 无歧义序列化；失败路径结构化错误码([ERR_CSV_PARSE]/[ERR_SHA_BEFORE]等) |
+| `wrapper_negative_tests.js` | `649C25F5D77AE6DD58333F6C1E4A33EC77091ED70AF40968DAD8F0666109BB84` | 包装负例（35 项含真实核心契约兼容；核心不在则第12节三态显式标记 skipped_missing→34/34，仍 exit 0） |
+| `stage4_tests.js` | `A45116828B8713C9291DC2B0A0F599CE68F8BDF239098D54512EBF226869EFD6` | 阶段四单元+集成（43 项，含 capturedAt 边界 / CSV 边界 / 畸形解析器拦截非 SHA 先行，且断言锚定 [ERR_CSV_PARSE] 阶段） |
 
 ## 设计目标（不变）
 
@@ -38,7 +38,7 @@
 
 ## 测试（提交方本地 `node` 实跑，非仅声明）
 
-- `node wrapper_negative_tests.js` → **提交方本地（核心同仓）35/35 exit 0**；**分发 clone（核心不在，第12节真实核心契约兼容自动跳过）33/33 exit 0**。第12节的真实核心契约兼容（冻结快照含 `status:'OK'` + 缺 status 回归守卫）由提交方本地验证，缺失核心时整套件不崩溃（self-contained 契约）。
+- `node wrapper_negative_tests.js` → **提交方本地（核心同仓）35/35 exit 0**；**分发 clone（核心不在，第12节真实核心契约兼容三态显式标记 skipped_missing→34/34 exit 0）**。第12节三态：executed(核心同仓跑契约兼容+缺 status 回归守卫) / skipped_missing(核心不随 staging 分发，预期跳过) / load_failed(核心存在但 require 抛错→显式失败，不静默归为跳过)；缺失核心时整套件不崩溃（self-contained 契约）。
 - `node stage4_tests.js` → **43/43 exit 0**（含 capturedAt 真实日历边界 / CSV 边界 / 畸形 CSV 解析器拦截非 SHA 先行 / AA 第27列真实提取 / manifest 反例 / 全链路 PASS 与 FAIL-CLOSE）。
 - 核心 82 例隔离测试（`ts_leave_tip_core.js`）本轮**未改动**，状态保持 exit 0。
 
@@ -59,4 +59,5 @@
 - `7da3ea7`（3 代码件）+ `e9bff81`（README 补推）：首推实物代码 + 完整 SHA。
 - `7ad8862`：v3 二次修复（回应 Tom 11:58 六点）。
 - `1f0ae99`：v4 三次修复（回应 Tom 12:27 六点）。
-- **本轮新固定 commit**：v5 四次修复（回应 Tom 13:26 四点残项）——见 `docs/T1B_A包装四次修复_20261024.md`。完整 SHA 见上表。
+- `b956765`：v5 四次修复（回应 Tom 13:26 四点残项）——见 `docs/T1B_A包装四次修复_20261024.md`。
+- **本轮新固定 commit**：测试精度增强（回应 Tom 14:26 两条建议：stage4 失败路径结构化错误码 + 断言锚定 [ERR_CSV_PARSE] CSV 解析阶段；wrapper 第12节三态区分 executed/skipped_missing/load_failed）——见 `docs/T1B_测试精度增强_20261024.md`。完整 SHA 见上表。

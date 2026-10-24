@@ -199,12 +199,12 @@ function main() {
   }
   let manifest;
   try { manifest = JSON.parse(fs.readFileSync(manifestPath, 'utf8')); }
-  catch (e) { console.error('STAGE4 FAIL ❌ manifest 解析失败:', e && e.message); process.exit(1); }
+  catch (e) { console.error('STAGE4 FAIL ❌ [ERR_MANIFEST_PARSE] manifest 解析失败:', e && e.message); process.exit(1); }
 
   // 1) manifest 合法性（Pt4：缺件即失败关闭）
   const v = validateManifest(manifest);
   if (!v.ok) {
-    console.error('STAGE4 FAIL ❌ manifest 非法：');
+    console.error('STAGE4 FAIL ❌ [ERR_MANIFEST_INVALID] manifest 非法：');
     for (const e of v.errors) console.error('   -', e);
     process.exit(1);
   }
@@ -215,11 +215,11 @@ function main() {
   // 2) 证据 SHA 绑定（Pt4：确保比对的是预期证据文件，而非被替换的任意文件）
   const bSha = sha256(beforeBuf), aSha = sha256(afterBuf);
   if (bSha !== manifest.beforeSha256.toLowerCase()) {
-    console.error('STAGE4 FAIL ❌ before 文件 SHA 与 manifest.beforeSha256 不符（证据文件非预期）');
+    console.error('STAGE4 FAIL ❌ [ERR_SHA_BEFORE] before 文件 SHA 与 manifest.beforeSha256 不符（证据文件非预期）');
     process.exit(1);
   }
   if (aSha !== manifest.afterSha256.toLowerCase()) {
-    console.error('STAGE4 FAIL ❌ after 文件 SHA 与 manifest.afterSha256 不符（证据文件非预期）');
+    console.error('STAGE4 FAIL ❌ [ERR_SHA_AFTER] after 文件 SHA 与 manifest.afterSha256 不符（证据文件非预期）');
     process.exit(1);
   }
 
@@ -229,13 +229,13 @@ function main() {
     rowsB = parseCsv(beforeBuf.toString('utf8'));
     rowsA = parseCsv(afterBuf.toString('utf8'));
   } catch (e) {
-    console.error('STAGE4 FAIL ❌ CSV 解析异常(畸形):', e && e.message);
+    console.error('STAGE4 FAIL ❌ [ERR_CSV_PARSE] CSV 解析异常(畸形):', e && e.message);
     process.exit(1);
   }
   const colCount = Math.max(rowsB[0] ? rowsB[0].length : 0, rowsA[0] ? rowsA[0].length : 0);
   const maxIdx = v.validIdxs.length ? Math.max.apply(null, v.validIdxs) : -1;
   if (maxIdx >= colCount) {
-    console.error('STAGE4 FAIL ❌ 非目标列索引越界：maxIdx=' + maxIdx + ' >= 文件列数 ' + colCount);
+    console.error('STAGE4 FAIL ❌ [ERR_COL_RANGE] 非目标列索引越界：maxIdx=' + maxIdx + ' >= 文件列数 ' + colCount);
     process.exit(1);
   }
 
@@ -245,11 +245,11 @@ function main() {
     r1 = readNonTargetRegion(rowsB, v.cols);
     r2 = readNonTargetRegion(rowsA, v.cols);
   } catch (e) {
-    console.error('STAGE4 FAIL ❌ 非目标区域提取异常(宽度不一致/畸形):', e && e.message);
+    console.error('STAGE4 FAIL ❌ [ERR_CSV_WIDTH] 非目标区域提取异常(宽度不一致/畸形):', e && e.message);
     process.exit(1);
   }
   if ((!r1 || r1.length === 0) && (!r2 || r2.length === 0)) {
-    console.error('STAGE4 FAIL ❌ 非目标区域两端皆空（空投影可相等 → 假 PASS 风险），必须声明有效非目标范围');
+    console.error('STAGE4 FAIL ❌ [ERR_EMPTY_PROJECTION] 非目标区域两端皆空（空投影可相等 → 假 PASS 风险），必须声明有效非目标范围');
     process.exit(1);
   }
   const h1 = sha256(Buffer.from(r1, 'utf8'));
@@ -267,13 +267,10 @@ function main() {
     console.log('  note          :', SCOPE);
     process.exit(0);
   } else {
-    console.error('STAGE4 FAIL ❌');
-    if (h1 !== h2) {
-      console.error('  非目标区域漂移:');
-      console.error('    before:', h1);
-      console.error('    after :', h2);
-    }
-    if (!ws.ok) console.error('  写集校验:', ws.note);
+    const reasons = [];
+    if (h1 !== h2) reasons.push('[ERR_HASH_DRIFT] 非目标区域漂移: before=' + h1 + ' after=' + h2);
+    if (!ws.ok) reasons.push('[ERR_WRITE_SET] ' + ws.note);
+    console.error('STAGE4 FAIL ❌ ' + reasons.join('; '));
     console.error('  回滚方案:', JSON.stringify(planRollback(before, after, manifest)));
     process.exit(1);
   }
