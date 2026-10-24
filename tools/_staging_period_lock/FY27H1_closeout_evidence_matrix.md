@@ -1,8 +1,8 @@
-# 生产工时表 FY27H1 关账 — 离线设计交付件（证据矩阵 v1.7）
+# 生产工时表 FY27H1 关账 — 离线设计交付件（证据矩阵 v1.8）
 
 > 配套：`FY27H1_closeout_plan.md`（commit `2aa260c3f6f19a017c1231f33fa7fa9511017d76`，文档 SHA-256 `2df9d9ed3c189f1e6b186407ae3e09cb1e503711416095125f290ca461b41cea`）
 > 目的：响应 Tom 2026-10-24 15:58 复核函（msg_WLx25pd…）4 项待办 + **16:57 复核函（msg_Pl7JcoN…）6 条设计收敛**——本件为**纯规划/设计交付，零生产写、零权限变更**。**Phase 1 身份与写入口已于 2026-10-24 16:48 经 `gas_auth` 只读实读 HEAD 解开**（HTTP 200，非 400），§1/§2/§7 为**实时 HEAD 只读核验产物（提交方报告，HEAD 与实际部署分列，非执行验收）**。
-> 状态：规划方向 + 文档整改接受 + Phase1 写入口/身份只读核验完成 + **v1.2 按 16:57 六条收敛** + **v1.3 按 17:29 收敛（stage/隔离前置/删除并入矩阵/400 归因降级）** + **v1.4 按 17:57 收敛（写入↔记stage 崩溃窗口保守处置/副作用不确定性建模/文档内部一致性修正）** + **v1.5 按 18:26 收敛（恢复表↔写序列一致/合成状态组合总表/WRITTEN_ATTEMPTED/回滚按预期写后版本/AUDITED 校验意图/意图读失败门禁）** + **v1.6 按 Tom 20:42 复核（删除 §3.5「或UNCERTAIN」放行分支/写前门禁冲突消除；§3.2 比对改类型显式双条件 currentValues==newValues ∧ currentVersion==expectedVersion；§3.3「—」审计列明确为已完整查询确认无审计、补审计按 opId+内容去重）** + **v1.7 按 Tom 21:27 在途项（幂等键内容绑定/例外更正基线重锚/外部写者覆盖 三项纯离线设计说明，§6.1）**；**Gate B(Rita GO) 已收 21:51、Gate A(Tom clearance) 仍拒（21:27 明示「不等于实现或执行放行」）、非阶段一 PASS、非执行 clearance、非生产写许可、双闸门未开**。
+> 状态：规划方向 + 文档整改接受 + Phase1 写入口/身份只读核验完成 + **v1.2 按 16:57 六条收敛** + **v1.3 按 17:29 收敛（stage/隔离前置/删除并入矩阵/400 归因降级）** + **v1.4 按 17:57 收敛（写入↔记stage 崩溃窗口保守处置/副作用不确定性建模/文档内部一致性修正）** + **v1.5 按 18:26 收敛（恢复表↔写序列一致/合成状态组合总表/WRITTEN_ATTEMPTED/回滚按预期写后版本/AUDITED 校验意图/意图读失败门禁）** + **v1.6 按 Tom 20:42 复核（删除 §3.5「或UNCERTAIN」放行分支/写前门禁冲突消除；§3.2 比对改类型显式双条件 currentValues==newValues ∧ currentVersion==expectedVersion；§3.3「—」审计列明确为已完整查询确认无审计、补审计按 opId+内容去重）** + **v1.7 按 Tom 21:27 在途项（幂等键内容绑定/例外更正基线重锚/外部写者覆盖 三项纯离线设计说明，§6.1）** + **v1.8 按 Tom 22:12 复核（§6.1.1 增稳定 reqId 映射固定意图摘要+作用域绑定+uuidSet 排序固定、与 §3.2 随机UUID 统一；§6.1.2 重锚只更新已验证基线不恢复写权限+完成即耗尽例外+绑定授权预期结果/字段范围/可信opId+崩溃窗口仍隔离；§6.1.3 删「非opId变更→自动回滚基线」、维持检测/告警/guard路径隔离、range protection 标拟议未批准；证据顺序更正：既有部署证据可受控诊断提供、不以④绕过上线前核验、Gate B 仍提交方声明未独立核）三项仍非闭合**；**Gate B(Rita GO) 已收 21:51、Gate A(Tom clearance) 仍拒（21:27 明示「不等于实现或执行放行」、22:12 重申不授予编码/测试/部署/回滚/生产写）、非阶段一 PASS、非执行 clearance、非生产写许可、双闸门未开**。
 
 ---
 
@@ -81,7 +81,7 @@
 > v1.4 关键修正：**业务写入与 stage 持久化是两个独立外部副作用，任一可在其间崩溃**；且「写请求返回错误」≠「服务端必未落盘」。故每一步均**标 UNCERTAIN（不确定）而非假定成功/失败**，恢复扫描据可观测状态封禁后续写入。另区分**写前版本 baselineVersion / 预期写后版本 expectedVersion / 实际当前版本**三者，避免把本次正常写入误判为并发、也不覆盖未知中间值。
 ```
 1. check    行锁态 + 例外状态 + 双签 + expiresAt（服务端时钟）→ 不满足即 REJECT（零写）；**并查操作日志：本 UUID 集合存在任一非终态/UNCERTAIN INTENT → 立即 REJECT（隔离在进入新写之前生效）**。**意图日志读取失败/查询不完整 → 拒绝本 UUID 集合所有可能受影响的新写**。
-2. opId     生成持久操作ID（UUID）；预写意图行 {opId, stage:INTENT, uuidSet, baselineVersion(写前版本指纹), oldValues, expectedVersion(预期写后版本), newValues, ts} 并**立即回读确认该行已落盘且内容与写入一致（持久化可信）**。仅当意图行**完整可信持久化（写成功 + 回读一致）**后，才允许 step3 业务写；意图写请求返回错误 / 回读不一致 / 超时未确认 → 标记 op 为 UNCERTAIN（非终端）并**停止、隔离，绝不进入业务写**（不得以「再次标记 UNCERTAIN 成功」替代拒写）。REJECT 仅表本次返回结果，不能追溯撤销可能已落盘的服务端副作用。
+2. opId     生成持久操作ID：**先取稳定请求身份 `reqId`（整轮重试固定不变）**，再算意图摘要 `contentDigest = SHA256( canonicalSorted(uuidSet) || '|' || expectedVersion || '|' || canonical(oldValues) || '|' || canonical(newValues) || '|' || scope )`（`scope` 绑定目标系统/对象、操作者/授权或例外版本等必要作用域，防跨系统/跨授权误合并），`opId = SHA256( reqId || '|' || contentDigest )`。**同 reqId+同内容 ⇒ 同 opId（重试复用、不重算为新意图）；同 reqId+异内容 ⇒ REJECT；异 reqId+同内容 ⇒ 不同 opId，但 contentDigest 命中已 COMPLETED 的 op 时按「已应用」REJECT，不复执行或永久合并**。预写意图行 {opId, reqId, contentDigest, scope, stage:INTENT, uuidSet, baselineVersion(写前版本指纹), oldValues, expectedVersion(预期写后版本), newValues, ts} 并**立即回读确认该行已落盘且内容与写入一致（持久化可信）**。仅当意图行**完整可信持久化（写成功 + 回读一致）**后，才允许 step3 业务写；意图写请求返回错误 / 回读不一致 / 超时未确认 → 标记 op 为 UNCERTAIN（非终端）并**停止、隔离，绝不进入业务写**（不得以「再次标记 UNCERTAIN 成功」替代拒写）。REJECT 仅表本次返回结果，不能追溯撤销可能已落盘的服务端副作用。
 3. write    业务单元格写入 → 标记 WRITTEN_ATTEMPTED（写请求返回即标，结果未知；写请求错误仍 WRITTEN_ATTEMPTED）。
 4. verify   写后回读得到**（currentValues, currentVersion）**，与意图的（newValues, expectedVersion）/（oldValues, baselineVersion）做**类型显式双条件**比对（值对象与版本指纹分别比较，不混比）：
          - **currentValues==newValues 且 currentVersion==expectedVersion**（值对象相等 ∧ 版本指纹相等）→ stage=WRITTEN（写已确认落盘）；
@@ -189,34 +189,39 @@ ACTIVE/任意态 ──expiresAt 过──▶ EXPIRED_AUTO_RELOCK
 
 ## 6.1 在途设计项落地（v1.7 纯离线设计，Tom 21:27 在途项 ①②③）
 
-> Tom 21:27 列在途项：①幂等键内容绑定 ②例外更正消耗/基线更新 ③外部写者未覆盖 ④实际部署证据。其中 ④ 须部署后才有；本 v1.7 仅补 ①②③ **纯离线设计说明**（Tom 明示「可继续补纯离线设计说明」），不涉及编码/测试/现场读取/部署/生产写。三项均须在合成 fixture 由测试件（atomic/lockstate/exception 九类 T-*）覆盖后，才构成 Tom 所指「实现/测试证据」。
+> Tom 21:27 列在途项：①幂等键内容绑定 ②例外更正消耗/基线更新 ③外部写者未覆盖 ④实际部署证据。**证据顺序更正（Tom 22:12）**：既有服务的当前部署版本/访问配置证据可由有权方在受控诊断中提供，不必先部署本次改动才存在；「④须部署后才有」不用于绕过上线前现状核验；实现后的目标部署证据是另一层。本 v1.8 仅补 ①②③ **纯离线设计说明**（Tom 明示「可继续补纯离线设计说明」），不涉及编码/测试/现场读取/部署/生产写。三项均须在合成 fixture 由测试件（atomic/lockstate/exception 九类 T-*）覆盖后，才构成 Tom 所指「实现/测试证据」。
 
-### 6.1.1 幂等键内容绑定（在途项①）
-- **问题**：原 opId 为每次调用生成的随机 UUID；同逻辑意图重试会生成不同 opId，导致 §3.3 恢复扫描无法把「重试」识别为「同一未完成 op」，可能重复进业务写或误判 OPEN_BROKEN。
-- **设计**：opId 改为**内容派生**而非随机：`opId = SHA256( uuidSet || '|' || expectedVersion || '|' || canonical(oldValues) || '|' || canonical(newValues) )`。
-  - 同内容重试 ⇒ 同 opId ⇒ 审计 tab/意图行查到即复用（去重），不新建 op；
-  - 不同内容（如 oldValues 因并发被改）⇒ 不同 opId ⇒ 视为新意图，按 §3.3 正常判定；
-  - `reqId`（双签/外部调用携带）仍独立做请求级去重（§5.2），与 opId 解耦：reqId 防请求重放，opId 防意图重复。
-- **合成 fixture 设计**：固定四元组 (uuidSet, expectedVersion, oldValues, newValues) ⇒ 断言 opId 稳定；篡改任一分量 ⇒ 断言 opId 变化；并发两请求同内容 ⇒ 断言仅一个 opId 落库、第二请求被去重 REJECT。
-- 边界：canonical 序列化须确定（字段排序 + 无浮点歧义），在 fixture 中显式固定。
+### 6.1.1 幂等键内容绑定（在途项①，v1.8 按 Tom 22:12 收敛）
+- **问题**：原 opId 为每次调用生成的随机 UUID（§3.2 亦据此）；同逻辑意图重试会生成不同 opId，导致 §3.3 恢复扫描无法把「重试」识别为「同一未完成 op」，可能重复进业务写或误判 OPEN_BROKEN。但**内容指纹不能单独定义一次业务请求身份**：同一请求重试若重新读取 oldValues/expectedVersion 可能派生新 opId 再执行；反之不同授权请求若内容相同也可能被永久合并。
+- **设计（稳定 reqId 映射固定意图摘要 + 作用域绑定，v1.8 统一 §3.2）**：
+  - **稳定请求身份 `reqId`**：客户端/调用方在整轮重试中固定不变（非重算）；一次逻辑请求 = 一个 reqId，传输层多次重试共用。
+  - **意图摘要 `contentDigest = SHA256( canonicalSorted(uuidSet) || '|' || expectedVersion || '|' || canonical(oldValues) || '|' || canonical(newValues) || '|' || scope )`**，`scope` 绑定目标系统/对象、操作者/授权或例外版本等必要作用域（防跨系统/跨授权误合并）。
+  - **`opId = SHA256( reqId || '|' || contentDigest )`**。
+  - 同 reqId + 同内容 ⇒ 同 opId ⇒ 审计 tab/意图行查到即复用（去重），**重试不重算为新意图**；
+  - 同 reqId + 异内容 ⇒ **REJECT**（证明篡改/错误重试，不并入）；
+  - 异 reqId + 同内容 ⇒ 不同 opId，但若 contentDigest 命中已 COMPLETED 的 op ⇒ 按「已应用」**REJECT，不复执行也不永久合并**；
+  - `canonicalSorted(uuidSet)` 排序与结构化编码**固定**（v1.8 修正，消除「uuidSet 排序未定」歧义）。
+- **合成 fixture 设计**：①固定四元组 ⇒ 断言 opId 稳定；②篡改任一分量 ⇒ 断言 opId 变化；③同 reqId 同内容重试 ⇒ 断言第二请求复用同 opId（去重、不新建）；④同 reqId 异内容 ⇒ 断言 REJECT；⑤异 reqId 同内容且已有 COMPLETED op ⇒ 断言「已应用」REJECT（不永久合并）；⑥uuidSet 乱序输入 ⇒ 断言 opId 一致（排序固定）。
 
-### 6.1.2 例外更正消耗与基线重锚（在途项②）
+### 6.1.2 例外更正消耗与基线重锚（在途项②，v1.8 按 Tom 22:12 收敛）
 - **问题**：§5 例外是「解锁后人工改行」；但更正本身改了行内容，若不改基线，后续锁 check（按 `baselineFingerprint` 校验）会把更正后内容判为「基线漂移」而 REJECT，导致更正无法落定或反复申请。
-- **设计（更正即重锚基线）**：
+- **设计（更正重锚，v1.8 修正三处冲突）**：
   - 例外 ACTIVE 期间，允许字段写入仅对 `allowedFields` 开放；写入走 opId 序列（§3）。
-  - 更正完成（COMPLETED）时，将该行**当前内容指纹重算为新 baseline**（基线消耗/重锚），写审计 `{opId, stage:BASELINE_REANCHOR, newBaselineFingerprint}`；此后锁 check 以新 baseline 为准，不再对更正结果 REJECT。
+  - **重锚只更新已验证状态行的基线，不恢复写权限**（v1.8 修正：与 §5「任意非 ACTIVE 态任何写入 REJECT」「无新例外重试更正 REJECT」一致）：COMPLETED 时将该行**在当前授权边界内的预期结果指纹**重算为新 baseline，写审计 `{opId, stage:BASELINE_REANCHOR, newBaselineFingerprint, authorizedScope}`；**新基线须绑定本次授权的预期结果、字段范围及可信 opId，不可无条件拿完成时当前内容作新可信基线**（防吸收外部漂移为合法结果）。
+  - **完成即耗尽例外**：任何后续更正即使同字段/同基线也须新授权（新双签例外）；后续写入若不在新 ACTIVE 例外范围内 ⇒ REJECT（沿用 §5）。
+  - 业务写、消耗、审计、重锚**之间各崩溃窗口仍须沿 §3 恢复规则隔离**（INTENT/WRITTEN/VERIFIED/AUDITED/UNCERTAIN 组合判定），重锚本身不得吸收并发/外部漂移为合法结果。
   - 更正配额：每例外仅消耗一次「更正机会」；如需二次更正须重新走双签新例外（防无限更正绕过锁）。
   - 7 天封顶 + 仅误填历史行：同 §5.1/§5.4，不受影响。
-- **合成 fixture 设计**：行基线 fp0 → 申请例外(allowedFields=[note]) → 双签 ACTIVE → 改 note → COMPLETED → 重锚 fp1 → 断言后续同字段写入以 fp1 为基线通过、非 allowedFields 仍拒；无新例外重试更正 ⇒ 断言 REJECT（配额已消耗）。
+- **合成 fixture 设计**：行基线 fp0 → 申请例外(allowedFields=[note], authorizedScope 限定) → 双签 ACTIVE → 改 note（预期结果） → COMPLETED → 重锚 fp1（绑定授权预期结果/字段范围/可信opId）→ 断言①重锚后基线=授权预期指纹（非无条件当前内容）；②无新例外重试同字段更正 ⇒ 断言 REJECT（完成即耗尽例外，不恢复写权限）；③重锚过程崩溃窗口 ⇒ 断言沿 §3 恢复规则隔离、不吸收漂移。
 
-### 6.1.3 外部写者覆盖（在途项③）
+### 6.1.3 外部写者覆盖（在途项③，v1.8 按 Tom 22:12 收敛）
 - **问题**：§1/§3 锁拦截依赖**入口 guard**（submitBatch/updateTimesheet/softDeleteRecord/tsAppendRows/tsPatchCells）；但生产表存在**非上述入口的写入路径**（sheet UI 手工改、其他 GAS/插件、API 直写），这些**绕过 guard**，锁对其无效。
-- **设计（双层防护：guard 为主 + 对账兜底）**：
+- **设计（v1.8 修正：检测/告警/guard 路径隔离，不升级为自动生产回滚）**：
   - 主层：§1 入口 guard 仍是第一道（拦截已知编程入口）。
-  - 兜底层：**周期对账扫描**（与 §3.3 恢复扫描共用 daemon/定时）：对 `fillDate < 阈值` 锁定行，比对「上次合规快照指纹」与「当前单元格值」；若发现非经由 opId 序列产生的变更（当前值 ≠ 基线且无对应 opId 审计）⇒ 标记 **OPEN_BROKEN**，回滚至基线（软）+ 告警（不静默），并封禁该行后续写入直至人工处置。
-  - sheet 保护兜底：对锁定行启用 range protection（仅 sysadmin/脚本可改），降低 UI 直写概率（非唯一依赖，因保护可被有权的其他脚本绕过，故仍需对账）。
+  - **周期对账扫描 = 事后检测 + 告警 + 参与 guard 路径隔离**（v1.8 修正：不再承担「前置覆盖」或「保证外部写者被封禁」职责，亦**不再提「非 opId 变更→回滚至基线」**——该动作与 §3.3「不覆盖外部并发新值、未知中间值隔离人工」冲突，且反例成立：外部改动后扫描读到 v1，另一外部写者写 v2，扫描再回写基线将覆盖 v2，而脚本锁无法约束外部写者）。扫描发现非 opId 序列变更 ⇒ 标记 **OPEN_BROKEN + 告警（不静默）**，**仅隔离 + 留痕 + 提示人工处置**；**恢复/回滚动作不在此自动执行**，须另有明确权限及可信版本条件（独立受控操作）。
+  - **range protection 为拟议权限变更，未获本函许可，不是已实施证据**（v1.8 修正）：仅列作后续候选，不得在当前设计中标为已生效防护。
   - 明确边界：外部写者导致的 OPEN_BROKEN 与 §3.3 内部崩溃 OPEN_BROKEN **同源处理**（封禁+留痕+人工），不区别对待。
-- **合成 fixture 设计**：锁定行 fp0 → 模拟「外部直写」改值（不经 guard）→ 跑对账扫描 → 断言该行被标记 OPEN_BROKEN + 回滚基线 + 告警触发；guard 入口写入同内容 → 断言被正常 opId 序列接纳（对比路径差异）。
+- **合成 fixture 设计**：锁定行 fp0 → 模拟「外部直写」改值（不经 guard）→ 跑对账扫描 → 断言该行被标记 OPEN_BROKEN + 告警触发 + 留痕，**但断言扫描不自动回写基线/不覆盖可能的并发 v2**（恢复动作须独立受控）；guard 入口写入同内容 → 断言被正常 opId 序列接纳（对比路径差异）。
 
 ---
 
@@ -279,6 +284,14 @@ ACTIVE/任意态 ──expiresAt 过──▶ EXPIRED_AUTO_RELOCK
 - ⏳ **执行 clearance 仍拒**：Tom 明示「该结论仅限上述文字规则，不是整套恢复协议/实现代码/运行证据通过」「不等于实现或执行放行」「不据局部门禁整改授予整体实现推进或执行 clearance」「阶段一最终 PASS 继续暂缓」；本函不新增编码/测试/现场读取/部署/生产写许可。
 - 🔓 **Rita GO 已收（21:51，Gate B）**：满足双闸门之 Gate B；但 Gate A（Tom clearance）仍拒，故**双闸门未开**，仍不编写实现/测试件、不部署、零生产写。
 - 📝 **在途项 v1.7 纯离线设计落地**（Tom 明示「可继续补纯离线设计说明」）：①幂等键内容绑定 → §6.1.1 `opId=SHA256(uuidSet‖expectedVersion‖canonical(oldValues)‖canonical(newValues))`，同内容重试复用同 opId、不同内容新 opId、reqId 独立请求级去重；②例外更正消耗/基线重锚 → §6.1.2 COMPLETED 时重算行指纹为新 baseline、每例外仅消耗一次更正机会、须新双签例外才二次更正；③外部写者覆盖 → §6.1.3 入口 guard 为主 + 周期对账扫描兜底（非 opId 序列变更→OPEN_BROKEN+回滚+告警）+ range protection 辅助。三项均须在合成 fixture 由测试件覆盖后才构成 Tom 所指实现/测试证据；④实际部署证据仍须双闸门开启后部署产生。
+
+**22:12 函（复 v1.7）→ v1.8 对应**（v1.7 三项仍非闭合）：
+- ⏳ **§6.1.1 请求身份**：内容指纹不能单独定义请求身份 → v1.8 增**稳定 reqId 映射固定意图摘要** `contentDigest=SHA256(canonicalSorted(uuidSet)‖expectedVersion‖canonical(oldValues)‖canonical(newValues)‖scope)`（`scope` 绑定系统/对象/授权/例外版本），`opId=SHA256(reqId‖contentDigest)`；同 reqId+同内容复用、同 reqId+异内容 REJECT、异 reqId+同内容命中 COMPLETED 判「已应用」REJECT（不永久合并）；uuidSet 排序固定；与 §3.2「生成随机 UUID」**统一**。
+- ⏳ **§6.1.2 重锚冲突**：重锚只更新已验证基线、**不恢复写权限**、完成即耗尽例外（同字段/同基线仍须新授权）；新基线须绑定授权预期结果/字段范围/可信 opId，**不可无条件拿当前内容作可信基线**；业务写/消耗/审计/重锚崩溃窗口仍沿 §3 隔离、不吸收外部漂移。
+- ⏳ **§6.1.3 扫描升级**：周期扫描为事后检测，不得升级为前置覆盖/自动回滚；删除「非 opId 变更→回滚基线」（与 §3.3 冲突，反例 v1→外部 v2→扫描覆盖）；维持检测/告警/guard 路径隔离，恢复动作须独立受控；range protection 标拟议未批准、非已实施证据。
+- 📝 **证据顺序更正**：既有部署证据可由有权方受控诊断提供，不须先部署本次改动才有；「④须部署后才有」不绕过上线前核验；实现后目标部署证据是另一层。
+- ⚠️ **Gate B 仍为提交方声明**：21:51「GO」未获本代理独立核原批准范围，不能转化本代理权限或 Tom 最终批准。
+- 结论（Tom）：三项新增设计仍有明确冲突，可继续离线文档收敛；本函**不授予**编码/测试执行/现场读取/权限调整/部署/回滚/生产写；阶段一 PASS 暂缓、106 HOLD、历史 23 行/D241、HOLD/NO-GO、事故安全 OPEN 维持；原 v1.6 写前门禁文字冲突保持关闭不重开。
 
 **17:57 函（复 v1.3）→ v1.4 对应**：
 - ⏳ **写入↔记 stage 崩溃窗口** → §3.2 明确业务写入与 stage 持久化为两个独立外部副作用，任一可其间崩溃；每步标 UNCERTAIN（不假定成功/失败）；区分写前版本 baselineVersion / 预期写后 expectedVersion / 实际当前版本三者，避免误判正常写入为并发、不覆盖未知中间值。§3.3 重写为**确定性恢复决策函数**：stage 非唯一事实源，仅依可观测状态（stage + 值/版本 + 审计 opId）+ 可信意图判定；**INTENT 但 cell==newValues（写成功但 stage 未记）→ 判 UNCERTAIN→OPEN_BROKEN 隔离，不自动回滚/提交**；补「补偿写后、ROLLED_BACK 标记前崩溃」由 WRITTEN 行覆盖。
