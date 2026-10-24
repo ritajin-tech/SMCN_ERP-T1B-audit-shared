@@ -1,7 +1,8 @@
-// T1-B 生产表 Step1 · 包装负例测试（回应 Tom 2026-10-24 Pt1/2/3/4/6）
-// 离线验证（不执行生产）：覆盖开关关 / 依赖缺失(含真实加载失败路径) / 镜像缺失 / 身份不可解析 /
+// T1-B 生产表 Step1 · 包装负例测试（回应 Tom 2026-10-24 12:27 Pt1/2/3/6 第三轮）
+// 离线验证（不执行生产）：覆盖 开关关(不加载/不读/不解析) / 真实加载失败(require catch) /
+// 镜像缺失 / 身份不可解析 / employeeId 恶意值(空白串/数组/对象)+解析器抛错+双入口 /
 // 异步 reject / 同步抛错 / opts.now=0 透传 / 跨用户行纵深拦截 / handleRequestSafe 同路径 /
-// 客户端自报身份被忽略(显式断言) / 开关关不读取不解析(抛错 getter 验证) / 异常不外泄原始 message。
+// 客户端自报身份被忽略(显式断言核心仅收本人行) / 日志脱敏(敏感串不出现) / 异常不外泄原始 message。
 // 设计：自包含，不依赖 ts_leave_tip_core.js（既有核心不重发）；真实核心委托由提交方另行验证。
 // 运行：node wrapper_negative_tests.js   exit 0 = 全部通过
 
@@ -30,28 +31,35 @@ async function run() {
     { instanceId: 'OTHER', who: 'E9999', date: '2026-10-20', type: '病假', half: 'PM', state: 'ACTIVE', version: 1 },
   ] };
 
-  // ---- 1) 开关关：不触碰逻辑/不读镜像/不解析身份（且即使这些会抛错也不被调用）----
+  // ---- 1) 开关关：两入口均不加载 / 不读镜像 / 不解析身份（恶意 getter/resolver 未触发）----
   W.setFeatureEnabled(false);
+  W.__test_resetCache();
+  let offLoadCalls = 0;
+  W.__test_setLoader(() => { offLoadCalls++; throw new Error('should-not-load'); });
   W.setTrustedResolver(() => { throw new Error('resolver-should-not-run'); });
   const throwingMirror = {};
   Object.defineProperty(throwingMirror, 'rows', { get() { throw new Error('rows-getter-should-not-run'); } });
   const off = W.getLeaveTipSafe({ session: { loginUser: 'alice@sm' }, fillDate: '2026-10-20', mirror: throwingMirror, identityResolver: maliciousResolver, employeeId: maliciousEmployeeId });
-  check('开关关→DISABLED 且不读镜像不解析(恶意 getter/resolver 未触发抛错)', off.status === 'DISABLED' && off.submitAllowed === true && off.tip === null);
+  const offHr = W.handleRequestSafe({ session: { loginUser: 'alice@sm' }, fillDate: '2026-10-20', mirror: throwingMirror });
+  check('开关关→两入口均 DISABLED', off.status === 'DISABLED' && offHr.status === 'DISABLED' && off.submitAllowed === true && offHr.submitAllowed === true);
+  check('开关关→加载器零调用(不读不解析不加载)', offLoadCalls === 0 && W.__test_coreState() === undefined);
+  W.__test_resetCache();
+  W.__test_setLoader(null);
 
-  // ---- 2) 依赖缺失（注入 null）：默认关仍能兜底，不崩 ----
+  // ---- 2) 真实加载失败路径：清空缓存 + 注入确实 throw 的受控 loader，验证 try/catch 真正捕获 ----
   W.setFeatureEnabled(true);
   W.setTrustedResolver(trusted('E1001'));
-  W.__test_setCore(null);
-  const missing = W.getLeaveTipSafe({ session: { loginUser: 'alice@sm' }, fillDate: '2026-10-20' });
-  check('依赖缺失(注入null)→可用性回退不崩', missing.status === 'FETCH_FAILED' && missing.submitAllowed === true);
-
-  // ---- 2b) 真实加载失败路径（模拟 require 抛错，验证 catch 分支而非仅注入 null）----
-  W.__test_forceLoadThrow(true);
+  W.__test_resetCache();
+  let loadCalls = 0;
+  W.__test_setLoader(() => { loadCalls++; throw new Error('simulated require failure'); });
   const loadFail = W.getLeaveTipSafe({ session: { loginUser: 'alice@sm' }, fillDate: '2026-10-20' });
   check('真实加载失败路径→可用性回退不崩(FETCH_FAILED)', loadFail.status === 'FETCH_FAILED' && loadFail.submitAllowed === true);
-  W.__test_forceLoadThrow(false); // 复位
+  check('真实加载失败→require 分支确实被调用(loadCalls>=1)', loadCalls >= 1);
+  check('真实加载失败→_CORE 被置 null(捕获生效)', W.__test_coreState() === null);
+  W.__test_resetCache();
+  W.__test_setLoader(null);
 
-  // 恢复真实核心（本套件用注入 mock 模拟，避免依赖既有核心）
+  // 恢复 mock 核心（本套件用注入 mock 模拟，避免依赖既有核心）
   W.__test_setCore({ getLeaveTip: (o) => ({ status: 'OK', tip: 't', submitAllowed: true, events: [{ instanceId: 'I3', date: '2026-10-20', type: '事假', half: 'AM', state: 'ACTIVE', version: 1 }] }), handleRequest: () => ({ status: 'OK', tip: '', submitAllowed: true, events: [] }) });
 
   // ---- 3) 身份不可解析：AUTH_REQUIRED / UNAUTHORIZED → PRIVACY_BLOCKED（与可用性分离）----
@@ -65,10 +73,22 @@ async function run() {
 
   W.setTrustedResolver((s) => ({ status: 'OK', employeeId: null })); // 解析器返回 OK 但 employeeId 为空 → 仍隐私封闭
   const emptyId = W.getLeaveTipSafe({ session: { loginUser: 'alice@sm' }, fillDate: '2026-10-20', mirror: { status: 'ok', rows: [] } });
-  check('employeeId 为空→仍 PRIVACY_BLOCKED(Pt2B 显式校验非空)', emptyId.status === 'PRIVACY_BLOCKED' && emptyId.privacyBlocked === true);
+  check('employeeId 为空→仍 PRIVACY_BLOCKED(Pt2 显式校验非空)', emptyId.status === 'PRIVACY_BLOCKED' && emptyId.privacyBlocked === true);
+
+  // ---- 3b) employeeId 恶意值（Pt2：非空白 trim 字符串一律拒）+ 解析器抛错 + 双入口一致 ----
+  W.setTrustedResolver(() => ({ status: 'OK', employeeId: '   ' }));
+  check('employeeId 空白字符串→PRIVACY_BLOCKED', W.getLeaveTipSafe({ session: { loginUser: 'a' } }).status === 'PRIVACY_BLOCKED');
+  W.setTrustedResolver(() => ({ status: 'OK', employeeId: [] }));
+  check('employeeId 数组→PRIVACY_BLOCKED', W.getLeaveTipSafe({ session: { loginUser: 'a' } }).status === 'PRIVACY_BLOCKED');
+  W.setTrustedResolver(() => ({ status: 'OK', employeeId: {} }));
+  check('employeeId 对象→PRIVACY_BLOCKED', W.getLeaveTipSafe({ session: { loginUser: 'a' } }).status === 'PRIVACY_BLOCKED');
+  W.setTrustedResolver(() => { throw new Error('resolver boom'); });
+  check('解析器抛错→PRIVACY_BLOCKED(不外逃)', W.getLeaveTipSafe({ session: { loginUser: 'a' } }).status === 'PRIVACY_BLOCKED');
+  W.setTrustedResolver(() => ({ status: 'OK', employeeId: '   ' }));
+  check('handleRequestSafe employeeId 空白→PRIVACY_BLOCKED(双入口一致)', W.handleRequestSafe({ session: { loginUser: 'a' } }).status === 'PRIVACY_BLOCKED');
+  W.setTrustedResolver(trusted('E1001'));
 
   // 注入"镜像感知"mock 核心：镜像缺失/不完整 → FETCH_FAILED
-  W.setTrustedResolver(trusted('E1001'));
   W.__test_setCore({ getLeaveTip: (o) => {
     if (!o.mirror || !Array.isArray(o.mirror.rows) || o.mirror.rows.length === 0) return { status: 'FETCH_FAILED', tip: null, submitAllowed: true, events: [] };
     return { status: 'OK', tip: '你有请假', submitAllowed: true, events: o.mirror.rows.map(r => ({ instanceId: r.instanceId, date: r.date, type: r.type, half: r.half, state: r.state, version: r.version })) };
@@ -97,6 +117,21 @@ async function run() {
   // ---- 7b) 异常不外泄原始 message（Pt3）：catch 后响应中不得含原始异常文本 ----
   check('响应不含原始异常文本(无 "boom")', !JSON.stringify(syncRes).includes('boom'));
 
+  // ---- 7c) 日志脱敏（Pt3）：捕获 console.error，验证敏感原始异常文本【不】出现在日志中 ----
+  const realErr = console.error;
+  let logBuf = [];
+  console.error = (...a) => { logBuf.push(a.map(x => (typeof x === 'string' ? x : JSON.stringify(x))).join(' ')); };
+  W.__test_resetCache();
+  W.__test_setLoader(() => { throw new Error('SENSITIVE_EMPLOYEE_X999 leaked into log'); });
+  W.setTrustedResolver(() => ({ status: 'OK', employeeId: 'E1001' }));
+  const desens = W.getLeaveTipSafe({ session: { loginUser: 'alice@sm' } });
+  console.error = realErr;
+  check('日志脱敏→日志中仅含固定码(含 ERR_)、不含敏感原始异常文本',
+    logBuf.join('').includes('ERR_') && !logBuf.join('').includes('SENSITIVE_EMPLOYEE_X999'));
+  check('日志脱敏→响应中亦不含敏感原始异常文本', !JSON.stringify(desens).includes('SENSITIVE_EMPLOYEE_X999'));
+  W.__test_resetCache();
+  W.__test_setLoader(null);
+
   // ---- 8) 镜像行级授权纵深过滤（Block3）+ 隐私状态映射 ----
   W.__test_setCore(null);
   const filt = W.filterMirrorToSelf(mirWithOther, 'E1001');
@@ -105,24 +140,26 @@ async function run() {
   check('核心身份状态→包装 PRIVACY_BLOCKED 分离', privMap.status === 'PRIVACY_BLOCKED' && privMap.privacyBlocked === true);
   check('隐私响应不含内部 status 文本', !JSON.stringify(privMap).includes('AUTH_REQUIRED'));
 
+  // ---- 8b) wrapResponse 未知 status → 降级 FETCH_FAILED（Pt3：status 枚举限制）----
+  const unknown = W.wrapResponse({ status: 'SOME_INTERNAL_STATE', tip: 'x', submitAllowed: true, events: [] }, { employeeId: 'E1001' });
+  check('wrapResponse 未知 status→降级 FETCH_FAILED(不外泄内部态)', unknown.status === 'FETCH_FAILED');
+
   // ---- 9) handleRequestSafe 同受控路径：未授权 → PRIVACY_BLOCKED（Pt1 统一入口）----
-  // 恢复 mock 核心（前一步 filterMirrorToSelf 测试注入了 null，这里需还原，否则入口会先因缺核心短路）
   W.__test_setCore({ getLeaveTip: (o) => ({ status: 'OK', tip: 't', submitAllowed: true, events: [] }), handleRequest: () => ({ status: 'OK', tip: '', submitAllowed: true, events: [] }) });
   W.setTrustedResolver((s) => ({ status: 'AUTH_REQUIRED', employeeId: null }));
   const hrUnauth = W.handleRequestSafe({ session: {}, fillDate: '2026-10-20', mirror: { status: 'ok', rows: [] } });
   check('handleRequestSafe 未授权→PRIVACY_BLOCKED(同路径)', hrUnauth.status === 'PRIVACY_BLOCKED' && hrUnauth.privacyBlocked === true);
 
-  // ---- 9b) handleRequestSafe 客户端自报身份被忽略（恶意 req.identityResolver 不生效）----
+  // ---- 9b) handleRequestSafe 客户端自报身份被忽略（恶意 req.identityResolver 不生效；核心仅收本人行）----
   W.setTrustedResolver(trusted('E1001'));
   const hrHackCore = {
     getLeaveTip: (o) => {
       const passedResolver = o.identityResolver;
       const resolved = passedResolver({ loginUser: 'alice@sm' });
       const mirrorRows = (o.mirror && o.mirror.rows) || [];
-      const hasHacker = mirrorRows.some(r => r.who === 'E9999-HACKER');
-      // 若包装未剔除恶意身份/未过滤他人行，这里直接抛错使测试失败
+      // Pt6：直接断言"核心收到的镜像全部是已绑定主体本人行"(比 hasHacker 更准确，证明纵深过滤已生效)
       assert.strictEqual(resolved.employeeId, 'E1001', '传给核心的解析器必须是 TRUSTED，而非恶意 opts');
-      assert.strictEqual(hasHacker, false, '核心不得收到 E9999 他人行');
+      assert.ok(mirrorRows.length >= 1 && mirrorRows.every(r => r.who === 'E1001'), '核心收到的镜像必须全部是已绑定主体本人行(无他人行/无 E9999)');
       return { status: 'OK', tip: 't', submitAllowed: true, events: mirrorRows.map(r => ({ instanceId: r.instanceId, date: r.date, type: r.type, half: r.half, state: r.state, version: r.version })) };
     },
     // 与真实核心一致：handleRequest 委托给 getLeaveTip（验证包装经统一受控路径把受控入参交到委托链）
@@ -137,15 +174,14 @@ async function run() {
   const hrAsync = await W.handleRequestSafe({ session: { loginUser: 'alice@sm' } });
   check('handleRequestSafe 异步 reject→可用性回退', hrAsync.status === 'FETCH_FAILED' && hrAsync.submitAllowed === true);
 
-  // ---- 10) getLeaveTipSafe 客户端自报身份被忽略（核心安全验证点，显式断言）----
+  // ---- 10) getLeaveTipSafe 客户端自报身份被忽略（核心安全验证点，显式断言仅收本人行）----
   W.setTrustedResolver(trusted('E1001'));
   W.__test_setCore({ getLeaveTip: (o) => {
     const passedResolver = o.identityResolver;
     const resolved = passedResolver({ loginUser: 'alice@sm' });
     const mirrorRows = (o.mirror && o.mirror.rows) || [];
-    const hasHacker = mirrorRows.some(r => r.who === 'E9999-HACKER');
     assert.strictEqual(resolved.employeeId, 'E1001', '传给核心的解析器必须是 TRUSTED');
-    assert.strictEqual(hasHacker, false, '核心不得收到 E9999 他人行');
+    assert.ok(mirrorRows.length >= 1 && mirrorRows.every(r => r.who === 'E1001'), '核心收到的镜像必须全部是已绑定主体本人行(无他人行/无 E9999)');
     return { status: 'OK', tip: 't', submitAllowed: true, events: mirrorRows.map(r => ({ instanceId: r.instanceId, date: r.date, type: r.type, half: r.half, state: r.state, version: r.version })) };
   }, handleRequest: () => ({}) });
   const hackAttempt = W.getLeaveTipSafe({ session: { loginUser: 'alice@sm' }, fillDate: '2026-10-20', mirror: mirWithOther, now: new Date('2026-10-20T08:00:00+08:00'), identityResolver: maliciousResolver, employeeId: maliciousEmployeeId });
