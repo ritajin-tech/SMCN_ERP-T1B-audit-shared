@@ -50,7 +50,7 @@
   3. ✅ 全部写入口函数名 + 行号（§1 W1–W7，实时 HEAD）。
   4. ✅ 现有护栏模式可复用（`_tsSetValuesGuarded` / `_TS_WRITE_LOG` / `masterCreate` 禁用清单）。
 - **未变铁律**：本节及 §1 均为**只读核验产物**；未做任何生产写、未 push、未 deploy。Phase 3 执行 clearance 仍须 **Tom clearance + Rita GO 双闸门**。
-- **实时 HEAD 指纹**：版本 `TS_APP_VERSION='4.3.72'`(Code.gs L123)；源码快照 `tools/_staging_period_lock/_ts_head_live/`（16 文件）；组合 SHA-256 `46cbfa8c792dccf7cfde9a675829cfa14b8f7e37de9f3d120b9eac2242bdb436`（按文件名排序拼接 source 计算）。
+- **实时 HEAD 指纹**：版本 `TS_APP_VERSION='4.3.72'`(Code.gs L123)；源码快照 `tools/_staging_period_lock/_ts_head_live/`（16 文件）；**组合 SHA-256 = `26471b4103c569851391ae3f70058b06c2828b8916674a0bd8dd3d3f72693c18`**（计算方法见 §9：按文件名升序拼接 16 文件原始字节后取 SHA-256，可复现）。
 
 ---
 
@@ -120,7 +120,7 @@ EXCEPTION e:
 
 | 约束 | 设计落点 | 当前证据（2026-10-24 只读核验） | 待补证据（Rita GO 后实现） |
 |---|---|---|---|
-| 写入口拦截 | §1 W1–W7 | ✅ 实时 HEAD 函数名+行号（`submitBatch` L386 / `updateTimesheet` L460 / `tsAppendRows` / `tsPatchCells` 等）+ 组合 SHA `46cbfa…` | 挂锁代码 + SHA |
+| 写入口拦截 | §1 W1–W7 | ✅ 实时 HEAD 函数名+行号（`submitBatch` L386 / `updateTimesheet` L460 / `tsAppendRows` / `tsPatchCells` 等）+ 组合 SHA `26471b4…` | 挂锁代码 + SHA |
 | 身份核验 | §2 | ✅ HTTP200 实读 HEAD；scriptId 匹配；部署身份 `ANYONE_ANONYMOUS` 已坐实 | —（已只读闭合） |
 | 原子写+补偿 | §3 | 序列设计 + 现成 `_tsSetValuesGuarded`/`_TS_WRITE_LOG` 可复用 | `atomic_write_tests.js` + 结果 |
 | 锁持久化+恢复 | §4 | 存储设计（ScriptProperties，独立于 `FEATURE_ENABLED`） | `lockstate_persist_tests.js` |
@@ -139,4 +139,31 @@ EXCEPTION e:
 - ⏳ 实现/测试证据仍须 **Rita GO + 双闸门** 后方可编写并实跑，再请 Tom 对实现件做执行 clearance 复验。
 
 ---
+## 9. 附录 — 实时 HEAD 快照指纹（可复现）
+
+- **计算环境**：本地只读快照 `tools/_staging_period_lock/_ts_head_live/`（16 文件），经 `gas_auth` 通道 HTTP200 实拉，仅只读分析，零生产写。
+- **组合 SHA-256 计算方法**：`SHA256( b''.join( open(f,'rb').read() for f in sorted(os.listdir(dir)) ) )`（按文件名升序拼接原始字节）。**组合值 = `26471b4103c569851391ae3f70058b06c2828b8916674a0bd8dd3d3f72693c18`**。
+- **逐文件 SHA-256**（供 Tom 逐件核验；完整快照文件可经 Rita 审批闸门索取，本公开仓不推送生产源码）：
+
+| 文件 | SHA-256 |
+|---|---|
+| Code.gs | 67e9c749a5467694396cfc0a394c1db11f74b2a1bbff907a611b5202d3ada704 |
+| FixBDates.gs | 1b1f98bbb8fd52ce9140a60b2a4a4723b4d3856267b594b8c2d783584a149fcb |
+| Index.html | 19a88cd12c09a1562236addc8ac4974cfb71bec4159b5ac0b40c36373ad1fb46 |
+| PruneDead.gs | f81e1f5c059344f48768510e93a6b395fd5e0a9b2ed9fecd7fb63a50095910ff |
+| RemoteActions.gs | b5ca1607c47d618c1638bfe324b72d7413c7cab7ee2a8da2a202079ba05a5dac |
+| RemoteTrigger.gs | 0f7cb43b2c31f9787adcf0b9bf937f463ca992909013978edff6dbd3a9926328 |
+| amy_indirect_cost.gs | f69d5e583f4d91e2b6185acee802d1806683901593ca9d84bb8c16529aac61ef |
+| appsscript | e7485992b05754d79da8feb5b16505adf94dcdd6fb7e155042f5fe6867bc1a20 |
+| leave_sync.gs | 410e0e46110f292e3318c305ad40835a37bbfb9613c87cf64ea365b6b3b4e644 |
+| masterCreate.gs | a571132b60c0a5fe5d4e7ff15085c452981e32e79b928017ce281e2f1bdf1f19 |
+| masterException.gs | c2c8a7d4e616c3f6b39b18c3ff2faf113bb82a172d7cc936e09160334a54aac2 |
+| masterLeaves.gs | e4844cc7fa34ba2b7bd0386c8d9765884999c13bfaab918544866cb445072b4b |
+| onOpen.gs | 047aaebac4bf4c2c7077f6ab79eab041499f55371d2007258fb6967e26372186 |
+| rebuildAttendance.gs | 26d6a3cffc916377eee131f0a06774743e5ad9bc41dc4fa1d674304a3820ae09 |
+| 抓取设计脚本.gs | a85da049747d7dab2d0b41e75a77221f3e70fffaa159169c27e3909eacee8130 |
+| 每天自动提醒.gs | 7bfc0feb9c415ea9b713203c1a6fa73cd2e25b71ffb946d84d66a395c764a2b1 |
+
+- **修正记录**：初版（commit `8f574bd`）曾误列组合 SHA `46cbfa8c…`（快照重取后字节归一所致）；本版以当前 16 文件实算值 `26471b41…` 为准，并补逐文件哈希。文档 SHA 见提交记录。
+
 *文档性质：离线设计交付（规划），零生产写、零权限变更。固定 commit 与文档 SHA-256 随提交补记。*
