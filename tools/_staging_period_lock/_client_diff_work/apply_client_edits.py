@@ -3,6 +3,7 @@
 """
 period-lock 客户端 diff 草案：对 _ts_head_live 副本应用 runbook v3 §1/§2 的全部改动
 （v3 §2.5 错误传输接口契约：plParseErr 三档 + 载荷序列化解析）。
+v7 追加：plHumanMsg 白名单精确匹配三个 PL_UNCERTAIN_* 码（Tom 14:28 清单第4条）。
 只动 _client_diff_work/ 下的副本，零生产写。每处替换断言恰好命中一次。
 """
 import io, sys
@@ -57,6 +58,8 @@ h = apply(h,
     '        //   不确定态 PL_UNCERTAIN_*：message=<码>|{"logFailed":bool,"cause":"…"}。\r\r\n'
     '        // 解析以第一个 | 切分；载荷缺失/不可解析/logFailed 非布尔 → 登记状态未知档，\r\r\n'
     '        // 禁默认 false、禁称「已登记」。\r\r\n'
+    '        // [审⑧-v7] 白名单：plHumanMsg 只对明确允许的三个 PL_UNCERTAIN_* 码\r\r\n'
+    '        // 走三档（含 PL_UNCERTAIN_PATCH_WRITE_FAILED）；未知/损坏码不猜。\r\r\n'
     '        function plParseErr(msg) {\r\r\n'
     '            var s = String(msg || "");\r\r\n'
     '            var i = s.indexOf("|");\r\r\n'
@@ -86,7 +89,10 @@ h = apply(h,
     '        function plHumanMsg(msg) {\r\r\n'
     '            var p = plParseErr(msg);\r\r\n'
     '            var code = p.code;\r\r\n'
-    '            var isUncertain = code.indexOf("PL_UNCERTAIN_BIZ_WRITE_FAILED") === 0 || code.indexOf("PL_UNCERTAIN_FLUSH_FAILED") === 0;\r\r\n'
+    '            // [审⑧-v7] 白名单精确匹配（Tom 14:28 清单第4条）：只接受明确\r\r\n'
+    '            // 允许的 uncertain 码，不用前缀猜；未知/损坏码不进三档\r\r\n'
+    '            var PL_UNCERTAIN_CODES = ["PL_UNCERTAIN_BIZ_WRITE_FAILED", "PL_UNCERTAIN_FLUSH_FAILED", "PL_UNCERTAIN_PATCH_WRITE_FAILED"];\r\r\n'
+    '            var isUncertain = PL_UNCERTAIN_CODES.indexOf(code) >= 0;\r\r\n'
     '            if (isUncertain) {\r\r\n'
     '                if (p.logFailed === true) {\r\r\n'
     '                    return "系统状态不确定，且未能登记待核查；请刷新确认你的修改是否生效，不要重复提交，并联系管理员补登记";\r\r\n'

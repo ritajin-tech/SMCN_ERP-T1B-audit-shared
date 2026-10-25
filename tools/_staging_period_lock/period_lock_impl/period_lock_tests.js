@@ -34,6 +34,11 @@
  *   [审⑧] X1-X6 错误传输接口契约（runbook v3 §2.5）：uncertain 态 message 载荷
  *          序列化（<码>|{"logFailed":bool,"cause":…}）可恢复登记真假与原因；拒绝码
  *          无载荷；前端三档渲染（含「登记状态未知」禁默认 false）从交付件实抽实测。
+ *   [审⑧-v7] X7-X12 五入口契约全覆盖 + 安全（Tom 14:28 核对清单）：submitBatch
+ *          （经 _plGuardedInsert）/tsPatchCells 的 uncertain 也带载荷——修掉 v6
+ *          仅 updateTimesheet/softDeleteRecord 覆盖的断链；cause 消毒（截断 200
+ *          +token 形态打码）；前端白名单（仅三个 PL_UNCERTAIN_* 码进三档，
+ *          白名单外不猜）。
  *          → plCode+plCause 齐全+登记成功 logFailed=false；登记失败 → logFailed=true
  *          且码/因不丢；辅助 _tsWriteLog 失败 → 原 uncertain 不遮蔽+logFailed=true
  *          +不自动重放业务写（行数基线不变）。
@@ -1149,6 +1154,87 @@ t('X6', '[审⑧-v6] 前端三档渲染：plParseErr/plHumanMsg 从交付件 Ind
 });
 
 // ============================================================
+// X7-X12：[审⑧-v7] 五入口契约全覆盖 + cause 消毒 + 前端白名单
+// （Tom 14:28 核对清单四条）
+// ============================================================
+t('X7', '[审⑧-v7] submitBatch uncertain → message 载荷（_plGuardedInsert 契约覆盖）', () => {
+  freshDb();
+  env._writeExplodes = true;                       // bizWrite 失败 → uncertain（登记成功）
+  let err = null;
+  try {
+    submitBatch('tok', [{ project: 'PRJ-1', date: '2026-10-20', hours: 8, stage: '1.1', notes: '' }]);
+  } catch (e) { err = e; }
+  assert.ok(err, 'uncertain 必须抛出');
+  assert.ok(String(err.message).indexOf('PL_UNCERTAIN_BIZ_WRITE_FAILED|') === 0,
+    'message 须带载荷，实际: ' + err.message);
+  const p = JSON.parse(err.message.slice(err.message.indexOf('|') + 1));
+  assert.strictEqual(p.logFailed, false, '登记成功（_TS_WRITE_LOG 存在）→ false');
+  assert.strictEqual(err.plCode, 'PL_UNCERTAIN_BIZ_WRITE_FAILED', '属性不丢');
+  assert.strictEqual(err.plLogFailed, false, '属性 logFailed 同步');
+});
+t('X8', '[审⑧-v7] submitBatch flush 失败 → PL_UNCERTAIN_FLUSH_FAILED 载荷', () => {
+  freshDb();
+  env._flushThrows = true;
+  let err = null;
+  try {
+    submitBatch('tok', [{ project: 'PRJ-1', date: '2026-10-20', hours: 8, stage: '1.1', notes: '' }]);
+  } catch (e) { err = e; }
+  assert.ok(err && String(err.message).indexOf('PL_UNCERTAIN_FLUSH_FAILED|') === 0,
+    'flush 路径也须带载荷，实际: ' + (err && err.message));
+  const p = JSON.parse(err.message.slice(err.message.indexOf('|') + 1));
+  assert.strictEqual(p.logFailed, false);
+});
+t('X9', '[审⑧-v7] submitBatch 登记失败（无登记表）→ logFailed=true 进载荷', () => {
+  freshDb();
+  delete env._sheets['_TS_WRITE_LOG'];             // 登记表不存在 → _plLogUncertain=false
+  env._writeExplodes = true;
+  let err = null;
+  try {
+    submitBatch('tok', [{ project: 'PRJ-1', date: '2026-10-20', hours: 8, stage: '1.1', notes: '' }]);
+  } catch (e) { err = e; }
+  assert.ok(String(err.message).indexOf('PL_UNCERTAIN_BIZ_WRITE_FAILED|') === 0, err.message);
+  const p = JSON.parse(err.message.slice(err.message.indexOf('|') + 1));
+  assert.strictEqual(p.logFailed, true, '登记失败必须进载荷（前端据此分档）');
+});
+t('X10', '[审⑧-v7] tsPatchCells uncertain → JSON error 字段带载荷（远程工具同契约解析）', () => {
+  freshDb();
+  env._writeExplodes = true;
+  const out = JSON.parse(tsPatchCells({ postBody: { cells: [[3, 2, '2026-10-25']] } }));
+  assert.strictEqual(out.ok, false);
+  assert.ok(String(out.error).indexOf('PL_UNCERTAIN_PATCH_WRITE_FAILED|') === 0,
+    'JSON error 须带载荷，实际: ' + out.error);
+  assert.strictEqual(out.plCode, 'PL_UNCERTAIN_PATCH_WRITE_FAILED');
+  const p = JSON.parse(out.error.slice(out.error.indexOf('|') + 1));
+  assert.strictEqual(typeof p.logFailed, 'boolean', '载荷可被同一 plParseErr 解析');
+});
+t('X11', '[审⑧-v7] cause 消毒：超长截断 + token 形态打码（Tom 14:28 清单第3条）', () => {
+  const long = new Array(301).join('x');          // 300 字符
+  const s = _plSanitizeCause(long);
+  assert.ok(s.length <= 215, '截断至 200+截断标记，实际 ' + s.length);
+  const tok = _plSanitizeCause('error at token=ZZFAKE-abcdef1234567890abcdef end');
+  assert.ok(tok.indexOf('[redacted]') >= 0, 'token 形态须打码: ' + tok);
+  assert.strictEqual(_plSanitizeCause(''), '', '空 cause 原样');
+  assert.strictEqual(_plSanitizeCause(null), '', 'null cause 安全');
+  // 消毒后的 cause 经 JSON 序列化仍可解析（载荷契约不受影响）
+  const payload = JSON.stringify({ logFailed: false, cause: _plSanitizeCause(long) });
+  assert.ok(JSON.parse(payload).cause.length <= 215);
+});
+t('X12', '[审⑧-v7] plHumanMsg 白名单：PATCH 码进三档；白名单外 uncertain 码不猜', () => {
+  const clientHtml = fs.readFileSync(path.join(__dirname, '..', '_client_diff_work', 'Index.html'), 'utf8');
+  const parser = clientHtml.match(/function plParseErr\(msg\) \{[\s\S]*?\n {8}\}/);
+  const map = clientHtml.match(/var PL_MSG_MAP = \[[\s\S]*?\n {8}\];/);
+  const human = clientHtml.match(/function plHumanMsg\(msg\) \{[\s\S]*?\n {8}\}/);
+  assert.ok(parser && map && human, '交付件须含 plParseErr/PL_MSG_MAP/plHumanMsg');
+  (0, eval)(parser[0] + '\n' + map[0] + '\n' + human[0]);
+  // 白名单内：PATCH 码三档齐全
+  assert.ok(plHumanMsg('PL_UNCERTAIN_PATCH_WRITE_FAILED|{"logFailed":false,"cause":"x"}').indexOf('已登记待核查') >= 0);
+  assert.ok(plHumanMsg('PL_UNCERTAIN_PATCH_WRITE_FAILED|{"logFailed":true,"cause":"x"}').indexOf('未能登记') >= 0);
+  assert.ok(plHumanMsg('PL_UNCERTAIN_PATCH_WRITE_FAILED').indexOf('登记状态未知') >= 0);
+  // 白名单外：未知 uncertain 码即使带载荷也不进三档（不猜）
+  assert.strictEqual(plHumanMsg('PL_UNCERTAIN_UNKNOWN_FUTURE_CODE|{"logFailed":false,"cause":"x"}'), null,
+    '白名单外码不得进三档');
+});
+// ============================================================
 // 汇总
 // ============================================================
 const pass = results.filter(r => r.ok).length;
@@ -1157,5 +1243,5 @@ results.forEach(r => {
   console.log((r.ok ? '✅' : '❌') + ' ' + r.id + ' ' + r.name + (r.ok ? '' : '  → ' + r.err));
 });
 console.log('----------------------------------------');
-console.log('R1-R17 + I1-I8 + V1-V12 + W1-W8 + X1-X6: ' + pass + '/' + results.length + ' 通过' + (fail.length ? '，' + fail.length + ' 失败' : '（fail-closed 全绿）'));
+console.log('R1-R17 + I1-I8 + V1-V12 + W1-W8 + X1-X12: ' + pass + '/' + results.length + ' 通过' + (fail.length ? '，' + fail.length + ' 失败' : '（fail-closed 全绿）'));
 process.exit(fail.length ? 1 : 0);

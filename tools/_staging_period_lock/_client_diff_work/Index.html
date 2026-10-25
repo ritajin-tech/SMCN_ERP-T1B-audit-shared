@@ -457,6 +457,8 @@
         //   不确定态 PL_UNCERTAIN_*：message=<码>|{"logFailed":bool,"cause":"…"}。
         // 解析以第一个 | 切分；载荷缺失/不可解析/logFailed 非布尔 → 登记状态未知档，
         // 禁默认 false、禁称「已登记」。
+        // [审⑧-v7] 白名单：plHumanMsg 只对明确允许的三个 PL_UNCERTAIN_* 码
+        // 走三档（含 PL_UNCERTAIN_PATCH_WRITE_FAILED）；未知/损坏码不猜。
         function plParseErr(msg) {
             var s = String(msg || "");
             var i = s.indexOf("|");
@@ -486,7 +488,10 @@
         function plHumanMsg(msg) {
             var p = plParseErr(msg);
             var code = p.code;
-            var isUncertain = code.indexOf("PL_UNCERTAIN_BIZ_WRITE_FAILED") === 0 || code.indexOf("PL_UNCERTAIN_FLUSH_FAILED") === 0;
+            // [审⑧-v7] 白名单精确匹配（Tom 14:28 清单第4条）：只接受明确
+            // 允许的 uncertain 码，不用前缀猜；未知/损坏码不进三档
+            var PL_UNCERTAIN_CODES = ["PL_UNCERTAIN_BIZ_WRITE_FAILED", "PL_UNCERTAIN_FLUSH_FAILED", "PL_UNCERTAIN_PATCH_WRITE_FAILED"];
+            var isUncertain = PL_UNCERTAIN_CODES.indexOf(code) >= 0;
             if (isUncertain) {
                 if (p.logFailed === true) {
                     return "系统状态不确定，且未能登记待核查；请刷新确认你的修改是否生效，不要重复提交，并联系管理员补登记";

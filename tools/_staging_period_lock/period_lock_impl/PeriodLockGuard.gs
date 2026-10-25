@@ -52,6 +52,17 @@
  *         PL_POLICY_INIT_KEY：_plSetPolicy 置 '1'；曾有初始化记录而策略键
  *         丢失/空值 → policy-lost 收紧（与「从未初始化」的首次态区分）。
  *
+ * v6(ed76a62) → v7 修订（吸收 Tom 14:28 核对清单四条）：
+ *  [审⑧-覆盖] 错误传输契约覆盖**全部五个 mutation 入口**：_plUncertainPayloadMsg
+ *         由集成源码移入本 guard 定义层（guard 先部署、集成源码后部署，helper 须
+ *         在定义层自包含）；_plGuardedInsert 的 flush/bizWrite 两处 uncertain
+ *         抛出改用它构造 message——修掉 submitBatch / tsAppendRows 路径
+ *         「只抛裸码、登记真假与原因不可恢复」的断链（tsPatchCells 侧见集成源码）。
+ *  [审⑧-消毒] _plSanitizeCause：cause 截断至 200 字符 + 连续 24+ 位字母数字串
+ *         （token/UUID 形态）打码——不把令牌或潜在敏感串带进 UI/日志。
+ *         （员工原始行内容不经 cause 传输：当前全部 cause 来源均为服务端自构造
+ *         文案或 GAS 服务异常 message，件中照实登记该边界，不宣称绝对。）
+ *
  * 🔴 零生产写本地实现；接入生产须 Rita 显式 GO + 双授权闸门。
  */
 
@@ -346,6 +357,44 @@ function _plLogUncertain(action, detail) {
 }
 
 /**
+ * [审⑧-v7] 错误传输接口契约辅助（runbook v3 §2.5，v7 起为五入口统一实现，
+ * 由集成源码移入本 guard 定义层——guard 先部署，helper 不得依赖后部署文件）。
+ *
+ * 问题：google.script.run 的 failure handler 只跨边界传递 error message 字符串，
+ * Error 自定义属性（plLogFailed/plCause）能否随之序列化未经实测——契约不得依赖
+ * 该未验证行为。若只按 message 文本匹配 PL_UNCERTAIN_* 码，登记真假与原始原因
+ * 不可恢复，前端无法区分「已登记待核查」与「登记失败」。
+ *
+ * 契约：uncertain 态把状态安全序列化进 message——
+ *   <码>|{"logFailed":true|false,"cause":"<消毒后的原始错误字符串>"}
+ *   以第一个 '|' 切分（码字符集 [A-Z_] 不含 '|'，切分位置无歧义；cause 中的
+ *   '|' 不影响，因为只切第一个）。拒绝码（PL_REJECT_*）不载荷：拒绝时不发生
+ *   登记，无状态需要传。属性仍照旧挂在 Error 上（不依赖、不删除）。
+ *
+ * 适用入口（v7 全覆盖）：submitBatch / tsAppendRows（经 _plGuardedInsert）、
+ * tsPatchCells（集成源码调用）、updateTimesheet / softDeleteRecord（集成源码调用）。
+ */
+function _plUncertainPayloadMsg(e) {
+  if (!e || !e.plCode || String(e.plCode).indexOf('PL_UNCERTAIN_') !== 0) return '';
+  var payload = { logFailed: !!e.plLogFailed, cause: _plSanitizeCause(e.plCause) };
+  return e.plCode + '|' + JSON.stringify(payload);
+}
+
+/**
+ * [审⑧-v7] cause 消毒（载荷安全，Tom 14:28 清单第 3 条）：
+ *  - 截断至 200 字符（诊断必要最小长度，防超长堆栈灌满 UI/日志）；
+ *  - 连续 24+ 位字母数字串（token/UUID 等形态）整体打码。
+ * 照实边界：当前全部 cause 来源均为服务端自构造文案或 GAS 服务异常 message，
+ * 员工原始行内容不经 cause 传输；本函数不宣称绝对防护，仅收窄泄漏面。
+ */
+function _plSanitizeCause(c) {
+  var s = String(c || '');
+  if (s.length > 200) s = s.slice(0, 200) + '…[truncated]';
+  s = s.replace(/[A-Za-z0-9_\-]{24,}/g, '[redacted]');
+  return s;
+}
+
+/**
  * [v3 遗留，v4 起弃用] 曾用于把登记失败标识挂到错误对象上；v4 [审③] 改为
  * plLogFailed 一律按 _plLogUncertain 实际返回值设置（防止登记成功仍误报），
  * 本函数不再被调用，保留仅为避免破坏既有引用。
@@ -396,6 +445,8 @@ function _plGuardedMutation(opts) {
       e3.plCode = 'PL_UNCERTAIN_FLUSH_FAILED';
       e3.plCause = String((fe && fe.message) || fe);   // [审③] 保留原始原因
       e3.plLogFailed = !loggedF;
+      // [审⑧-v7] 契约覆盖 updateTimesheet/softDeleteRecord 编排路径：载荷进 message
+      e3.message = _plUncertainPayloadMsg(e3);
       throw e3;
     }
     return result;
@@ -411,6 +462,8 @@ function _plGuardedMutation(opts) {
       ue.plCode = 'PL_UNCERTAIN_BIZ_WRITE_FAILED';
       ue.plCause = String((e && e.message) || e);
       ue.plLogFailed = !logged;
+      // [审⑧-v7] 契约覆盖 updateTimesheet/softDeleteRecord 编排路径：载荷进 message
+      ue.message = _plUncertainPayloadMsg(ue);
       throw ue;
     }
     throw e;
@@ -464,6 +517,8 @@ function _plGuardedInsert(opts) {
       e2.plCode = 'PL_UNCERTAIN_FLUSH_FAILED';
       e2.plCause = String((fe && fe.message) || fe);
       e2.plLogFailed = !loggedF2;
+      // [审⑧-v7] 契约覆盖 submitBatch/tsAppendRows 路径：载荷进 message
+      e2.message = _plUncertainPayloadMsg(e2);
       throw e2;
     }
     return result;
@@ -477,6 +532,8 @@ function _plGuardedInsert(opts) {
       ue2.plCode = 'PL_UNCERTAIN_BIZ_WRITE_FAILED';
       ue2.plCause = String((e && e.message) || e);
       ue2.plLogFailed = !logged2;
+      // [审⑧-v7] 契约覆盖 submitBatch/tsAppendRows 路径：载荷进 message
+      ue2.message = _plUncertainPayloadMsg(ue2);
       throw ue2;
     }
     throw e;

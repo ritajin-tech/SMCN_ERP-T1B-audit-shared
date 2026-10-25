@@ -32,6 +32,12 @@
  *         tsAppendRows/tsPatchCells 既有 success-return JSON 字段（plCode/plCause/
  *         logFailed）已与本契约 schema 对齐，不改。
  *
+ *  [审⑧-v7] _plUncertainPayloadMsg/_plSanitizeCause 移入 PeriodLockGuard.gs
+ *         定义层（guard 先部署）；tsPatchCells 的 uncertain 抛出接上契约——
+ *         v6 只有 updateTimesheet/softDeleteRecord 覆盖，submitBatch/
+ *         tsAppendRows/tsPatchCells 三入口仍抛裸码，登记真假与原因不可恢复
+ *         （Tom 14:28 清单第 1 条，已修）。
+ *
  * 🔴 零生产写；接入生产须 Rita 显式 GO + 双授权闸门。
  */
 
@@ -126,22 +132,14 @@ function submitBatch(token, tasks) {
 }
 
 // ============================================================
-// [审⑧-v6] 错误传输接口契约辅助（runbook v3 §2.5）
+// [审⑧-v7] 错误传输接口契约辅助 _plUncertainPayloadMsg 已由 v6 的本地定义
+// **移入 PeriodLockGuard.gs 定义层**（v7：guard 先部署、本文件后部署，helper
+// 须在定义层自包含；本文件直接调用 guard 中的定义，不重复声明）。
+// 契约：uncertain 态 message=<码>|{"logFailed":bool,"cause":<消毒后>}，
+// 第一个 '|' 切分；拒绝码无载荷。五入口全覆盖（submitBatch/tsAppendRows 经
+// guard _plGuardedInsert；updateTimesheet/softDeleteRecord 经 guard
+// _plOrchestrate + 本文件重抛；tsPatchCells 见下方抛出点）。
 // ============================================================
-// 问题：google.script.run 的 failure handler 只跨边界传递 error message 字符串，
-// Error 自定义属性（plLogFailed/plCause）能否随之序列化未经实测——契约不得依赖
-// 该未验证行为。若只按 message 文本匹配 PL_UNCERTAIN_* 码，登记真假与原始原因
-// 不可恢复，前端无法区分「已登记待核查」与「登记失败」。
-// 契约：uncertain 态把状态安全序列化进 message——
-//   <码>|{"logFailed":true|false,"cause":"<原始错误字符串>"}
-//   以第一个 '|' 切分（码字符集 [A-Z_] 不含 '|'，切分位置无歧义；cause 中的
-//   '|' 不影响，因为只切第一个）。拒绝码（PL_REJECT_*）不载荷：拒绝时不发生
-//   登记，无状态需要传。属性仍照旧挂在 Error 上（不依赖、不删除）。
-function _plUncertainPayloadMsg(e) {
-  if (!e || !e.plCode || String(e.plCode).indexOf('PL_UNCERTAIN_') !== 0) return '';
-  var payload = { logFailed: !!e.plLogFailed, cause: String(e.plCause || '') };
-  return e.plCode + '|' + JSON.stringify(payload);
-}
 
 // ============================================================
 // 入口 2/5：updateTimesheet（Code.gs L460 替换）
@@ -430,6 +428,8 @@ function tsPatchCells(e) {
             ue.plCode = 'PL_UNCERTAIN_PATCH_WRITE_FAILED';
             ue.plCause = String((err2 && err2.message) || err2);
             ue.plLogFailed = !loggedP;
+            // [审⑧-v7] 契约覆盖 tsPatchCells 路径：载荷进 message
+            ue.message = _plUncertainPayloadMsg(ue);
             throw ue;
           }
           throw err2;
