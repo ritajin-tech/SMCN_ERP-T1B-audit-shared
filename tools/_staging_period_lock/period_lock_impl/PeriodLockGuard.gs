@@ -1,20 +1,23 @@
 /**
- * T1-B · period-lock guard 模块 · 实现 v2（本地代码，零生产写）
+ * T1-B · period-lock guard 模块 · 实现 v3（本地代码，零生产写）
  * ============================================================
- * 依据：v5 设计 + Tom 09:27 实现层静态审阅五条（逐条核实全部属实，全部吸收）。
+ * 依据：v5 设计 + Tom 09:27 五条 + 09:59 五条（逐条核实全部属实，全部吸收）。
  *
- * v1(4d02da8) → v2 修订：
- *  [审1] _plGuardPatch 重写：ranges 的 O:Q 覆盖纳入；新 B 为空 → 拒；
- *        原值三态区分：原行不存在（放行）/ 原值已知（比对）/ 原值未知（拒）。
- *        明确服务边界：只锁「期间归属与软删标记」，C:H 历史业务列可经参与入口
- *        更改——不宣称历史整行冻结（见 §5 覆盖边界）。
- *  [审2] _plRecheckRow 返回实际行号 + 内容版本哈希；重复 UUID → mismatch；
- *        锁内姓名/归属重核可选；门禁原期间一律取锁内实读（禁缺省绕开）；
- *        请求绑定业务版本（expectContentHash）防 last-write-wins。
- *  [审3] R12b 语义改「进入业务写阶段」：写/提交阶段任何异常（含普通 Error）
- *        登记一次；预检拒绝不登记；flush 失败不双登记；登记失败不吞。
- *  [审4] 业务日解析完整锚定（拒尾缀/偏移）；cutoff 格式校验。
- *  [审5] 配套 period_lock_integrated_src.md 为可完整核对的集成源码（无省略号）。
+ * v2(00d00ba) → v3 修订：
+ *  [审①] _plRecheckRow 增 expectDeleted（删除幂等：锁内已删 → 拒）；
+ *         _plRowContentHash 覆盖列明确定义（B..N 全列+O，含 K/M；类型转换与
+ *         分隔冲突规则见函数注释）。
+ *  [审②] _plGuardedInsert：lockPreWrite 去重结果为空 → 直接返回无新增约定，
+ *         不进入 bizWrite、不构造高度 0 区域、不误登记不确定。
+ *  [审③] _plLogUncertain 不自动建表（建表＝授权动作，改由部署包显式含建表步骤）；
+ *         登记失败以 plLogFailed 标识贯穿（guard 在错误对象上挂标识，入口原样抛出
+ *         时调用方可见）；每失败路径仅尝试登记一次。
+ *  [审④] _plValidCutoff 真实日历校验（经 _plParseBizDate 回验）；
+ *         双 fallback：无策略（首次，部署包负责初始化）＝ closed=true+futureOpen=true；
+ *         读取/解析故障 ＝ closed=true+**futureOpen=false**（未知时拒绝受影响写——
+ *         失败政策收紧为安全默认；收紧不构成授权扩大，放宽才须 Rita 显式决定）。
+ *  [审⑤] _plGuardPatch：row<2（表头）单独状态 header → B/O:Q 写表头一律拒；
+ *         O:Q 删除场景统一走 _plGuardCheck（与 mutation 同一期间政策，含 futureOpen）。
  *
  * 🔴 零生产写本地实现；接入生产须 Rita 显式 GO + 双授权闸门。
  */
@@ -23,51 +26,63 @@
 // 0. 常量与策略持久化（M2/M3/M4）
 // ============================================================
 
-var PL_CUTOFF = '2026-10-01';            // M2：fillDate < CUTOFF → 已关账期间
-var PL_POLICY_KEY = 'PERIOD_LOCK_STATE'; // M3：持久锁政策态（独立于功能开关）
-var PL_LOCK_TIMEOUT_MS = 5000;           // M8：tryLock 超时；失败即零写拒
-var PL_DB_SHEET = 'DB_工时流水';          // 作用表
+var PL_CUTOFF = '2026-10-01';
+var PL_POLICY_KEY = 'PERIOD_LOCK_STATE';
+var PL_LOCK_TIMEOUT_MS = 5000;
+var PL_DB_SHEET = 'DB_工时流水';
 
-/** [审4] cutoff 合法性校验：必须严格 yyyy-MM-dd，否则拒绝该策略值。 */
+/** [审④] cutoff 真实日历校验：严格 yyyy-MM-dd 且为真实存在日期。 */
 function _plValidCutoff(s) {
-  return typeof s === 'string' && /^\d{4}-\d{2}-\d{2}$/.test(s);
+  if (typeof s !== 'string' || !/^\d{4}-\d{2}-\d{2}$/.test(s)) return false;
+  var b = _plParseBizDate(s);
+  return b === s;                                   // 回验：'2026-00-01' 等假日期拒
 }
 
 /**
- * M3：读锁政策态。失败分级（[审4] 精确边界，不过度声称）：
- *   - 配置读取失败/JSON 坏/结构非法 → fallback：closed=true（历史拒）+
- *     futureOpen=true（**未来放行不因配置故障收紧**——不从配置缺失推导
- *     futureOpen=false 已解除）。故 R7 语义＝「配置故障时历史期间拒」，
- *     不概称「任何写均拒」。
- *   - cutoff 非法 → 回退内置 PL_CUTOFF（不用坏值改历史判定）。
+ * M3：读锁政策态。[审④] 双 fallback：
+ *   - 无策略值（首次部署态）：closed=true, futureOpen=true（部署包须显式初始化，
+ *     见集成部署清单；未初始化时首次即保护历史、未来正常放行）；
+ *   - 读取异常/JSON 坏/结构非法：closed=true, futureOpen=false——**未知时拒绝
+ *     受影响写**（故障不放宽；原 futureOpen=false 时读取故障不会变成放行未来）。
+ *   - cutoff 非法 → 回退内置 PL_CUTOFF。
  */
 function _plPolicy() {
-  var fallback = { closed: true, cutoff: PL_CUTOFF, futureOpen: true,
-                   updatedBy: 'fail-closed-default', updatedAt: '', source: 'default' };
   var raw = null;
   try {
     raw = PropertiesService.getScriptProperties().getProperty(PL_POLICY_KEY);
   } catch (e) {
-    return fallback;                       // 读取失败 → fail-closed（历史拒/未来放）
+    return _plFailClosedPolicy('read-error');      // 故障 → 收紧
   }
-  if (!raw) return fallback;               // 无策略 → 首次即保护历史
+  if (!raw) {
+    // 首次态（非故障）：closed=true 保护历史；futureOpen=true 未来正常放行；
+    // 部署包须显式初始化策略（见集成部署清单）。
+    return { closed: true, cutoff: PL_CUTOFF, futureOpen: true,
+             updatedBy: 'initial-unset', updatedAt: '', source: 'unset' };
+  }
   try {
     var p = JSON.parse(raw);
-    if (!p || typeof p !== 'object' || Array.isArray(p)) return fallback;
+    if (!p || typeof p !== 'object' || Array.isArray(p)) {
+      return _plFailClosedPolicy('parse-error');
+    }
     return {
-      closed: p.closed !== false,          // 缺省 true（解析失败不变成放行）
-      cutoff: _plValidCutoff(p.cutoff) ? p.cutoff : PL_CUTOFF,   // [审4]
+      closed: p.closed !== false,
+      cutoff: _plValidCutoff(p.cutoff) ? p.cutoff : PL_CUTOFF,
       futureOpen: p.futureOpen !== false,
       updatedBy: String(p.updatedBy || ''),
       updatedAt: String(p.updatedAt || ''),
       source: 'props'
     };
   } catch (e) {
-    return fallback;
+    return _plFailClosedPolicy('parse-error');
   }
 }
 
-/** M3：写锁政策态（仅限受控解锁流程调用；本模块不提供自助开启）。 */
+function _plFailClosedPolicy(reason) {
+  return { closed: true, cutoff: PL_CUTOFF, futureOpen: false,
+           updatedBy: 'fail-closed-' + reason, updatedAt: '', source: 'fail-closed' };
+}
+
+/** M3：写锁政策态（受控流程调用；部署包初始化亦走此函数）。 */
 function _plSetPolicy(closed, futureOpen, updatedBy) {
   var props = PropertiesService.getScriptProperties();
   props.setProperty(PL_POLICY_KEY, JSON.stringify({
@@ -81,14 +96,13 @@ function _plSetPolicy(closed, futureOpen, updatedBy) {
 }
 
 // ============================================================
-// 1. 业务日解析与期间判定（M2/M7）—— [审4] 完整锚定
+// 1. 业务日解析与期间判定（M2/M7）
 // ============================================================
 
 /**
- * M7：明确业务日解析。接受且仅接受：
- *   Date 对象 | 'yyyy-MM-dd' | 'yyyy-MM-ddTHH:mm' | 'yyyy-MM-dd HH:mm:ss' | 'yyyy/M/d'
- * 完整匹配：尾缀垃圾（'2026-10-01garbage'）、缺少年月日、越界月日 → 一律 null（拒）。
- * 一律 GMT+8 归日。
+ * M7：明确业务日解析，完整匹配：
+ *   Date 对象 | yyyy-MM-dd | yyyy-MM-ddTHH:mm[:ss] | yyyy-MM-dd HH:mm[:ss] | yyyy/M/d
+ * 尾缀垃圾/非法时分秒/越界/假日期 → null。一律 GMT+8 归日。
  */
 function _plParseBizDate(v) {
   if (v === null || v === undefined || v === '') return null;
@@ -99,10 +113,10 @@ function _plParseBizDate(v) {
   var s = String(v).trim();
   if (!s) return null;
   var m = s.match(/^(\d{4})[-/](\d{1,2})[-/](\d{1,2})(?:[T ](\d{1,2}):(\d{2})(?::(\d{2}))?)?$/);
-  if (!m) return null;                                   // [审4] $ 锚定：尾缀/歧义拒
+  if (!m) return null;
   var y = +m[1], mo = +m[2], d = +m[3];
   if (mo < 1 || mo > 12 || d < 1 || d > 31) return null;
-  if (m[4] !== undefined) {                              // [审4] 时分秒范围校验
+  if (m[4] !== undefined) {
     var hh = +m[4], mi = +m[5], ss = (m[6] === undefined) ? 0 : +m[6];
     if (hh > 23 || mi > 59 || ss > 59) return null;
   }
@@ -112,22 +126,14 @@ function _plParseBizDate(v) {
   return y + '-' + (mo < 10 ? '0' + mo : '' + mo) + '-' + (d < 10 ? '0' + d : '' + d);
 }
 
-/** M2：该业务日是否落在已关账期间（< cutoff）。字典序即时间序。 */
 function _plIsClosedBizDate(bizDate, cutoff) {
   return String(bizDate) < String(cutoff);
 }
 
 // ============================================================
-// 2. 写网关双向门禁（M1）—— 原值三态（[审1]/[审2]）
+// 2. 写网关双向门禁（M1）—— 原值三态
 // ============================================================
 
-/**
- * M1 双向门禁。原值三态（显式区分，禁缺省绕开——[审2]）：
- *   origBiz === null            → 原行不存在（新增场景）
- *   origBiz === PL_UNKNOWN      → 原值未知（解析失败/行消失）→ 一律拒
- *   origBiz === 'yyyy-MM-dd'    → 原值已知，参与比对
- * newDateRaw 解析失败 → 拒（M7）。返回 { ok, reason }。
- */
 var PL_UNKNOWN = '__PL_UNKNOWN__';
 
 function _plGuardCheck(newDateRaw, origBiz, policy) {
@@ -135,7 +141,6 @@ function _plGuardCheck(newDateRaw, origBiz, policy) {
   var newBiz = _plParseBizDate(newDateRaw);
   if (!newBiz) return { ok: false, reason: 'PL_REJECT_BAD_NEW_DATE' };
   if (policy && policy.closed === false) {
-    // 锁未关：仅校验新值可解析；futureOpen=false 时未来也拒
     if (policy.futureOpen === false && newBiz >= cutoff) {
       return { ok: false, reason: 'PL_REJECT_FUTURE_CLOSED' };
     }
@@ -152,9 +157,6 @@ function _plGuardCheck(newDateRaw, origBiz, policy) {
   return { ok: true, reason: '' };
 }
 
-/**
- * R12a：批前校验（新增场景，原行不存在 → origBiz=null）。
- */
 function _plGuardCheckBatch(rows, dateOf, policy) {
   for (var i = 0; i < rows.length; i++) {
     var r = _plGuardCheck(dateOf(rows[i]), null, policy);
@@ -167,13 +169,10 @@ function _plGuardCheckBatch(rows, dateOf, policy) {
 // 3. LockService 临界区（M8）+ 锁内重核 + 写完成边界
 // ============================================================
 
-/** M8：取锁。tryLock 失败 → 零写拒（不做无锁写入；锁对象 ≠ 锁）。 */
 function _plAcquire(timeoutMs) {
   var lock = LockService.getScriptLock();
   var got = false;
-  try {
-    got = lock.tryLock(timeoutMs || PL_LOCK_TIMEOUT_MS);
-  } catch (e) { got = false; }
+  try { got = lock.tryLock(timeoutMs || PL_LOCK_TIMEOUT_MS); } catch (e) { got = false; }
   if (!got) {
     var err = new Error('PL_REJECT_LOCK_BUSY');
     err.plCode = 'PL_REJECT_LOCK_BUSY';
@@ -183,20 +182,27 @@ function _plAcquire(timeoutMs) {
 }
 
 /**
- * M8：[审2] 锁内重核。按稳定标识 UUID 唯一定位，返回**实际行号**+内容版本。
- *   expectContentHash：调用方锁外读取时的内容版本哈希（[审2] 请求绑定业务版本，
- *                     防 last-write-wins；null 表示不绑定内容仅绑期间）。
- *   expectName：调用方读取时的 C 列姓名（null 表示不重核归属）。
- * 返回 { found, row, bizDate, deleted, contentHash, mismatch, reason }。
- * 重复 UUID（多命中）→ mismatch（无唯一性保证即拒）。
+ * [审①] 内容版本哈希。覆盖列明确定义（不再跳过 K/M）：
+ *   B(2) fillDate, C(3) name, D(4) type, E(5) stage, F(6) pid, G(7) hours,
+ *   H(8) notes, I(9) uuid, J(10) pname, K(11), L(12) leader, M(13), N(14) ym, O(15) del
+ *   ——即索引 1..14（B..O）。类型转换：String(v)（null/undefined → ''）；
+ *   分隔符 \u0001（不出现在业务值中；若未来出现，视为版本冲突即拒，安全侧失效）。
  */
 function _plRowContentHash(row) {
-  // 业务版本 = B..N 业务列 + O 软删标记（不含 A 时间戳）
-  return [row[1], row[2], row[3], row[4], row[5], row[6], row[7], row[8], row[9],
-          row[11], row[13], row[14]].join('\u0001');
+  var parts = [];
+  for (var i = 1; i <= 14; i++) {
+    var v = row[i];
+    parts.push((v === null || v === undefined) ? '' : String(v));
+  }
+  return parts.join('\u0001');
 }
 
-function _plRecheckRow(sheet, uuid, expectContentHash, expectName) {
+/**
+ * M8：[审①] 锁内重核。返回实际行号 + 内容版本 + 活动状态。
+ *   expectDeleted：调用方锁外读到的软删状态（false=锁前未删）；锁内为 true →
+ *     PL_REJECT_ALREADY_DELETED（删除幂等：已删行的更新/再删一律拒）。
+ */
+function _plRecheckRow(sheet, uuid, expectContentHash, expectName, expectDeleted) {
   var out = { found: false, row: 0, bizDate: null, deleted: false,
               contentHash: null, mismatch: false, reason: '' };
   if (!uuid) { out.mismatch = true; out.reason = 'PL_REJECT_NO_UUID'; return out; }
@@ -205,20 +211,21 @@ function _plRecheckRow(sheet, uuid, expectContentHash, expectName) {
   for (var i = 1; i < data.length; i++) {
     if (String(data[i][8] || '').trim() !== String(uuid).trim()) continue;
     hits++;
-    if (hits > 1) {                          // [审2] 重复 UUID：无唯一性即拒
+    if (hits > 1) {
       out.mismatch = true; out.reason = 'PL_REJECT_UUID_NOT_UNIQUE';
       return out;
     }
     out.found = true;
-    out.row = i + 1;                         // [审2] 实际行号交 bizWrite 使用
+    out.row = i + 1;
     var b = _plParseBizDate(data[i][1]);
-    if (!b) {                                // 锁内原值未知 → 拒
-      out.mismatch = true; out.reason = 'PL_REJECT_ORIG_UNKNOWN';
-      return out;
-    }
+    if (!b) { out.mismatch = true; out.reason = 'PL_REJECT_ORIG_UNKNOWN'; return out; }
     out.bizDate = b;
     var dv = data[i][14];
     out.deleted = (dv === true || String(dv).toUpperCase() === 'TRUE');
+    if (expectDeleted === false && out.deleted === true) {          // [审①] 删除幂等
+      out.mismatch = true; out.reason = 'PL_REJECT_ALREADY_DELETED';
+      return out;
+    }
     out.contentHash = _plRowContentHash(data[i]);
     if (expectName && String(data[i][2] || '').trim() !== String(expectName).trim()) {
       out.mismatch = true; out.reason = 'PL_REJECT_OWNER_MISMATCH'; return out;
@@ -226,57 +233,58 @@ function _plRecheckRow(sheet, uuid, expectContentHash, expectName) {
   }
   if (!out.found) { out.mismatch = true; out.reason = 'PL_REJECT_ROW_GONE'; return out; }
   if (expectContentHash && out.contentHash !== expectContentHash) {
-    out.mismatch = true; out.reason = 'PL_REJECT_CONTENT_VERSION';   // [审2] 版本绑定
+    out.mismatch = true; out.reason = 'PL_REJECT_CONTENT_VERSION';
   }
   return out;
 }
 
 /**
- * R12b：[审3] 以「是否进入业务写阶段」区分。
- *   enteredWrite=false（预检/取锁/重核/门禁拒绝）→ 不登记；
- *   enteredWrite=true（业务写或 flush 异常）→ 任何异常（含普通 Error）登记一次。
+ * R12b：[审③] 不确定批次登记。
+ *   - **不自动建表**（建表＝授权动作）：_TS_WRITE_LOG 不存在 → 返回 false；
+ *   - 返回 true=已登记；false=登记失败（调用方须外显，不得吞）。
  */
 function _plLogUncertain(action, detail) {
   try {
     var ss = SpreadsheetApp.openById(TS_ID);
     var sh = ss.getSheetByName('_TS_WRITE_LOG');
-    if (!sh) {
-      sh = ss.insertSheet('_TS_WRITE_LOG');
-      sh.appendRow(['时间', '动作', '明细']);
-    }
+    if (!sh) return false;                        // [审③] 不自动建表
     sh.appendRow([Utilities.formatDate(new Date(), 'GMT+8', 'yyyy-MM-dd HH:mm:ss'),
                   'period-lock uncertain: ' + action,
                   detail + ' (待人工核查，未自动重试/回滚/补偿)']);
     return true;
   } catch (e) {
-    return false;                            // [审3] 登记失败返回 false，不吞
+    return false;
   }
 }
 
+/** [审③] 把「登记失败」标识挂到错误对象上，随抛出贯穿到入口返回值。 */
+function _plMarkLogFailed(err) {
+  if (err && typeof err === 'object') err.plLogFailed = true;
+  return err;
+}
+
 /**
- * M8 主编排（改/删场景）。门禁原期间一律取锁内实读（[审2]，禁缺省绕开）。
- * bizWrite(recheck) 必须用 recheck.row 作为实际写入行号。
+ * M8 主编排（改/删场景）。门禁原期间取锁内实读。
+ * 失败路径仅尝试登记一次（[审③]）；登记失败以 plLogFailed 标识外显。
  */
 function _plGuardedMutation(opts) {
   var sheet = opts.sheet;
   var lock = null;
   var enteredWrite = false;
-  var logged = false;
+  var logAttempted = false;
   try {
-    lock = _plAcquire(opts.timeoutMs);                   // M8：失败即拒
-    var policy = _plPolicy();                            // 锁内重读策略
-    // 锁内重核（唯一定位 + 行号 + 版本 + 归属）
+    lock = _plAcquire(opts.timeoutMs);
+    var policy = _plPolicy();
     var recheck = null;
     if (opts.uuid) {
       recheck = _plRecheckRow(sheet, opts.uuid, opts.expectContentHash || null,
-                              opts.expectName || null);
+                              opts.expectName || null, opts.expectDeleted);
       if (recheck.mismatch) {
         var e1 = new Error(recheck.reason);
         e1.plCode = recheck.reason;
         throw e1;
       }
     }
-    // 独立期间门禁 + 版本检查（原期间用锁内实读；锁本身不识别月份）
     var origBiz = recheck ? recheck.bizDate : null;
     var g = _plGuardCheck(opts.newDateRaw, origBiz, policy);
     if (!g.ok) {
@@ -284,24 +292,24 @@ function _plGuardedMutation(opts) {
       e2.plCode = g.reason;
       throw e2;
     }
-    // 业务写（进入写阶段）
     enteredWrite = true;
     var result = opts.bizWrite(recheck, policy);
-    // 写完成边界：释放锁前 flush 提交待处理变更
     try {
       if (typeof SpreadsheetApp !== 'undefined' && SpreadsheetApp.flush) SpreadsheetApp.flush();
     } catch (fe) {
-      logged = (_plLogUncertain('flush_failed', String(opts.uuid || 'batch')) || logged);
+      if (!logAttempted) { logAttempted = true; _plMarkLogFailed(fe); _plLogUncertain('flush_failed', String(opts.uuid || 'batch')); }
       var e3 = new Error('PL_UNCERTAIN_FLUSH_FAILED');
       e3.plCode = 'PL_UNCERTAIN_FLUSH_FAILED';
-      throw e3;                              // 提交状态不确定，不判定成功
+      e3.plLogFailed = fe.plLogFailed || false;
+      throw e3;
     }
     return result;
   } catch (e) {
-    // [审3] 进入写阶段后的任何异常登记一次（不要求底层打自定义码）
-    if (enteredWrite && !logged) {
-      _plLogUncertain('biz_write_or_flush', String(opts.uuid || 'batch') +
-                     ' err=' + String((e && e.message) || e));
+    if (enteredWrite && !logAttempted) {          // 每失败路径仅一次
+      logAttempted = true;
+      var ok = _plLogUncertain('biz_write_or_flush', String(opts.uuid || 'batch') +
+                               ' err=' + String((e && e.message) || e));
+      if (!ok) _plMarkLogFailed(e);
     }
     throw e;
   } finally {
@@ -310,27 +318,31 @@ function _plGuardedMutation(opts) {
 }
 
 /**
- * 新增场景（submitBatch/tsAppendRows）：
- *   opts.lockPreWrite(recentTail)：可选，锁内回调（[审5] 幂等复核移锁内）。
+ * 新增场景。[审②] 去重结果为空 → 直接返回 { duplicates: n, wrote: 0 }，
+ * 不进入 bizWrite、不构造高度 0 区域、不登记不确定。
  */
 function _plGuardedInsert(opts) {
   var lock = null;
   var enteredWrite = false;
-  var logged = false;
+  var logAttempted = false;
   try {
-    // R12a：批前全量校验（先于一切业务写）
     var pre = _plGuardCheckBatch(opts.rows, opts.dateOf, _plPolicy());
     if (!pre.ok) {
       var e0 = new Error(pre.reason + ' @row#' + pre.index);
       e0.plCode = pre.reason;
       throw e0;
     }
-    lock = _plAcquire(opts.timeoutMs);                   // M8：失败即拒
-    var policy = _plPolicy();                            // 锁内再读
-    // [审5] 锁内幂等复核（若调用方提供）
+    lock = _plAcquire(opts.timeoutMs);
+    var policy = _plPolicy();
     var rows = opts.rows;
+    var duplicates = 0;
     if (typeof opts.lockPreWrite === 'function') {
-      rows = opts.lockPreWrite(rows, policy) || rows;
+      var pr = opts.lockPreWrite(rows, policy);
+      rows = (pr && pr.rows) || [];               // [审②] 约定返回 {rows, duplicates}
+      duplicates = (pr && pr.duplicates) || 0;
+    }
+    if (!rows || rows.length === 0) {             // [审②] 全重复：无新增，不走业务写
+      return { wrote: 0, duplicates: duplicates, skippedAll: true };
     }
     var post = _plGuardCheckBatch(rows, opts.dateOf, policy);
     if (!post.ok) {
@@ -343,15 +355,18 @@ function _plGuardedInsert(opts) {
     try {
       if (typeof SpreadsheetApp !== 'undefined' && SpreadsheetApp.flush) SpreadsheetApp.flush();
     } catch (fe) {
-      logged = (_plLogUncertain('flush_failed', 'insert batch') || logged);
+      if (!logAttempted) { logAttempted = true; _plMarkLogFailed(fe); _plLogUncertain('flush_failed', 'insert batch'); }
       var e2 = new Error('PL_UNCERTAIN_FLUSH_FAILED');
       e2.plCode = 'PL_UNCERTAIN_FLUSH_FAILED';
+      e2.plLogFailed = fe.plLogFailed || false;
       throw e2;
     }
     return result;
   } catch (e) {
-    if (enteredWrite && !logged) {
-      _plLogUncertain('biz_write_or_flush', 'insert batch err=' + String((e && e.message) || e));
+    if (enteredWrite && !logAttempted) {
+      logAttempted = true;
+      var ok = _plLogUncertain('biz_write_or_flush', 'insert batch err=' + String((e && e.message) || e));
+      if (!ok) _plMarkLogFailed(e);
     }
     throw e;
   } finally {
@@ -360,24 +375,16 @@ function _plGuardedInsert(opts) {
 }
 
 // ============================================================
-// 4. tsPatchCells 专项门禁（[审1] 重写）—— 仅 DB_工时流水 的 B 列与 O:Q 列
+// 4. tsPatchCells 专项门禁（[审⑤] 表头保护 + 政策统一）
 // ============================================================
 
 /**
- * [审1] 三态 + 全覆盖重写。锁内调用。返回 { ok, reason, offenders }。
- * 规则：
- *   B 列（col 2）写入：
- *     - 新值解析失败/为空 → 拒（禁清空 fillDate）
- *     - 原行不存在 → 按新增过门禁（origBiz=null）
- *     - 原行存在但原值解析失败 → 拒（PL_REJECT_ORIG_UNKNOWN）
- *     - 原期间已关账 → 拒
- *   O:Q（col 15-17）写入：按删除场景
- *     - 原行不存在 → 拒（无处可删）
- *     - 原值未知 → 拒
- *     - 原期间已关账 → 拒
- *   ranges：与 cells 统一判定——覆盖 B 列者逐行按 B 规则；覆盖 O:Q 者逐格按 O:Q 规则；
- *     一个 range 同时覆盖 B 与 O:Q 时两规则都执行。
- *   C:H 等其他列：不拦（服务边界：本 guard 只锁期间归属与软删标记，见 §5）。
+ * [审⑤] 锁内调用。返回 { ok, reason, offenders }。
+ *   B 列：新值空/非法 → 拒；**表头行（row<2）→ 拒**（禁把表头当新增行）；
+ *         原行不存在 → 新增语义；原值未知 → 拒；原期间关账 → 拒。
+ *   O:Q：删除场景统一走 _plGuardCheck（新=原，与 mutation 同一期间政策，
+ *         含 futureOpen）；表头行 → 拒；原行不存在 → 拒；原值未知 → 拒。
+ *   C:H 等其他列：不拦（服务边界明示：不宣称历史整行冻结）。
  */
 function _plGuardPatch(sheet, cells, ranges) {
   var policy = _plPolicy();
@@ -385,37 +392,37 @@ function _plGuardPatch(sheet, cells, ranges) {
   var data = sheet.getDataRange().getValues();
   var lastRow = data.length;
 
-  function origBizOf(rn) {
-    if (rn < 2 || rn > lastRow) return { state: 'absent' };
+  function rowState(rn) {
+    if (rn < 2) return { state: 'header' };                   // [审⑤] 表头
+    if (rn > lastRow) return { state: 'absent' };
     var b = _plParseBizDate(data[rn - 1][1]);
     if (!b) return { state: 'unknown' };
     return { state: 'known', biz: b };
   }
   function checkBCell(row, newVal) {
-    var o = origBizOf(row);
-    var origBiz = (o.state === 'known') ? o.biz
-               : (o.state === 'unknown') ? PL_UNKNOWN : null;
+    var st = rowState(row);
+    if (st.state === 'header') { offenders.push({ row: row, col: 2, reason: 'PL_REJECT_HEADER_ROW' }); return; }
+    var origBiz = (st.state === 'known') ? st.biz
+               : (st.state === 'unknown') ? PL_UNKNOWN : null;
     var g = _plGuardCheck(newVal, origBiz, policy);
     if (!g.ok) offenders.push({ row: row, col: 2, reason: g.reason });
   }
   function checkDelCell(row) {
-    var o = origBizOf(row);
-    if (o.state === 'absent') { offenders.push({ row: row, col: 'O:Q', reason: 'PL_REJECT_ROW_GONE' }); return; }
-    if (o.state === 'unknown') { offenders.push({ row: row, col: 'O:Q', reason: 'PL_REJECT_ORIG_UNKNOWN' }); return; }
-    if (_plIsClosedBizDate(o.biz, policy.cutoff)) {
-      offenders.push({ row: row, col: 'O:Q', reason: 'PL_REJECT_ORIG_DATE_CLOSED' });
-    }
+    var st = rowState(row);
+    if (st.state === 'header') { offenders.push({ row: row, col: 'O:Q', reason: 'PL_REJECT_HEADER_ROW' }); return; }
+    if (st.state === 'absent') { offenders.push({ row: row, col: 'O:Q', reason: 'PL_REJECT_ROW_GONE' }); return; }
+    if (st.state === 'unknown') { offenders.push({ row: row, col: 'O:Q', reason: 'PL_REJECT_ORIG_UNKNOWN' }); return; }
+    // [审⑤] 统一期间政策：新=原走同一门禁（closed/futureOpen 一致）
+    var g = _plGuardCheck(st.biz, st.biz, policy);
+    if (!g.ok) offenders.push({ row: row, col: 'O:Q', reason: g.reason });
   }
 
   var i, c, r, ri;
   for (i = 0; i < (cells || []).length; i++) {
     c = cells[i]; if (!c) continue;
     var row = Number(c[0]), col = Number(c[1]), val = c[2];
-    if (col === 2) {
-      checkBCell(row, val);                          // [审1] 空新 B 由 _plGuardCheck 拒
-    } else if (col >= 15 && col <= 17) {
-      checkDelCell(row);                             // [审1] 三态
-    }
+    if (col === 2) checkBCell(row, val);
+    else if (col >= 15 && col <= 17) checkDelCell(row);
   }
   for (i = 0; i < (ranges || []).length; i++) {
     r = ranges[i]; if (!r || !r.values) continue;
@@ -424,22 +431,19 @@ function _plGuardPatch(sheet, cells, ranges) {
     var height = r.values.length;
     var coversB = (startCol <= 2 && startCol + width > 2);
     var coversDel = (startCol <= 17 && startCol + width > 15);
-    if (!coversB && !coversDel) continue;            // 其他列不拦（§5 边界）
+    if (!coversB && !coversDel) continue;
     for (ri = 0; ri < height; ri++) {
       var rn = startRow + ri;
       if (coversB) {
         var bIdx = 2 - startCol;
         var newB = (r.values[ri] || [])[bIdx];
         if (newB === undefined || newB === null || newB === '') {
-          offenders.push({ row: rn, col: 2, reason: 'PL_REJECT_BAD_NEW_DATE' });  // [审1] 禁清空
+          offenders.push({ row: rn, col: 2, reason: 'PL_REJECT_BAD_NEW_DATE' });
         } else {
           checkBCell(rn, newB);
         }
       }
-      if (coversDel) {
-        // O:Q 被覆盖的每一列都按删除场景核（软删标记列任一被写即核）
-        checkDelCell(rn);
-      }
+      if (coversDel) checkDelCell(rn);
     }
   }
   if (offenders.length) return { ok: false, reason: 'PL_REJECT_PATCH_OFFENDERS', offenders: offenders };

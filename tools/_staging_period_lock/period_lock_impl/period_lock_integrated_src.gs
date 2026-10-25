@@ -1,19 +1,26 @@
 /**
- * T1-B · period-lock 集成源码 v2（5 写入口完整改后函数 · 本地代码，零生产写）
+ * T1-B · period-lock 集成源码 v3（5 写入口完整改后函数 · 本地代码，零生产写）
  * ============================================================
  * 基线：ts-manager HEAD 快照 v4.3.72（_ts_head_live/，16 文件，组合 SHA 26471b41…）
- * 依据：Tom 09:27 实现层静态审阅五条（全部吸收）。本文件为**完整函数替换版**，
- *      无省略号，可逐行与基线核对；部署时以本文件函数替换基线同名函数，
- *      并新增 PeriodLockGuard.gs。
+ * 依据：Tom 09:27 五条 + 09:59 五条（逐条核实全部属实，全部吸收）。
+ * 本文件为**完整函数替换版**，无省略号，可逐行与基线核对；部署时以本文件函数
+ * 替换基线同名函数，并新增 PeriodLockGuard.gs。
  *
- * v1(4d02da8) → v2 修订：
- *  [审1] tsPatchCells：ranges 的 O:Q 纳入门禁；空新 B 拒；原值三态。
- *  [审2] updateTimesheet/softDeleteRecord：锁内重核返回行号，bizWrite 用 recheck.row；
- *        expectName 归属重核；门禁原期间取锁内实读（_plGuardedMutation 内部保证）。
- *  [审3] submitBatch/tsAppendRows：写校验失败文案改「结果不确定，请人工核查」；
- *        写阶段任何异常由 guard 统一登记一次。
- *  [审5] submitBatch/tsAppendRows：近重复幂等判定（recentSeen/exist）移入锁内
- *        （lockPreWrite），串行化后判定，消除并发重复写入；回退须保留全部 5 入口。
+ * v2(00d00ba) → v3 修订（Tom 09:59 五条中入口层部分）：
+ *  [审①] updateTimesheet/softDeleteRecord 接版本绑定：锁外读行算 _plRowContentHash
+ *         传 expectContentHash；两入口均传 expectDeleted=false（删除幂等：锁内发现
+ *         已删 → PL_REJECT_ALREADY_DELETED，已删行的更新/再删一律拒）。
+ *  [审②] lockPreWrite 统一返回 {rows, duplicates} 约定；全重复批次 guard 直接返回
+ *         {wrote:0, duplicates, skippedAll:true}，入口据此回报跳过期数，
+ *         不构造高度 0 区域、不误登记不确定。
+ *  [审③] 登记失败外显：_plLogUncertain 返回 false（_TS_WRITE_LOG 不存在或写失败）时，
+ *         错误对象挂 plLogFailed；Code.gs 两入口重抛时保留 plCode/plLogFailed，
+ *         RemoteActions 两入口在 JSON 中显式带 logFailed:true 与人工核查提示。
+ *         登记表不存在属部署前置（部署包显式含建表步骤），guard 不自动建表。
+ *  [审④] cutoff 假日期校验与双 fallback 收紧均在 PeriodLockGuard.gs v3 内生效
+ *         （_plValidCutoff / _plFailClosedPolicy），入口无需改动即受益。
+ *  [审⑤] 表头行保护与 O:Q 期间政策统一在 _plGuardPatch v3 内生效
+ *         （row<2 → PL_REJECT_HEADER_ROW；O:Q 走 _plGuardCheck 同一期间政策）。
  *
  * 🔴 零生产写；接入生产须 Rita 显式 GO + 双授权闸门。
  */
@@ -29,7 +36,7 @@ function submitBatch(token, tasks) {
 
   // ===== ① 批内去重（纯内存判定，无并发窗口）=====
   const inBatchSeen = {};
-  // ===== ② 近 10 分钟幂等：判定移入锁内（[审5]），此处仅备Key =====
+  // ===== ② 近 10 分钟幂等：判定移入锁内（[审5] v2），此处仅备Key =====
   const IDEMPOTENT_WINDOW_MS = 10 * 60 * 1000;
 
   let skippedDup = 0;
@@ -54,7 +61,7 @@ function submitBatch(token, tasks) {
   }
 
   // period-lock（M8/R12a/R12b）：tryLock 失败零写；锁内策略+幂等复核+门禁；flush 后才释放
-  return _plGuardedInsert({
+  const res = _plGuardedInsert({
     sheet: getDbSheet(),
     rows: newRows,
     dateOf: function (r) { return r[1]; },          // B 列 fillDate
@@ -83,7 +90,7 @@ function submitBatch(token, tasks) {
       });
       expectIds.length = 0;
       Array.prototype.push.apply(expectIds, keptIds);
-      return kept;
+      return { rows: kept, duplicates: skipped };   // [审②] v3 统一返回约定
     },
     bizWrite: function (rows, policy) {
       var sheet = getDbSheet();
@@ -101,6 +108,11 @@ function submitBatch(token, tasks) {
       return "SUCCESS";
     }
   });
+  // [审②] 全重复（锁内幂等复核后无新增）：无写、无高度0区域、无误报不确定
+  if (res && typeof res === 'object' && res.skippedAll) {
+    return "SUCCESS (skipped " + (res.duplicates || 0) + " duplicate)";
+  }
+  return res;
 }
 
 // ============================================================
@@ -119,11 +131,15 @@ function updateTimesheet(token, f) {
 
       if (safeGetUuid(data[i][8]) == String(f.uuid).trim() && String(data[i][2]) === String(user.name)) {
         // period-lock（M1/M8）：锁内唯一定位+行号+归属重核+双向门禁
+        // [审①] 版本绑定：锁外读到的内容哈希传入，锁内重核不符即拒（last-write-wins 防护）；
+        //       expectDeleted=false：锁外循环已跳过已删行，锁内发现已删 → 拒（删除幂等）
         return _plGuardedMutation({
           sheet: sheet,
           uuid: safeGetUuid(data[i][8]),
           newDateRaw: f.date,
+          expectContentHash: _plRowContentHash(data[i]),
           expectName: String(user.name),            // [审2] 锁内归属重核
+          expectDeleted: false,                     // [审①] 删除幂等
           bizWrite: function (recheck, policy) {
             // [审2] 一律用锁内实读行号写入（防行移动「核A写B」）
             var row = recheck.row;
@@ -136,7 +152,13 @@ function updateTimesheet(token, f) {
       }
     }
     throw new Error("Record not found or no permission to edit. / 记录未找到或无权限修改");
-  } catch (e) { throw new Error(e.message || "Update failed / 更新失败"); }
+  } catch (e) {
+    // [审③] 重抛保留 plCode/plLogFailed，供调用方分层识别（拒绝码 vs 登记失败外显）
+    var ne = new Error(e.message || "Update failed / 更新失败");
+    if (e && e.plCode) ne.plCode = e.plCode;
+    if (e && e.plLogFailed) ne.plLogFailed = true;
+    throw ne;
+  }
 }
 
 // ============================================================
@@ -151,11 +173,14 @@ function softDeleteRecord(token, uuid) {
     for (let i = 1; i < data.length; i++) {
       if (safeGetUuid(data[i][8]) == String(uuid).trim() && String(data[i][2]) === String(user.name)) {
         // period-lock（M1/M8）：删除场景以锁内实读原期间过门禁
+        // [审①] 版本绑定 + 删除幂等：删除入口恒定期望目标行未删；已删行的再删一律拒
         return _plGuardedMutation({
           sheet: sheet,
           uuid: safeGetUuid(data[i][8]),
           newDateRaw: data[i][1],                   // 删除不产生新日期：以原期间过门禁
+          expectContentHash: _plRowContentHash(data[i]),
           expectName: String(user.name),            // [审2] 锁内归属重核
+          expectDeleted: false,                     // [审①] 已删即拒（删除幂等）
           bizWrite: function (recheck, policy) {
             // [审2] 锁内实读行号；门禁原期间已由 guard 取 recheck.bizDate 执行
             var row = recheck.row;
@@ -166,7 +191,13 @@ function softDeleteRecord(token, uuid) {
       }
     }
     throw new Error("Record not found or no permission to delete. / 记录未找到或无权限删除");
-  } catch (e) { throw new Error(e.message || "Delete failed / 删除失败"); }
+  } catch (e) {
+    // [审③] 重抛保留 plCode/plLogFailed
+    var ne = new Error(e.message || "Delete failed / 删除失败");
+    if (e && e.plCode) ne.plCode = e.plCode;
+    if (e && e.plLogFailed) ne.plLogFailed = true;
+    throw ne;
+  }
 }
 
 // ============================================================
@@ -230,7 +261,7 @@ function tsAppendRows(e) {
           if (uid) exist[uid] = true;               // 同批内也去重
           kept.push(r);
         });
-        return kept;
+        return { rows: kept, duplicates: skippedDup };   // [审②] v3 统一返回约定
       },
       bizWrite: function (rowsW, policy) {
         var startRow = sh.getLastRow() + 1;
@@ -246,18 +277,32 @@ function tsAppendRows(e) {
         return { wrote: rowsW.length, verified: got, startRow: startRow };
       }
     });
+    // [审②] 全重复：无新增、无写、无误报不确定
+    if (res && res.skippedAll) {
+      _tsWriteLog('appendRows', 'req=' + rows.length + ' wrote=0 allDuplicates=' + (res.duplicates || 0) +
+                  ' skipLeave=' + skippedLeave);
+      return JSON.stringify({ ok: true, requested: rows.length, wrote: 0, verified: 0,
+                              duplicatesSkipped: res.duplicates || 0, skippedLeave: skippedLeave,
+                              allDuplicates: true });
+    }
     _tsWriteLog('appendRows', 'req=' + rows.length + ' wrote=' + res.wrote + ' verified=' + res.verified +
                 ' skipLeave=' + skippedLeave);
     return JSON.stringify({ ok: true, requested: rows.length, wrote: res.wrote, verified: res.verified,
                             skippedLeave: skippedLeave, startRow: res.startRow });
   } catch (err) {
-    _tsWriteLog('appendRows(ERR)', String((err && err.message) || err));
-    return JSON.stringify({ ok: false, error: String((err && err.message) || err) });
+    // [审③] 登记失败外显：plLogFailed 时 JSON 显式带出，提示人工核查，不得吞
+    var msg = String((err && err.message) || err);
+    var lf = !!(err && err.plLogFailed);
+    if (lf) {
+      msg += '（⚠ 不确定批次登记失败：_TS_WRITE_LOG 不存在或不可写，请人工核查后补登记；本错误不得吞）';
+    }
+    _tsWriteLog('appendRows(ERR)', msg);
+    return JSON.stringify({ ok: false, error: msg, plCode: (err && err.plCode) || '', logFailed: lf });
   }
 }
 
 // ============================================================
-// 入口 5/5：tsPatchCells（RemoteActions.gs L138 替换 · [审1]/[审3]）
+// 入口 5/5：tsPatchCells（RemoteActions.gs L138 替换 · [审1]/[审3]/[审⑤]）
 // ============================================================
 function tsPatchCells(e) {
   e = e || {};
@@ -283,7 +328,7 @@ function tsPatchCells(e) {
         var _lock = _plAcquire();
         var enteredWrite = false;
         try {
-          var chk = _plGuardPatch(sh, cells, ranges);   // [审1] 三态+全覆盖
+          var chk = _plGuardPatch(sh, cells, ranges);   // [审1] 三态+全覆盖；[审⑤] 表头保护+O:Q 政策统一
           if (!chk.ok) {
             var e1 = new Error('period-lock reject: ' + chk.reason + ' ' + JSON.stringify(chk.offenders || []));
             e1.plCode = chk.reason;
@@ -307,9 +352,10 @@ function tsPatchCells(e) {
         } catch (err2) {
           // [审3] 进入写阶段后的任何异常登记一次（含普通 Error）
           if (enteredWrite) {
-            _plLogUncertain('patch_write_or_flush',
+            var logged = _plLogUncertain('patch_write_or_flush',
                             'cells=' + cells.length + ' ranges=' + ranges.length +
                             ' err=' + String((err2 && err2.message) || err2));
+            if (!logged) err2.plLogFailed = true;       // [审③] 登记失败外显
           }
           throw err2;
         } finally {
@@ -334,6 +380,12 @@ function tsPatchCells(e) {
     _tsWriteLog('patchCells' + (dry ? '(dry)' : ''), 'ss=' + _ssid + ' sheet=' + sheetName + ' cells=' + cells.length + ' ranges=' + ranges.length + ' done=' + n);
     return JSON.stringify({ ok: true, dry: dry, patched: dry ? 0 : n, requested: cells.length + ranges.length, ssid: SpreadsheetApp.openById(_ssid).getId(), sheet: sheetName });
   } catch (err) {
-    return JSON.stringify({ ok: false, error: String((err && err.message) || err) });
+    // [审③] 登记失败外显
+    var msg2 = String((err && err.message) || err);
+    var lf2 = !!(err && err.plLogFailed);
+    if (lf2) {
+      msg2 += '（⚠ 不确定批次登记失败：_TS_WRITE_LOG 不存在或不可写，请人工核查后补登记；本错误不得吞）';
+    }
+    return JSON.stringify({ ok: false, error: msg2, plCode: (err && err.plCode) || '', logFailed: lf2 });
   }
 }
