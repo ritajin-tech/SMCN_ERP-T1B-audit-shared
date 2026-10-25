@@ -31,6 +31,9 @@
  *          含「策略键有合法值+哨兵读不到」组合；W3 真首次态保持 futureOpen=true
  *          （与 W1/W1b 对照，证明收紧不是一刀切）；W4 _plSetPolicy 保守写序静态核查。
  *   [审⑦] W5/W6/W7/W8 真实 tsAppendRows 入口输出契约：业务写失败/flush 失败
+ *   [审⑧] X1-X6 错误传输接口契约（runbook v3 §2.5）：uncertain 态 message 载荷
+ *          序列化（<码>|{"logFailed":bool,"cause":…}）可恢复登记真假与原因；拒绝码
+ *          无载荷；前端三档渲染（含「登记状态未知」禁默认 false）从交付件实抽实测。
  *          → plCode+plCause 齐全+登记成功 logFailed=false；登记失败 → logFailed=true
  *          且码/因不丢；辅助 _tsWriteLog 失败 → 原 uncertain 不遮蔽+logFailed=true
  *          +不自动重放业务写（行数基线不变）。
@@ -1046,6 +1049,106 @@ t('W8', '[审⑦] append 辅助日志失败 → 不遮蔽原 uncertain（码/因
 });
 
 // ============================================================
+// X1-X6：[审⑧-v6] 错误传输接口契约（runbook v3 §2.5，Tom 13:57 衔接问题 2）
+// ============================================================
+t('X1', '[审⑧-v6] updateTimesheet uncertain → message 载荷序列化，logFailed=false 可恢复', () => {
+  freshDb();
+  const sh = env._sheets['DB_工时流水'];
+  const reqVersion = contentHashOf(sh, 3);
+  env._writeExplodes = true;                       // 业务写失败 → uncertain（登记成功）
+  let err = null;
+  try {
+    updateTimesheet('tok', { uuid: 'UUID-OCT-NEW', date: '2026-10-20', stage: '1.1', project: 'PRJ-1', hours: 8, notes: '', expectContentHash: reqVersion });
+  } catch (e) { err = e; }
+  assert.ok(err, '必须抛');
+  const i = err.message.indexOf('|');
+  assert.ok(i > 0, 'uncertain message 须含载荷分隔符');
+  assert.strictEqual(err.message.slice(0, i), 'PL_UNCERTAIN_BIZ_WRITE_FAILED', '码在第一个 | 前');
+  const payload = JSON.parse(err.message.slice(i + 1));
+  assert.strictEqual(payload.logFailed, false, '登记成功 → logFailed=false（前端得「已登记」档）');
+  assert.ok(String(payload.cause).indexOf('write exploded') >= 0, '原始原因可恢复（不再只活在属性里）');
+  assert.strictEqual(err.plLogFailed, undefined, '登记成功不误报属性');
+});
+t('X2', '[审⑧-v6] 登记失败 → 载荷 logFailed=true（前端得「未能登记」档，不猜不默认）', () => {
+  freshDb();
+  env._sheets['_TS_WRITE_LOG'] = { appendRow() { throw new Error('log broken'); }, _rows: [] };
+  const sh = env._sheets['DB_工时流水'];
+  const reqVersion = contentHashOf(sh, 3);
+  env._writeExplodes = true;
+  let err = null;
+  try {
+    updateTimesheet('tok', { uuid: 'UUID-OCT-NEW', date: '2026-10-20', stage: '1.1', project: 'PRJ-1', hours: 8, notes: '', expectContentHash: reqVersion });
+  } catch (e) { err = e; }
+  const i = err.message.indexOf('|');
+  assert.strictEqual(err.message.slice(0, i), 'PL_UNCERTAIN_BIZ_WRITE_FAILED');
+  assert.strictEqual(JSON.parse(err.message.slice(i + 1)).logFailed, true, '登记失败必须真实透出');
+});
+t('X3', '[审⑧-v6] softDeleteRecord uncertain → 同一载荷契约（删入口不特殊）', () => {
+  freshDb();
+  const sh = env._sheets['DB_工时流水'];
+  const reqVersion = contentHashOf(sh, 3);
+  env._writeExplodes = true;
+  let err = null;
+  try { softDeleteRecord('tok', 'UUID-OCT-NEW', reqVersion); } catch (e) { err = e; }
+  const i = err.message.indexOf('|');
+  assert.strictEqual(err.message.slice(0, i), 'PL_UNCERTAIN_BIZ_WRITE_FAILED', '删入口同一契约');
+  assert.strictEqual(JSON.parse(err.message.slice(i + 1)).logFailed, false);
+});
+t('X4', '[审⑧-v6] 拒绝码无载荷：message 恰为码本身（拒绝时不登记，无状态可传）', () => {
+  freshDb();
+  let err = null;
+  try {
+    updateTimesheet('tok', { uuid: 'UUID-OCT-NEW', date: '2026-10-20', stage: '1.1', project: 'PRJ-1', hours: 8, notes: '' });
+  } catch (e) { err = e; }
+  assert.strictEqual(err.message, 'PL_REJECT_MISSING_EXPECT_VERSION', '拒绝码 message 不得带载荷');
+  assert.ok(err.message.indexOf('|') < 0);
+});
+t('X5', '[审⑧-v6] 普通错误（无 plCode）message 原样保留，不套契约', () => {
+  freshDb();
+  let err = null;
+  try {
+    updateTimesheet('tok', { uuid: 'UUID-NOPE', date: '2026-10-20', stage: '1.1', project: 'PRJ-1', hours: 8, notes: '', expectContentHash: 'deadbeef' });
+  } catch (e) { err = e; }
+  assert.ok(String(err.message).indexOf('Record not found') >= 0, '原 message 保留');
+  assert.ok(err.message.indexOf('|') < 0, '无码错误不载荷');
+});
+t('X6', '[审⑧-v6] 前端三档渲染：plParseErr/plHumanMsg 从交付件 Index.html 实抽实测', () => {
+  const clientHtml = fs.readFileSync(path.join(__dirname, '..', '_client_diff_work', 'Index.html'), 'utf8');
+  const parser = clientHtml.match(/function plParseErr\(msg\) \{[\s\S]*?\n {8}\}/);
+  const map = clientHtml.match(/var PL_MSG_MAP = \[[\s\S]*?\n {8}\];/);
+  const human = clientHtml.match(/function plHumanMsg\(msg\) \{[\s\S]*?\n {8}\}/);
+  assert.ok(parser && map && human, '交付件须含 plParseErr/PL_MSG_MAP/plHumanMsg');
+  // 同一 indirect eval：函数声明落全局作用域，plHumanMsg 内部方可解析 plParseErr
+  (0, eval)(parser[0] + '\n' + map[0] + '\n' + human[0]);
+  // 档1：拒绝码无载荷
+  var p1 = plParseErr('PL_REJECT_MISSING_EXPECT_VERSION');
+  assert.strictEqual(p1.code, 'PL_REJECT_MISSING_EXPECT_VERSION');
+  assert.strictEqual(p1.logFailed, null);
+  // 档2：不确定态载荷可得 → 真假两档
+  var p2 = plParseErr('PL_UNCERTAIN_BIZ_WRITE_FAILED|{"logFailed":false,"cause":"Exception: x"}');
+  assert.strictEqual(p2.code, 'PL_UNCERTAIN_BIZ_WRITE_FAILED');
+  assert.strictEqual(p2.logFailed, false);
+  assert.strictEqual(p2.cause, 'Exception: x');
+  assert.strictEqual(plParseErr('PL_UNCERTAIN_FLUSH_FAILED|{"logFailed":true,"cause":"y"}').logFailed, true);
+  // 档3：载荷缺失/不可解析/非布尔 → null（禁默认 false）
+  assert.strictEqual(plParseErr('PL_UNCERTAIN_BIZ_WRITE_FAILED').logFailed, null, '缺载荷不得默认 false');
+  assert.strictEqual(plParseErr('PL_UNCERTAIN_BIZ_WRITE_FAILED|not-json').logFailed, null, '不可解析不得默认 false');
+  assert.strictEqual(plParseErr('PL_UNCERTAIN_BIZ_WRITE_FAILED|{"logFailed":"false"}').logFailed, null, '非布尔不得默认 false');
+  // cause 含 | 不影响切分（只切第一个）
+  var p3 = plParseErr('PL_UNCERTAIN_BIZ_WRITE_FAILED|{"logFailed":false,"cause":"a|b"}');
+  assert.strictEqual(p3.code, 'PL_UNCERTAIN_BIZ_WRITE_FAILED');
+  assert.strictEqual(p3.cause, 'a|b');
+  // 人话三档
+  assert.ok(plHumanMsg('PL_UNCERTAIN_BIZ_WRITE_FAILED|{"logFailed":false,"cause":"x"}').indexOf('已登记待核查') >= 0);
+  assert.ok(plHumanMsg('PL_UNCERTAIN_BIZ_WRITE_FAILED|{"logFailed":true,"cause":"x"}').indexOf('未能登记') >= 0);
+  var unk = plHumanMsg('PL_UNCERTAIN_BIZ_WRITE_FAILED');
+  assert.ok(unk.indexOf('登记状态未知') >= 0, '载荷缺失 → 未知档');
+  assert.ok(unk.indexOf('已登记') < 0, '未知档禁称已登记');
+  assert.strictEqual(plHumanMsg('PL_REJECT_LOCK_BUSY'), '系统繁忙，请稍候重试（不要连续点击）');
+  assert.strictEqual(plHumanMsg('Record not found or no permission'), null, '无码错误回落通用提示');
+});
+
+// ============================================================
 // 汇总
 // ============================================================
 const pass = results.filter(r => r.ok).length;
@@ -1054,5 +1157,5 @@ results.forEach(r => {
   console.log((r.ok ? '✅' : '❌') + ' ' + r.id + ' ' + r.name + (r.ok ? '' : '  → ' + r.err));
 });
 console.log('----------------------------------------');
-console.log('R1-R17 + I1-I8 + V1-V12 + W1-W8: ' + pass + '/' + results.length + ' 通过' + (fail.length ? '，' + fail.length + ' 失败' : '（fail-closed 全绿）'));
+console.log('R1-R17 + I1-I8 + V1-V12 + W1-W8 + X1-X6: ' + pass + '/' + results.length + ' 通过' + (fail.length ? '，' + fail.length + ' 失败' : '（fail-closed 全绿）'));
 process.exit(fail.length ? 1 : 0);

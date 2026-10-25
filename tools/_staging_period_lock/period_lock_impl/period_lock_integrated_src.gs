@@ -22,6 +22,16 @@
  *  [审⑤] 表头行保护与 O:Q 期间政策统一在 _plGuardPatch v3 内生效
  *         （row<2 → PL_REJECT_HEADER_ROW；O:Q 走 _plGuardCheck 同一期间政策）。
  *
+ * v5(25bea77) → v6 修订（runbook v3 §2.5 错误传输接口契约落地，Tom 13:57 衔接问题 2）：
+ *  [审⑧] 新增 _plUncertainPayloadMsg 辅助；updateTimesheet/softDeleteRecord 重抛时，
+ *         uncertain 态（plCode 以 PL_UNCERTAIN_ 开头）把 logFailed/cause 安全序列化
+ *         进 message：<码>|{"logFailed":bool,"cause":"…"}（第一个 '|' 切分）——因为
+ *         google.script.run failure handler 只跨边界传 message 字符串，自定义属性
+ *         能否序列化未经实测，原 v5「属性挂 Error + 文本匹配码」导致登记真假与原始
+ *         原因不可恢复（前端被迫默认/猜测）。拒绝码与普通错误 message 不变（无载荷）。
+ *         tsAppendRows/tsPatchCells 既有 success-return JSON 字段（plCode/plCause/
+ *         logFailed）已与本契约 schema 对齐，不改。
+ *
  * 🔴 零生产写；接入生产须 Rita 显式 GO + 双授权闸门。
  */
 
@@ -116,6 +126,24 @@ function submitBatch(token, tasks) {
 }
 
 // ============================================================
+// [审⑧-v6] 错误传输接口契约辅助（runbook v3 §2.5）
+// ============================================================
+// 问题：google.script.run 的 failure handler 只跨边界传递 error message 字符串，
+// Error 自定义属性（plLogFailed/plCause）能否随之序列化未经实测——契约不得依赖
+// 该未验证行为。若只按 message 文本匹配 PL_UNCERTAIN_* 码，登记真假与原始原因
+// 不可恢复，前端无法区分「已登记待核查」与「登记失败」。
+// 契约：uncertain 态把状态安全序列化进 message——
+//   <码>|{"logFailed":true|false,"cause":"<原始错误字符串>"}
+//   以第一个 '|' 切分（码字符集 [A-Z_] 不含 '|'，切分位置无歧义；cause 中的
+//   '|' 不影响，因为只切第一个）。拒绝码（PL_REJECT_*）不载荷：拒绝时不发生
+//   登记，无状态需要传。属性仍照旧挂在 Error 上（不依赖、不删除）。
+function _plUncertainPayloadMsg(e) {
+  if (!e || !e.plCode || String(e.plCode).indexOf('PL_UNCERTAIN_') !== 0) return '';
+  var payload = { logFailed: !!e.plLogFailed, cause: String(e.plCause || '') };
+  return e.plCode + '|' + JSON.stringify(payload);
+}
+
+// ============================================================
 // 入口 2/5：updateTimesheet（Code.gs L460 替换）
 // ============================================================
 function updateTimesheet(token, f) {
@@ -166,7 +194,10 @@ function updateTimesheet(token, f) {
     throw new Error("Record not found or no permission to edit. / 记录未找到或无权限修改");
   } catch (e) {
     // [审③] 重抛保留 plCode/plLogFailed/plCause，供调用方分层识别（拒绝码 vs 登记失败外显）
-    var ne = new Error(e.message || "Update failed / 更新失败");
+    // [审⑧-v6] 错误传输接口契约：uncertain 态把 logFailed/plCause 序列化进 message
+    //   （failure handler 只传 message 字符串，属性跨边界行为未实测、不依赖）；
+    //   拒绝码/普通错误走原 message（无载荷）。
+    var ne = new Error(_plUncertainPayloadMsg(e) || e.message || "Update failed / 更新失败");
     if (e && e.plCode) ne.plCode = e.plCode;
     if (e && e.plLogFailed) ne.plLogFailed = true;
     if (e && e.plCause) ne.plCause = e.plCause;
@@ -214,7 +245,8 @@ function softDeleteRecord(token, uuid, expectContentHash) {
     throw new Error("Record not found or no permission to delete. / 记录未找到或无权限删除");
   } catch (e) {
     // [审③] 重抛保留 plCode/plLogFailed/plCause
-    var ne = new Error(e.message || "Delete failed / 删除失败");
+    // [审⑧-v6] 错误传输接口契约（同 updateTimesheet）：uncertain 态序列化进 message
+    var ne = new Error(_plUncertainPayloadMsg(e) || e.message || "Delete failed / 删除失败");
     if (e && e.plCode) ne.plCode = e.plCode;
     if (e && e.plLogFailed) ne.plLogFailed = true;
     if (e && e.plCause) ne.plCause = e.plCause;
