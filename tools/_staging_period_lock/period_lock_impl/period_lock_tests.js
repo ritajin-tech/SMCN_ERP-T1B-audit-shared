@@ -795,14 +795,15 @@ t('I6b', 'tsPatchCells 10月行 B 列改合法日期 → ok（对照）', () => 
   assert.strictEqual(out.patched, 1);
   assert.strictEqual(sh._rows[2][1], '2026-10-25');
 });
-t('I7', '[审③] 登记失败外显：写阶段异常 + 登记表不存在 → logFailed=true 且不自动建表', () => {
+t('I7', '[审③][审⑧-v8] 登记失败外显：写阶段异常 + 登记表不存在 → logFailed=true 且不自动建表；warning 移入 note，error 保持干净载荷', () => {
   freshDb();
   delete env._sheets['_TS_WRITE_LOG'];           // 部署前置未建表
   env._writeExplodes = true;                     // 写阶段爆炸
   const out = JSON.parse(tsPatchCells({ postBody: { cells: [[3, 2, '2026-10-25']] } }));
   assert.strictEqual(out.ok, false);
   assert.strictEqual(out.logFailed, true, '登记失败必须外显，不得吞');
-  assert.ok(out.error.indexOf('登记失败') >= 0, '错误文案须含人工核查提示');
+  assert.ok(out.note.indexOf('登记失败') >= 0, '人工核查提示须入 note（残项2：不污染 error）');
+  assert.strictEqual(out.error.indexOf('登记失败'), -1, 'error 字段不得附中文尾缀（残项2）');
   assert.ok(!env._sheets['_TS_WRITE_LOG'], '不得自动建表');
 });
 t('I8', '[审⑤] tsPatchCells O:Q 与 futureOpen=false → FUTURE_CLOSED（期间政策一致）', () => {
@@ -1030,7 +1031,7 @@ t('W6', '[审⑦] append flush 失败 → PL_UNCERTAIN_FLUSH_FAILED+plCause', ()
   assert.ok(String(out.plCause).length > 0, 'flush 失败也须透出原因');
   assert.strictEqual(out.logFailed, false);
 });
-t('W7', '[审⑦] append 登记失败（无 _TS_WRITE_LOG）→ logFailed=true 且码/因不丢', () => {
+t('W7', '[审⑦][审⑧-v8] append 登记失败（无 _TS_WRITE_LOG）→ logFailed=true 且码/因不丢；warning 移入 note', () => {
   freshDb();
   delete env._sheets['_TS_WRITE_LOG'];                      // 登记表不存在 → _plLogUncertain=false
   env._writeExplodes = true;
@@ -1039,17 +1040,20 @@ t('W7', '[审⑦] append 登记失败（无 _TS_WRITE_LOG）→ logFailed=true �
   assert.strictEqual(out.plCode, 'PL_UNCERTAIN_BIZ_WRITE_FAILED');
   assert.ok(String(out.plCause).indexOf('write exploded') >= 0);
   assert.strictEqual(out.logFailed, true, '登记失败必须外显');
-  assert.ok(String(out.error).indexOf('登记失败') >= 0, '错误文案含人工核查提示');
+  assert.ok(String(out.note).indexOf('登记失败') >= 0, '人工核查提示须入 note（残项2）');
+  assert.strictEqual(String(out.error).indexOf('登记失败'), -1, 'error 字段不得附中文尾缀（残项2）');
 });
-t('W8', '[审⑦] append 辅助日志失败 → 不遮蔽原 uncertain（码/因保留+logFailed=true+不重放）', () => {
+t('W8', '[审⑦][审⑧-v8] append 辅助日志失败 → 不遮蔽原 uncertain（码/因保留）；辅助日志失败不得翻转 logFailed（登记成功仍为 false），warning 入 note', () => {
   freshDb();
   env._writeExplodes = true;                                // 业务写失败（第一次）
-  env._writeLogThrows = true;                               // 所有 _tsWriteLog 抛错（登记+辅助都失败）
+  env._writeLogThrows = true;                               // 辅助 _tsWriteLog 抛错（不影响 _plLogUncertain 登记）
   const out = JSON.parse(tsAppendRows({ postBody: { rows: [row14('2026-10-16', 'UUID-NEW-W8')] } }));
   assert.strictEqual(out.ok, false, '辅助日志失败不得把结果翻成 ok 或抛出 JSON 外');
   assert.strictEqual(out.plCode, 'PL_UNCERTAIN_BIZ_WRITE_FAILED', '原 plCode 不丢');
   assert.ok(String(out.plCause).indexOf('write exploded') >= 0, '原 plCause 不丢');
-  assert.strictEqual(out.logFailed, true, '辅助日志失败亦属登记失败，外显');
+  assert.strictEqual(out.logFailed, false, '辅助日志失败不得翻转 logFailed（登记成功仍为 false，残项2）');
+  assert.ok(String(out.note).indexOf('辅助日志') >= 0, '辅助日志失败须记入 note');
+  assert.strictEqual(String(out.error).indexOf('辅助日志'), -1, 'error 字段保持干净载荷（残项2）');
   assert.strictEqual(env._sheets['DB_工时流水']._rows.length, 3, '不自动重放业务写（表头+2 数据行基线不变）');
 });
 
@@ -1234,6 +1238,66 @@ t('X12', '[审⑧-v7] plHumanMsg 白名单：PATCH 码进三档；白名单外 u
   assert.strictEqual(plHumanMsg('PL_UNCERTAIN_UNKNOWN_FUTURE_CODE|{"logFailed":false,"cause":"x"}'), null,
     '白名单外码不得进三档');
 });
+t('X13', '[审⑧-v8] 残项1：拒绝码精确匹配白名单——未知后缀/含拒绝码子串的普通文本不命中；未知/损坏码保守回落', () => {
+  const clientHtml = fs.readFileSync(path.join(__dirname, '..', '_client_diff_work', 'Index.html'), 'utf8');
+  const parser = clientHtml.match(/function plParseErr\(msg\) \{[\s\S]*?\n {8}\}/);
+  const map = clientHtml.match(/var PL_MSG_MAP = \[[\s\S]*?\n {8}\];/);
+  const human = clientHtml.match(/function plHumanMsg\(msg\) \{[\s\S]*?\n {8}\}/);
+  assert.ok(parser && map && human, '交付件须含 plParseErr/PL_MSG_MAP/plHumanMsg');
+  (0, eval)(parser[0] + '\n' + map[0] + '\n' + human[0]);
+  // 精确匹配：裸码命中
+  assert.strictEqual(plHumanMsg('PL_REJECT_CONTENT_VERSION'), '这条记录已被他人修改过，请刷新页面后再编辑（你的修改未保存）');
+  // 残项1：带未知后缀的同名码不得命中（精确匹配，非子串）
+  assert.strictEqual(plHumanMsg('PL_REJECT_CONTENT_VERSION_TAMPERED'), null, '未知后缀码不得命中白名单');
+  // 普通错误文本恰好包含拒绝码子串也不得命中
+  assert.strictEqual(plHumanMsg('something PL_REJECT_CONTENT_VERSION else'), null, '含拒绝码子串的普通文本不得命中');
+  // 损坏/未知码保守回落通用提示
+  assert.strictEqual(plHumanMsg('PL_REJECT_UNKNOWN_FUTURE'), null, '未知拒绝码保守回落');
+  // 非码错误回落通用提示
+  assert.strictEqual(plHumanMsg('Record not found'), null, '无码错误回落通用提示');
+});
+t('X14', '[审⑧-v8] 残项3：顶层 plCause 统一消毒（tsAppendRows 返回边界），连续24+字母数字串打码', () => {
+  freshDb();
+  const sh = env._sheets['DB_工时流水'];
+  const token = 'a'.repeat(30);                 // 30 位连续字母数字 → 应打码
+  const origGetRange = sh.getRange.bind(sh);
+  sh.getRange = function (a, b, c, d) {
+    const r = origGetRange(a, b, c, d);
+    r.setValues = () => { throw new Error('leak-' + token); };  // 业务写抛含 token 异常
+    return r;
+  };
+  const out = JSON.parse(tsAppendRows({ postBody: { rows: [row14('2026-10-16', 'UUID-NEW-X14')] } }));
+  assert.strictEqual(out.ok, false);
+  assert.strictEqual(out.plCode, 'PL_UNCERTAIN_BIZ_WRITE_FAILED');
+  assert.ok(String(out.plCause).indexOf('[redacted]') >= 0, '连续30位字母数字须打码');
+  assert.ok(String(out.plCause).indexOf(token) < 0, '原始长串不得直出（顶层 plCause 已消毒）');
+});
+t('X15', '[审⑧-v8] 残项2：tsAppendRows uncertain 返回 error=干净载荷（无中文尾缀），可被同一 plParseErr 解析', () => {
+  freshDb();
+  delete env._sheets['_TS_WRITE_LOG'];           // 登记表不存在 → 登记失败 logFailed=true
+  env._writeExplodes = true;
+  const out = JSON.parse(tsAppendRows({ postBody: { rows: [row14('2026-10-16', 'UUID-NEW-X15')] } }));
+  assert.strictEqual(out.ok, false);
+  assert.strictEqual(out.logFailed, true);
+  assert.strictEqual(out.error.indexOf('登记失败'), -1, 'error 字段不得附中文尾缀（残项2）');
+  const p = plParseErr(out.error);               // 同一 plParseErr 须能解析 error 字段
+  assert.strictEqual(p.code, 'PL_UNCERTAIN_BIZ_WRITE_FAILED');
+  assert.strictEqual(p.logFailed, true, '载荷可被同一 plParseErr 解析，logFailed 一致');
+  assert.ok(typeof p.cause === 'string');
+});
+t('X16', '[审⑧-v8] 残项2：辅助日志失败不得翻转 logFailed；顶层与载荷状态一致（登记成功仍为 false）', () => {
+  freshDb();
+  env._sheets['_TS_WRITE_LOG'] = makeSheet('_TS_WRITE_LOG', []);  // 登记表存在 → 登记成功 logFailed=false
+  env._writeExplodes = true;                     // 业务写爆炸 → uncertain
+  env._writeLogThrows = true;                    // 辅助日志也失败
+  const out = JSON.parse(tsAppendRows({ postBody: { rows: [row14('2026-10-16', 'UUID-NEW-X16')] } }));
+  assert.strictEqual(out.ok, false);
+  assert.strictEqual(out.logFailed, false, '辅助日志失败不得翻转 logFailed（登记成功仍为 false）');
+  assert.ok(out.note.indexOf('辅助日志') >= 0, '辅助日志失败须记入 note');
+  assert.strictEqual(out.error.indexOf('辅助日志'), -1, 'error 字段保持干净载荷');
+  const p = plParseErr(out.error);
+  assert.strictEqual(p.logFailed, out.logFailed, '顶层与载荷 logFailed 一致');
+});
 // ============================================================
 // 汇总
 // ============================================================
@@ -1243,5 +1307,5 @@ results.forEach(r => {
   console.log((r.ok ? '✅' : '❌') + ' ' + r.id + ' ' + r.name + (r.ok ? '' : '  → ' + r.err));
 });
 console.log('----------------------------------------');
-console.log('R1-R17 + I1-I8 + V1-V12 + W1-W8 + X1-X12: ' + pass + '/' + results.length + ' 通过' + (fail.length ? '，' + fail.length + ' 失败' : '（fail-closed 全绿）'));
+console.log('R1-R17 + I1-I8 + V1-V12 + W1-W8 + X1-X16: ' + pass + '/' + results.length + ' 通过' + (fail.length ? '，' + fail.length + ' 失败' : '（fail-closed 全绿）'));
 process.exit(fail.length ? 1 : 0);

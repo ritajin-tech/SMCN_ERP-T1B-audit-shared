@@ -220,3 +220,34 @@
 - 变更范围：Index.html +73/-5 行、Code.gs +3/-2 行，无清单外改动；
 - JS 语法：两份改后文件过 node --check 均通过；
 - 契约测试：period_lock_tests.js R/I/V/W/X 共 **92/92 通过 exit 0**，其中 X7-X9 实测 submitBatch 两路径载荷（登记成功 false/失败 true/flush 路径）、X10 实测 tsPatchCells JSON error 载荷、X11 实测消毒（截断+打码+JSON 往返）、X12 从本交付件 Index.html 实抽 plHumanMsg 实测白名单（PATCH 码三档 + 白名单外码不猜）。
+
+---
+
+## v8 残项收敛（Tom 15:28 三条残项 · commit 待打）
+
+> v8 仅收敛 Tom 15:28 回函的**三项具体残项**，不重开任何已关闭项，不新增需求。整体实现/接入继续 HOLD；本件仍为本地代码+测试证据，非部署证据。
+
+### 残项定位（逐条对照 v7 已交付源码核实）
+
+| # | Tom 残项 | 源码实证位置 | 性质 |
+|---|---|---|---|
+| ① | 拒绝码仍子串匹配 | Index.html `plHumanMsg` 内 `code.indexOf(PL_MSG_MAP[i][0]) >= 0` | 未知后缀/普通文本含拒绝码子串会被误判精确拒绝；须按白名单完整比较 |
+| ② | 远程 JSON `error` 不能始终用同一 plParseErr 解析 | 集成源码 `tsAppendRows`/`tsPatchCells` catch：`uncertain` 态 `error` 字段在 `"<码>\|{...}"` 后再附中文警告 → `JSON.parse` 尾缀失败落未知档；且辅助日志失败改 `lf=true` 使顶层与载荷 `logFailed` 不一致 | 机器字段被尾缀污染 + 两处状态不一致 |
+| ③ | `_plSanitizeCause` 只用于 message 载荷 | 集成源码 `updateTimesheet`/`softDeleteRecord` L201/L250 直赋 `ne.plCause=e.plCause`；`tsAppendRows`/`tsPatchCells` catch 顶层 `plCause` 原文直出 | 顶层 `plCause` 绕过消毒，未宣称绝对防护 |
+
+### v8 修复
+
+- **残项①（客户端）**：`plHumanMsg` 拒绝码匹配由 `code.indexOf(PL_MSG_MAP[i][0]) >= 0` 改为 `code === PL_MSG_MAP[i][0]`（精确匹配）。注：submit/update/softDelete 的 guard 抛出拒绝码本即为裸码，精确匹配无影响；tsPatchCells 预检拒绝仍保留 `period-lock reject: <reason> <offenders>` 原格式（offenders 经 `plCause` 承载），不污染 `error` 机器字段。X13 实测：裸码命中、带未知后缀/含子串的普通文本/未知码均保守回落 `null`。
+- **残项②（服务端 error 干净 + 状态一致）**：`tsAppendRows`/`tsPatchCells` catch 不再把中文警告缀到 `error` 字段，改入新增顶层 `note` 字段；移除「辅助日志失败翻转 `logFailed`」的旧逻辑（辅助日志失败属独立诊断通道，不得改变 `_plLogUncertain` 登记的权威状态）。顶层 `logFailed` 与载荷 `logFailed` 现恒一致。X15 实测 uncertain 返回 `error` 干净可解析；X16 实测辅助日志失败不翻转 `logFailed` 且入 `note`。既有 I6/I7/I8/W7/W8 同步改为从 `note`/`plCause` 断言。
+- **残项③（服务端顶层 plCause 消毒）**：`updateTimesheet`/`softDeleteRecord` catch 与 `tsAppendRows`/`tsPatchCells` catch 的顶层 `plCause` 统一经 `_plSanitizeCause` 消毒（截断 200 + 24+ 字母数字打码），不以「载荷已消毒」代表整个 JSON 已消毒。X14 实测 tsAppendRows 返回边界：30 位连续字母数字打码、原始长串不直出。
+
+### v8 验证记录（提交方报告，非执行证据）
+
+- 替换：apply_client_edits.py 现为 **10/10** 处命中（新增第 10 步＝残项① L505）；
+- 行尾：Index.html CR-CR-LF 1242→**1243**（新增注释行同款行尾），唯一裸 CRLF（L343）未动；
+- 测试：period_lock_tests.js R/I/V/W/X 共 **96/96 通过 exit 0**，新增 X13（残项①精确匹配）/X14（残项③顶层 plCause 消毒）/X15（残项② error 干净可解析）/X16（残项② 辅助日志不翻转 logFailed）；I6/I7/I8/W7/W8 随残项②③语义同步更新；
+- v8 七件 SHA（5 件变更，2 件与 v7 同）：
+  - 变更：`period_lock_integrated_src.gs` `8bbc48c8…0c50`、`period_lock_tests.js` `ae6c7531…fba9`、`Index.html` `0831cfb9…657ce`、`apply_client_edits.py` `63cc9583…a3b6`、`period_lock_client_src_diff_v3.md` `d2418f21…fd56`；
+  - 不变：`PeriodLockGuard.gs` `6e771841…c6cb6`、`Code.gs` `1f4cd1f3…2050`。
+- 注：本件(period_lock_client_src_diff_v3.md)在上方列出的自身 SHA 为写入前快照；**权威 64 位 SHA-256 以 commit 后 `sha256sum` 实算 / 邮件四要素为准**（文件含自身哈希引用无法自洽，邮件值优先）。
+- 真 GAS 端到端验证（部署步骤 3）、外部写者定位（步骤 0）、部署证据仍缺——实现/接入验收继续 HOLD，零生产写维持。

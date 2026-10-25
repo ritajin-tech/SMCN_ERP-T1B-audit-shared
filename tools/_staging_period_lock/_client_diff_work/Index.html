@@ -502,7 +502,8 @@
                 return "系统状态不确定，登记状态未知；请刷新确认你的修改是否生效，不要重复提交，并联系管理员核查";
             }
             for (var i = 0; i < PL_MSG_MAP.length; i++) {
-                if (code.indexOf(PL_MSG_MAP[i][0]) >= 0) return PL_MSG_MAP[i][1];
+                // [审⑧-v8] 残项1收敛：拒绝码精确匹配白名单，未知后缀/普通文本含拒绝码不再命中；未知/损坏码保守回落
+                if (code === PL_MSG_MAP[i][0]) return PL_MSG_MAP[i][1];
             }
             return null;
         }

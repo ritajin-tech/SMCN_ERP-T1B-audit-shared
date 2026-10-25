@@ -198,7 +198,7 @@ function updateTimesheet(token, f) {
     var ne = new Error(_plUncertainPayloadMsg(e) || e.message || "Update failed / 更新失败");
     if (e && e.plCode) ne.plCode = e.plCode;
     if (e && e.plLogFailed) ne.plLogFailed = true;
-    if (e && e.plCause) ne.plCause = e.plCause;
+    if (e && e.plCause) ne.plCause = _plSanitizeCause(e.plCause);
     throw ne;
   }
 }
@@ -247,7 +247,7 @@ function softDeleteRecord(token, uuid, expectContentHash) {
     var ne = new Error(_plUncertainPayloadMsg(e) || e.message || "Delete failed / 删除失败");
     if (e && e.plCode) ne.plCode = e.plCode;
     if (e && e.plLogFailed) ne.plLogFailed = true;
-    if (e && e.plCause) ne.plCause = e.plCause;
+    if (e && e.plCause) ne.plCause = _plSanitizeCause(e.plCause);
     throw ne;
   }
 }
@@ -343,24 +343,25 @@ function tsAppendRows(e) {
                             skippedLeave: skippedLeave, startRow: res.startRow });
   } catch (err) {
     // [审③] 登记失败外显：plLogFailed 时 JSON 显式带出，提示人工核查，不得吞
-    // [审⑦-v5] plCause 透出：guard 把原 message 改为 PL_UNCERTAIN_* 后，原始
-    //   原因仅存于 err.plCause；与 tsPatchCells 返回契约一致补出，防调用方丢失。
+    // [审⑦-v5] plCause 透出：与 tsPatchCells 返回契约一致补出，防调用方丢失。
+    // [审⑧-v8] 残项2/3收敛：error 字段对 uncertain 态保持「干净载荷」——不得附
+    //   中文尾缀（否则 plParseErr 的 JSON.parse 因尾缀失败、落到未知档）；顶层
+    //   plCause 统一经 _plSanitizeCause 消毒（不以载荷已消毒代表整个 JSON 已消毒）。
+    //   辅助日志失败属独立诊断通道，不得翻转 logFailed（登记状态以 err.plLogFailed
+    //   为权威），仅记入 note，避免顶层与载荷两处状态不一致。
     var msg = String((err && err.message) || err);
     var lf = !!(err && err.plLogFailed);
+    var note = '';
     if (lf) {
-      msg += '（⚠ 不确定批次登记失败：_TS_WRITE_LOG 不存在或不可写，请人工核查后补登记；本错误不得吞）';
+      note += '（⚠ 不确定批次登记失败：_TS_WRITE_LOG 不存在或不可写，请人工核查后补登记；本错误不得吞）';
     }
-    // [审⑦-v5] 辅助日志防遮蔽：该 _tsWriteLog 若抛错，不得在返回 JSON 前遮蔽
-    //   原 uncertain 结果；其失败本身即「登记失败」→ 置 logFailed=true 外显。
-    //   不自动重放业务写（重放=二次写风险，uncertain 语义下禁止）。
     try {
       _tsWriteLog('appendRows(ERR)', msg);
     } catch (le) {
-      lf = true;
-      msg += '（⚠ 错误明细辅助日志亦写入失败，原不确定结果已保留外显，请人工核查）';
+      note += '（⚠ 错误明细辅助日志亦写入失败，原不确定结果已保留外显，请人工核查）';
     }
-    return JSON.stringify({ ok: false, error: msg, plCode: (err && err.plCode) || '',
-                            plCause: (err && err.plCause) || '', logFailed: lf });
+    return JSON.stringify({ ok: false, error: msg, note: note, plCode: (err && err.plCode) || '',
+                            plCause: _plSanitizeCause((err && err.plCause) || ''), logFailed: lf });
   }
 }
 
@@ -456,12 +457,15 @@ function tsPatchCells(e) {
     return JSON.stringify({ ok: true, dry: dry, patched: dry ? 0 : n, requested: cells.length + ranges.length, ssid: SpreadsheetApp.openById(_ssid).getId(), sheet: sheetName });
   } catch (err) {
     // [审③] 登记失败外显；plCause 一并透出（结果不确定时保留原始原因）
+    // [审⑧-v8] 残项2/3收敛：error 字段保持干净载荷（不附中文尾缀）；顶层 plCause
+    //   统一消毒；登记状态以 err.plLogFailed 为权威，warning 移入 note，不污染机器字段。
     var msg2 = String((err && err.message) || err);
     var lf2 = !!(err && err.plLogFailed);
+    var note2 = '';
     if (lf2) {
-      msg2 += '（⚠ 不确定批次登记失败：_TS_WRITE_LOG 不存在或不可写，请人工核查后补登记；本错误不得吞）';
+      note2 += '（⚠ 不确定批次登记失败：_TS_WRITE_LOG 不存在或不可写，请人工核查后补登记；本错误不得吞）';
     }
-    return JSON.stringify({ ok: false, error: msg2, plCode: (err && err.plCode) || '',
-                            plCause: (err && err.plCause) || '', logFailed: lf2 });
+    return JSON.stringify({ ok: false, error: msg2, note: note2, plCode: (err && err.plCode) || '',
+                            plCause: _plSanitizeCause((err && err.plCause) || ''), logFailed: lf2 });
   }
 }

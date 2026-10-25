@@ -211,6 +211,14 @@ h = apply(h,
     '        }\r\r\n',
     "Index L1166 delBatchRow 第三参+禁行")
 
+# 10) plHumanMsg 拒绝码精确匹配白名单（v8 残项1：Tom 15:28 残项①）
+#     拒绝码按白名单完整比较，未知后缀/普通文本含拒绝码不再命中；未知/损坏码保守回落。
+h = apply(h,
+    '                if (code.indexOf(PL_MSG_MAP[i][0]) >= 0) return PL_MSG_MAP[i][1];\r\r\n',
+    '                // [审⑧-v8] 残项1收敛：拒绝码精确匹配白名单，未知后缀/普通文本含拒绝码不再命中；未知/损坏码保守回落\r\r\n'
+    '                if (code === PL_MSG_MAP[i][0]) return PL_MSG_MAP[i][1];\r\r\n',
+    "Index L505 plHumanMsg 拒绝码精确匹配（残项1）")
+
 save("Index.html", h)
 
 # ============ Code.gs ============
