@@ -20,6 +20,18 @@
  *  [审⑤] _plGuardPatch：row<2（表头）单独状态 header → B/O:Q 写表头一律拒；
  *         O:Q 删除场景统一走 _plGuardCheck（与 mutation 同一期间政策，含 futureOpen）。
  *
+ * v4(0534a88) → v5 修订（吸收 Tom 11:27 两条）：
+ *  [审⑥] 哨兵三态+保守写序：_plPolicy 中哨兵读取用显式 ok 标志区分三态
+ *         （'1'=已初始化 / 确定值=未初始化 / **读取异常=unknown**）；
+ *         sentinelOk=false 时无论策略键是否有值一律 fail-closed 收紧
+ *         （修掉「策略键无值+哨兵读取故障被当首次态放开」）；
+ *         _plSetPolicy 改**先哨兵后策略**——任一写步骤失败的中间残留
+ *         （有哨兵无策略）收敛到 policy-lost 收紧侧，不再产生「有策略无哨兵」
+ *         后被当首次态放大的残留。不引入事务/自动恢复（按 Tom 指示）。
+ *  [审⑦] 错误透出（见集成源码）：tsAppendRows catch JSON 补 plCause；辅助
+ *         _tsWriteLog 包 try/catch，日志失败不遮蔽原 uncertain 结果且置
+ *         logFailed=true，不自动重放业务写。
+ *
  * v3(d214013) → v4 修订（Tom 10:58 四条，逐条核实全部属实）：
  *  [审①-版本] **请求级版本绑定**：期望版本由修改/删除请求携带（客户端表单加载时
  *         服务端下发的行版本），不再用「请求到达后新读的行」充当用户编辑依据；
@@ -78,10 +90,24 @@ function _plPolicy() {
   } catch (e) {
     return _plFailClosedPolicy('read-error');      // 故障 → 收紧
   }
-  var initialized = false;
+  // [审⑤-v5] 哨兵三态：'1'=已初始化；确定值（'0'/null）=确定未初始化；
+  // **读取异常=unknown**——不得与「确定未初始化」混淆（Tom 11:27 残项1：
+  // 策略键无值+哨兵读取故障若当首次态放开，故障反而放宽未知状态）。
+  // 注意：GAS getProperty 对不存在的 key 返回 null（不抛错），故必须用显式
+  // ok 标志区分「读到 null=确定未初始化」与「抛错=unknown」。
+  var sentinel = null, sentinelOk = false;
   try {
-    initialized = PropertiesService.getScriptProperties().getProperty(PL_POLICY_INIT_KEY) === '1';
-  } catch (e2) { initialized = false; }
+    sentinel = PropertiesService.getScriptProperties().getProperty(PL_POLICY_INIT_KEY);
+    sentinelOk = true;
+  } catch (e2) { sentinelOk = false; }
+  var initialized = sentinelOk && (sentinel === '1');
+  if (!sentinelOk) {
+    // [审⑤-v5] 哨兵读取故障：无论策略键是否有值，初始化状态整体未知——保守拒
+    // （Tom 11:27：「将哨兵未知/读取失败与确定未初始化区分并保守拒」）。
+    // 注：raw 读取成功而哨兵读取失败虽概率极低（同一 PropertiesService 连续
+    // 两次调用），但此时策略值的新鲜度同样不可信，收紧不构成授权扩大。
+    return _plFailClosedPolicy('sentinel-unknown');
+  }
   if (!raw) {
     if (initialized) {
       // [审④] 曾有初始化记录而策略键丢失/空串：不可当首次态放开
@@ -123,9 +149,18 @@ function _plFailClosedPolicy(reason) {
            updatedBy: 'fail-closed-' + reason, updatedAt: '', source: 'fail-closed' };
 }
 
-/** M3：写锁政策态（受控流程调用；部署包初始化亦走此函数）。 */
+/** M3：写锁政策态（受控流程调用；部署包初始化亦走此函数）。
+ *  [审⑤-v5] 保守写序（Tom 11:27 残项1 第二部分）：**先写哨兵、后写策略**。
+ *  旧序（先策略后哨兵）的残留态「有策略无哨兵」会在策略丢失时被当首次态放开；
+ *  新序的残留态为「有哨兵无策略」→ _plPolicy 识别为 policy-lost 收紧。
+ *  即任一写步骤失败的中间态都收敛到**收紧侧**（安全侧），不放宽未知状态。
+ *  不引入事务、不自动恢复（按 Tom 指示：不要求事务或自动恢复）。
+ */
 function _plSetPolicy(closed, futureOpen, updatedBy) {
   var props = PropertiesService.getScriptProperties();
+  // 第一步：初始化哨兵（此后任何策略键缺失都将被识别为 policy-lost 收紧）
+  props.setProperty(PL_POLICY_INIT_KEY, '1');
+  // 第二步：写策略本体
   props.setProperty(PL_POLICY_KEY, JSON.stringify({
     closed: !!closed,
     cutoff: PL_CUTOFF,
@@ -134,9 +169,6 @@ function _plSetPolicy(closed, futureOpen, updatedBy) {
     updatedAt: Utilities.formatDate(new Date(), 'GMT+8', 'yyyy-MM-dd HH:mm:ss'),
     source: 'props'
   }));
-  // [审④] 初始化哨兵：此后策略键丢失/空值将被 _plPolicy 识别为 policy-lost 收紧，
-  // 与「从未初始化」的首次态区分。
-  props.setProperty(PL_POLICY_INIT_KEY, '1');
 }
 
 // ============================================================

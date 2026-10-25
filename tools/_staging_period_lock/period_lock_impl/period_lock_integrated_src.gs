@@ -313,13 +313,24 @@ function tsAppendRows(e) {
                             skippedLeave: skippedLeave, startRow: res.startRow });
   } catch (err) {
     // [审③] 登记失败外显：plLogFailed 时 JSON 显式带出，提示人工核查，不得吞
+    // [审⑦-v5] plCause 透出：guard 把原 message 改为 PL_UNCERTAIN_* 后，原始
+    //   原因仅存于 err.plCause；与 tsPatchCells 返回契约一致补出，防调用方丢失。
     var msg = String((err && err.message) || err);
     var lf = !!(err && err.plLogFailed);
     if (lf) {
       msg += '（⚠ 不确定批次登记失败：_TS_WRITE_LOG 不存在或不可写，请人工核查后补登记；本错误不得吞）';
     }
-    _tsWriteLog('appendRows(ERR)', msg);
-    return JSON.stringify({ ok: false, error: msg, plCode: (err && err.plCode) || '', logFailed: lf });
+    // [审⑦-v5] 辅助日志防遮蔽：该 _tsWriteLog 若抛错，不得在返回 JSON 前遮蔽
+    //   原 uncertain 结果；其失败本身即「登记失败」→ 置 logFailed=true 外显。
+    //   不自动重放业务写（重放=二次写风险，uncertain 语义下禁止）。
+    try {
+      _tsWriteLog('appendRows(ERR)', msg);
+    } catch (le) {
+      lf = true;
+      msg += '（⚠ 错误明细辅助日志亦写入失败，原不确定结果已保留外显，请人工核查）';
+    }
+    return JSON.stringify({ ok: false, error: msg, plCode: (err && err.plCode) || '',
+                            plCause: (err && err.plCause) || '', logFailed: lf });
   }
 }
 

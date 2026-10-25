@@ -1,5 +1,5 @@
 /**
- * T1-B · period-lock guard R1-R17 + I1-I8 + V1-V12 测试件 v4（Node 可跑 · fail-closed）
+ * T1-B · period-lock guard R1-R17 + I1-I8 + V1-V12 + W1-W8 测试件 v5（Node 可跑 · fail-closed）
  * ============================================================
  * 用法：node period_lock_tests.js   退出码：全绿 exit 0；任一失败 exit 1。
  * v3 相对 v2（应 Tom 09:59 五条）：
@@ -26,6 +26,14 @@
  *   [审④-结构] V8 policy={} → schema-error 收紧；V9 futureOpen 字符串 false → 收紧；
  *          V10 closed 非布尔 → 收紧；V11 初始化哨兵三态（无INIT=首次态；
  *          INIT有+策略键丢失/空串=policy-lost 收紧）。
+ * v5 相对 v4（应 Tom 11:27 两条）：
+ *   [审⑥] W1/W1b 哨兵读取故障（仅 INIT key 抛错注入）→ sentinel-unknown 收紧，
+ *          含「策略键有合法值+哨兵读不到」组合；W3 真首次态保持 futureOpen=true
+ *          （与 W1/W1b 对照，证明收紧不是一刀切）；W4 _plSetPolicy 保守写序静态核查。
+ *   [审⑦] W5/W6/W7/W8 真实 tsAppendRows 入口输出契约：业务写失败/flush 失败
+ *          → plCode+plCause 齐全+登记成功 logFailed=false；登记失败 → logFailed=true
+ *          且码/因不丢；辅助 _tsWriteLog 失败 → 原 uncertain 不遮蔽+logFailed=true
+ *          +不自动重放业务写（行数基线不变）。
  */
 
 'use strict';
@@ -82,17 +90,19 @@ function makeSheet(name, rows) {
 }
 
 const env = {
-  _props: new Map(), _propsBroken: false,
+  _props: new Map(), _propsBroken: false, _propsBrokenKeys: new Set(),
   _lock: { held: false, tryLockCalls: 0 },
   _flushCount: 0, _flushThrows: false,
   _writeExplodes: false,
+  _writeLogThrows: false,
   _writeLog: [],
   _sheets: {},
   reset() {
-    this._props = new Map(); this._propsBroken = false;
+    this._props = new Map(); this._propsBroken = false; this._propsBrokenKeys = new Set();
     this._lock = { held: false, tryLockCalls: 0 };
     this._flushCount = 0; this._flushThrows = false;
     this._writeExplodes = false;
+    this._writeLogThrows = false;
     this._writeLog = [];
     this._sheets = {};
   }
@@ -134,7 +144,13 @@ global.SpreadsheetApp = {
 };
 global.PropertiesService = {
   getScriptProperties: () => ({
-    getProperty: (k) => { if (env._propsBroken) throw new Error('props unavailable'); return env._props.has(k) ? env._props.get(k) : null; },
+    // [审⑥-v5] 按 key 故障注入：_propsBrokenKeys 中的 key 抛错，用于区分
+    // 「读到 null=确定未初始化」与「读取异常=unknown」两态（哨兵三态测试）。
+    getProperty: (k) => {
+      if (env._propsBroken) throw new Error('props unavailable');
+      if (env._propsBrokenKeys && env._propsBrokenKeys.has(k)) throw new Error('props unavailable: ' + k);
+      return env._props.has(k) ? env._props.get(k) : null;
+    },
     setProperty: (k, v) => { env._props.set(k, v); }
   })
 };
@@ -150,7 +166,10 @@ global._tsDeriveType = (f) => '执行端';
 global._tsDupKey = (name, date, pid, hours, stage, notes) => [name, date, pid, hours, stage, notes].join('|');
 global.safeGetUuid = (v) => String(v === null || v === undefined ? '' : v).trim();
 global._tsIsLeaveRowForGuard = (r) => false;
-global._tsWriteLog = (a, b) => { env._writeLog.push([String(a), String(b)]); };
+global._tsWriteLog = (a, b) => {
+  if (env._writeLogThrows) throw new Error('write-log exploded');   // [审⑦-v5] 辅助日志故障注入
+  env._writeLog.push([String(a), String(b)]);
+};
 
 (0, eval)(integratedSrc);
 
@@ -943,6 +962,90 @@ t('V12', '[审③] tsPatchCells 写阶段失败 → PL_UNCERTAIN_PATCH_WRITE_FAI
 });
 
 // ============================================================
+// W1-W8：[审⑥][审⑦] v5 新增——哨兵三态 + append 输出契约
+// ============================================================
+t('W1', '[审⑥] 哨兵读取故障+策略键无值 → 收紧（不得当首次态放开）', () => {
+  freshDb();
+  env._propsBrokenKeys.add('PERIOD_LOCK_POLICY_INIT');      // 仅哨兵 key 抛错
+  const p = _plPolicy();
+  assert.strictEqual(p.source, 'fail-closed');
+  assert.strictEqual(p.updatedBy, 'fail-closed-sentinel-unknown');
+  assert.strictEqual(p.futureOpen, false, '哨兵 unknown 时未来也不放行');
+  assert.strictEqual(p.closed, true);
+});
+t('W1b', '[审⑥] 哨兵读取故障+策略键有合法值 → 仍收紧（初始化状态整体未知）', () => {
+  freshDb();
+  env._props.set('PERIOD_LOCK_STATE', JSON.stringify({ closed: true, cutoff: '2026-10-01', futureOpen: true }));
+  env._propsBrokenKeys.add('PERIOD_LOCK_POLICY_INIT');
+  const p = _plPolicy();
+  assert.strictEqual(p.source, 'fail-closed', '策略有值但哨兵读不到 → 收紧');
+});
+t('W2', '[审④] 哨兵=1+策略键丢失 → policy-lost 收紧（回归）', () => {
+  freshDb();
+  env._props.set('PERIOD_LOCK_POLICY_INIT', '1');           // 无策略键
+  const p = _plPolicy();
+  assert.strictEqual(p.updatedBy, 'fail-closed-policy-lost');
+  assert.strictEqual(p.futureOpen, false);
+});
+t('W3', '真首次态（哨兵确定未初始化+策略无值）→ futureOpen=true（部署前语义保持）', () => {
+  freshDb();                                                // 两 key 均不存在，读取正常
+  const p = _plPolicy();
+  assert.strictEqual(p.source, 'unset');
+  assert.strictEqual(p.futureOpen, true);
+  assert.strictEqual(p.closed, true, '首次态仍保护历史');
+});
+t('W4', '[审⑥] _plSetPolicy 保守写序静态核查：哨兵 setProperty 先于策略', () => {
+  const src = fs.readFileSync(path.join(__dirname, 'PeriodLockGuard.gs'), 'utf8');
+  const body = src.slice(src.indexOf('function _plSetPolicy'));
+  const iInit = body.indexOf("setProperty(PL_POLICY_INIT_KEY");
+  const iKey = body.indexOf("setProperty(PL_POLICY_KEY");
+  assert.ok(iInit >= 0 && iKey >= 0, '两个 setProperty 都须存在');
+  assert.ok(iInit < iKey, '必须先写哨兵后写策略（中间残留收敛到收紧侧）');
+});
+t('W5', '[审⑦] append 业务写失败 → PL_UNCERTAIN_BIZ_WRITE_FAILED+plCause+logFailed=false', () => {
+  freshDb();
+  env._writeExplodes = true;                                // setValues 抛普通 Error
+  let calls = 0;
+  const out = JSON.parse(tsAppendRows({ postBody: { rows: [row14('2026-10-16', 'UUID-NEW-W5')] } }));
+  assert.strictEqual(out.ok, false);
+  assert.strictEqual(out.plCode, 'PL_UNCERTAIN_BIZ_WRITE_FAILED');
+  assert.ok(String(out.plCause).indexOf('write exploded') >= 0, 'plCause 须保留原始原因');
+  assert.strictEqual(out.logFailed, false, '登记成功不得误报 logFailed');
+  assert.strictEqual(env._sheets['_TS_WRITE_LOG']._rows.length, 2, 'guard 登记落 _TS_WRITE_LOG 表（表头+1 行）');
+});
+t('W6', '[审⑦] append flush 失败 → PL_UNCERTAIN_FLUSH_FAILED+plCause', () => {
+  freshDb();
+  env._flushThrows = true;
+  const out = JSON.parse(tsAppendRows({ postBody: { rows: [row14('2026-10-16', 'UUID-NEW-W6')] } }));
+  assert.strictEqual(out.ok, false);
+  assert.strictEqual(out.plCode, 'PL_UNCERTAIN_FLUSH_FAILED');
+  assert.ok(String(out.plCause).length > 0, 'flush 失败也须透出原因');
+  assert.strictEqual(out.logFailed, false);
+});
+t('W7', '[审⑦] append 登记失败（无 _TS_WRITE_LOG）→ logFailed=true 且码/因不丢', () => {
+  freshDb();
+  delete env._sheets['_TS_WRITE_LOG'];                      // 登记表不存在 → _plLogUncertain=false
+  env._writeExplodes = true;
+  const out = JSON.parse(tsAppendRows({ postBody: { rows: [row14('2026-10-16', 'UUID-NEW-W7')] } }));
+  assert.strictEqual(out.ok, false);
+  assert.strictEqual(out.plCode, 'PL_UNCERTAIN_BIZ_WRITE_FAILED');
+  assert.ok(String(out.plCause).indexOf('write exploded') >= 0);
+  assert.strictEqual(out.logFailed, true, '登记失败必须外显');
+  assert.ok(String(out.error).indexOf('登记失败') >= 0, '错误文案含人工核查提示');
+});
+t('W8', '[审⑦] append 辅助日志失败 → 不遮蔽原 uncertain（码/因保留+logFailed=true+不重放）', () => {
+  freshDb();
+  env._writeExplodes = true;                                // 业务写失败（第一次）
+  env._writeLogThrows = true;                               // 所有 _tsWriteLog 抛错（登记+辅助都失败）
+  const out = JSON.parse(tsAppendRows({ postBody: { rows: [row14('2026-10-16', 'UUID-NEW-W8')] } }));
+  assert.strictEqual(out.ok, false, '辅助日志失败不得把结果翻成 ok 或抛出 JSON 外');
+  assert.strictEqual(out.plCode, 'PL_UNCERTAIN_BIZ_WRITE_FAILED', '原 plCode 不丢');
+  assert.ok(String(out.plCause).indexOf('write exploded') >= 0, '原 plCause 不丢');
+  assert.strictEqual(out.logFailed, true, '辅助日志失败亦属登记失败，外显');
+  assert.strictEqual(env._sheets['DB_工时流水']._rows.length, 3, '不自动重放业务写（表头+2 数据行基线不变）');
+});
+
+// ============================================================
 // 汇总
 // ============================================================
 const pass = results.filter(r => r.ok).length;
@@ -951,5 +1054,5 @@ results.forEach(r => {
   console.log((r.ok ? '✅' : '❌') + ' ' + r.id + ' ' + r.name + (r.ok ? '' : '  → ' + r.err));
 });
 console.log('----------------------------------------');
-console.log('R1-R17 + I1-I8 + V1-V12: ' + pass + '/' + results.length + ' 通过' + (fail.length ? '，' + fail.length + ' 失败' : '（fail-closed 全绿）'));
+console.log('R1-R17 + I1-I8 + V1-V12 + W1-W8: ' + pass + '/' + results.length + ' 通过' + (fail.length ? '，' + fail.length + ' 失败' : '（fail-closed 全绿）'));
 process.exit(fail.length ? 1 : 0);
