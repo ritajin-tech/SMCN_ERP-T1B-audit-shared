@@ -1,10 +1,15 @@
 /**
- * T1-B · period-lock guard R1-R14 测试件（Node 可跑 · fail-closed）
+ * T1-B · period-lock guard R1-R17 测试件 v2（Node 可跑 · fail-closed）
  * ============================================================
- * 用法：node period_lock_tests.js
- * 退出码：全部通过 exit 0；任一失败 exit 1。
- * mock：LockService / SpreadsheetApp / PropertiesService / Utilities（内存实现）
- * 断言纪律：每个用例显式断言「拒/放行 + 拒绝码 + 零写副作用 + 调用次数」。
+ * 用法：node period_lock_tests.js   退出码：全绿 exit 0；任一失败 exit 1。
+ * v2 相对 v1（应 Tom 09:27 ⑥）：
+ *   - 锁 mock 改「双执行互斥」：held=true 时 tryLock 返回 false（不再只靠布尔）
+ *   - 新增 _plGuardPatch 用例组（R15：O:Q ranges/空 B/原值未知/原行不存在/非B列不拦）
+ *   - 新增内容版本绑定（R10e：last-write-wins 防护）
+ *   - R12b 改普通 Error（无自定义码）＋部分写后异常＋flush 抛错路径（R12c）
+ *   - R7b 精确边界：配置故障时历史拒、未来仍放行（不概称任何写均拒）
+ *   - R16 正则完整锚定；R11 cutoff 坏值
+ *   - R10c 语义改为：参与入口重核发现即拒＋不宣称外部覆盖保证＋不自动回滚
  */
 'use strict';
 const fs = require('fs');
@@ -12,13 +17,13 @@ const path = require('path');
 const assert = require('assert');
 
 // ============================================================
-// 0. 载入被测模块（GAS 风格全局函数）
+// 0. 载入被测模块
 // ============================================================
 const guardSrc = fs.readFileSync(path.join(__dirname, 'PeriodLockGuard.gs'), 'utf8');
-(0, eval)(guardSrc);   // 间接 eval → 全局作用域，供下方直接调用
+(0, eval)(guardSrc);
 
 // ============================================================
-// 1. GAS 环境 mock
+// 1. GAS 环境 mock（锁＝双执行互斥）
 // ============================================================
 function makeSheet(name, rows) {
   const sheet = {
@@ -30,13 +35,13 @@ function makeSheet(name, rows) {
     },
     getRange(a, b, c, d) {
       const self = this;
-      if (c === undefined) {                       // 单格 setValue
+      if (c === undefined) {
         return {
           setValue(v) { self._rows[a - 1][b - 1] = v; },
           getValue() { return self._rows[a - 1][b - 1]; }
         };
       }
-      return {                                    // 区域
+      return {
         getValues: () => self._rows.slice(a - 1, a - 1 + c).map(r => r.slice(b - 1, b - 1 + d)),
         setValues: (vals) => {
           for (let i = 0; i < vals.length; i++)
@@ -46,44 +51,51 @@ function makeSheet(name, rows) {
       };
     },
     appendRow(arr) { this._rows.push(arr.slice()); },
-    insertSheet(n) { const s = makeSheet(n, []); this._ss._sheets[n] = s; return s; }
+    insertSheet(n) { const s = makeSheet(n, []); env._sheets[n] = s; return s; }
   };
   return sheet;
 }
 
 const env = {
-  _props: new Map(),
-  _propsBroken: false,
-  _lock: { failTryLock: false, held: false, tryLockCalls: 0 },
-  _flushCount: 0,
+  _props: new Map(), _propsBroken: false,
+  _lock: { held: false, tryLockCalls: 0 },
+  _flushCount: 0, _flushThrows: false,
   _sheets: {},
   reset() {
-    this._props = new Map();
-    this._propsBroken = false;
-    this._lock = { failTryLock: false, held: false, tryLockCalls: 0 };
-    this._flushCount = 0;
+    this._props = new Map(); this._propsBroken = false;
+    this._lock = { held: false, tryLockCalls: 0 };
+    this._flushCount = 0; this._flushThrows = false;
     this._sheets = {};
   }
 };
 
 global.TS_ID = 'MOCK_TS_ID';
 global.Utilities = {
+  // 忠实 mock：按 fmt 参数返回（真实 GAS formatDate 行为）
   formatDate: (d, tz, fmt) => {
     const p = (n) => (n < 10 ? '0' + n : '' + n);
-    return d.getUTCFullYear() + '-' + p(d.getUTCMonth() + 1) + '-' + p(d.getUTCDate()) +
-           ' ' + p(d.getUTCHours()) + ':' + p(d.getUTCMinutes()) + ':' + p(d.getUTCSeconds());
+    const y = d.getUTCFullYear(), mo = p(d.getUTCMonth() + 1), da = p(d.getUTCDate());
+    const hh = p(d.getUTCHours()), mi = p(d.getUTCMinutes()), ss = p(d.getUTCSeconds());
+    if (fmt === 'yyyy-MM-dd') return y + '-' + mo + '-' + da;
+    if (fmt === 'yyyy-MM-dd HH:mm:ss') return y + '-' + mo + '-' + da + ' ' + hh + ':' + mi + ':' + ss;
+    return y + '-' + mo + '-' + da + ' ' + hh + ':' + mi + ':' + ss;
   },
   getUuid: () => 'uuid-mock-0001'
 };
+// 双执行互斥：held 期间任何执行 tryLock 必失败
 global.LockService = {
   getScriptLock: () => ({
-    tryLock: (ms) => { env._lock.tryLockCalls++; if (env._lock.failTryLock) return false; env._lock.held = true; return true; },
+    tryLock: (ms) => {
+      env._lock.tryLockCalls++;
+      if (env._lock.held) return false;
+      env._lock.held = true; return true;
+    },
     releaseLock: () => { env._lock.held = false; },
     hasLock: () => env._lock.held
   })
 };
 global.SpreadsheetApp = {
-  flush: () => { env._flushCount++; },
+  flush: () => { if (env._flushThrows) throw new Error('flush failed'); env._flushCount++; },
   openById: (id) => ({
     getId: () => id,
     getSheetByName: (n) => env._sheets[n] || null,
@@ -97,8 +109,6 @@ global.PropertiesService = {
   })
 };
 
-// 标准 DB 行（列序见 patches §0）：A ts, B fillDate, C name, D type, E stage, F pid,
-//   G hours, H notes, I uuid, J pname, K '', L leader, M '', N ym, O del, P delby, Q delat
 const HDR = ['ts', 'fillDate', 'name', 'type', 'stage', 'pid', 'hours', 'notes', 'uuid', 'pname', '', 'leader', '', 'ym', 'del', 'delby', 'delat'];
 function dbRow(bizDate, uuid, deleted) {
   return ['2026-10-01 10:00:00', bizDate, '张三', '执行端', '1.1', 'PRJ-1', 8, '', uuid, '项目一', '', '', '', bizDate.substring(0, 7),
@@ -110,10 +120,8 @@ function freshDb() {
     dbRow('2026-09-15', 'UUID-SEP-OLD'),    // 行2：9 月（已关账）
     dbRow('2026-10-15', 'UUID-OCT-NEW')]);  // 行3：10 月（开放）
 }
+function contentHashOf(sheet, row) { return _plRowContentHash(sheet._rows[row - 1]); }
 
-// ============================================================
-// 2. 用例登记
-// ============================================================
 const results = [];
 function t(id, name, fn) {
   try { fn(); results.push({ id, name, ok: true }); }
@@ -128,48 +136,36 @@ function expectReject(fn, code) {
     return e;
   }
 }
+function logRows() { const l = env._sheets['_TS_WRITE_LOG']; return l ? l._rows.length - 1 : 0; }
 
 // ============================================================
-// 3. R1-R14
+// R1-R8 基础门禁
 // ============================================================
-
-// R1 新增 9-15 → 拒
-t('R1', '新增 fillDate=2026-09-15 → 拒', () => {
+t('R1', '新增 9-15 → 拒', () => {
   freshDb();
   const r = _plGuardCheck('2026-09-15', null, _plPolicy());
   assert.strictEqual(r.ok, false); assert.strictEqual(r.reason, 'PL_REJECT_NEW_DATE_CLOSED');
 });
-
-// R2 新增 10-15 → 过
-t('R2', '新增 fillDate=2026-10-15 → 放行', () => {
+t('R2', '新增 10-15 → 放行', () => {
   freshDb();
-  const r = _plGuardCheck('2026-10-15', null, _plPolicy());
-  assert.strictEqual(r.ok, true);
+  assert.strictEqual(_plGuardCheck('2026-10-15', null, _plPolicy()).ok, true);
 });
-
-// R3 旧行改到 10 月后 → 拒（双向·原值）
-t('R3', '修改：9月旧行日期改到10月后 → 拒', () => {
+t('R3', '9月旧行改到10月后 → 拒（原值）', () => {
   freshDb();
   const r = _plGuardCheck('2026-10-20', '2026-09-15', _plPolicy());
   assert.strictEqual(r.ok, false); assert.strictEqual(r.reason, 'PL_REJECT_ORIG_DATE_CLOSED');
 });
-
-// R4 10 月行改回 9 月 → 拒（双向·新值）
-t('R4', '修改：10月行日期回改9月 → 拒', () => {
+t('R4', '10月行回改9月 → 拒（新值）', () => {
   freshDb();
   const r = _plGuardCheck('2026-09-20', '2026-10-20', _plPolicy());
   assert.strictEqual(r.ok, false); assert.strictEqual(r.reason, 'PL_REJECT_NEW_DATE_CLOSED');
 });
-
-// R5 删除旧行 → 拒
 t('R5', '删除9月旧行 → 拒', () => {
   freshDb();
-  const r = _plGuardCheck('2026-09-15', '2026-09-15', _plPolicy());   // 删除以原期间过门禁
+  const r = _plGuardCheck('2026-09-15', '2026-09-15', _plPolicy());
   assert.strictEqual(r.ok, false); assert.strictEqual(r.reason, 'PL_REJECT_NEW_DATE_CLOSED');
 });
-
-// R6 批量含旧日期 → 整批零写
-t('R6', '批量导入含旧日期行 → 整批拒零写', () => {
+t('R6', '批量含旧日期 → 整批零写', () => {
   freshDb();
   let calls = 0;
   expectReject(() => _plGuardedInsert({
@@ -178,176 +174,302 @@ t('R6', '批量导入含旧日期行 → 整批拒零写', () => {
     dateOf: (r) => r[1],
     bizWrite: () => { calls++; return 'SUCCESS'; }
   }), 'PL_REJECT_NEW_DATE_CLOSED');
-  assert.strictEqual(calls, 0, '批前校验失败不得执行业务写');
-  assert.strictEqual(env._sheets['DB_工时流水']._rows.length, 3, '零写：行数不变');
+  assert.strictEqual(calls, 0);
+  assert.strictEqual(env._sheets['DB_工时流水']._rows.length, 3);
 });
-
-// R7 配置读取失败 → fail-closed 拒历史写入
-t('R7', '锁政策态读取失败 → fail-closed（历史拒）', () => {
+t('R7', '配置读取失败 → 历史拒', () => {
   freshDb();
   env._propsBroken = true;
   const p = _plPolicy();
   assert.strictEqual(p.closed, true); assert.strictEqual(p.source, 'default');
-  const r = _plGuardCheck('2026-09-15', null, p);
-  assert.strictEqual(r.ok, false);
+  assert.strictEqual(_plGuardCheck('2026-09-15', null, p).ok, false);
 });
-
-// R8 futureOpen=false → 未来日期亦拒
+t('R7b', '精确边界：配置故障未来仍放行（不概称任何写均拒）', () => {
+  freshDb();
+  env._propsBroken = true;
+  const p = _plPolicy();
+  assert.strictEqual(_plGuardCheck('2026-10-15', null, p).ok, true);
+});
 t('R8', 'futureOpen=false → 未来日期拒', () => {
   freshDb();
   _plSetPolicy(true, false, 'test');
   const r = _plGuardCheck('2026-10-15', null, _plPolicy());
   assert.strictEqual(r.ok, false); assert.strictEqual(r.reason, 'PL_REJECT_FUTURE_CLOSED');
 });
-
-// R9 例外路径暂缓：guard 无解锁入口；closed 下历史修改一律拒
-t('R9', '例外路径暂缓：无解锁API+closed下历史修改拒', () => {
-  assert.ok(!/function\s+_plUnlock/.test(guardSrc), 'guard 不得包含例外解锁函数');
+t('R9', '例外路径暂缓：无解锁API', () => {
+  assert.ok(!/function\s+_plUnlock/.test(guardSrc));
   freshDb();
-  const r = _plGuardCheck('2026-10-01', '2026-09-15', _plPolicy());
-  assert.strictEqual(r.ok, false);
+  assert.strictEqual(_plGuardCheck('2026-10-01', '2026-09-15', _plPolicy()).ok, false);
 });
 
-// R10a 他人改于重核之前 → mismatch 拒
-t('R10a', '重核前他人改行 → PL_REJECT_ROW_CHANGED', () => {
+// ============================================================
+// R10 组：锁内重核（行号/版本/唯一性/归属）
+// ============================================================
+t('R10a', '锁内重核返回实际行号+内容哈希', () => {
   freshDb();
   const sh = env._sheets['DB_工时流水'];
-  const r = _plRecheckRow(sh, 'UUID-SEP-OLD', '2026-10-15', false);  // 期望 10 月，实为 9 月
-  assert.strictEqual(r.found, true); assert.strictEqual(r.mismatch, true);
+  const rc = _plRecheckRow(sh, 'UUID-OCT-NEW', null, null);
+  assert.strictEqual(rc.found, true); assert.strictEqual(rc.row, 3);
+  assert.strictEqual(rc.bizDate, '2026-10-15');
+  assert.ok(rc.contentHash && rc.contentHash.length > 0);
 });
-
-// R10b-B1 锁竞争超时 → 零写拒
-t('R10b-B1', 'tryLock 失败 → PL_REJECT_LOCK_BUSY 零写', () => {
+t('R10a2', '行消失 → ROW_GONE', () => {
   freshDb();
-  env._lock.failTryLock = true;
+  const rc = _plRecheckRow(env._sheets['DB_工时流水'], 'UUID-NOPE', null, null);
+  assert.strictEqual(rc.mismatch, true); assert.strictEqual(rc.reason, 'PL_REJECT_ROW_GONE');
+});
+t('R10a3', '重复 UUID → NOT_UNIQUE（无唯一性即拒）', () => {
+  freshDb();
+  env._sheets['DB_工时流水']._rows.push(dbRow('2026-10-20', 'UUID-OCT-NEW'));
+  const rc = _plRecheckRow(env._sheets['DB_工时流水'], 'UUID-OCT-NEW', null, null);
+  assert.strictEqual(rc.mismatch, true); assert.strictEqual(rc.reason, 'PL_REJECT_UUID_NOT_UNIQUE');
+});
+t('R10a4', '锁内姓名不符 → OWNER_MISMATCH', () => {
+  freshDb();
+  const rc = _plRecheckRow(env._sheets['DB_工时流水'], 'UUID-OCT-NEW', null, '李四');
+  assert.strictEqual(rc.mismatch, true); assert.strictEqual(rc.reason, 'PL_REJECT_OWNER_MISMATCH');
+});
+t('R10a5', '锁内原值未知（B列非法）→ ORIG_UNKNOWN', () => {
+  freshDb();
+  env._sheets['DB_工时流水'].getRange(3, 2).setValue('garbage-date');
+  const rc = _plRecheckRow(env._sheets['DB_工时流水'], 'UUID-OCT-NEW', null, null);
+  assert.strictEqual(rc.mismatch, true); assert.strictEqual(rc.reason, 'PL_REJECT_ORIG_UNKNOWN');
+});
+t('R10b-B1', '双执行互斥：A持锁中B tryLock失败 → LOCK_BUSY 零写', () => {
+  freshDb();
+  env._lock.held = true;                       // 模拟另一执行持有互斥
   let calls = 0;
   expectReject(() => _plGuardedMutation({
     sheet: env._sheets['DB_工时流水'], uuid: 'UUID-OCT-NEW',
-    newDateRaw: '2026-10-20', origDateRaw: '2026-10-15', expectDeleted: false,
+    newDateRaw: '2026-10-20',
     bizWrite: () => { calls++; return 'SUCCESS'; }
   }), 'PL_REJECT_LOCK_BUSY');
-  assert.strictEqual(calls, 0, '取锁失败零写');
+  assert.strictEqual(calls, 0);
   assert.strictEqual(env._sheets['DB_工时流水']._rows[2][1], '2026-10-15', '数据未被触碰');
 });
-
-// R10b-B2 等到锁后重核相符 → 放行
-t('R10b-B2', '等到锁后重核相符 → 放行写入', () => {
+t('R10b-B2', '取锁成功重核相符 → 放行；写入用锁内实读行号', () => {
   freshDb();
   const sh = env._sheets['DB_工时流水'];
+  let usedRow = 0;
   const res = _plGuardedMutation({
-    sheet: sh, uuid: 'UUID-OCT-NEW',
-    newDateRaw: '2026-10-20', origDateRaw: '2026-10-15', expectDeleted: false,
-    bizWrite: () => { sh.getRange(3, 2).setValue('2026-10-20'); return 'SUCCESS'; }
+    sheet: sh, uuid: 'UUID-OCT-NEW', newDateRaw: '2026-10-20',
+    bizWrite: (recheck) => { usedRow = recheck.row; sh.getRange(recheck.row, 2).setValue('2026-10-20'); return 'SUCCESS'; }
   });
   assert.strictEqual(res, 'SUCCESS');
+  assert.strictEqual(usedRow, 3, 'bizWrite 必须用锁内实读行号');
   assert.strictEqual(sh._rows[2][1], '2026-10-20');
   assert.ok(env._flushCount >= 1, '释放锁前必须 flush');
-  assert.strictEqual(env._lock.held, false, 'finally 释放锁');
+  assert.strictEqual(env._lock.held, false, 'finally 释放');
 });
-
-// R10c 外部写者：guard 发现但不自动回滚（只拒+不擦除）
-t('R10c', '外部写者改行 → 重核发现拒之，不自动回滚', () => {
+t('R10c', '外部写者：重核发现内容版本不符 → 拒；不自动回滚（值保持）', () => {
   freshDb();
   const sh = env._sheets['DB_工时流水'];
-  sh.getRange(3, 2).setValue('2026-09-20');      // 模拟外部写者绕过 guard 直改
+  sh.getRange(3, 7).setValue(3);               // 外部写者绕过 guard 改工时（内容版本变）
+  const staleHash = contentHashOf(sh, 3);
+  sh.getRange(3, 7).setValue(99);              // 再改一次 → 锁外读到的 stale
   expectReject(() => _plGuardedMutation({
-    sheet: sh, uuid: 'UUID-OCT-NEW',
-    newDateRaw: '2026-10-20', origDateRaw: '2026-10-15', expectDeleted: false,
-    bizWrite: () => { sh.getRange(3, 2).setValue('2026-10-20'); return 'SUCCESS'; }
-  }), 'PL_REJECT_ROW_CHANGED');
-  assert.strictEqual(sh._rows[2][1], '2026-09-20', '不自动回滚：外部写入值保持原样（仅告警路径处置）');
+    sheet: sh, uuid: 'UUID-OCT-NEW', newDateRaw: '2026-10-20',
+    expectContentHash: staleHash,
+    bizWrite: (recheck) => { sh.getRange(recheck.row, 2).setValue('2026-10-20'); return 'SUCCESS'; }
+  }), 'PL_REJECT_CONTENT_VERSION');
+  assert.strictEqual(sh._rows[2][6], 99, '不自动回滚：外部写入值保持原样');
 });
-
-// R10d 无竞争 9 月请求：取锁成功但锁内门禁拒
-t('R10d', '无竞争9月请求取锁成功 → 锁内期间门禁拒', () => {
+t('R10d', '无竞争9月请求取锁成功 → 锁内门禁拒', () => {
   freshDb();
   let calls = 0;
   expectReject(() => _plGuardedMutation({
     sheet: env._sheets['DB_工时流水'], uuid: 'UUID-OCT-NEW',
-    newDateRaw: '2026-09-15', origDateRaw: '2026-10-15', expectDeleted: false,
+    newDateRaw: '2026-09-15',
     bizWrite: () => { calls++; return 'SUCCESS'; }
   }), 'PL_REJECT_NEW_DATE_CLOSED');
-  assert.ok(env._lock.tryLockCalls >= 1, '9月请求同样走到取锁（证明取锁与门禁分离）');
-  assert.strictEqual(calls, 0, '门禁拒 → 零写');
+  assert.ok(env._lock.tryLockCalls >= 1, '9月请求同样走到取锁（取锁与门禁分离）');
+  assert.strictEqual(calls, 0);
+});
+t('R10e', '内容版本绑定：last-write-wins 防护', () => {
+  freshDb();
+  const sh = env._sheets['DB_工时流水'];
+  const v1 = contentHashOf(sh, 3);
+  // A 先写（改同日工时，合法业务操作）
+  _plGuardedMutation({
+    sheet: sh, uuid: 'UUID-OCT-NEW', newDateRaw: '2026-10-15', expectContentHash: v1,
+    bizWrite: (recheck) => { sh.getRange(recheck.row, 7).setValue(5); return 'SUCCESS'; }
+  });
+  // B 持锁外旧内容 v1 再写 → 锁内重核发现版本已变 → 拒
+  expectReject(() => _plGuardedMutation({
+    sheet: sh, uuid: 'UUID-OCT-NEW', newDateRaw: '2026-10-15', expectContentHash: v1,
+    bizWrite: (recheck) => { sh.getRange(recheck.row, 7).setValue(7); return 'SUCCESS'; }
+  }), 'PL_REJECT_CONTENT_VERSION');
+  assert.strictEqual(sh._rows[2][6], 5, 'A 的写入保留，B 的陈旧写入被拒');
 });
 
-// R11 策略持久化往返（回滚后状态仍在；执行约束由保留 guard 提供）
-t('R11', '锁政策态持久化往返一致', () => {
+// ============================================================
+// R11/R12 组
+// ============================================================
+t('R11', '策略持久化往返 + cutoff 坏值回退', () => {
   freshDb();
   _plSetPolicy(true, true, 'rita');
   const p1 = _plPolicy();
-  assert.strictEqual(p1.closed, true); assert.strictEqual(p1.futureOpen, true);
-  assert.strictEqual(p1.updatedBy, 'rita'); assert.strictEqual(p1.source, 'props');
-  const patches = fs.readFileSync(path.join(__dirname, 'period_lock_entry_patches.md'), 'utf8');
-  assert.ok(patches.indexOf('保留执行锁入口') >= 0, 'patches 必须含回滚保留执行锁入口条目');
+  assert.strictEqual(p1.closed, true); assert.strictEqual(p1.updatedBy, 'rita');
+  // cutoff 坏值 → 回退内置
+  env._props.set('PERIOD_LOCK_STATE', JSON.stringify({ closed: true, cutoff: 'garbage', futureOpen: true }));
+  const p2 = _plPolicy();
+  assert.strictEqual(p2.cutoff, PL_CUTOFF, '坏 cutoff 不得改变历史判定');
+  const src = fs.readFileSync(path.join(__dirname, 'period_lock_integrated_src.gs'), 'utf8');
+  assert.ok(src.indexOf('入口 1/5') >= 0 && src.indexOf('入口 5/5') >= 0, '集成源码须含全部 5 入口');
 });
-
-// R12a 批前合格 → 正常写
 t('R12a', '批前校验全合格 → 正常写入', () => {
   freshDb();
   const sh = env._sheets['DB_工时流水'];
   const res = _plGuardedInsert({
     sheet: sh, rows: [['ts', '2026-10-16'], ['ts', '2026-10-17']],
     dateOf: (r) => r[1],
-    bizWrite: () => { sh._rows.push(['ts', '2026-10-16', 'x']); sh._rows.push(['ts', '2026-10-17', 'x']); return 'SUCCESS'; }
+    bizWrite: (rows) => { rows.forEach(r => sh._rows.push(r.slice())); return 'SUCCESS'; }
   });
   assert.strictEqual(res, 'SUCCESS');
   assert.strictEqual(sh._rows.length, 5);
 });
-
-// R12b 业务写中途失败 → 不确定登记+释放+不重放
-t('R12b', '业务写中途失败 → 登记不确定批次，不重放不补偿', () => {
+t('R12b', '业务写普通异常（无自定义码）→ 登记一次+释放+不重放', () => {
   freshDb();
   const sh = env._sheets['DB_工时流水'];
+  const before = logRows();
   let calls = 0;
   expectReject(() => _plGuardedMutation({
-    sheet: sh, uuid: 'UUID-OCT-NEW',
-    newDateRaw: '2026-10-20', origDateRaw: '2026-10-15', expectDeleted: false,
-    bizWrite: () => { calls++; const e = new Error('API interrupted'); e.plCode = 'BIZ_WRITE_FAILED'; throw e; }
-  }), 'API interrupted');
+    sheet: sh, uuid: 'UUID-OCT-NEW', newDateRaw: '2026-10-20',
+    bizWrite: () => { calls++; throw new Error('Exception: 服务超时'); }   // 普通 Error
+  }), 'Exception: 服务超时');
   assert.strictEqual(calls, 1, '不得重放');
   assert.strictEqual(env._lock.held, false, 'finally 释放');
-  const log = env._sheets['_TS_WRITE_LOG'];
-  assert.ok(log && log._rows.length >= 2, 'R12b：不确定批次必须登记');
-  assert.ok(String(log._rows[log._rows.length - 1][2]).indexOf('待人工核查') >= 0);
+  assert.strictEqual(logRows() - before, 1, 'R12b：进入写阶段的任何异常登记一次');
 });
-
-// R13 审计（不确定登记）写失败 → 不阻断不谎报
+t('R12b2', '部分写后普通异常 → 登记（结果不确定）', () => {
+  freshDb();
+  const sh = env._sheets['DB_工时流水'];
+  const before = logRows();
+  expectReject(() => _plGuardedMutation({
+    sheet: sh, uuid: 'UUID-OCT-NEW', newDateRaw: '2026-10-20',
+    bizWrite: (recheck) => {
+      sh.getRange(recheck.row, 2).setValue('2026-10-20');   // 前半已写
+      throw new Error('Exception: 中途中断');               // 后半失败
+    }
+  }), 'Exception: 中途中断');
+  assert.strictEqual(logRows() - before, 1, '部分写后异常必须登记不确定');
+});
+t('R12c', 'flush 抛错 → PL_UNCERTAIN 且只登记一次（不双登记）', () => {
+  freshDb();
+  const sh = env._sheets['DB_工时流水'];
+  const before = logRows();
+  env._flushThrows = true;
+  expectReject(() => _plGuardedMutation({
+    sheet: sh, uuid: 'UUID-OCT-NEW', newDateRaw: '2026-10-20',
+    bizWrite: (recheck) => { sh.getRange(recheck.row, 2).setValue('2026-10-20'); return 'SUCCESS'; }
+  }), 'PL_UNCERTAIN_FLUSH_FAILED');
+  assert.strictEqual(logRows() - before, 1, 'flush 失败只登记一次');
+  assert.strictEqual(env._lock.held, false);
+});
 t('R13', '不确定登记写失败 → 不阻断错误传播', () => {
   freshDb();
-  env._sheets['_TS_WRITE_LOG'] = {
-    appendRow() { throw new Error('log sheet broken'); },
-    _rows: []
-  };
-  // 直接测 _plLogUncertain 自身静默
-  _plLogUncertain('unit', 'detail');
-  // 再测 R12b 路径里日志故障不影响 reject 码
+  env._sheets['_TS_WRITE_LOG'] = { appendRow() { throw new Error('log broken'); }, _rows: [] };
+  _plLogUncertain('unit', 'detail');           // 静默
   const sh = env._sheets['DB_工时流水'];
   expectReject(() => _plGuardedMutation({
-    sheet: sh, uuid: 'UUID-OCT-NEW',
-    newDateRaw: '2026-10-20', origDateRaw: '2026-10-15', expectDeleted: false,
-    bizWrite: () => { const e = new Error('API interrupted'); e.plCode = 'BIZ_WRITE_FAILED'; throw e; }
-  }), 'API interrupted');
-  assert.ok(!/function\s+_plUnlock/.test(guardSrc), 'guard 不含例外解锁（R13 同 R9）');
+    sheet: sh, uuid: 'UUID-OCT-NEW', newDateRaw: '2026-10-20',
+    bizWrite: () => { throw new Error('Exception: x'); }
+  }), 'Exception: x');
 });
-
-// R14 例外滥用负例：单签/同人双签/重放/到期
 t('R14', '例外滥用负例全拒（无例外入口）', () => {
-  assert.ok(!/function\s+_plUnlock/.test(guardSrc), '无单签解锁函数');
-  assert.ok(!/unlockExpire|expiresAt/.test(guardSrc), '无到期概念（例外路径暂缓）');
-  freshDb();
-  // 重放：同一合法 mutation 重复执行，第二次仍过门禁（不会因"前面写过"被误拒——这是放行属性）；
-  // 滥用侧断言：任何历史期间写入重放仍被拒
-  for (let i = 0; i < 3; i++) {
-    const r = _plGuardCheck('2026-09-15', '2026-09-15', _plPolicy());
-    assert.strictEqual(r.ok, false, '第 ' + (i + 1) + ' 次重放仍拒');
-  }
-  // 同人双签/单签：guard 层无任何按主体放行的分支
+  assert.ok(!/function\s+_plUnlock/.test(guardSrc));
+  assert.ok(!/unlockExpire|expiresAt/.test(guardSrc));
   assert.ok(!/sysadmin|isAdmin/.test(guardSrc), 'guard 无按主体放行逻辑');
+  freshDb();
+  for (let i = 0; i < 3; i++) {
+    assert.strictEqual(_plGuardCheck('2026-09-15', '2026-09-15', _plPolicy()).ok, false);
+  }
 });
 
 // ============================================================
-// 4. 汇总
+// R15 组：_plGuardPatch（[审1] 三态 + 全覆盖）
+// ============================================================
+t('R15-P1', 'ranges O:Q 写9月行 → 拒', () => {
+  freshDb();
+  const r = _plGuardPatch(env._sheets['DB_工时流水'], [], [{ row: 2, col: 15, values: [[true]] }]);
+  assert.strictEqual(r.ok, false);
+  assert.ok(r.offenders.some(o => o.reason === 'PL_REJECT_ORIG_DATE_CLOSED'));
+});
+t('R15-P2', 'ranges 覆盖B列且新B为空 → 拒（禁清空）', () => {
+  freshDb();
+  const r = _plGuardPatch(env._sheets['DB_工时流水'], [], [{ row: 3, col: 2, values: [['']] }]);
+  assert.strictEqual(r.ok, false);
+  assert.ok(r.offenders.some(o => o.reason === 'PL_REJECT_BAD_NEW_DATE'));
+});
+t('R15-P3', 'cells O:Q 原日期非法 → 拒（原值未知）', () => {
+  freshDb();
+  env._sheets['DB_工时流水'].getRange(2, 2).setValue('garbage');
+  const r = _plGuardPatch(env._sheets['DB_工时流水'], [[2, 15, true]], []);
+  assert.strictEqual(r.ok, false);
+  assert.ok(r.offenders.some(o => o.reason === 'PL_REJECT_ORIG_UNKNOWN'));
+});
+t('R15-P4', 'B cells 原行不存在 → 放行（新增）', () => {
+  freshDb();
+  const r = _plGuardPatch(env._sheets['DB_工时流水'], [[999, 2, '2026-10-20']], []);
+  assert.strictEqual(r.ok, true);
+});
+t('R15-P5', 'B cells 10月行改10-20 → 放行', () => {
+  freshDb();
+  const r = _plGuardPatch(env._sheets['DB_工时流水'], [[3, 2, '2026-10-20']], []);
+  assert.strictEqual(r.ok, true);
+});
+t('R15-P6', 'B cells 9月行 → 拒', () => {
+  freshDb();
+  const r = _plGuardPatch(env._sheets['DB_工时流水'], [[2, 2, '2026-10-20']], []);
+  assert.strictEqual(r.ok, false);
+  assert.ok(r.offenders.some(o => o.reason === 'PL_REJECT_ORIG_DATE_CLOSED'));
+});
+t('R15-P7', '非B/O:Q列（G列工时）→ 不拦（覆盖边界）', () => {
+  freshDb();
+  const r = _plGuardPatch(env._sheets['DB_工时流水'], [[2, 7, 3.5]], []);
+  assert.strictEqual(r.ok, true);
+});
+t('R15-P8', 'ranges 同时覆盖 B 与 O:Q → 两规则都执行', () => {
+  freshDb();
+  // 宽 range（B..Q，col2 起 16 列宽）同时覆盖 B 与 O:Q
+  function wideRange(row, bVal, delVal) {
+    var v = new Array(16).fill('');
+    v[0] = bVal; v[13] = delVal;                         // B=索引0, O=索引13
+    return { row: row, col: 2, values: [v] };
+  }
+  // 行3（10月）B 合法且软删合法（10月可删）→ 放行
+  const ok = _plGuardPatch(env._sheets['DB_工时流水'], [], [wideRange(3, '2026-10-25', true)]);
+  assert.strictEqual(ok.ok, true);
+  // 行2（9月）→ B 与 O:Q 双拒
+  const bad = _plGuardPatch(env._sheets['DB_工时流水'], [], [wideRange(2, '2026-10-25', true)]);
+  assert.strictEqual(bad.ok, false);
+  assert.ok(bad.offenders.length >= 2, 'B 与 O:Q 均产出 offender');
+});
+
+// ============================================================
+// R16/R17：解析完整锚定 + 回退保留
+// ============================================================
+t('R16', '业务日解析完整锚定', () => {
+  freshDb();
+  assert.strictEqual(_plParseBizDate('2026-10-01garbage'), null, '尾缀垃圾必须拒');
+  assert.strictEqual(_plParseBizDate('2026-10-01T25:99'), null, '非法时分拒');
+  assert.strictEqual(_plParseBizDate('2026-13-01'), null, '越界月拒');
+  assert.strictEqual(_plParseBizDate('2026/10/1'), '2026-10-01', 'yyyy/M/d 接受');
+  assert.strictEqual(_plParseBizDate('2026-10-01T08:30'), '2026-10-01');
+  assert.strictEqual(_plParseBizDate('2026-10-01 08:30:00'), '2026-10-01');
+  assert.strictEqual(_plParseBizDate(new Date(Date.UTC(2026, 8, 15))), '2026-09-15', 'Date 对象 GMT+8 归日');
+  assert.strictEqual(_plGuardCheck('2026-10-01garbage', null, _plPolicy()).reason, 'PL_REJECT_BAD_NEW_DATE');
+});
+t('R17', '回退保留：集成源码含全部5入口+执行锁保留条款', () => {
+  const src = fs.readFileSync(path.join(__dirname, 'period_lock_integrated_src.gs'), 'utf8');
+  ['submitBatch', 'updateTimesheet', 'softDeleteRecord', 'tsAppendRows', 'tsPatchCells'].forEach(fn => {
+    assert.ok(src.indexOf('function ' + fn + '(') >= 0, '集成源码须含 ' + fn);
+  });
+  assert.ok(!/\.\.\./.test(src.replace(/\/\/.*$/gm, '')), '集成源码不得含省略号（可完整核对）');
+});
+
+// ============================================================
+// 汇总
 // ============================================================
 const pass = results.filter(r => r.ok).length;
 const fail = results.filter(r => !r.ok);
@@ -355,5 +477,5 @@ results.forEach(r => {
   console.log((r.ok ? '✅' : '❌') + ' ' + r.id + ' ' + r.name + (r.ok ? '' : '  → ' + r.err));
 });
 console.log('----------------------------------------');
-console.log('R1-R14: ' + pass + '/' + results.length + ' 通过' + (fail.length ? '，' + fail.length + ' 失败' : '（fail-closed 全绿）'));
+console.log('R1-R17: ' + pass + '/' + results.length + ' 通过' + (fail.length ? '，' + fail.length + ' 失败' : '（fail-closed 全绿）'));
 process.exit(fail.length ? 1 : 0);
