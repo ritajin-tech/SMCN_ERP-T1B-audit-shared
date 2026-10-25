@@ -1,5 +1,5 @@
 /**
- * T1-B · period-lock guard R1-R17 + I1-I8 集成测试件 v3（Node 可跑 · fail-closed）
+ * T1-B · period-lock guard R1-R17 + I1-I8 + V1-V12 测试件 v4（Node 可跑 · fail-closed）
  * ============================================================
  * 用法：node period_lock_tests.js   退出码：全绿 exit 0；任一失败 exit 1。
  * v3 相对 v2（应 Tom 09:59 五条）：
@@ -13,6 +13,19 @@
  *          （读取故障 = closed=true + futureOpen=false；原 futureClosed 不放开）。
  *   [审⑤] R15-P9 表头行保护；R15-P10 O:Q 期间政策统一；I6/I6b/I8 入口层。
  *   R18s 入口层接线静态核查（版本哈希×2、删除期望×2、返回约定×2、外显接线）。
+ * v4 相对 v3（应 Tom 10:58 四条）：
+ *   [审①-版本] V1/V2 入口缺 expectContentHash → MISSING_EXPECT_VERSION 缺省拒；
+ *          V3 请求级旧版本（A 改后 B 带编辑时旧版本到达）→ 锁内实读不符即拒；
+ *          I1/I2/I3 改传请求携带版本（竞态注入语义不变）。
+ *   [审②-编码] V4 分隔冲突反例（[a\u0001b,c] vs [a,b\u0001c] 旧 join 同串=漏拒；
+ *          v4 含分隔符 → hash=null）；V4b 锁内行含分隔符 → 不符期望版本拒。
+ *   [审③-分层] V5 flush失败+登记成功 → plLogFailed=false（误报已修）；
+ *          V6 flush失败+登记失败 → plLogFailed=true；V7 bizWrite 普通失败 →
+ *          PL_UNCERTAIN_BIZ_WRITE_FAILED+plCause（与预检拒绝分层）；R12b/R12b2/R13
+ *          断言随新语义更新；R12c 补 plLogFailed=false 断言。
+ *   [审④-结构] V8 policy={} → schema-error 收紧；V9 futureOpen 字符串 false → 收紧；
+ *          V10 closed 非布尔 → 收紧；V11 初始化哨兵三态（无INIT=首次态；
+ *          INIT有+策略键丢失/空串=policy-lost 收紧）。
  */
 
 'use strict';
@@ -258,31 +271,39 @@ t('R9', '例外路径暂缓：无解锁API', () => {
 t('R10a', '锁内重核返回实际行号+内容哈希', () => {
   freshDb();
   const sh = env._sheets['DB_工时流水'];
-  const rc = _plRecheckRow(sh, 'UUID-OCT-NEW', null, null);
+  const rc = _plRecheckRow(sh, 'UUID-OCT-NEW', contentHashOf(sh, 3), null);
   assert.strictEqual(rc.found, true); assert.strictEqual(rc.row, 3);
   assert.strictEqual(rc.bizDate, '2026-10-15');
   assert.ok(rc.contentHash && rc.contentHash.length > 0);
 });
+t('R10a0', '[审①-v4] expectContentHash 缺省 → MISSING_EXPECT_VERSION（请求级版本 fail-closed）', () => {
+  freshDb();
+  const rc = _plRecheckRow(env._sheets['DB_工时流水'], 'UUID-OCT-NEW', null, null);
+  assert.strictEqual(rc.mismatch, true);
+  assert.strictEqual(rc.reason, 'PL_REJECT_MISSING_EXPECT_VERSION');
+  const rc2 = _plRecheckRow(env._sheets['DB_工时流水'], 'UUID-OCT-NEW', '', null);
+  assert.strictEqual(rc2.reason, 'PL_REJECT_MISSING_EXPECT_VERSION', '空串同样缺省拒');
+});
 t('R10a2', '行消失 → ROW_GONE', () => {
   freshDb();
-  const rc = _plRecheckRow(env._sheets['DB_工时流水'], 'UUID-NOPE', null, null);
+  const rc = _plRecheckRow(env._sheets['DB_工时流水'], 'UUID-NOPE', 'any-nonempty-hash', null);
   assert.strictEqual(rc.mismatch, true); assert.strictEqual(rc.reason, 'PL_REJECT_ROW_GONE');
 });
 t('R10a3', '重复 UUID → NOT_UNIQUE（无唯一性即拒）', () => {
   freshDb();
   env._sheets['DB_工时流水']._rows.push(dbRow('2026-10-20', 'UUID-OCT-NEW'));
-  const rc = _plRecheckRow(env._sheets['DB_工时流水'], 'UUID-OCT-NEW', null, null);
+  const rc = _plRecheckRow(env._sheets['DB_工时流水'], 'UUID-OCT-NEW', 'any-nonempty-hash', null);
   assert.strictEqual(rc.mismatch, true); assert.strictEqual(rc.reason, 'PL_REJECT_UUID_NOT_UNIQUE');
 });
 t('R10a4', '锁内姓名不符 → OWNER_MISMATCH', () => {
   freshDb();
-  const rc = _plRecheckRow(env._sheets['DB_工时流水'], 'UUID-OCT-NEW', null, '李四');
+  const rc = _plRecheckRow(env._sheets['DB_工时流水'], 'UUID-OCT-NEW', 'any-nonempty-hash', '李四');
   assert.strictEqual(rc.mismatch, true); assert.strictEqual(rc.reason, 'PL_REJECT_OWNER_MISMATCH');
 });
 t('R10a5', '锁内原值未知（B列非法）→ ORIG_UNKNOWN', () => {
   freshDb();
   env._sheets['DB_工时流水'].getRange(3, 2).setValue('garbage-date');
-  const rc = _plRecheckRow(env._sheets['DB_工时流水'], 'UUID-OCT-NEW', null, null);
+  const rc = _plRecheckRow(env._sheets['DB_工时流水'], 'UUID-OCT-NEW', 'any-nonempty-hash', null);
   assert.strictEqual(rc.mismatch, true); assert.strictEqual(rc.reason, 'PL_REJECT_ORIG_UNKNOWN');
 });
 t('R10b-B1', '双执行互斥：A持锁中B tryLock失败 → LOCK_BUSY 零写', () => {
@@ -303,6 +324,7 @@ t('R10b-B2', '取锁成功重核相符 → 放行；写入用锁内实读行号'
   let usedRow = 0;
   const res = _plGuardedMutation({
     sheet: sh, uuid: 'UUID-OCT-NEW', newDateRaw: '2026-10-20',
+    expectContentHash: contentHashOf(sh, 3),
     bizWrite: (recheck) => { usedRow = recheck.row; sh.getRange(recheck.row, 2).setValue('2026-10-20'); return 'SUCCESS'; }
   });
   assert.strictEqual(res, 'SUCCESS');
@@ -330,6 +352,7 @@ t('R10d', '无竞争9月请求取锁成功 → 锁内门禁拒', () => {
   expectReject(() => _plGuardedMutation({
     sheet: env._sheets['DB_工时流水'], uuid: 'UUID-OCT-NEW',
     newDateRaw: '2026-09-15',
+    expectContentHash: contentHashOf(env._sheets['DB_工时流水'], 3),
     bizWrite: () => { calls++; return 'SUCCESS'; }
   }), 'PL_REJECT_NEW_DATE_CLOSED');
   assert.ok(env._lock.tryLockCalls >= 1, '9月请求同样走到取锁（取锁与门禁分离）');
@@ -353,8 +376,10 @@ t('R10e', '内容版本绑定：last-write-wins 防护', () => {
 });
 t('R10f', '[审①] 删除幂等：expectDeleted=false 且锁内已删 → ALREADY_DELETED', () => {
   freshDb();
-  env._sheets['DB_工时流水'].getRange(3, 15).setValue(true);
-  const rc = _plRecheckRow(env._sheets['DB_工时流水'], 'UUID-OCT-NEW', null, null, false);
+  const sh = env._sheets['DB_工时流水'];
+  const h = contentHashOf(sh, 3);
+  sh.getRange(3, 15).setValue(true);
+  const rc = _plRecheckRow(sh, 'UUID-OCT-NEW', h, null, false);
   assert.strictEqual(rc.mismatch, true);
   assert.strictEqual(rc.reason, 'PL_REJECT_ALREADY_DELETED');
 });
@@ -377,19 +402,21 @@ t('R10g', '[审①] 内容哈希覆盖 K/M 列：改 K 列 → 版本不符', ()
 // ============================================================
 // R11/R12 组
 // ============================================================
-t('R11', '策略持久化往返 + cutoff 坏值回退', () => {
+t('R11', '策略持久化往返 + cutoff 坏值收紧（v4：schema-error 整体 fail-closed）', () => {
   freshDb();
   _plSetPolicy(true, true, 'rita');
   const p1 = _plPolicy();
   assert.strictEqual(p1.closed, true); assert.strictEqual(p1.updatedBy, 'rita');
-  // cutoff 坏值 → 回退内置
+  // cutoff 坏值 → v4 [审④] 判定结构非法 → 整体收紧（fail-closed，cutoff 取内置值）
   env._props.set('PERIOD_LOCK_STATE', JSON.stringify({ closed: true, cutoff: 'garbage', futureOpen: true }));
   const p2 = _plPolicy();
-  assert.strictEqual(p2.cutoff, PL_CUTOFF, '坏 cutoff 不得改变历史判定');
+  assert.strictEqual(p2.source, 'fail-closed', '坏 cutoff 属结构非法：收紧而非静默回退');
+  assert.strictEqual(p2.cutoff, PL_CUTOFF, '收紧态 cutoff 取内置值，不得改变历史判定');
+  assert.strictEqual(p2.futureOpen, false, '结构非法不得默认未来开放');
   const src = fs.readFileSync(path.join(__dirname, 'period_lock_integrated_src.gs'), 'utf8');
   assert.ok(src.indexOf('入口 1/5') >= 0 && src.indexOf('入口 5/5') >= 0, '集成源码须含全部 5 入口');
 });
-t('R11b', '[审④] cutoff 真实日历校验：假日期拒+回退', () => {
+t('R11b', '[审④] cutoff 真实日历校验：假日期收紧+v3 回退语义由 schema 校验接管', () => {
   freshDb();
   assert.strictEqual(_plValidCutoff('2026-10-01'), true);
   assert.strictEqual(_plValidCutoff('2026-00-01'), false, '零月拒');
@@ -398,7 +425,9 @@ t('R11b', '[审④] cutoff 真实日历校验：假日期拒+回退', () => {
   assert.strictEqual(_plValidCutoff('2026-2-30'), false, '短格式假日期同样拒');
   assert.strictEqual(_plValidCutoff('garbage'), false);
   env._props.set('PERIOD_LOCK_STATE', JSON.stringify({ closed: true, cutoff: '2026-02-30', futureOpen: true }));
-  assert.strictEqual(_plPolicy().cutoff, PL_CUTOFF, '假 cutoff 回退内置，不得改变历史判定');
+  const p = _plPolicy();
+  assert.strictEqual(p.source, 'fail-closed', '假 cutoff 属结构非法：收紧');
+  assert.strictEqual(p.cutoff, PL_CUTOFF, '收紧态 cutoff 取内置值，不得改变历史判定');
 });
 t('R12a', '批前校验全合格 → 正常写入', () => {
   freshDb();
@@ -411,42 +440,48 @@ t('R12a', '批前校验全合格 → 正常写入', () => {
   assert.strictEqual(res, 'SUCCESS');
   assert.strictEqual(sh._rows.length, 5);
 });
-t('R12b', '业务写普通异常（无自定义码）→ 登记一次+释放+不重放', () => {
+t('R12b', '[审③] 业务写普通异常 → 统一 PL_UNCERTAIN_BIZ_WRITE_FAILED+plCause（与预检拒绝分层）', () => {
   freshDb();
   const sh = env._sheets['DB_工时流水'];
   const before = logRows();
   let calls = 0;
-  expectReject(() => _plGuardedMutation({
+  const err = expectReject(() => _plGuardedMutation({
     sheet: sh, uuid: 'UUID-OCT-NEW', newDateRaw: '2026-10-20',
+    expectContentHash: contentHashOf(sh, 3),
     bizWrite: () => { calls++; throw new Error('Exception: 服务超时'); }   // 普通 Error
-  }), 'Exception: 服务超时');
+  }), 'PL_UNCERTAIN_BIZ_WRITE_FAILED');
   assert.strictEqual(calls, 1, '不得重放');
+  assert.strictEqual(err.plCause, 'Exception: 服务超时', '保留原始原因');
+  assert.strictEqual(err.plLogFailed, false, '登记成功不误报 plLogFailed');
   assert.strictEqual(env._lock.held, false, 'finally 释放');
   assert.strictEqual(logRows() - before, 1, 'R12b：进入写阶段的任何异常登记一次');
 });
-t('R12b2', '部分写后普通异常 → 登记（结果不确定）', () => {
+t('R12b2', '部分写后普通异常 → 登记（结果不确定）+ uncertain 码', () => {
   freshDb();
   const sh = env._sheets['DB_工时流水'];
   const before = logRows();
   expectReject(() => _plGuardedMutation({
     sheet: sh, uuid: 'UUID-OCT-NEW', newDateRaw: '2026-10-20',
+    expectContentHash: contentHashOf(sh, 3),
     bizWrite: (recheck) => {
       sh.getRange(recheck.row, 2).setValue('2026-10-20');   // 前半已写
       throw new Error('Exception: 中途中断');               // 后半失败
     }
-  }), 'Exception: 中途中断');
+  }), 'PL_UNCERTAIN_BIZ_WRITE_FAILED');
   assert.strictEqual(logRows() - before, 1, '部分写后异常必须登记不确定');
 });
-t('R12c', 'flush 抛错 → PL_UNCERTAIN 且只登记一次（不双登记）', () => {
+t('R12c', 'flush 抛错 → PL_UNCERTAIN 且只登记一次（不双登记）+ plLogFailed=false', () => {
   freshDb();
   const sh = env._sheets['DB_工时流水'];
   const before = logRows();
   env._flushThrows = true;
-  expectReject(() => _plGuardedMutation({
+  const err = expectReject(() => _plGuardedMutation({
     sheet: sh, uuid: 'UUID-OCT-NEW', newDateRaw: '2026-10-20',
+    expectContentHash: contentHashOf(sh, 3),
     bizWrite: (recheck) => { sh.getRange(recheck.row, 2).setValue('2026-10-20'); return 'SUCCESS'; }
   }), 'PL_UNCERTAIN_FLUSH_FAILED');
   assert.strictEqual(logRows() - before, 1, 'flush 失败只登记一次');
+  assert.strictEqual(err.plLogFailed, false, '[审③] 登记成功不得误报 plLogFailed');
   assert.strictEqual(env._lock.held, false);
 });
 t('R12d', '[审③] 登记表不存在 → 返回 false 且不自动建表（建表=授权动作）', () => {
@@ -474,15 +509,16 @@ t('R12e', '[审②] 全重复批次：skippedAll 约定 + bizWrite 零调用 + �
   assert.strictEqual(sh._rows.length, 3, '不得构造高度 0 区域');
   assert.strictEqual(logRows() - before, 0, '全重复不得误登记不确定');
 });
-t('R13', '[审③] 登记写失败 → plLogFailed 标识外显（不吞不阻断传播）', () => {
+t('R13', '[审③] 登记写失败 → PL_UNCERTAIN_BIZ_WRITE_FAILED + plLogFailed 外显（不吞不阻断传播）', () => {
   freshDb();
   env._sheets['_TS_WRITE_LOG'] = { appendRow() { throw new Error('log broken'); }, _rows: [] };
   assert.strictEqual(_plLogUncertain('unit', 'detail'), false, '登记失败返回 false');
   const sh = env._sheets['DB_工时流水'];
   const err = expectReject(() => _plGuardedMutation({
     sheet: sh, uuid: 'UUID-OCT-NEW', newDateRaw: '2026-10-20',
+    expectContentHash: contentHashOf(sh, 3),
     bizWrite: () => { throw new Error('Exception: x'); }
-  }), 'Exception: x');
+  }), 'PL_UNCERTAIN_BIZ_WRITE_FAILED');
   assert.strictEqual(err.plLogFailed, true, '登记失败必须挂标识外显');
 });
 t('R14', '例外滥用负例全拒（无例外入口）', () => {
@@ -598,16 +634,24 @@ t('R17', '回退保留：集成源码含全部5入口+无省略号', () => {
   });
   assert.ok(!/\.\.\./.test(src.replace(/\/\/.*$/gm, '')), '集成源码不得含省略号（可完整核对）');
 });
-t('R18s', '入口层接线静态核查（[审①][审②][审③]）', () => {
+t('R18s', '入口层接线静态核查（[审①-v4][审②][审③]）', () => {
   const src = fs.readFileSync(path.join(__dirname, 'period_lock_integrated_src.gs'), 'utf8');
-  assert.strictEqual((src.match(/expectContentHash: _plRowContentHash\(data\[i\]\)/g) || []).length, 2,
-    'updateTimesheet 与 softDeleteRecord 都须传版本哈希');
+  assert.strictEqual((src.match(/expectContentHash: expectVersion/g) || []).length, 2,
+    'updateTimesheet 与 softDeleteRecord 都须将请求携带版本传入 guard');
+  assert.strictEqual((src.match(/new Error\('PL_REJECT_MISSING_EXPECT_VERSION'\)/g) || []).length, 2,
+    '两个 mutation 入口缺期望版本都须缺省拒（构造点计数）');
   assert.strictEqual((src.match(/expectDeleted: false/g) || []).length, 2,
     '两个 mutation 入口都须传删除幂等期望');
   assert.strictEqual((src.match(/return \{ rows: kept, duplicates: skipped(?:Dup)? \};/g) || []).length, 2,
     'submitBatch 与 tsAppendRows 的 lockPreWrite 统一返回 {rows,duplicates}');
   assert.ok(src.indexOf('plLogFailed') >= 0, '登记失败外显须接线到入口');
+  assert.ok(src.indexOf('plCause') >= 0, '结果不确定须保留原原因并透出');
   assert.ok(src.indexOf('skippedAll') >= 0, '全重复返回约定须接线到入口');
+  assert.ok(src.indexOf('PL_UNCERTAIN_PATCH_WRITE_FAILED') >= 0, 'patch 入口写阶段失败须有统一 uncertain 码');
+  // guard 层的 PL_UNCERTAIN_BIZ_WRITE_FAILED 由 V7/R12b 动态用例实证（不在集成源码构造）
+  assert.ok(/PL_UNCERTAIN_BIZ_WRITE_FAILED/.test(guardSrc), 'guard 须统一包装写阶段失败');
+  assert.ok(!/expectContentHash: _plRowContentHash/.test(src),
+    'v4 起不得再用「请求到达后新读的行」充当期望版本（请求级绑定）');
 });
 
 // ============================================================
@@ -616,6 +660,7 @@ t('R18s', '入口层接线静态核查（[审①][审②][审③]）', () => {
 t('I1', 'updateTimesheet 版本绑定：锁内发现内容被外部写者改 → CONTENT_VERSION', () => {
   freshDb();
   const sh = env._sheets['DB_工时流水'];
+  const reqVersion = contentHashOf(sh, 3);      // 请求携带的期望版本（编辑依据）
   // 竞态注入：锁外读（第1次 getDataRange）后、锁内重核（第2次）前，外部写者改了 G 列
   let dataCalls = 0;
   const origGDR = sh.getDataRange.bind(sh);
@@ -630,7 +675,7 @@ t('I1', 'updateTimesheet 版本绑定：锁内发现内容被外部写者改 →
   };
   let err = null;
   try {
-    updateTimesheet('tok', { uuid: 'UUID-OCT-NEW', date: '2026-10-20', stage: '1.1', project: 'PRJ-1', hours: 8, notes: '' });
+    updateTimesheet('tok', { uuid: 'UUID-OCT-NEW', date: '2026-10-20', stage: '1.1', project: 'PRJ-1', hours: 8, notes: '', expectContentHash: reqVersion });
   } catch (e) { err = e; }
   assert.ok(err, '必须拒');
   assert.strictEqual(err.plCode, 'PL_REJECT_CONTENT_VERSION', '入口须传版本哈希并保留拒绝码');
@@ -639,6 +684,7 @@ t('I1', 'updateTimesheet 版本绑定：锁内发现内容被外部写者改 →
 t('I2', 'updateTimesheet 删除幂等：锁内发现行已删 → ALREADY_DELETED', () => {
   freshDb();
   const sh = env._sheets['DB_工时流水'];
+  const reqVersion = contentHashOf(sh, 3);
   let dataCalls = 0;
   const origGDR = sh.getDataRange.bind(sh);
   sh.getDataRange = function () {
@@ -652,7 +698,7 @@ t('I2', 'updateTimesheet 删除幂等：锁内发现行已删 → ALREADY_DELETE
   };
   let err = null;
   try {
-    updateTimesheet('tok', { uuid: 'UUID-OCT-NEW', date: '2026-10-20', stage: '1.1', project: 'PRJ-1', hours: 8, notes: '' });
+    updateTimesheet('tok', { uuid: 'UUID-OCT-NEW', date: '2026-10-20', stage: '1.1', project: 'PRJ-1', hours: 8, notes: '', expectContentHash: reqVersion });
   } catch (e) { err = e; }
   assert.ok(err, '必须拒');
   assert.strictEqual(err.plCode, 'PL_REJECT_ALREADY_DELETED');
@@ -660,9 +706,10 @@ t('I2', 'updateTimesheet 删除幂等：锁内发现行已删 → ALREADY_DELETE
 t('I3', 'softDeleteRecord 再删已删行 → ALREADY_DELETED（删除幂等）', () => {
   freshDb();
   const sh = env._sheets['DB_工时流水'];
+  const reqVersion = contentHashOf(sh, 3);
   sh.getRange(3, 15).setValue(true);             // 行3 已删
   let err = null;
-  try { softDeleteRecord('tok', 'UUID-OCT-NEW'); } catch (e) { err = e; }
+  try { softDeleteRecord('tok', 'UUID-OCT-NEW', reqVersion); } catch (e) { err = e; }
   assert.ok(err, '必须拒');
   assert.strictEqual(err.plCode, 'PL_REJECT_ALREADY_DELETED');
 });
@@ -742,6 +789,160 @@ t('I8', '[审⑤] tsPatchCells O:Q 与 futureOpen=false → FUTURE_CLOSED（期�
 });
 
 // ============================================================
+// V1-V12 组：v4 专项（Tom 10:58 四条）
+// ============================================================
+t('V1', '[审①-v4] updateTimesheet 请求缺 expectContentHash → MISSING_EXPECT_VERSION（缺省拒）', () => {
+  freshDb();
+  const err = expectReject(() => updateTimesheet('tok', {
+    uuid: 'UUID-OCT-NEW', date: '2026-10-20', stage: '1.1', project: 'PRJ-1', hours: 8, notes: ''
+  }), 'PL_REJECT_MISSING_EXPECT_VERSION');
+  assert.strictEqual(err.plCode, 'PL_REJECT_MISSING_EXPECT_VERSION');
+  assert.strictEqual(env._sheets['DB_工时流水']._rows[2][1], '2026-10-15', '零写');
+});
+t('V2', '[审①-v4] softDeleteRecord 请求缺 expectContentHash → MISSING_EXPECT_VERSION（缺省拒）', () => {
+  freshDb();
+  const err = expectReject(() => softDeleteRecord('tok', 'UUID-OCT-NEW'),
+    'PL_REJECT_MISSING_EXPECT_VERSION');
+  assert.strictEqual(err.plCode, 'PL_REJECT_MISSING_EXPECT_VERSION');
+  assert.strictEqual(env._sheets['DB_工时流水']._rows[2][14], '', '未被删');
+});
+t('V3', '[审①-v4] 请求级旧版本：A 改完后 B 带编辑时旧版本到达 → 锁内实读不符即拒', () => {
+  freshDb();
+  const sh = env._sheets['DB_工时流水'];
+  const v1 = contentHashOf(sh, 3);            // B 打开表单时服务端下发的版本
+  // A 先完成一次合法修改（改 G 列工时，表内容变为 v2）
+  _plGuardedMutation({
+    sheet: sh, uuid: 'UUID-OCT-NEW', newDateRaw: '2026-10-15', expectContentHash: v1,
+    bizWrite: (recheck) => { sh.getRange(recheck.row, 7).setValue(5); return 'SUCCESS'; }
+  });
+  // B 随后带旧版本 v1 的编辑请求到达：服务端锁外新读已是 v2，但请求携带 v1 → 拒
+  const err = expectReject(() => updateTimesheet('tok', {
+    uuid: 'UUID-OCT-NEW', date: '2026-10-20', stage: '1.1', project: 'PRJ-1', hours: 8, notes: '',
+    expectContentHash: v1
+  }), 'PL_REJECT_CONTENT_VERSION');
+  assert.strictEqual(err.plCode, 'PL_REJECT_CONTENT_VERSION');
+  assert.strictEqual(sh._rows[2][6], 5, 'A 的修改保留，B 的陈旧表单被拒');
+});
+t('V4', '[审②-编码] 分隔冲突反例：相邻列 [a\\u0001b,c] 与 [a,b\\u0001c] 旧 join 同串（漏拒）；v4 含分隔符 → hash=null', () => {
+  const base = new Array(15).fill('');
+  base[1] = '2026-10-15'; base[2] = '张三'; base[8] = 'UUID-1';
+  // 相邻两列（G=索引6, H=索引7）分别放入两种分布
+  const rA = base.slice(); rA[6] = 'a\u0001b'; rA[7] = 'c';
+  const rB = base.slice(); rB[6] = 'a'; rB[7] = 'b\u0001c';
+  // 反例前提（Tom 指摘的旧行为）：两行 join 后同串 → 版本冲突检测失效
+  const joinA = rA.slice(1, 15).map(v => (v === null || v === undefined) ? '' : String(v)).join('\u0001');
+  const joinB = rB.slice(1, 15).map(v => (v === null || v === undefined) ? '' : String(v)).join('\u0001');
+  assert.strictEqual(joinA, joinB, '反例前提：旧 String+join 方案两行同串');
+  // v4 行为：两行均不可无歧义定版 → null（调用方按 PL_REJECT_CONTENT_ENCODING 拒）
+  assert.strictEqual(_plRowContentHash(rA), null, '含分隔符行不得产出哈希');
+  assert.strictEqual(_plRowContentHash(rB), null);
+  // 对照：无分隔符行正常产出
+  assert.ok(_plRowContentHash(base) && _plRowContentHash(base).length > 0);
+});
+t('V4b', '[审②-编码] 锁内行含分隔符 → contentHash=null ≠ 期望版本 → 拒（fail-closed）', () => {
+  freshDb();
+  const sh = env._sheets['DB_工时流水'];
+  sh.getRange(3, 8).setValue('bad\u0001val');          // H 列（col 8）注入分隔符
+  const err = expectReject(() => updateTimesheet('tok', {
+    uuid: 'UUID-OCT-NEW', date: '2026-10-20', stage: '1.1', project: 'PRJ-1', hours: 8, notes: '',
+    expectContentHash: 'some-nonnull-version'
+  }), 'PL_REJECT_CONTENT_VERSION');
+  assert.strictEqual(err.plCode, 'PL_REJECT_CONTENT_VERSION');
+});
+t('V5', '[审③] flush 失败+登记成功 → PL_UNCERTAIN_FLUSH_FAILED 且 plLogFailed=false（误报已修）', () => {
+  freshDb();
+  const sh = env._sheets['DB_工时流水'];
+  env._flushThrows = true;
+  const err = expectReject(() => _plGuardedMutation({
+    sheet: sh, uuid: 'UUID-OCT-NEW', newDateRaw: '2026-10-20',
+    expectContentHash: contentHashOf(sh, 3),
+    bizWrite: (recheck) => { sh.getRange(recheck.row, 2).setValue('2026-10-20'); return 'SUCCESS'; }
+  }), 'PL_UNCERTAIN_FLUSH_FAILED');
+  assert.strictEqual(err.plLogFailed, false, '登记成功不得误报 plLogFailed');
+  assert.ok(err.plCause && err.plCause.length > 0, '保留原始原因');
+});
+t('V6', '[审③] flush 失败+登记失败（无登记表）→ plLogFailed=true', () => {
+  freshDb();
+  const sh = env._sheets['DB_工时流水'];
+  delete env._sheets['_TS_WRITE_LOG'];
+  env._flushThrows = true;
+  const err = expectReject(() => _plGuardedMutation({
+    sheet: sh, uuid: 'UUID-OCT-NEW', newDateRaw: '2026-10-20',
+    expectContentHash: contentHashOf(sh, 3),
+    bizWrite: (recheck) => { sh.getRange(recheck.row, 2).setValue('2026-10-20'); return 'SUCCESS'; }
+  }), 'PL_UNCERTAIN_FLUSH_FAILED');
+  assert.strictEqual(err.plLogFailed, true, '登记失败必须外显');
+});
+t('V7', '[审③] bizWrite 普通失败+登记成功 → PL_UNCERTAIN_BIZ_WRITE_FAILED+plCause+plLogFailed=false', () => {
+  freshDb();
+  const sh = env._sheets['DB_工时流水'];
+  const err = expectReject(() => _plGuardedMutation({
+    sheet: sh, uuid: 'UUID-OCT-NEW', newDateRaw: '2026-10-20',
+    expectContentHash: contentHashOf(sh, 3),
+    bizWrite: () => { throw new Error('Exception: 服务超时'); }
+  }), 'PL_UNCERTAIN_BIZ_WRITE_FAILED');
+  assert.strictEqual(err.plCause, 'Exception: 服务超时', '保留原原因');
+  assert.strictEqual(err.plLogFailed, false, '登记成功不误报');
+});
+t('V8', '[审④] policy={} → schema-error 收紧（不得默认未来开放）', () => {
+  freshDb();
+  env._props.set('PERIOD_LOCK_STATE', '{}');
+  const p = _plPolicy();
+  assert.strictEqual(p.source, 'fail-closed');
+  assert.strictEqual(p.updatedBy, 'fail-closed-schema-error');
+  assert.strictEqual(p.closed, true);
+  assert.strictEqual(p.futureOpen, false, '空对象不得默认未来开放');
+});
+t('V9', '[审④] futureOpen 为字符串 false → schema-error 收紧', () => {
+  freshDb();
+  env._props.set('PERIOD_LOCK_STATE', JSON.stringify({ closed: true, cutoff: '2026-10-01', futureOpen: 'false' }));
+  const p = _plPolicy();
+  assert.strictEqual(p.source, 'fail-closed', '字符串 false 不是布尔：结构非法');
+  assert.strictEqual(p.futureOpen, false);
+});
+t('V10', '[审④] closed 非布尔 → schema-error 收紧', () => {
+  freshDb();
+  env._props.set('PERIOD_LOCK_STATE', JSON.stringify({ closed: 'true', cutoff: '2026-10-01', futureOpen: true }));
+  assert.strictEqual(_plPolicy().source, 'fail-closed', 'closed 必须为布尔');
+  // 缺 futureOpen 字段同样拒
+  env._props.set('PERIOD_LOCK_STATE', JSON.stringify({ closed: true, cutoff: '2026-10-01' }));
+  assert.strictEqual(_plPolicy().source, 'fail-closed', '缺必需字段：结构非法');
+});
+t('V11', '[审④] 初始化哨兵三态：无INIT=首次态；INIT有+策略键丢失/空串=policy-lost 收紧', () => {
+  freshDb();
+  // 场景1：从未初始化（无 INIT 无 key）→ 真首次态
+  const p1 = _plPolicy();
+  assert.strictEqual(p1.source, 'unset');
+  assert.strictEqual(p1.futureOpen, true, '真首次态未来放行');
+  // 场景2：曾初始化 → 策略键丢失（保留 INIT）→ policy-lost 收紧
+  _plSetPolicy(true, false, 'rita');
+  assert.strictEqual(env._props.get('PERIOD_LOCK_POLICY_INIT'), '1', '_plSetPolicy 须写哨兵');
+  env._props.delete('PERIOD_LOCK_STATE');
+  const p2 = _plPolicy();
+  assert.strictEqual(p2.source, 'fail-closed');
+  assert.strictEqual(p2.updatedBy, 'fail-closed-policy-lost');
+  assert.strictEqual(p2.futureOpen, false, '策略丢失不得放开未来（≠首次态）');
+  // 场景3：空串同样收敛
+  env._props.set('PERIOD_LOCK_STATE', '');
+  assert.strictEqual(_plPolicy().updatedBy, 'fail-closed-policy-lost', '空串=丢失');
+  // 场景4：恢复合法策略 → 正常读回（不受哨兵影响）
+  _plSetPolicy(true, false, 'rita2');
+  const p4 = _plPolicy();
+  assert.strictEqual(p4.source, 'props');
+  assert.strictEqual(p4.futureOpen, false);
+  assert.strictEqual(p4.updatedBy, 'rita2');
+});
+t('V12', '[审③] tsPatchCells 写阶段失败 → PL_UNCERTAIN_PATCH_WRITE_FAILED+plCause 透出 JSON', () => {
+  freshDb();
+  env._writeExplodes = true;
+  const out = JSON.parse(tsPatchCells({ postBody: { cells: [[3, 2, '2026-10-25']] } }));
+  assert.strictEqual(out.ok, false);
+  assert.strictEqual(out.plCode, 'PL_UNCERTAIN_PATCH_WRITE_FAILED', '写阶段失败统一 uncertain 码');
+  assert.ok(out.plCause && out.plCause.indexOf('write exploded') >= 0, '保留原原因');
+  assert.strictEqual(out.logFailed, false, '登记成功不误报');
+});
+
+// ============================================================
 // 汇总
 // ============================================================
 const pass = results.filter(r => r.ok).length;
@@ -750,5 +951,5 @@ results.forEach(r => {
   console.log((r.ok ? '✅' : '❌') + ' ' + r.id + ' ' + r.name + (r.ok ? '' : '  → ' + r.err));
 });
 console.log('----------------------------------------');
-console.log('R1-R17 + I1-I8: ' + pass + '/' + results.length + ' 通过' + (fail.length ? '，' + fail.length + ' 失败' : '（fail-closed 全绿）'));
+console.log('R1-R17 + I1-I8 + V1-V12: ' + pass + '/' + results.length + ' 通过' + (fail.length ? '，' + fail.length + ' 失败' : '（fail-closed 全绿）'));
 process.exit(fail.length ? 1 : 0);

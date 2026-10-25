@@ -1,7 +1,8 @@
 /**
- * T1-B · period-lock guard 模块 · 实现 v3（本地代码，零生产写）
+ * T1-B · period-lock guard 模块 · 实现 v4（本地代码，零生产写）
  * ============================================================
- * 依据：v5 设计 + Tom 09:27 五条 + 09:59 五条（逐条核实全部属实，全部吸收）。
+ * 依据：v5 设计 + Tom 09:27 五条 + 09:59 五条 + 10:58 四条
+ *（逐条核实全部属实，全部吸收）。
  *
  * v2(00d00ba) → v3 修订：
  *  [审①] _plRecheckRow 增 expectDeleted（删除幂等：锁内已删 → 拒）；
@@ -19,6 +20,26 @@
  *  [审⑤] _plGuardPatch：row<2（表头）单独状态 header → B/O:Q 写表头一律拒；
  *         O:Q 删除场景统一走 _plGuardCheck（与 mutation 同一期间政策，含 futureOpen）。
  *
+ * v3(d214013) → v4 修订（Tom 10:58 四条，逐条核实全部属实）：
+ *  [审①-版本] **请求级版本绑定**：期望版本由修改/删除请求携带（客户端表单加载时
+ *         服务端下发的行版本），不再用「请求到达后新读的行」充当用户编辑依据；
+ *         缺省拒绝 PL_REJECT_MISSING_EXPECT_VERSION（fail-closed，不继续称已解决
+ *         请求级 last-write-wins）。服务端锁内重核窗口防护保留为第二层。
+ *         tsPatchCells 通道无请求级版本概念，明确降格为「仅服务端短窗口防护」，
+ *         供内部批量工具使用，不宣称请求级保护。
+ *  [审②-编码] _plRowContentHash 检测业务字段内的分隔符 \u0001：出现即返回 null
+ *         （无法无歧义定版），调用方按 PL_REJECT_CONTENT_ENCODING 拒（fail-closed），
+ *         消除 [a\u0001b,c] 与 [a,b\u0001c] 同串假阳性漏拒。
+ *  [审③-分层] flush 失败：plLogFailed 按 _plLogUncertain 实际返回值设置
+ *         （登记成功=false，不再误报）；bizWrite 阶段失败统一包装
+ *         PL_UNCERTAIN_BIZ_WRITE_FAILED + plCause（保留原原因），与预检拒绝
+ *         PL_REJECT_* 显式分层——调用方可见「结果不确定」而非裸普通错误。
+ *  [审④-结构] _plPolicy schema 严格校验：closed/futureOpen 必须为 boolean、
+ *         cutoff 必须为合法日历字符串；{}、缺字段、字符串 'false' 等一律
+ *         fail-closed（收紧），不再默认未来开放。新增初始化哨兵
+ *         PL_POLICY_INIT_KEY：_plSetPolicy 置 '1'；曾有初始化记录而策略键
+ *         丢失/空值 → policy-lost 收紧（与「从未初始化」的首次态区分）。
+ *
  * 🔴 零生产写本地实现；接入生产须 Rita 显式 GO + 双授权闸门。
  */
 
@@ -28,6 +49,7 @@
 
 var PL_CUTOFF = '2026-10-01';
 var PL_POLICY_KEY = 'PERIOD_LOCK_STATE';
+var PL_POLICY_INIT_KEY = 'PERIOD_LOCK_POLICY_INIT';   // [审④] 初始化哨兵：置 '1' 后策略键丢失=收紧
 var PL_LOCK_TIMEOUT_MS = 5000;
 var PL_DB_SHEET = 'DB_工时流水';
 
@@ -39,12 +61,15 @@ function _plValidCutoff(s) {
 }
 
 /**
- * M3：读锁政策态。[审④] 双 fallback：
- *   - 无策略值（首次部署态）：closed=true, futureOpen=true（部署包须显式初始化，
- *     见集成部署清单；未初始化时首次即保护历史、未来正常放行）；
- *   - 读取异常/JSON 坏/结构非法：closed=true, futureOpen=false——**未知时拒绝
- *     受影响写**（故障不放宽；原 futureOpen=false 时读取故障不会变成放行未来）。
- *   - cutoff 非法 → 回退内置 PL_CUTOFF。
+ * M3：读锁政策态。[审④] 三态 + schema 严格校验：
+ *   - **真首次态**（无初始化哨兵且策略键无值）：closed=true, futureOpen=true
+ *     （部署包须显式初始化，见集成部署清单）；
+ *   - **策略丢失**（有初始化哨兵但策略键无值/空串）：fail-closed 收紧——
+ *     曾初始化过又丢失 ≠ 首次部署，不可仅凭当前空值区分，未知时保守拒；
+ *   - 读取异常 / JSON 坏 / 结构非法（{}、缺字段、类型不符、cutoff 非法日历）：
+ *     fail-closed 收紧（closed=true, futureOpen=false）——未知时拒绝受影响写
+ *     （故障不放宽；原 futureOpen=false 时读取故障不会变成放行未来）；
+ *   - 正常：closed/futureOpen 按存储值（布尔严格校验通过）。
  */
 function _plPolicy() {
   var raw = null;
@@ -53,8 +78,16 @@ function _plPolicy() {
   } catch (e) {
     return _plFailClosedPolicy('read-error');      // 故障 → 收紧
   }
+  var initialized = false;
+  try {
+    initialized = PropertiesService.getScriptProperties().getProperty(PL_POLICY_INIT_KEY) === '1';
+  } catch (e2) { initialized = false; }
   if (!raw) {
-    // 首次态（非故障）：closed=true 保护历史；futureOpen=true 未来正常放行；
+    if (initialized) {
+      // [审④] 曾有初始化记录而策略键丢失/空串：不可当首次态放开
+      return _plFailClosedPolicy('policy-lost');
+    }
+    // 真首次态（非故障）：closed=true 保护历史；futureOpen=true 未来正常放行；
     // 部署包须显式初始化策略（见集成部署清单）。
     return { closed: true, cutoff: PL_CUTOFF, futureOpen: true,
              updatedBy: 'initial-unset', updatedAt: '', source: 'unset' };
@@ -64,10 +97,18 @@ function _plPolicy() {
     if (!p || typeof p !== 'object' || Array.isArray(p)) {
       return _plFailClosedPolicy('parse-error');
     }
+    // [审④] schema 严格校验：必需字段存在且类型正确；字符串 'false'、缺字段、
+    // {} 等一律视为结构非法 → 收紧（不默认未来开放）。
+    if (typeof p.closed !== 'boolean' || typeof p.futureOpen !== 'boolean') {
+      return _plFailClosedPolicy('schema-error');
+    }
+    if (typeof p.cutoff !== 'string' || !_plValidCutoff(p.cutoff)) {
+      return _plFailClosedPolicy('schema-error');
+    }
     return {
-      closed: p.closed !== false,
-      cutoff: _plValidCutoff(p.cutoff) ? p.cutoff : PL_CUTOFF,
-      futureOpen: p.futureOpen !== false,
+      closed: p.closed,
+      cutoff: p.cutoff,
+      futureOpen: p.futureOpen,
       updatedBy: String(p.updatedBy || ''),
       updatedAt: String(p.updatedAt || ''),
       source: 'props'
@@ -93,6 +134,9 @@ function _plSetPolicy(closed, futureOpen, updatedBy) {
     updatedAt: Utilities.formatDate(new Date(), 'GMT+8', 'yyyy-MM-dd HH:mm:ss'),
     source: 'props'
   }));
+  // [审④] 初始化哨兵：此后策略键丢失/空值将被 _plPolicy 识别为 policy-lost 收紧，
+  // 与「从未初始化」的首次态区分。
+  props.setProperty(PL_POLICY_INIT_KEY, '1');
 }
 
 // ============================================================
@@ -182,23 +226,32 @@ function _plAcquire(timeoutMs) {
 }
 
 /**
- * [审①] 内容版本哈希。覆盖列明确定义（不再跳过 K/M）：
+ * [审②-编码] 内容版本哈希。覆盖列明确定义：
  *   B(2) fillDate, C(3) name, D(4) type, E(5) stage, F(6) pid, G(7) hours,
  *   H(8) notes, I(9) uuid, J(10) pname, K(11), L(12) leader, M(13), N(14) ym, O(15) del
- *   ——即索引 1..14（B..O）。类型转换：String(v)（null/undefined → ''）；
- *   分隔符 \u0001（不出现在业务值中；若未来出现，视为版本冲突即拒，安全侧失效）。
+ *   ——即索引 1..14（B..O）。类型转换：String(v)（null/undefined → ''）。
+ *   **分隔冲突显式拒绝**（v4）：任一字段 String 后含分隔符 \u0001 → 返回 null
+ *   （该行无法无歧义定版）。调用方（入口锁外计算时期）必须将 null 按
+ *   PL_REJECT_CONTENT_ENCODING 拒之，fail-closed；否则 [a\u0001b,c] 与
+ *   [a,b\u0001c] join 后同串会造成假阳性漏拒。
  */
 function _plRowContentHash(row) {
   var parts = [];
   for (var i = 1; i <= 14; i++) {
     var v = row[i];
-    parts.push((v === null || v === undefined) ? '' : String(v));
+    var s = (v === null || v === undefined) ? '' : String(v);
+    if (s.indexOf('\u0001') >= 0) return null;     // [审②-编码] 含分隔符 → 不可定版
+    parts.push(s);
   }
   return parts.join('\u0001');
 }
 
 /**
  * M8：[审①] 锁内重核。返回实际行号 + 内容版本 + 活动状态。
+ *   expectContentHash：**请求级期望版本**（客户端编辑依据的行版本，由请求携带）——
+ *     缺省（undefined/null/空串）→ PL_REJECT_MISSING_EXPECT_VERSION（fail-closed，
+ *     不继续称已解决请求级 last-write-wins）；与锁内实读不符 →
+ *     PL_REJECT_CONTENT_VERSION。
  *   expectDeleted：调用方锁外读到的软删状态（false=锁前未删）；锁内为 true →
  *     PL_REJECT_ALREADY_DELETED（删除幂等：已删行的更新/再删一律拒）。
  */
@@ -206,6 +259,9 @@ function _plRecheckRow(sheet, uuid, expectContentHash, expectName, expectDeleted
   var out = { found: false, row: 0, bizDate: null, deleted: false,
               contentHash: null, mismatch: false, reason: '' };
   if (!uuid) { out.mismatch = true; out.reason = 'PL_REJECT_NO_UUID'; return out; }
+  if (expectContentHash === undefined || expectContentHash === null || expectContentHash === '') {
+    out.mismatch = true; out.reason = 'PL_REJECT_MISSING_EXPECT_VERSION'; return out;
+  }
   var data = sheet.getDataRange().getValues();
   var hits = 0;
   for (var i = 1; i < data.length; i++) {
@@ -232,7 +288,7 @@ function _plRecheckRow(sheet, uuid, expectContentHash, expectName, expectDeleted
     }
   }
   if (!out.found) { out.mismatch = true; out.reason = 'PL_REJECT_ROW_GONE'; return out; }
-  if (expectContentHash && out.contentHash !== expectContentHash) {
+  if (out.contentHash !== expectContentHash) {   // expectContentHash 已保证非空（缺省即拒）
     out.mismatch = true; out.reason = 'PL_REJECT_CONTENT_VERSION';
   }
   return out;
@@ -257,7 +313,11 @@ function _plLogUncertain(action, detail) {
   }
 }
 
-/** [审③] 把「登记失败」标识挂到错误对象上，随抛出贯穿到入口返回值。 */
+/**
+ * [v3 遗留，v4 起弃用] 曾用于把登记失败标识挂到错误对象上；v4 [审③] 改为
+ * plLogFailed 一律按 _plLogUncertain 实际返回值设置（防止登记成功仍误报），
+ * 本函数不再被调用，保留仅为避免破坏既有引用。
+ */
 function _plMarkLogFailed(err) {
   if (err && typeof err === 'object') err.plLogFailed = true;
   return err;
@@ -297,19 +357,29 @@ function _plGuardedMutation(opts) {
     try {
       if (typeof SpreadsheetApp !== 'undefined' && SpreadsheetApp.flush) SpreadsheetApp.flush();
     } catch (fe) {
-      if (!logAttempted) { logAttempted = true; _plMarkLogFailed(fe); _plLogUncertain('flush_failed', String(opts.uuid || 'batch')); }
+      // [审③] plLogFailed 按实际登记结果设置：登记成功=false（不再误报）
+      var loggedF = _plLogUncertain('flush_failed', String(opts.uuid || 'batch'));
+      logAttempted = true;
       var e3 = new Error('PL_UNCERTAIN_FLUSH_FAILED');
       e3.plCode = 'PL_UNCERTAIN_FLUSH_FAILED';
-      e3.plLogFailed = fe.plLogFailed || false;
+      e3.plCause = String((fe && fe.message) || fe);   // [审③] 保留原始原因
+      e3.plLogFailed = !loggedF;
       throw e3;
     }
     return result;
   } catch (e) {
     if (enteredWrite && !logAttempted) {          // 每失败路径仅一次
       logAttempted = true;
-      var ok = _plLogUncertain('biz_write_or_flush', String(opts.uuid || 'batch') +
+      var logged = _plLogUncertain('biz_write', String(opts.uuid || 'batch') +
                                ' err=' + String((e && e.message) || e));
-      if (!ok) _plMarkLogFailed(e);
+      if (e && e.plCode) throw e;                 // 已结构化（flush 路径）不双包
+      // [审③] 进入写阶段后的失败=结果不确定：统一 uncertain 码 + 原原因 + 登记状态，
+      // 与预检拒绝 PL_REJECT_* 显式分层（调用方不得只看到裸普通错误）
+      var ue = new Error('PL_UNCERTAIN_BIZ_WRITE_FAILED');
+      ue.plCode = 'PL_UNCERTAIN_BIZ_WRITE_FAILED';
+      ue.plCause = String((e && e.message) || e);
+      ue.plLogFailed = !logged;
+      throw ue;
     }
     throw e;
   } finally {
@@ -355,18 +425,27 @@ function _plGuardedInsert(opts) {
     try {
       if (typeof SpreadsheetApp !== 'undefined' && SpreadsheetApp.flush) SpreadsheetApp.flush();
     } catch (fe) {
-      if (!logAttempted) { logAttempted = true; _plMarkLogFailed(fe); _plLogUncertain('flush_failed', 'insert batch'); }
+      // [审③] plLogFailed 按实际登记结果设置（登记成功=false，不再误报）
+      var loggedF2 = _plLogUncertain('flush_failed', 'insert batch');
+      logAttempted = true;
       var e2 = new Error('PL_UNCERTAIN_FLUSH_FAILED');
       e2.plCode = 'PL_UNCERTAIN_FLUSH_FAILED';
-      e2.plLogFailed = fe.plLogFailed || false;
+      e2.plCause = String((fe && fe.message) || fe);
+      e2.plLogFailed = !loggedF2;
       throw e2;
     }
     return result;
   } catch (e) {
     if (enteredWrite && !logAttempted) {
       logAttempted = true;
-      var ok = _plLogUncertain('biz_write_or_flush', 'insert batch err=' + String((e && e.message) || e));
-      if (!ok) _plMarkLogFailed(e);
+      var logged2 = _plLogUncertain('biz_write', 'insert batch err=' + String((e && e.message) || e));
+      if (e && e.plCode) throw e;                 // 已结构化（flush 路径）不双包
+      // [审③] 写阶段后失败=结果不确定：统一码+原因+登记状态，与预检拒绝分层
+      var ue2 = new Error('PL_UNCERTAIN_BIZ_WRITE_FAILED');
+      ue2.plCode = 'PL_UNCERTAIN_BIZ_WRITE_FAILED';
+      ue2.plCause = String((e && e.message) || e);
+      ue2.plLogFailed = !logged2;
+      throw ue2;
     }
     throw e;
   } finally {

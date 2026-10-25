@@ -125,19 +125,31 @@ function updateTimesheet(token, f) {
     const data = sheet.getDataRange().getValues();
     const pMap = getProjectMap();
 
+    // [审①-v4] 请求级版本绑定：期望版本必须由请求携带（客户端表单加载时服务端
+    // 下发的行版本），不再用「请求到达后新读的行」充当用户编辑依据——否则
+    // A 改完后 B 带旧表单到达，服务端读到 A 的新内容再算 hash，锁内同值仍会
+    // 放行，旧表单可覆盖 A。缺省拒绝（fail-closed），不继续称已解决请求级
+    // last-write-wins。
+    const expectVersion = (f && f.expectContentHash) ? String(f.expectContentHash).trim() : '';
+    if (!expectVersion) {
+      const em = new Error('PL_REJECT_MISSING_EXPECT_VERSION');
+      em.plCode = 'PL_REJECT_MISSING_EXPECT_VERSION';
+      throw em;
+    }
+
     for (let i = 1; i < data.length; i++) {
       const dv = data[i][14];
       if (dv === true || String(dv).toUpperCase() === "TRUE") continue;
 
       if (safeGetUuid(data[i][8]) == String(f.uuid).trim() && String(data[i][2]) === String(user.name)) {
         // period-lock（M1/M8）：锁内唯一定位+行号+归属重核+双向门禁
-        // [审①] 版本绑定：锁外读到的内容哈希传入，锁内重核不符即拒（last-write-wins 防护）；
+        // [审①-v4] 版本绑定：锁外读到的内容哈希传入，锁内重核不符即拒（last-write-wins 防护）；
         //       expectDeleted=false：锁外循环已跳过已删行，锁内发现已删 → 拒（删除幂等）
         return _plGuardedMutation({
           sheet: sheet,
           uuid: safeGetUuid(data[i][8]),
           newDateRaw: f.date,
-          expectContentHash: _plRowContentHash(data[i]),
+          expectContentHash: expectVersion,
           expectName: String(user.name),            // [审2] 锁内归属重核
           expectDeleted: false,                     // [审①] 删除幂等
           bizWrite: function (recheck, policy) {
@@ -153,10 +165,11 @@ function updateTimesheet(token, f) {
     }
     throw new Error("Record not found or no permission to edit. / 记录未找到或无权限修改");
   } catch (e) {
-    // [审③] 重抛保留 plCode/plLogFailed，供调用方分层识别（拒绝码 vs 登记失败外显）
+    // [审③] 重抛保留 plCode/plLogFailed/plCause，供调用方分层识别（拒绝码 vs 登记失败外显）
     var ne = new Error(e.message || "Update failed / 更新失败");
     if (e && e.plCode) ne.plCode = e.plCode;
     if (e && e.plLogFailed) ne.plLogFailed = true;
+    if (e && e.plCause) ne.plCause = e.plCause;
     throw ne;
   }
 }
@@ -164,21 +177,29 @@ function updateTimesheet(token, f) {
 // ============================================================
 // 入口 3/5：softDeleteRecord（Code.gs L483 替换）
 // ============================================================
-function softDeleteRecord(token, uuid) {
+function softDeleteRecord(token, uuid, expectContentHash) {
   try {
     const user = getCurrentUser(token);
     const sheet = getDbSheet();
     const data = sheet.getDataRange().getValues();
 
+    // [审①-v4] 请求级版本绑定（同 updateTimesheet）：缺省拒绝
+    const expectVersion = expectContentHash ? String(expectContentHash).trim() : '';
+    if (!expectVersion) {
+      const em = new Error('PL_REJECT_MISSING_EXPECT_VERSION');
+      em.plCode = 'PL_REJECT_MISSING_EXPECT_VERSION';
+      throw em;
+    }
+
     for (let i = 1; i < data.length; i++) {
       if (safeGetUuid(data[i][8]) == String(uuid).trim() && String(data[i][2]) === String(user.name)) {
         // period-lock（M1/M8）：删除场景以锁内实读原期间过门禁
-        // [审①] 版本绑定 + 删除幂等：删除入口恒定期望目标行未删；已删行的再删一律拒
+        // [审①-v4] 版本绑定 + 删除幂等：删除入口恒定期望目标行未删；已删行的再删一律拒
         return _plGuardedMutation({
           sheet: sheet,
           uuid: safeGetUuid(data[i][8]),
           newDateRaw: data[i][1],                   // 删除不产生新日期：以原期间过门禁
-          expectContentHash: _plRowContentHash(data[i]),
+          expectContentHash: expectVersion,
           expectName: String(user.name),            // [审2] 锁内归属重核
           expectDeleted: false,                     // [审①] 已删即拒（删除幂等）
           bizWrite: function (recheck, policy) {
@@ -192,10 +213,11 @@ function softDeleteRecord(token, uuid) {
     }
     throw new Error("Record not found or no permission to delete. / 记录未找到或无权限删除");
   } catch (e) {
-    // [审③] 重抛保留 plCode/plLogFailed
+    // [审③] 重抛保留 plCode/plLogFailed/plCause
     var ne = new Error(e.message || "Delete failed / 删除失败");
     if (e && e.plCode) ne.plCode = e.plCode;
     if (e && e.plLogFailed) ne.plLogFailed = true;
+    if (e && e.plCause) ne.plCause = e.plCause;
     throw ne;
   }
 }
@@ -304,6 +326,9 @@ function tsAppendRows(e) {
 // ============================================================
 // 入口 5/5：tsPatchCells（RemoteActions.gs L138 替换 · [审1]/[审3]/[审⑤]）
 // ============================================================
+// [审①-v4] 覆盖边界明示：本通道为直接改格子的远程批量工具，**无请求级版本概念**，
+// 明确降格为「仅服务端短窗口防护」（锁内实读+门禁），不宣称请求级 last-write-wins
+// 保护；用户表单编辑必须走 updateTimesheet（强请求级版本绑定）。
 function tsPatchCells(e) {
   e = e || {};
   var p = e.parameter || {};
@@ -350,12 +375,19 @@ function tsPatchCells(e) {
           // [审3] 写完成边界：释放锁前 flush
           SpreadsheetApp.flush();
         } catch (err2) {
-          // [审3] 进入写阶段后的任何异常登记一次（含普通 Error）
+          // [审3][审③-v4] 进入写阶段后的任何异常=结果不确定：登记一次 + 统一
+          // PL_UNCERTAIN_PATCH_WRITE_FAILED 码与 plCause（与预检拒绝分层）；
+          // plLogFailed 按实际登记结果设置（登记成功=false，不误报）
           if (enteredWrite) {
-            var logged = _plLogUncertain('patch_write_or_flush',
+            var loggedP = _plLogUncertain('patch_write_or_flush',
                             'cells=' + cells.length + ' ranges=' + ranges.length +
                             ' err=' + String((err2 && err2.message) || err2));
-            if (!logged) err2.plLogFailed = true;       // [审③] 登记失败外显
+            if (err2 && err2.plCode) throw err2;    // 已结构化不双包
+            var ue = new Error('PL_UNCERTAIN_PATCH_WRITE_FAILED');
+            ue.plCode = 'PL_UNCERTAIN_PATCH_WRITE_FAILED';
+            ue.plCause = String((err2 && err2.message) || err2);
+            ue.plLogFailed = !loggedP;
+            throw ue;
           }
           throw err2;
         } finally {
@@ -380,12 +412,13 @@ function tsPatchCells(e) {
     _tsWriteLog('patchCells' + (dry ? '(dry)' : ''), 'ss=' + _ssid + ' sheet=' + sheetName + ' cells=' + cells.length + ' ranges=' + ranges.length + ' done=' + n);
     return JSON.stringify({ ok: true, dry: dry, patched: dry ? 0 : n, requested: cells.length + ranges.length, ssid: SpreadsheetApp.openById(_ssid).getId(), sheet: sheetName });
   } catch (err) {
-    // [审③] 登记失败外显
+    // [审③] 登记失败外显；plCause 一并透出（结果不确定时保留原始原因）
     var msg2 = String((err && err.message) || err);
     var lf2 = !!(err && err.plLogFailed);
     if (lf2) {
       msg2 += '（⚠ 不确定批次登记失败：_TS_WRITE_LOG 不存在或不可写，请人工核查后补登记；本错误不得吞）';
     }
-    return JSON.stringify({ ok: false, error: msg2, plCode: (err && err.plCode) || '', logFailed: lf2 });
+    return JSON.stringify({ ok: false, error: msg2, plCode: (err && err.plCode) || '',
+                            plCause: (err && err.plCause) || '', logFailed: lf2 });
   }
 }
