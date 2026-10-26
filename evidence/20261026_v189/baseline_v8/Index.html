@@ -1,0 +1,1245 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <base target="_top">
+    <meta http-equiv="Cache-Control" content="no-cache, no-store, must-revalidate">
+    <meta http-equiv="Pragma" content="no-cache">
+    <meta http-equiv="Expires" content="0">
+    <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/@picocss/pico@1/css/pico.min.css">
+    <meta name="viewport" content="width=device-width, initial-scale=1">
+    <style>
+        :root { --primary: #B11D3D; --primary-hover: #8E1733; --bg: #f5f5f7; --card-bg: #ffffff; --text-main: #1d1d1f; --text-muted: #86868b; --border-color: #d2d2d7; --radius-lg: 18px; --radius-md: 12px; }
+        body { background-color: var(--bg); color: var(--text-main); font-family: -apple-system, BlinkMacSystemFont, "SF Pro Text", "PingFang SC", "Hiragino Sans GB", "Microsoft YaHei", sans-serif; -webkit-font-smoothing: antialiased; padding: 20px 10px; line-height: 1.5; }
+        .container { max-width: 800px; margin: 0 auto; }
+        header { margin-bottom: 30px; padding: 0 10px; display: flex; justify-content: space-between; align-items: flex-start; flex-wrap: wrap; gap: 8px; }
+        header h2 { font-weight: 700; color: var(--text-main); margin-bottom: 4px; font-size: 1.6rem; }
+        header p { color: var(--text-muted); font-size: 0.85rem; font-weight: 500; }
+        .logout-btn { font-size: 0.85rem; color: var(--text-muted); text-decoration: underline; cursor: pointer; margin-top: 8px; }
+        .logout-btn:hover { color: #ff3b30; }
+        .card { background: var(--card-bg); padding: 30px; border-radius: var(--radius-lg); box-shadow: 0 4px 20px rgba(0, 0, 0, 0.03); margin-bottom: 25px; border: none; }
+        label { font-weight: 600; font-size: 0.88rem; color: var(--text-main); margin-bottom: 8px; display: flex; align-items: center; gap: 5px; }
+        input, select, textarea { border: 1px solid transparent !important; background-color: #f5f5f7 !important; border-radius: var(--radius-md) !important; font-size: 0.95rem !important; padding: 12px 16px !important; color: var(--text-main) !important; transition: all 0.2s cubic-bezier(0.4, 0, 0.2, 1) !important; box-shadow: none !important; }
+        input:focus, select:focus { background-color: #ffffff !important; border-color: var(--primary) !important; box-shadow: 0 0 0 4px rgba(177, 29, 61, 0.12) !important; }
+        .status-msg { font-size: 0.75rem; margin-top: 6px; font-weight: 500; }
+        #stageBtn, #batchSubBtn, #authBtn { background: var(--primary) !important; border: none !important; border-radius: var(--radius-md) !important; font-weight: 600 !important; font-size: 1rem !important; padding: 16px !important; margin-top: 10px; cursor: pointer; transition: transform 0.1s ease; color: white; width: 100%;}
+        #stageBtn:disabled, #authBtn:disabled { background: #e5e5ea !important; color: #a1a1a6 !important; }
+        table { border-collapse: collapse; width: 100%; border: none; }
+        th { background: transparent; color: var(--text-muted); font-size: 0.75rem; text-transform: uppercase; letter-spacing: 0.05em; border-bottom: 1px solid #f2f2f7; padding: 15px 10px !important; }
+        td { padding: 18px 10px !important; border-bottom: 1px solid #f2f2f7; font-size: 0.9rem; }
+        .total-row td { color: var(--primary); font-weight: 700; border-top: 1px solid #e5e5ea; }
+        #finderResults { border: none; box-shadow: 0 10px 30px rgba(0,0,0,0.1); border-radius: var(--radius-md); max-height: 250px; overflow-y: auto; margin-top: 8px; }
+        .finder-item { padding: 14px 16px; background: white; border-bottom: 1px solid #f2f2f7; transition: background 0.2s; font-size: 0.85rem; cursor: pointer; }
+        .finder-item:hover { background: #f5f5f7; }
+        .staged-box { background: #fbeef2; padding: 20px; border-radius: var(--radius-md); margin-top: 25px; }
+        .staged-item { background: white; padding: 12px 16px; border-radius: 10px; margin-bottom: 10px; display: flex; justify-content: space-between; align-items: center; font-size: 0.85rem; box-shadow: 0 2px 5px rgba(0,0,0,0.02); }
+        .loading-mask { position: fixed; top:0; left:0; width:100%; height:100%; background:rgba(255,255,255,0.7); backdrop-filter: blur(10px); display:none; flex-direction:column; justify-content:center; align-items:center; z-index:999; }
+        /* V4.3.6: 明细补录改为响应式卡片，解决窄屏横向溢出看不清 */
+        .batch-cards { display: grid; grid-template-columns: repeat(auto-fill, minmax(290px, 1fr)); gap: 12px; margin: 0 -2px; }
+        .batch-card { border: 1px solid #f2f2f7; border-radius: var(--radius-md); padding: 14px 16px; background: #fff; box-shadow: 0 1px 3px rgba(0,0,0,0.02); }
+        .batch-card.new { background: #fbeef2; border-color: #f0cfd8; }
+        .batch-card.editing { background: #fff9e6; border-color: #ffe09a; }
+        .bc-head { display:flex; justify-content:space-between; align-items:center; margin-bottom:10px; padding-bottom:8px; border-bottom:1px solid #f2f2f7; }
+        .bc-date { font-weight:700; font-size:0.95rem; color: var(--text-main); }
+        .bc-hours { font-weight:700; color:var(--primary); font-size:0.95rem; }
+        .bc-row { display:flex; gap:10px; margin-bottom:7px; font-size:0.85rem; line-height:1.4; }
+        .bc-label { color:var(--text-muted); min-width:38px; flex-shrink:0; }
+        .bc-val { color:var(--text-main); flex:1; word-break: break-word; }
+        .bc-actions { text-align:right; margin-top:6px; }
+        .bc-actions a { font-size:0.82rem; font-weight:600; cursor:pointer; }
+        .bc-in { width:100% !important; min-width:0 !important; padding:7px 9px !important; font-size:0.85rem; border:1px solid #d2d2d7 !important; border-radius:8px !important; background:#fff !important; box-sizing:border-box !important; margin-bottom:8px; }
+        /* V4.3.6: 出勤自检日历热力图 */
+        .heat-wrap { overflow-x:auto; }
+        .heat-grid { display:grid; grid-template-columns: repeat(7, 1fr); gap:6px; min-width: 320px; }
+        .heat-cell { border-radius:10px; display:flex; flex-direction:column; align-items:center; justify-content:center; padding:6px 2px; min-height:54px; color:#1d1d1f; }
+        .heat-cell .hd { font-weight:700; font-size:0.95rem; line-height:1; }
+        .heat-cell .hs { font-size:0.6rem; margin-top:3px; opacity:0.85; }
+        .heat-wkhead { text-align:center; font-size:0.68rem; color:var(--text-muted); font-weight:600; padding-bottom:2px; }
+        .heat-miss { background:#FFE0E0; color:#c0392b; }   /* Miss 0h / 漏填 */
+        .heat-low  { background:#FFF0D6; color:#b9770e; }   /* 少填 <8h */
+        .heat-ok   { background:#E3F6E8; color:#1e7d3a; }   /* 充足 >=8h */
+        .heat-leave{ background:#E4ECFB; color:#2b6cd4; }   /* Leave / 请假 */
+        .heat-off  { background:#f2f2f7; color:#a1a1a6; }   /* 周末/未来 */
+        .heat-legend { display:flex; flex-wrap:wrap; gap:12px; font-size:0.75rem; color:var(--text-muted); margin: 10px 0 16px 0; }
+        .heat-legend span { display:inline-flex; align-items:center; gap:5px; }
+        .heat-legend i { width:12px; height:12px; border-radius:3px; display:inline-block; }
+        /* V4.3.16: 手机端热力图终极方案 — 完全流式(无最小宽度/无横向滚动)，7列自适应屏宽；
+           日期与状态标签允许换行，绝不溢出可视区 */
+        @media (max-width: 768px) {
+            body { padding: 10px 6px; }
+            .card { padding: 16px; }
+            .heat-wrap { overflow-x: hidden; width: 100%; position: relative; }
+            .heat-grid { min-width: 0; width: 100%; grid-template-columns: repeat(7, 1fr); gap: 3px; }
+            .heat-cell { min-height: 46px; padding: 4px 1px; border-radius: 6px; min-width: 0; overflow: hidden; }
+            .heat-cell .hd { font-size: 0.72rem; line-height: 1.05; white-space: normal; word-break: break-word; overflow: hidden; }
+            .heat-cell .hs { font-size: 0.54rem; margin-top: 1px; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; max-width: 100%; }
+            .heat-wkhead { font-size: 0.56rem; padding-bottom: 1px; }
+            .heat-legend { gap: 6px; font-size: 0.6rem; margin: 8px 0 10px 0; }
+            .heat-legend i { width: 9px; height: 9px; }
+        }
+        /* V4.3.8: SpaceMatrix 品牌头 + 日期选择器图标显形 */
+        .brand-block { display:flex; align-items:center; gap:14px; }
+        .brand-logo { height:46px; width:auto; flex-shrink:0; }
+        .brand-text h2 { font-weight:700; color:var(--text-main); margin:0 0 2px 0; font-size:1.5rem; }
+        .brand-text p { color:var(--text-muted); font-size:0.82rem; font-weight:500; margin:0; }
+        /* 还原原生日期选择器图标（部分浏览器被 appearance:none 隐藏） */
+        input[type="date"] { -webkit-appearance:auto; appearance:auto; }
+        input[type="date"]::-webkit-calendar-picker-indicator { opacity:1 !important; cursor:pointer; }
+        .bc-in[type="date"] { padding-right:8px !important; }
+        /* V4.3.24: Overview 周期切换全端统一用分段按钮，桌面/手机都显示中英双语 */
+        #weekSelector { display: none; }
+        .week-seg-mobile { display: flex; flex: 0 0 auto; gap: 6px; }
+        .seg-btn { flex: 0 1 auto; min-width: 86px; padding: 7px 10px; border: 0.5px solid var(--border-color); border-radius: var(--radius-md); background: var(--card-bg); color: var(--text-main); cursor: pointer; white-space: normal; line-height: 1.15; display: flex; flex-direction: column; align-items: center; justify-content: center; gap: 1px; }
+        .seg-btn .en { font-size: 0.68rem; font-weight: 600; }
+        .seg-btn .zh { font-size: 0.88rem; font-weight: 700; }
+        .seg-btn.active { background: var(--primary); color: #fff; border-color: var(--primary); }
+        @media (max-width: 768px) {
+            .seg-btn { flex: 1 1 0; min-width: 0; padding: 7px 2px; }
+            .seg-btn .en { font-size: 0.62rem; }
+            .seg-btn .zh { font-size: 0.82rem; }
+        }
+
+        /* V4.3.11: 手机端本月看板隐藏每日时间列，仅保留「项目 + 合计」汇总，避免每日列挤占空间 */
+        @media (max-width: 768px) {
+            header { flex-wrap: wrap; gap: 8px; }
+            nav { flex-wrap: wrap; }
+            nav button { flex: 1 1 auto; min-width: 90px; }
+            table thead th.day-col,
+            table tbody td.day-col,
+            table tfoot td.day-col { display: none; }
+            table thead th.total-col { min-width: 64px; }
+            /* V4.3.19: 本月/本周表只留「项目+合计」两列，项目列收窄避免被截断 */
+            table thead th:first-child,
+            table tbody td:first-child { min-width: 110px; max-width: 48vw; }
+            table tfoot td.total-col { min-width: 56px; }
+            /* V4.3.24: 手机端分段按钮撑满整行 */
+            .week-seg-mobile { flex: 1 1 100%; width: 100%; }
+            /* V4.3.21: 出勤自检控制行允许换行，Dedup 按钮不再被挤出卡片 */
+            .heat-ctrl-row { flex-wrap: wrap; }
+            #heatMonthSelector { flex: 1 1 140px; min-width: 120px; }
+            .heat-ctrl-row .dedup-btn { flex: 1 1 100%; }
+        }
+    </style>
+</head>
+<body>
+    <div id="loader" class="loading-mask"><div aria-busy="true"></div><p style="font-weight:600; margin-top:15px;" id="loaderText">Processing / 处理中...</p></div>
+
+    <div id="authOverlay" class="loading-mask" style="display:flex; background:rgba(245,245,247,0.98); z-index:1000;">
+        <div class="card" style="max-width: 350px; width: 90%; text-align: center; padding: 40px 20px;">
+            <h3 style="margin-bottom: 10px;">Auth / 身份验证</h3>
+            <p style="color: var(--text-muted); font-size: 0.9rem; margin-bottom: 25px;">Verify your company email / 请验证公司邮箱</p>
+            <input type="email" id="authEmail" placeholder="name@company.com" style="margin-bottom: 15px; width: 100%; text-align: center;">
+            <button type="button" onclick="doAuth()" id="authBtn">Verify / 验证</button>
+            <p id="authError" style="color: #ff3b30; font-size: 0.85rem; margin-top: 15px; display: none; font-weight: 500;"></p>
+        </div>
+    </div>
+
+    <main class="container" id="mainApp" style="display: none;">
+        <header>
+            <div class="brand-block">
+                <img src="data:image/png;base64,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" alt="SpaceMatrix" class="brand-logo">
+                <div class="brand-text">
+                    <h2>SpaceMatrix 工时管理系统</h2>
+                    <p>TimeSheet Manager · Hi <span id="displayUserName">...</span> · 记录每一份努力 <span id="appVersionBadge" style="margin-left:6px;font-size:0.7rem;color:#B11D3D;background:#fbeef2;padding:1px 6px;border-radius:10px;font-weight:600;"></span></p>
+                </div>
+            </div>
+            <a onclick="doLogout()" class="logout-btn">Logout / 退出登录</a>
+    </header>
+
+    <nav style="display:flex; flex-wrap:wrap; gap:8px; margin: 0 10px 20px 10px;">
+        <button type="button" id="tabBtnInput" onclick="switchTab('input')" style="flex:1; padding:11px; border:0.5px solid var(--border-color); border-radius: var(--radius-md); background: var(--primary); color: white; font-weight: 600; font-size: 0.9rem; cursor:pointer; transition: all 0.2s;">Entry / 录入</button>
+        <button type="button" id="tabBtnBatch" onclick="switchTab('batch')" style="flex:1; padding:11px; border:0.5px solid var(--border-color); border-radius: var(--radius-md); background: transparent; color: var(--text-main); font-weight: 600; font-size: 0.9rem; cursor:pointer; transition: all 0.2s;">Detail / 明细补录</button>
+        <button type="button" id="tabBtnHeat" onclick="switchTab('heat')" style="flex:1; padding:11px; border:0.5px solid var(--border-color); border-radius: var(--radius-md); background: transparent; color: var(--text-main); font-weight: 600; font-size: 0.9rem; cursor:pointer; transition: all 0.2s;">Att. / 出勤自检</button>
+    </nav>
+
+    <div id="tabInput">
+        <section class="card">
+            <form id="timeForm">
+                <input type="hidden" name="uuid" id="editUuid">
+                <input type="hidden" name="expectContentHash" id="editHash">
+                <div class="grid">
+                    <div>
+                        <label>Date / 日期</label>
+                        <input type="date" name="date" id="inputDate" required lang="en">
+                    </div>
+                    <div>
+                        <label>Category / 分类</label>
+                        <select name="stage" id="stageSelect" required onchange="handleStageChange()">
+                            <option value="" disabled selected>Select / 请选择</option>
+                            <option value="1. 投标">1. 投标 | Bidding</option>
+                            <option value="2. 设计阶段">2. 设计阶段 | Design</option>
+                            <option value="3. 施工阶段">3. 施工阶段 | Construction</option>
+                            <option value="4. 免费维保">4. 免费维保 | Maintenance</option>
+                            <option value="5. 收费售后">5. 收费售后 | Paid Service</option>
+                            <option value="6. 培训/活动">6. 培训/活动 | Internal</option>
+                        </select>
+                    </div>
+                </div>
+
+                <div class="grid">
+                    <div>
+                        <label>Project ID / 项目编号</label>
+                        <input type="text" name="project" id="projectInput" placeholder="e.g. 26-041" onblur="validate()">
+                        <small id="status" class="status-msg"></small>
+                    </div>
+                    <div>
+                        <label>Hours / 工时</label>
+                        <input type="number" name="hours" step="0.5" min="0.5" placeholder="0" required>
+                    </div>
+                </div>
+
+                <div id="searchArea" style="margin-bottom: 20px;">
+                    <label style="color: var(--text-muted); font-size: 0.75rem;">Project Search / 搜名称找 ID</label>
+                    <input type="text" id="projectFinder" placeholder="Keyword..." oninput="findProject()">
+                    <div id="finderResults"></div>
+                </div>
+
+                <label>Description / 工作简述</label>
+                <input type="text" name="notes" placeholder="What did you do today? / 今天做了什么？" required>
+                
+                <div style="margin-top: 20px;">
+                    <button type="button" id="stageBtn" disabled onclick="handlePrimaryAction()">Verify ID to continue / 验证编号</button>
+                    <button type="button" id="canBtn" class="secondary outline" style="display:none; margin-top:10px; width:100%;" onclick="cancelEdit()">Cancel / 取消</button>
+                </div>
+
+                <div id="stagedBox" class="staged-box" style="display: none;">
+                    <div id="stagedWarn" style="display:block; margin-bottom:10px;"></div>
+                    <div style="display:flex; justify-content:space-between; margin-bottom:15px; align-items:center;">
+                        <span style="font-weight:700;">Staged / 待提交</span>
+                        <span id="stagedTotalHours" style="font-size:0.8rem; font-weight:700; color:var(--primary);">0h</span>
+                    </div>
+                    <div id="stagedList"></div>
+                    <button type="button" id="batchSubBtn" onclick="submitBatch()">Submit / 提交</button>
+                </div>
+            </form>
+        </section>
+
+        <section class="card" style="padding: 20px;">
+            <div style="display:flex; flex-wrap:wrap; gap:8px; align-items:center; margin-bottom:20px;">
+                <span id="rangeTitle" style="font-weight:700; font-size:0.9rem;">Overview / 概览</span>
+                <select id="weekSelector" onchange="init()" style="width:auto; min-width: 120px; flex:1; margin:0; height:34px; font-size:0.8rem; padding: 0 10px; color: var(--text-main); background-color: var(--card-bg); border: 0.5px solid var(--border-color); border-radius: var(--radius-md); font-weight: 600;">
+                    <option value="month" selected>This Month / 本月</option>
+                    <option value="0">This Week / 本周</option>
+                    <option value="1">Last Week / 上周</option>
+                </select>
+                <div class="week-seg-mobile" role="group" aria-label="周期切换">
+                    <button type="button" class="seg-btn active" data-wv="month" onclick="setWeekRange('month')"><span class="en">This Month</span><span class="zh">本月</span></button>
+                    <button type="button" class="seg-btn" data-wv="0" onclick="setWeekRange('0')"><span class="en">This Week</span><span class="zh">本周</span></button>
+                    <button type="button" class="seg-btn" data-wv="1" onclick="setWeekRange('1')"><span class="en">Last Week</span><span class="zh">上周</span></button>
+                </div>
+            </div>
+            <div style="overflow-x:auto;">
+                <table>
+                    <thead>
+                        <tr>
+                            <th style="min-width:140px;">Project / 项目</th>
+                            <th class="day-col">Mon / 一</th><th class="day-col">Tue / 二</th><th class="day-col">Wed / 三</th><th class="day-col">Thu / 四</th><th class="day-col">Fri / 五</th><th class="day-col">Sat / 六</th><th class="day-col">Sun / 日</th>
+                            <th class="total-col">合计 / Total</th>
+                        </tr>
+                    </thead>
+                    <tbody id="mBody"></tbody>
+                    <tfoot id="mFoot"></tfoot>
+                </table>
+            </div>
+        </section>
+
+        <section class="card" style="padding: 20px;">
+            <div id="lBody"></div>
+        </section>
+    </div>
+
+    <div id="tabBatch" style="display:none; max-width: none;">
+        <section class="card" style="max-width: none;">
+            <div style="display:flex; flex-wrap:wrap; gap:8px; align-items:flex-start; margin-bottom: 18px;">
+                <div>
+                    <h3 style="margin:0 0 4px 0; font-size: 1.05rem; color: var(--text-main); font-weight: 700;">Detail / 明细补录</h3>
+                    <small style="color: var(--text-muted); font-size: 0.78rem;">Multi-entry · Paste Excel · Inline edit / 一次性填多条 · 粘贴 Excel · 行内编辑</small>
+                </div>
+                <div style="display:flex; align-items:center; gap:6px;">
+                    <button type="button" onclick="batchNavMonth(-1)" title="Previous month / 上月" aria-label="Previous month / 上月" style="padding: 6px 12px; border: 0.5px solid var(--border-color); border-radius: var(--radius-md); background: var(--card-bg); color: var(--text-main); cursor:pointer; font-size: 0.9rem; font-weight: 700; min-width: 42px;">←</button>
+                    <select id="batchMonthSelector" onchange="loadBatchMonth()" style="padding: 5px 8px; border: 0.5px solid var(--border-color) !important; border-radius: var(--radius-md) !important; background: var(--card-bg) !important; font-size: 0.82rem !important; height: auto !important; min-width: 160px;"></select>
+                    <button type="button" onclick="batchNavMonth(1)" title="Next month / 下月" aria-label="Next month / 下月" style="padding: 6px 12px; border: 0.5px solid var(--border-color); border-radius: var(--radius-md); background: var(--card-bg); color: var(--text-main); cursor:pointer; font-size: 0.9rem; font-weight: 700; min-width: 42px;">→</button>
+                </div>
+            </div>
+            <div style="display:flex; gap:8px; margin-bottom: 14px; align-items: center;">
+                <button type="button" onclick="addNewBatchRow()" style="padding: 8px 14px; border: 0.5px solid var(--border-color); border-radius: var(--radius-md); background: var(--card-bg); color: var(--text-main); font-weight: 500; cursor:pointer; font-size: 0.88rem;">+ Add / 新增</button>
+                <button type="button" onclick="openPasteModal()" style="padding: 8px 14px; border: 0.5px solid var(--border-color); border-radius: var(--radius-md); background: var(--card-bg); color: var(--text-main); font-weight: 500; cursor:pointer; font-size: 0.88rem;">Paste / 粘贴</button>
+                <div style="flex:1;"></div>
+                <button type="button" id="batchSaveBtn" onclick="saveBatch()" style="padding: 9px 20px; border: none; border-radius: var(--radius-md); background: var(--primary); color: white; font-weight: 600; cursor:pointer; font-size: 0.9rem;">Save / 保存</button>
+            </div>
+            <div style="overflow-x: auto; -webkit-overflow-scrolling: touch; margin: 0 -12px;">
+                <div class="batch-cards" id="batchTbody"></div>
+            </div>
+            <div id="batchSummary" style="display:flex; justify-content:space-between; margin-top: 14px; font-size: 0.8rem; color: var(--text-muted);"></div>
+            <div style="margin-top: 14px; padding: 10px 14px; background: #f5f5f7; border-radius: var(--radius-md); font-size: 0.78rem; color: var(--text-muted); line-height: 1.6;">
+                Copy rows in Excel → tap Paste / 粘贴 → auto-parse into rows → tap Save / 保存 to bulk submit. Backend submitBatch ready. / 在 Excel 选好行复制 → 点「粘贴」→ 自动解析为多条 → 点「保存」批量入库。后端已就绪。
+            </div>
+        </section>
+    </div>
+
+    <div id="tabHeat" style="display:none; max-width: none;">
+        <section class="card" style="max-width: none;">
+            <div style="display:flex; flex-wrap:wrap; gap:8px; align-items:flex-start; margin-bottom: 12px;">
+                <div>
+                    <h3 style="margin:0 0 4px 0; font-size: 1.05rem; color: var(--text-main); font-weight: 700;">Att. / 出勤自检</h3>
+                    <small style="color: var(--text-muted); font-size: 0.78rem;">Check missing / short hours (std 8h/day) / 自查漏填/少填</small>
+                </div>
+                <div class="heat-ctrl-row" style="display:flex; align-items:center; gap:6px;">
+                    <button type="button" onclick="heatNavMonth(-1)" title="Previous month / 上月" style="padding: 6px 12px; border: 0.5px solid var(--border-color); border-radius: var(--radius-md); background: var(--card-bg); color: var(--text-main); cursor:pointer; font-size: 0.85rem; font-weight: 700; min-width: 42px;">←</button>
+                    <select id="heatMonthSelector" onchange="loadHeatmap()" style="padding: 6px 10px; border: 0.5px solid var(--border-color) !important; border-radius: var(--radius-md) !important; background: var(--card-bg) !important; color: var(--text-main) !important; font-size: 0.85rem !important; font-weight: 600 !important; height: auto !important; min-width: 160px; cursor:pointer;"></select>
+                    <button type="button" onclick="heatNavMonth(1)" title="Next month / 下月" style="padding: 6px 12px; border: 0.5px solid var(--border-color); border-radius: var(--radius-md); background: var(--card-bg); color: var(--text-main); cursor:pointer; font-size: 0.85rem; font-weight: 700; min-width: 42px;">→</button>
+                    <button type="button" class="dedup-btn" onclick="cleanupLeaves()" title="Remove duplicate leave records / 清理重复请假记录" style="padding: 6px 12px; border: 0.5px solid var(--border-color); border-radius: var(--radius-md); background: var(--card-bg); color: var(--text-main); cursor:pointer; font-size: 0.78rem; font-weight: 600; margin-left:4px;">🧹 <span class="dedup-full">Dedup / </span>去重</button>
+                </div>
+            </div>
+            <div class="heat-legend">
+                <span><i class="heat-ok"></i>OK ≥8h / 充足</span>
+                <span><i class="heat-low"></i>Short &lt;8h / 少填</span>
+                <span><i class="heat-miss"></i>Miss 0h / 漏填</span>
+                <span><i class="heat-leave"></i>Leave / 请假</span>
+                <span><i class="heat-off"></i>Off / 周末</span>
+            </div>
+            <div id="heatSummary" style="font-size:0.82rem; color:var(--text-main); margin-bottom:12px; font-weight:600;"></div>
+            <div class="heat-wrap">
+                <div class="heat-grid" id="heatGrid"></div>
+            </div>
+            <div id="leaveList" style="margin-top:14px;"></div>
+            <div style="margin-top: 14px; padding: 10px 14px; background: #f5f5f7; border-radius: var(--radius-md); font-size: 0.78rem; color: var(--text-muted); line-height: 1.6;">
+                Red = missing (0h); Orange = short (&lt;8h); Green = met. Weekends, public holidays & future dates excluded. Leave shown blue (half-day shows actual hours). / 红色=漏填，橙色=少填，绿色=达标；周末/法定节假日/未来不计入考核，请假为蓝色（半天显示实际工时）。
+            </div>
+        </section>
+    </div>
+    </main>
+
+    <dialog id="pasteModal" style="border:none; border-radius: var(--radius-lg); padding:0; max-width: 580px; width: 92%; box-shadow: 0 10px 40px rgba(0,0,0,0.15);">
+        <article style="margin:0; padding: 22px;">
+            <header style="background: transparent; border-bottom: 1px solid #f2f2f7; padding: 0 0 12px 0; margin-bottom: 14px;">
+                <p style="font-weight: 700; font-size: 1.05rem; color: var(--text-main);"><strong>Paste Excel / TSV / 粘贴</strong></p>
+            </header>
+            <p style="font-size: 0.82rem; color: var(--text-muted); margin: 0 0 10px 0; line-height: 1.6;">
+                Copy rows in Excel (Ctrl/Cmd+C), then paste below (Ctrl/Cmd+V).<br>
+                在 Excel 选好行复制，然后在下方框内粘贴。<br>
+                Columns auto-detected: <b>Date / 日期</b> / <b>Project ID / 项目编号</b> / <b>Stage / 阶段</b> / <b>Hours / 工时</b> / <b>Note / 备注</b>. Stage examples: "1. 投标 | Bidding", "2. 设计阶段 | Design"; header row auto-skipped. / 列顺序自动识别：日期/项目编号/阶段/工时/备注；表头行自动跳过。
+            </p>
+            <div style="display:flex; gap:8px; align-items:center; margin: 0 0 8px 0;">
+                <span style="font-size:0.8rem; font-weight:600; color:var(--text-main);">Template / 模板</span>
+                <button type="button" onclick="copyTemplate()" style="padding: 6px 12px; border: 0.5px solid var(--primary); border-radius: var(--radius-md); background: #fff; color: var(--primary); font-weight: 600; cursor:pointer; font-size: 0.8rem;">Copy / 复制模板</button>
+            </div>
+            <textarea id="templateText" rows="3" readonly onclick="this.select()" style="width:100%; font-family: ui-monospace, monospace; font-size: 0.8rem; padding: 8px; border: 1px solid var(--border-color) !important; border-radius: var(--radius-md) !important; background: #f5f5f7 !important; box-sizing: border-box; resize: none; color:var(--text-muted);">Date / 日期&#9;Project ID / 项目编号&#9;Stage / 阶段&#9;Hours / 工时&#9;Note / 备注
+2026-07-20&#9;26-041&#9;2. 设计阶段 | Design&#9;8&#9;Facade / 立面配合
+2026-07-21&#9;26-041&#9;2. 设计阶段 | Design&#9;6&#9;Design briefing / 初设交底</textarea>
+            <textarea id="pasteTextarea" rows="7" placeholder="2026-07-20&#9;26-041&#9;CA&#9;8&#9;Facade / 立面配合&#10;2026-07-21&#9;26-041&#9;CD&#9;6&#9;Design briefing / 初设交底" style="width:100%; font-family: ui-monospace, monospace; font-size: 0.85rem; padding: 10px; border: 1px solid var(--border-color) !important; border-radius: var(--radius-md) !important; background: #f5f5f7 !important; box-sizing: border-box; resize: vertical;"></textarea>
+            <div id="pastePreview" style="margin-top: 10px; max-height: 110px; overflow-y: auto; font-size: 0.8rem;"></div>
+            <footer style="display:flex; gap:8px; justify-content:flex-end; margin-top: 18px; padding: 0;">
+                <button type="button" onclick="closePasteModal()" style="padding: 9px 18px; border: 0.5px solid var(--border-color); border-radius: var(--radius-md); background: var(--card-bg); color: var(--text-main); font-weight: 500; cursor:pointer;">Cancel / 取消</button>
+                <button type="button" id="pasteConfirmBtn" onclick="confirmPaste()" style="padding: 9px 20px; border: none; border-radius: var(--radius-md); background: var(--primary); color: white; font-weight: 600; cursor:pointer;">Import / 导入</button>
+            </footer>
+        </article>
+    </dialog>
+
+    <script>
+        let pMap = {}; let currentLogs = []; let stagedTasks = [];
+        let currentToken = null;
+        let searchTimer = null; 
+
+        // 必须与 Code.js 里 TS_APP_VERSION 一致；旧版 HTML 加载后会发现不匹配并自动重载
+        const APP_VERSION = '4.3.72';
+        var TS_VER_RELOAD_KEY = 'ts_ver_reload_done_v1';
+
+        function escapeHtml(str) {
+            return String(str).replace(/&/g, "&amp;").replace(/</g, "&lt;").replace(/>/g, "&gt;").replace(/"/g, "&quot;").replace(/'/g, "&#039;");
+        }
+
+        // 旧缓存 HTML 自动升级：服务器永远跑最新代码，对比本地 HTML 版本，不一致就强制跳转新版本 URL（带 v 参数彻底绕过浏览器/边缘缓存）
+        function checkVersion() {
+            try {
+                google.script.run
+                    .withSuccessHandler(srv => {
+                        if (srv && srv.version && srv.version !== APP_VERSION) {
+                            // 护栏（2026-10-14）：同一版本只强制刷新一次；若刷新后仍失配（部署的 HTML 版本号没跟上服务端），
+                            // 就停止刷新、只保留顶部提示，保证 App 仍可正常填报 —— 不再出现无限刷新白屏。
+                            var alreadyTried = false;
+                            try { alreadyTried = sessionStorage.getItem(TS_VER_RELOAD_KEY) === String(srv.version); } catch (e) {}
+                            if (alreadyTried) {
+                                showVersionBanner(srv.version, true);
+                                return;
+                            }
+                            try { sessionStorage.setItem(TS_VER_RELOAD_KEY, String(srv.version)); } catch (e) {}
+                            showVersionBanner(srv.version, false);
+                            setTimeout(() => {
+                                var base = window.location.href.split('?')[0];
+                                window.location.replace(base + '?v=' + encodeURIComponent(srv.version));
+                            }, 1200);
+                        }
+                    })
+                    .withFailureHandler(() => { /* 网络异常不阻塞，下次加载再试 */ })
+                    .getAppVersion();
+            } catch (e) { /* 忽略 */ }
+        }
+
+
+        function showVersionBanner(v, sticky) {
+            let b = document.getElementById('versionBanner');
+            if (!b) {
+                b = document.createElement('div');
+                b.id = 'versionBanner';
+                b.style.cssText = 'position:fixed;top:0;left:0;right:0;z-index:9999;background:var(--primary);color:#fff;text-align:center;padding:10px;font-size:0.9rem;font-weight:600;box-shadow:0 2px 8px rgba(0,0,0,0.15);';
+                document.body.appendChild(b);
+            }
+            b.innerText = sticky
+                ? 'New version v' + v + ' available — you can keep working, refresh manually when convenient / 发现新版本 v' + v + '，可继续使用，方便时手动刷新'
+                : 'New version v' + v + ' detected, auto-refreshing… / 发现新版本 v' + v + '，正在自动刷新…';
+        }
+
+
+        window.onload = () => { 
+            checkVersion(); // 先检测版本（无需登录即可跑），不一致会自动重载
+            currentToken = localStorage.getItem('ts_app_token');
+            const loginTime = localStorage.getItem('ts_login_time');
+            const now = Date.now();
+            
+            if (currentToken && loginTime && (now - parseInt(loginTime) < 7 * 24 * 60 * 60 * 1000)) {
+                document.getElementById('authOverlay').style.display = 'none';
+                init();
+            } else {
+                localStorage.removeItem('ts_app_token');
+                localStorage.removeItem('ts_login_time');
+                showAuth();
+            }
+        };
+
+        function showAuth() {
+            document.getElementById('mainApp').style.display = 'none';
+            document.getElementById('loader').style.display = 'none';
+            document.getElementById('authOverlay').style.display = 'flex';
+        }
+
+        function doLogout() {
+            if (confirm("Logout? You'll need to verify again. / 确定退出当前账号？")) {
+                localStorage.removeItem('ts_app_token');
+                localStorage.removeItem('ts_login_time');
+                currentToken = null;
+                showAuth();
+            }
+        }
+
+        function doAuth() {
+            const email = document.getElementById('authEmail').value;
+            if(!email) return;
+            const btn = document.getElementById('authBtn');
+            const err = document.getElementById('authError');
+            btn.disabled = true; btn.innerText = "Verifying / 验证中..."; err.style.display = 'none';
+
+            google.script.run
+                .withSuccessHandler(res => {
+                    localStorage.setItem('ts_app_token', res.token);
+                    localStorage.setItem('ts_login_time', Date.now().toString());
+                    currentToken = res.token;
+                    document.getElementById('authOverlay').style.display = 'none';
+                    init();
+                })
+                .withFailureHandler(e => {
+                    btn.disabled = false; btn.innerText = "Verify / 验证";
+                    err.innerText = (e.message || "Verification failed. Check your email. / 验证失败"); 
+                    err.style.display = 'block';
+                })
+                .verifyUserAndGetToken(email);
+        }
+        
+        function toggle(s, msg="Processing / 处理中...") { 
+            document.getElementById('loaderText').innerText = msg;
+            document.getElementById('loader').style.display = s ? 'flex' : 'none'; 
+        }
+
+        // period-lock（runbook v3 §2.5 错误传输接口契约）：三档渲染。
+        // 契约：google.script.run failure handler 只跨边界传 message 字符串，
+        // Error 自定义属性不随序列化（该跨边界行为未经实测，本契约不依赖）——
+        // 故服务端把 uncertain 态状态安全序列化进 message：
+        //   拒绝码 PL_REJECT_*：message=码本身，无载荷（拒绝时不登记，无状态可传）；
+        //   不确定态 PL_UNCERTAIN_*：message=<码>|{"logFailed":bool,"cause":"…"}。
+        // 解析以第一个 | 切分；载荷缺失/不可解析/logFailed 非布尔 → 登记状态未知档，
+        // 禁默认 false、禁称「已登记」。
+        // [审⑧-v7] 白名单：plHumanMsg 只对明确允许的三个 PL_UNCERTAIN_* 码
+        // 走三档（含 PL_UNCERTAIN_PATCH_WRITE_FAILED）；未知/损坏码不猜。
+        function plParseErr(msg) {
+            var s = String(msg || "");
+            var i = s.indexOf("|");
+            if (i < 0) return { code: s, logFailed: null, cause: "" };
+            var code = s.slice(0, i), payload = null;
+            try { payload = JSON.parse(s.slice(i + 1)); } catch (e) { payload = null; }
+            if (!payload || typeof payload.logFailed !== "boolean") {
+                return { code: code, logFailed: null, cause: "" };
+            }
+            return { code: code, logFailed: payload.logFailed, cause: String(payload.cause || "") };
+        }
+        var PL_MSG_MAP = [
+            ["PL_REJECT_MISSING_EXPECT_VERSION", "页面版本过旧，请刷新后重试（你的修改未保存）"],
+            ["PL_REJECT_CONTENT_VERSION", "这条记录已被他人修改过，请刷新页面后再编辑（你的修改未保存）"],
+            ["PL_REJECT_NEW_DATE_CLOSED", "2026-10-01 之前的期间已关账，不能新增/修改/删除（解锁请联系管理员）"],
+            ["PL_REJECT_ORIG_DATE_CLOSED", "2026-10-01 之前的期间已关账，不能新增/修改/删除（解锁请联系管理员）"],
+            ["PL_REJECT_FUTURE_CLOSED", "当前锁政策暂不接受该日期的写入，请刷新或联系管理员"],
+            ["PL_REJECT_ALREADY_DELETED", "这条记录已被删除，请刷新"],
+            ["PL_REJECT_LOCK_BUSY", "系统繁忙，请稍候重试（不要连续点击）"],
+            ["PL_REJECT_ROW_GONE", "记录状态异常，请刷新后重试"],
+            ["PL_REJECT_NO_UUID", "记录状态异常，请刷新后重试"],
+            ["PL_REJECT_UUID_NOT_UNIQUE", "记录状态异常，请刷新后重试"],
+            ["PL_REJECT_OWNER_MISMATCH", "记录状态异常，请刷新后重试"],
+            ["PL_REJECT_ORIG_UNKNOWN", "记录状态异常，请刷新后重试"],
+            ["PL_REJECT_BAD_NEW_DATE", "记录状态异常，请刷新后重试"]
+        ];
+        function plHumanMsg(msg) {
+            var p = plParseErr(msg);
+            var code = p.code;
+            // [审⑧-v7] 白名单精确匹配（Tom 14:28 清单第4条）：只接受明确
+            // 允许的 uncertain 码，不用前缀猜；未知/损坏码不进三档
+            var PL_UNCERTAIN_CODES = ["PL_UNCERTAIN_BIZ_WRITE_FAILED", "PL_UNCERTAIN_FLUSH_FAILED", "PL_UNCERTAIN_PATCH_WRITE_FAILED"];
+            var isUncertain = PL_UNCERTAIN_CODES.indexOf(code) >= 0;
+            if (isUncertain) {
+                if (p.logFailed === true) {
+                    return "系统状态不确定，且未能登记待核查；请刷新确认你的修改是否生效，不要重复提交，并联系管理员补登记";
+                }
+                if (p.logFailed === false) {
+                    return "系统状态不确定，已登记待核查；请刷新确认你的修改是否生效，不要重复提交";
+                }
+                return "系统状态不确定，登记状态未知；请刷新确认你的修改是否生效，不要重复提交，并联系管理员核查";
+            }
+            for (var i = 0; i < PL_MSG_MAP.length; i++) {
+                // [审⑧-v8] 残项1收敛：拒绝码精确匹配白名单，未知后缀/普通文本含拒绝码不再命中；未知/损坏码保守回落
+                if (code === PL_MSG_MAP[i][0]) return PL_MSG_MAP[i][1];
+            }
+            return null;
+        }
+        function handleServerError(err) {
+            toggle(false);
+            const msg = err.message || String(err);
+            if (msg.includes("AUTH_FAILED")) {
+                localStorage.removeItem('ts_app_token');
+                localStorage.removeItem('ts_login_time');
+                alert(msg.split(":")[1]);
+                showAuth();
+            } else {
+                const human = plHumanMsg(msg);
+                alert(human ? human + "\n\n" + msg : "Error: " + msg + "\n\nPlease refresh. / 请刷新页面。");
+            }
+        }
+        
+        function init() { 
+            toggle(true, "Loading data... / 加载数据中..."); 
+            document.getElementById('inputDate').valueAsDate = new Date(); 
+            // V4.3.10: 确保周期选择器始终有合法值（防止浏览器自动填充或缓存导致显示虚线/空值）
+            const ws = document.getElementById('weekSelector');
+            const validValues = ['month', '0', '1'];
+            if (!ws.value || !validValues.includes(ws.value)) ws.value = 'month';
+            google.script.run
+                .withSuccessHandler(res => { 
+                    pMap = res.pMap || {}; currentLogs = res.logs || []; 
+                    document.getElementById('rangeTitle').innerText = res.range || ""; 
+                    document.getElementById('displayUserName').innerText = escapeHtml(res.userName) || "Colleague / 同事";
+                    document.getElementById('appVersionBadge').innerText = 'v' + APP_VERSION;
+                    document.getElementById('mainApp').style.display = 'block';
+                    render(res); loadStaged(); toggle(false); 
+                })
+                .withFailureHandler(handleServerError)
+                .getDashboardData(currentToken, ws.value); 
+        }
+
+        // V4.3.21: 手机端分段按钮切换周期（替代被 iOS Safari 截断的 <select>）
+        function setWeekRange(val) {
+            const ws = document.getElementById('weekSelector');
+            if (ws) ws.value = val;
+            const btns = document.querySelectorAll('.week-seg-mobile .seg-btn');
+            btns.forEach(function(b){ b.classList.toggle('active', b.getAttribute('data-wv') === val); });
+            init();
+        }
+
+        function findProject() {
+            clearTimeout(searchTimer);
+            searchTimer = setTimeout(() => {
+                const keyword = document.getElementById('projectFinder').value.trim().toLowerCase();
+                const box = document.getElementById('finderResults');
+                if (keyword.length < 2) { box.style.display = 'none'; return; }
+                let matches = [];
+                for (let id in pMap) {
+                    const pName = pMap[id];
+                    if (id.includes(keyword) || pName.toLowerCase().includes(keyword)) matches.push({id, name: pName});
+                }
+                if (matches.length > 0) {
+                    box.innerHTML = matches.slice(0, 50).map(m => `
+                        <div class="finder-item" onclick="selectProject('${escapeHtml(m.id)}')">
+                            <b>${escapeHtml(m.id)}</b> <span style="color:#86868b; margin-left:8px;">${escapeHtml(m.name)}</span>
+                        </div>`).join('');
+                    box.style.display = 'block';
+                } else { box.style.display = 'none'; }
+            }, 300);
+        }
+
+        function selectProject(id) {
+            document.getElementById('projectInput').value = id;
+            document.getElementById('finderResults').style.display = 'none';
+            document.getElementById('projectFinder').value = ""; validate();
+        }
+
+        function validate() { 
+            let i = document.getElementById('projectInput'); let v = i.value.trim().toUpperCase(); 
+            if(/^\d{5}$/.test(v)) { v = v.substring(0,2) + "-" + v.substring(2); i.value = v; } 
+            const pName = pMap[v]; const btn = document.getElementById('stageBtn'); const statusBox = document.getElementById('status');
+            if(pName) { 
+                statusBox.innerHTML = `<span style="color:#34c759">${escapeHtml(pName)}</span>`; btn.disabled = false; 
+                btn.innerText = document.getElementById('editUuid').value ? 'Update / 保存' : 'Add to list / 暂存'; 
+            } else { 
+                if(v.length > 0) statusBox.innerHTML = `<span style="color:#ff3b30">ID not found / 编号不存在</span>`; 
+                btn.disabled = true; btn.innerText = 'Verify ID first / 请先验证编号'; 
+            } 
+        }
+
+        function render(res) { 
+            let dailyTotals = [0,0,0,0,0,0,0]; 
+            const projectIds = Object.keys(res.matrix);
+            if (projectIds.length === 0) {
+                document.getElementById('mBody').innerHTML = '<tr><td colspan="9" style="text-align:center; color:var(--text-muted); padding:28px 10px; font-size:0.85rem;">No records for the selected period. / 所选周期暂无工时记录。</td></tr>';
+                document.getElementById('mFoot').innerHTML = '<tr class="total-row"><td>TOTAL</td><td>-</td><td>-</td><td>-</td><td>-</td><td>-</td><td>-</td><td>-</td><td>-</td></tr>';
+            } else {
+                document.getElementById('mBody').innerHTML = projectIds.map(id => { 
+                    const name = pMap[id] || "Unknown"; 
+                    let rowTotal = 0;
+                    res.matrix[id].forEach((h, idx) => { const v = parseFloat(h) || 0; dailyTotals[idx] += v; rowTotal += v; }); 
+                    return `<tr><td><b>${escapeHtml(id)}</b><div style="font-size:0.65rem; color:#86868b;">${escapeHtml(name)}</div></td>${res.matrix[id].map(h => `<td class="day-col">${h||'-'}</td>`).join('')}<td class="total-col" style="font-weight:700; color:var(--primary);">${rowTotal>0?rowTotal:'-'}</td></tr>`; 
+                }).join(''); 
+                const grandTotal = dailyTotals.reduce((s, t) => s + t, 0);
+                document.getElementById('mFoot').innerHTML = `<tr class="total-row"><td>TOTAL</td>${dailyTotals.map(t => `<td class="day-col">${t>0?t:'-'}</td>`).join('')}<td class="total-col" style="font-weight:700;">${grandTotal>0?grandTotal:'-'}</td></tr>`;
+            }
+            
+            document.getElementById('lBody').innerHTML = res.logs.map(log => `
+                <div style="padding: 15px 0; border-bottom: 1px solid #f2f2f7;">
+                    <div style="display:flex; justify-content:space-between; align-items:flex-start;">
+                        <div>
+                            <span style="font-weight:700; font-size:0.9rem;">${escapeHtml(log.project)}</span>
+                            <span style="font-size:0.75rem; color:#86868b; margin-left:8px;">${escapeHtml(log.date.substring(5))}</span>
+                        </div>
+                        <span style="font-weight:700; color:var(--primary);">${log.hours}h</span>
+                    </div>
+                    <div style="font-size:0.8rem; color:#48484a; margin-top:4px;">${escapeHtml(log.notes)}</div>
+                    <div style="text-align:right; margin-top:8px;">
+                        <a onclick='editRow("${escapeHtml(log.uuid)}")' style="font-size:0.75rem; color:var(--primary); cursor:pointer; font-weight:600;">Edit / 修改</a>
+                        <a onclick='del("${escapeHtml(log.uuid)}")' style="font-size:0.75rem; color:#ff3b30; cursor:pointer; font-weight:600; margin-left:15px;">Delete / 删除</a>
+                    </div>
+                </div>`).join(''); 
+        }
+
+        function handleStageChange() { 
+            const s = document.getElementById('stageSelect').value; const i = document.getElementById('projectInput'); const n = document.getElementsByName('notes')[0];
+            if (s.includes('6.')) { 
+                i.value = 'INTERNAL'; i.readOnly = true; let def = s.substring(s.indexOf('.') + 1).trim();
+                if (!n.value || s.includes("培训/活动")) n.value = def;
+            } else { i.readOnly = false; if(i.value==='INTERNAL') i.value=''; } 
+            validate(); 
+        }
+
+        function handlePrimaryAction() {
+            const f = document.getElementById('timeForm'); if (!f.reportValidity()) return; 
+            if (f.uuid.value) {
+                toggle(true);
+                google.script.run
+                    .withSuccessHandler(() => { cancelEdit(); init(); })
+                    .withFailureHandler(handleServerError)
+                    .updateTimesheet(currentToken, f);
+            } else {
+                stagedTasks.push({ date: f.date.value, stage: f.stage.value, project: f.project.value, hours: f.hours.value, notes: f.notes.value, t: Date.now() });
+                f.project.value = ""; f.hours.value = ""; f.notes.value = ""; document.getElementById('status').innerHTML = "";
+                renderStaged(); validate();
+            }
+        }
+
+        function saveStaged() {
+            try { localStorage.setItem('ts_staged_' + currentToken, JSON.stringify(stagedTasks)); } catch (e) {}
+        }
+        function loadStaged() {
+            try {
+                const raw = localStorage.getItem('ts_staged_' + currentToken);
+                if (raw) { stagedTasks = JSON.parse(raw) || []; renderStaged(); }
+            } catch (e) {}
+        }
+        function renderStaged() {
+            saveStaged(); // V4.3.11: 每次变更（增/删/提交清空）都落盘，刷新页面不丢失
+            const box = document.getElementById('stagedBox'); if (stagedTasks.length === 0) { box.style.display = 'none'; return; }
+            box.style.display = 'block'; let total = 0;
+            // V4.3.62：暂存 ≠ 已提交。超过 24 小时仍未提交 → 红色强提醒（9/11「填写的没了」就是卡在这一步）
+            let oldest = null;
+            stagedTasks.forEach(t => { if (t.t && (!oldest || t.t < oldest)) oldest = t.t; });
+            const aged = oldest && (Date.now() - oldest > 24 * 3600 * 1000);
+            const warnBox = document.getElementById('stagedWarn');
+            if (warnBox) {
+                warnBox.style.display = 'block';
+                warnBox.innerHTML = '<div style="padding:8px 10px;border-radius:8px;font-size:0.78rem;font-weight:600;' +
+                    (aged ? 'background:#ff3b30;color:#fff;' : 'background:#fff3cd;color:#856404;') + '">' +
+                    (aged ? '⚠️ 有 ' + stagedTasks.length + ' 条暂存超过 24 小时<b>还没提交</b> —— 暂存不会计入工时！请点下方「提交」' 
+                          : 'ℹ️ 暂存区有 ' + stagedTasks.length + ' 条待提交，别忘点「提交」才会真正入表') +
+                    '</div>';
+            }
+            document.getElementById('stagedList').innerHTML = stagedTasks.map((t, i) => {
+                total += parseFloat(t.hours);
+                return `<div class="staged-item"><span><b>${escapeHtml(t.project)}</b> <small>(${t.hours}h)</small></span><a style="color:#ff3b30; cursor:pointer; font-weight:700;" onclick="stagedTasks.splice(${i},1);renderStaged();">x</a></div>`;
+            }).join('');
+            document.getElementById('stagedTotalHours').innerText = total + 'h';
+        }
+
+        // V4.3.63【提交锁】防止连点重复提交 —— 手机上"点了没反应"再点一次会写成两条
+        let _tsSaving = false;
+        function _tsBeginSave(msg) {
+            if (_tsSaving) return false;
+            _tsSaving = true; toggle(true, msg || 'Submitting... / 提交中...'); return true;
+        }
+        function _tsEndSave() { _tsSaving = false; toggle(false); }
+
+        function submitBatch() {
+            if (stagedTasks.length === 0) return;
+            if (!_tsBeginSave("Submitting... / 批量提交中...")) return;
+            const payload = stagedTasks.slice();   // 快照，避免提交过程中数组被改动
+            google.script.run
+                .withSuccessHandler(() => {
+                    stagedTasks = [];
+                    renderStaged();
+                    init();
+                    _tsEndSave();
+                })
+                .withFailureHandler((e) => { _tsEndSave(); handleServerError(e); })
+                .submitBatch(currentToken, payload);
+        }
+
+        function del(id) { 
+            const log = currentLogs.find(l => String(l.uuid) === String(id));
+            if (!log || !log.rowHash) { alert('该记录含特殊字符无法校验版本，请联系管理员 / This record cannot be version-checked, please contact admin'); return; }
+            if(confirm('Delete this record? / 确定删除该条记录？')) { 
+                toggle(true); 
+                google.script.run
+                    .withSuccessHandler(() => init())
+                    .withFailureHandler(handleServerError)
+                    .softDeleteRecord(currentToken, id, log.rowHash); 
+            } 
+        }
+        
+        function editRow(uuid) { 
+            const log = currentLogs.find(l => String(l.uuid) === String(uuid)); if(!log) return;
+            if (!log.rowHash) { alert('该记录含特殊字符无法校验版本，请联系管理员 / This record cannot be version-checked, please contact admin'); return; }
+            document.getElementById('editUuid').value = log.uuid; 
+            document.getElementById('editHash').value = log.rowHash || ''; 
+            document.getElementById('inputDate').value = log.date; 
+            document.getElementById('stageSelect').value = log.stage; 
+            document.getElementById('projectInput').value = log.project; 
+            document.getElementById('timeForm').notes.value = log.notes; 
+            document.getElementById('timeForm').hours.value = log.hours; 
+            document.getElementById('canBtn').style.display = 'block'; 
+            window.scrollTo({top: 0, behavior: 'smooth'}); handleStageChange(); validate(); 
+        }
+
+        function cancelEdit() { 
+            document.getElementById('timeForm').reset(); document.getElementById('inputDate').valueAsDate = new Date(); 
+            document.getElementById('editUuid').value = ""; document.getElementById('editHash').value = ""; document.getElementById('canBtn').style.display = 'none'; 
+            handleStageChange(); validate();
+        }
+        // ============== V4.0: 明细补录 Tab ==============
+        let batchCurrentLogs = [];
+        let batchNewRows = [];
+        let batchCurrentMonth = null;
+        let heatCurrent = null;
+        // V4.3.20: 阶段下拉中英双语化（与录入 Tab 的 stageSelect 保持一致）。存储值统一为「中文 | English」格式
+        const STAGE_OPTIONS = [
+            "1. 投标 | Bidding",
+            "2. 设计阶段 | Design",
+            "3. 施工阶段 | Construction",
+            "4. 免费维保 | Maintenance",
+            "5. 收费售后 | Paid Service",
+            "6. 培训/活动 | Internal"
+        ];
+
+        function cssEscape(s) { return String(s).replace(/[^a-zA-Z0-9_-]/g, '_'); }
+
+        function formatBatchPid(v) {
+            v = String(v || "").trim().toUpperCase();
+            if (/^\d{5}$/.test(v)) v = v.substring(0, 2) + "-" + v.substring(2);
+            return v;
+        }
+
+        function ensureProjectDatalist() {
+            let dl = document.getElementById('batchProjectDatalist');
+            if (!dl) {
+                dl = document.createElement('datalist');
+                dl.id = 'batchProjectDatalist';
+                document.body.appendChild(dl);
+            }
+            const keys = Object.keys(pMap || {}).sort();
+            dl.innerHTML = keys.map(k => '<option value="' + escapeHtml(k) + '">' + escapeHtml(k) + ' ' + escapeHtml(pMap[k] || '') + '</option>').join('');
+        }
+
+        function switchTab(name) {
+            document.getElementById('tabInput').style.display = (name === 'input') ? '' : 'none';
+            document.getElementById('tabBatch').style.display = (name === 'batch') ? '' : 'none';
+            document.getElementById('tabHeat').style.display = (name === 'heat') ? '' : 'none';
+            const a = document.getElementById('tabBtnInput');
+            const b = document.getElementById('tabBtnBatch');
+            const h = document.getElementById('tabBtnHeat');
+            const setTab = (el, on) => { el.style.background = on ? 'var(--primary)' : 'transparent'; el.style.color = on ? 'white' : 'var(--text-main)'; };
+            setTab(a, name === 'input'); setTab(b, name === 'batch'); setTab(h, name === 'heat');
+            if (name === 'batch' && !batchCurrentMonth) {
+                const now = new Date();
+                batchCurrentMonth = { year: now.getFullYear(), month: now.getMonth() + 1 };
+                initBatchMonthSelector();
+                loadBatchMonth();
+            }
+            if (name === 'heat' && !heatCurrent) {
+                const now = new Date();
+                heatCurrent = { year: now.getFullYear(), month: now.getMonth() + 1 };
+                initHeatMonthSelector();
+                loadHeatmap();
+            }
+        }
+
+        function initBatchMonthSelector() {
+            const sel = document.getElementById('batchMonthSelector');
+            sel.innerHTML = '';
+            const now = new Date();
+            // 覆盖 2025-01 至 当前+12个月，任意月份可直接选
+            const start = new Date(2025, 0, 1);
+            const end = new Date(now.getFullYear(), now.getMonth() + 12, 1);
+            let cur = new Date(start.getFullYear(), start.getMonth(), 1);
+            while (cur <= end) {
+                const v = cur.getFullYear() + '-' + (cur.getMonth() + 1);
+                const opt = document.createElement('option');
+                opt.value = v;
+                const isNow = (cur.getFullYear() === now.getFullYear() && cur.getMonth() === now.getMonth());
+                // V4.3.20: 当前月标记改为紧凑双语「· 本月」(title 存 "This Month / 本月")，避免窄屏被截断成 "2026-07 This I..."
+                opt.text = cur.getFullYear() + '-' + String(cur.getMonth() + 1).padStart(2, '0') + (isNow ? ' · 本月' : '');
+                opt.title = isNow ? 'This Month / 本月' : '';
+                sel.appendChild(opt);
+                cur = new Date(cur.getFullYear(), cur.getMonth() + 1, 1);
+            }
+            sel.value = batchCurrentMonth.year + '-' + batchCurrentMonth.month;
+        }
+
+        function batchNavMonth(delta) {
+            const d = new Date(batchCurrentMonth.year, batchCurrentMonth.month - 1 + delta, 1);
+            batchCurrentMonth = { year: d.getFullYear(), month: d.getMonth() + 1 };
+            initBatchMonthSelector();
+            loadBatchMonth();
+        }
+
+        function loadBatchMonth() {
+            const sel = document.getElementById('batchMonthSelector');
+            if (sel && sel.value) {
+                const parts = sel.value.split('-');
+                batchCurrentMonth = { year: parseInt(parts[0]), month: parseInt(parts[1]) };
+            }
+            toggle(true, "Loading details... / 加载明细中...");
+            google.script.run
+                .withSuccessHandler(res => {
+                    pMap = res.pMap || {};
+                    batchCurrentLogs = res.logs || [];
+                    batchNewRows = [];
+                    renderBatchTable();
+                    toggle(false);
+                })
+                .withFailureHandler(handleServerError)
+                .getDetailLogsByMonth(currentToken, batchCurrentMonth.year, batchCurrentMonth.month);
+        }
+
+        // V4.3.28: 明细补录页阶段选择→项目自动填充（与主录入Tab handleStageChange 对齐）
+        // 阶段6「培训/活动|Internal」自动填项目=INTERNAL；切回其它阶段时清空INTERNAL
+        function handleBatchStageChange(idx, stageVal) {
+            batchNewRows[idx].stage = stageVal;
+            const card = document.querySelector('.batch-card[data-newidx="' + idx + '"]');
+            if (!card) return;
+            const projInput = card.querySelectorAll('.bc-in')[1]; // 第2个input = project
+            const notesInput = card.querySelectorAll('.bc-in')[4]; // 第5个input = notes (date=0, proj=1, stage=select, hours=3, notes=4)
+            if (!projInput) return;
+            if (stageVal && (stageVal.includes('6.') || stageVal.indexOf('培训') >= 0)) {
+                projInput.value = 'INTERNAL';
+                projInput.readOnly = true;
+                batchNewRows[idx].project = 'INTERNAL';
+                // 自动填备注为阶段名（仅当备注为空时）
+                if (notesInput && !notesInput.value) {
+                    const defNote = stageVal.substring(stageVal.indexOf('.') + 1).replace(/\|.*$/, '').trim();
+                    notesInput.value = defNote;
+                    batchNewRows[idx].notes = defNote;
+                }
+            } else {
+                projInput.readOnly = false;
+                if (batchNewRows[idx].project === 'INTERNAL') {
+                    projInput.value = '';
+                    batchNewRows[idx].project = '';
+                }
+            }
+        }
+
+        function renderBatchTable() {
+            const tbody = document.getElementById('batchTbody');
+            ensureProjectDatalist();
+            let newHtml = '';
+            for (let i = 0; i < batchNewRows.length; i++) {
+                const r = batchNewRows[i];
+                const stageOpts = STAGE_OPTIONS.map(s => '<option' + (r.stage === s ? ' selected' : '') + '>' + s + '</option>').join('');
+                newHtml += '<div class="batch-card new" data-newidx="' + i + '">' +
+                    '<div class="bc-head"><span class="bc-date">New / 新行 ' + (i + 1) + '</span><span class="bc-hours" style="color:var(--primary);">Pending / 待保存</span></div>' +
+                    '<input type="date" class="bc-in" value="' + escapeHtml(r.date || '') + '" onchange="batchNewRows[' + i + '].date=this.value" lang="en">' +
+                    '<input type="text" class="bc-in" value="' + escapeHtml(r.project || '') + '" list="batchProjectDatalist" placeholder="Project ID e.g. 26-041" onchange="batchNewRows[' + i + '].project=formatBatchPid(this.value)" onblur="batchNewRows[' + i + '].project=formatBatchPid(this.value); this.value=formatBatchPid(this.value)">' +
+                    '<select class="bc-in" onchange="handleBatchStageChange(' + i + ',this.value)">' + stageOpts + '</select>' +
+                    '<input type="number" class="bc-in" step="0.5" min="0" value="' + (r.hours || '') + '" placeholder="Hours / 工时 (h)" onchange="batchNewRows[' + i + '].hours=this.value">' +
+                    '<input type="text" class="bc-in" value="' + escapeHtml(r.notes || '') + '" placeholder="Note / 工作简述" onchange="batchNewRows[' + i + '].notes=this.value">' +
+                    '<div class="bc-actions"><a onclick="removeNewBatchRow(' + i + ')" style="color:#ff3b30;">Remove / 移除</a></div>' +
+                    '</div>';
+            }
+            let logHtml = '';
+            for (const log of batchCurrentLogs) {
+                const safeUuid = cssEscape(log.uuid);
+                logHtml += '<div class="batch-card" data-uuid="' + escapeHtml(log.uuid) + '">' +
+                    '<div class="bc-head"><span class="bc-date">' + escapeHtml(log.date) + '</span><span class="bc-hours">' + log.hours + 'h</span></div>' +
+                    '<div class="bc-row"><span class="bc-label">Proj / 项目</span><span class="bc-val"><b>' + escapeHtml(log.project) + '</b> <span style="color:#86868b;font-size:0.78rem;">' + escapeHtml(pMap[log.project] || '') + '</span></span></div>' +
+                    '<div class="bc-row"><span class="bc-label">Stage / 阶段</span><span class="bc-val">' + escapeHtml(log.stage) + '</span></div>' +
+                    '<div class="bc-row"><span class="bc-label">Note / 备注</span><span class="bc-val">' + escapeHtml(log.notes || '') + '</span></div>' +
+                    '<div class="bc-actions"><a onclick="editBatchRow(\'' + escapeHtml(log.uuid) + '\')" style="color:var(--primary); margin-right:14px;">Edit / 改</a>' +
+                        '<a onclick="delBatchRow(\'' + escapeHtml(log.uuid) + '\')" style="color:#ff3b30;">Del / 删</a></div>' +
+                    '</div>';
+            }
+            let html = newHtml + logHtml;
+            if (batchCurrentLogs.length === 0 && batchNewRows.length === 0) {
+                html = '<div style="padding:30px 10px; text-align:center; color:var(--text-muted); font-size:0.88rem; grid-column:1/-1;">No records yet. Tap +Add or Paste to start. / 本月暂无记录</div>';
+            }
+            tbody.innerHTML = html;
+            updateBatchSummary();
+        }
+
+        function updateBatchSummary() {
+            const existingHours = batchCurrentLogs.reduce((s, l) => s + (parseFloat(l.hours) || 0), 0);
+            const newHours = batchNewRows.reduce((s, r) => s + (parseFloat(r.hours) || 0), 0);
+            document.getElementById('batchSummary').innerHTML =
+                '<span>Saved / 已录入 <b style="color:var(--text-main);">' + batchCurrentLogs.length + '</b> 条 · 合计 ' + existingHours + ' h</span>' +
+                '<span style="color:var(--primary); font-weight:700;">Pending / 待保存 <b>' + batchNewRows.length + '</b> 条 · ' + newHours + ' h</span>';
+        }
+
+        function addNewBatchRow() {
+            const d = new Date();
+            const dateStr = d.getFullYear() + '-' + String(d.getMonth() + 1).padStart(2, '0') + '-' + String(d.getDate()).padStart(2, '0');
+            batchNewRows.unshift({ date: dateStr, project: '', stage: STAGE_OPTIONS[1], hours: '', notes: '' });
+            renderBatchTable();
+        }
+
+        function removeNewBatchRow(idx) {
+            if (idx >= 0 && idx < batchNewRows.length) {
+                batchNewRows.splice(idx, 1);
+                renderBatchTable();
+            }
+        }
+
+        function openPasteModal() {
+            document.getElementById('pasteTextarea').value = '';
+            document.getElementById('pastePreview').innerHTML = '';
+            const m = document.getElementById('pasteModal');
+            if (typeof m.showModal === 'function') m.showModal(); else m.setAttribute('open', '');
+            setTimeout(() => document.getElementById('pasteTextarea').focus(), 100);
+        }
+        function closePasteModal() {
+            const m = document.getElementById('pasteModal');
+            if (typeof m.close === 'function') m.close(); else m.removeAttribute('open');
+        }
+
+        function copyTemplate() {
+            const t = document.getElementById('templateText');
+            if (!t) return;
+            try {
+                if (navigator.clipboard && navigator.clipboard.writeText) {
+                    navigator.clipboard.writeText(t.value).then(() => alert('Template copied. Paste into Excel, fill in, then use Paste / 模板已复制，去 Excel 粘贴后填写'), () => fallbackCopy(t));
+                } else { fallbackCopy(t); }
+            } catch (e) { fallbackCopy(t); }
+        }
+        function fallbackCopy(t) {
+            t.focus(); t.select(); t.setSelectionRange(0, t.value.length);
+            try { document.execCommand('copy'); alert('Template copied / 模板已复制'); }
+            catch (e) { alert('Please copy the selected text manually / 请手动复制选中的模板文本'); }
+        }
+
+        function matchStage(c) {
+            if (!c) return '';
+            const v = String(c).trim();
+            // 完全匹配（含双语「中文 | English」格式）
+            const exact = STAGE_OPTIONS.find(s => s === v);
+            if (exact) return exact;
+            // V4.3.20: 去掉数字前缀与分隔符（| 或 /），拆成中英文关键词做模糊匹配
+            // 兼容粘贴值如 "投标"、"Bidding"、"1. Bidding / 投标"、"2. 设计阶段 | Design" 等
+            const toKeywords = s => s.replace(/^\d+\.\s*/, '').split(/[\|\/]/).map(t => t.trim().toLowerCase()).filter(Boolean);
+            const keywordsList = STAGE_OPTIONS.map(toKeywords);
+            const lower = v.toLowerCase();
+            for (let i = 0; i < STAGE_OPTIONS.length; i++) {
+                const kws = keywordsList[i];
+                if (kws.some(k => lower === k || lower.includes(k) || k.includes(lower))) return STAGE_OPTIONS[i];
+            }
+            return '';
+        }
+
+        function parsePastedText(text) {
+            const lines = text.split(/\r?\n/).map(l => l.trim()).filter(l => l);
+            if (lines.length === 0) return { ok: [], err: ['Empty / 空内容'] };
+            let startIdx = 0;
+            if (/日期|date/i.test(lines[0]) && /项目|project/i.test(lines[0])) startIdx = 1;
+            const dateRe = /^(\d{4})[-\/](\d{1,2})[-\/](\d{1,2})$/;
+            const pidRe = /^(\d{2}-\d{3,4})$/;
+            const ok = [], err = [];
+            for (let i = startIdx; i < lines.length; i++) {
+                let cols = lines[i].split(/\t/).map(c => c.trim());
+                if (cols.length < 2) cols = lines[i].split(/,/).map(c => c.trim());
+                if (cols.length < 2) { err.push('Row ' + (i + 1) + ' too few columns / 第 ' + (i + 1) + ' 行列数不足'); continue; }
+                let date = '', project = '', stage = '', hours = '', notes = '';
+                const usedIdx = new Set();
+                for (let k = 0; k < cols.length; k++) {
+                    const c = cols[k];
+                    const matchedStage = matchStage(c);
+                    if (!date && dateRe.test(c)) {
+                        const m = c.match(dateRe);
+                        date = m[1] + '-' + m[2].padStart(2, '0') + '-' + m[3].padStart(2, '0');
+                        usedIdx.add(k);
+                    } else if (!project && pidRe.test(c)) {
+                        project = c.toUpperCase();
+                        usedIdx.add(k);
+                    } else if (!stage && matchedStage) {
+                        stage = matchedStage;
+                        usedIdx.add(k);
+                    } else if (!hours && /^\d+(\.\d+)?$/.test(c) && parseFloat(c) > 0 && parseFloat(c) < 24) {
+                        hours = c;
+                        usedIdx.add(k);
+                    }
+                }
+                if (!stage) stage = STAGE_OPTIONS[1]; // 默认设计阶段
+                const remaining = cols.filter((c, idx) => !usedIdx.has(idx) && c && !/^\d+(\.\d+)?$/.test(c));
+                notes = remaining.join(' ');
+                if (!date) { err.push('Row ' + (i + 1) + ' missing date or bad format: ' + (cols[0] || '') + ' / 第 ' + (i + 1) + ' 行缺日期或格式错误'); continue; }
+                if (!project) { err.push('Row ' + (i + 1) + ' missing Project ID / 第 ' + (i + 1) + ' 行缺项目编号'); continue; }
+                if (!pMap[project]) { err.push('Row ' + (i + 1) + ' Project ID ' + project + ' not found / 第 ' + (i + 1) + ' 行项目编号不在通讯录'); continue; }
+                if (!hours || parseFloat(hours) <= 0) { err.push('Row ' + (i + 1) + ' missing hours / 第 ' + (i + 1) + ' 行缺工时'); continue; }
+                ok.push({ date: date, project: project, stage: stage, hours: parseFloat(hours), notes: notes });
+            }
+            return { ok: ok, err: err };
+        }
+
+        function confirmPaste() {
+            const text = document.getElementById('pasteTextarea').value;
+            const r = parsePastedText(text);
+            if (r.ok.length === 0) {
+                alert('No rows to import.\nErrors:\n' + r.err.join('\n') + '\n\n/ 没有可导入的行。\n错误：\n' + r.err.join('\n'));
+                return;
+            }
+            let msg = 'Parsed ' + r.ok.length + ' rows / 成功解析 ' + r.ok.length + ' 条。';
+            if (r.err.length > 0) msg += '\nSkipped / 跳过 ' + r.err.length + ' rows / 行：\n' + r.err.slice(0, 8).join('\n') + (r.err.length > 8 ? '\n...' : '');
+            msg += '\n\nImport to pending list? / 导入到待保存列表？';
+            if (!confirm(msg)) return;
+            batchNewRows = r.ok.concat(batchNewRows); // 粘贴的新行置顶，顺序保持
+            closePasteModal();
+            renderBatchTable();
+        }
+
+        function saveBatch() {
+            if (batchNewRows.length === 0) { alert('No pending rows / 没有待保存行'); return; }
+            for (let i = 0; i < batchNewRows.length; i++) {
+                const r = batchNewRows[i];
+                if (!r.date || !r.project || !r.hours || parseFloat(r.hours) <= 0) {
+                    alert('Row ' + (i + 1) + ' incomplete (Date/Project/Hours required). / 第 ' + (i + 1) + ' 行未填完整（需日期/项目/工时）'); return;
+                }
+                if (!pMap[r.project]) { alert('Row ' + (i + 1) + ' Project ID ' + r.project + ' not found. / 第 ' + (i + 1) + ' 行项目编号不在通讯录'); return; }
+            }
+            if (!_tsBeginSave('Saving... / 批量保存中...')) return;
+            const payload = batchNewRows.slice();
+            google.script.run
+                .withSuccessHandler(() => {
+                    _tsEndSave();
+                    alert('Saved ' + payload.length + ' rows / 成功保存 ' + payload.length + ' 条');
+                    loadBatchMonth();
+                })
+                .withFailureHandler((e) => { _tsEndSave(); handleServerError(e); })
+                .submitBatch(currentToken, payload);
+        }
+
+        function editBatchRow(uuid) {
+            const card = document.querySelector('.batch-card[data-uuid="' + cssEscape(uuid) + '"]');
+            if (!card) return;
+            const log = batchCurrentLogs.find(l => l.uuid === uuid);
+            if (!log) return;
+            const stageOpts = STAGE_OPTIONS.map(s => '<option' + (log.stage === s ? ' selected' : '') + '>' + s + '</option>').join('');
+            card.className = 'batch-card editing';
+            card.innerHTML =
+                '<div class="bc-head"><span class="bc-date">Editing / 编辑中</span><span class="bc-hours">' + log.hours + 'h</span></div>' +
+                '<input type="date" class="bc-in" value="' + escapeHtml(log.date) + '" id="ed_' + cssEscape(uuid) + '_date" lang="en">' +
+                '<input type="text" class="bc-in" value="' + escapeHtml(log.project) + '" list="batchProjectDatalist" id="ed_' + cssEscape(uuid) + '_pid" placeholder="Project ID e.g. 26-041">' +
+                '<select class="bc-in" id="ed_' + cssEscape(uuid) + '_stage">' + stageOpts + '</select>' +
+                '<input type="number" class="bc-in" step="0.5" min="0" value="' + log.hours + '" id="ed_' + cssEscape(uuid) + '_hours" placeholder="Hours / 工时 (h)">' +
+                '<input type="text" class="bc-in" value="' + escapeHtml(log.notes || '') + '" id="ed_' + cssEscape(uuid) + '_notes" placeholder="Note / 工作简述">' +
+                '<div class="bc-actions"><a onclick="saveBatchEdit(\'' + escapeHtml(uuid) + '\')" style="color:#34c759; margin-right:14px;">Save / 保存</a>' +
+                    '<a onclick="loadBatchMonth()" style="color:#86868b;">Cancel / 取消</a></div>';
+        }
+
+        // ============== V4.3.6: 出勤自检热力图 ==============
+        function initHeatMonthSelector() {
+            const sel = document.getElementById('heatMonthSelector');
+            if (!sel) return;
+            sel.innerHTML = '';
+            const now = new Date();
+            const start = new Date(2025, 0, 1);
+            const end = new Date(now.getFullYear(), now.getMonth() + 12, 1);
+            let cur = new Date(start.getFullYear(), start.getMonth(), 1);
+            while (cur <= end) {
+                const v = cur.getFullYear() + '-' + String(cur.getMonth() + 1).padStart(2, '0');
+                const opt = document.createElement('option');
+                opt.value = v;
+                const isNow = (cur.getFullYear() === now.getFullYear() && cur.getMonth() === now.getMonth());
+                // V4.3.20: 当前月标记改为紧凑双语「· 本月」(title 存 "This Month / 本月")，避免窄屏被截断成 "2026-07 This I..."
+                opt.text = v + (isNow ? ' · 本月' : '');
+                opt.title = isNow ? 'This Month / 本月' : '';
+                sel.appendChild(opt);
+                cur = new Date(cur.getFullYear(), cur.getMonth() + 1, 1);
+            }
+            sel.value = (heatCurrent ? heatCurrent.year + '-' + String(heatCurrent.month).padStart(2, '0') : now.getFullYear() + '-' + String(now.getMonth() + 1).padStart(2, '0'));
+        }
+
+        function heatNavMonth(delta) {
+            if (!heatCurrent) { const n = new Date(); heatCurrent = { year: n.getFullYear(), month: n.getMonth() + 1 }; }
+            const d = new Date(heatCurrent.year, heatCurrent.month - 1 + delta, 1);
+            heatCurrent = { year: d.getFullYear(), month: d.getMonth() + 1 };
+            const sel = document.getElementById('heatMonthSelector');
+            if (sel) sel.value = heatCurrent.year + '-' + String(heatCurrent.month).padStart(2, '0');
+            loadHeatmap();
+        }
+
+        function loadHeatmap() {
+            const sel = document.getElementById('heatMonthSelector');
+            if (sel && sel.value) { const p = sel.value.split('-'); heatCurrent = { year: parseInt(p[0]), month: parseInt(p[1]) }; }
+            toggle(true, "Loading attendance... / 加载出勤数据中...");
+            google.script.run
+                .withSuccessHandler(res => { renderHeatmap(res); toggle(false); })
+                .withFailureHandler(handleServerError)
+                .getMonthAttendance(currentToken, heatCurrent.year, heatCurrent.month);
+        }
+
+        function cleanupLeaves() {
+            if (!confirm('Remove duplicate leave records? / 确定清理重复请假记录？')) return;
+            toggle(true, 'Deduping leaves... / 请假去重中...');
+            google.script.run
+                .withSuccessHandler(r => { alert(r); toggle(false); loadHeatmap(); })
+                .withFailureHandler(handleServerError)
+                .cleanupDuplicateLeavesInternal();
+        }
+
+        function renderHeatmap(res) {
+            const y = res.year, m = res.month;
+            const dayHours = res.dayHours || {};
+            const leaveDays = res.leaveDays || {};
+            const holidays = res.holidays || {};
+            const standard = res.standard || 8;
+            const todayStr = res.today || "";
+            const sel = document.getElementById('heatMonthSelector');
+            const monthVal = y + '-' + String(m).padStart(2, '0');
+            if (sel) {
+                // V4.3.9: 若 option 列表尚无该值（极少），先补一个选项避免空白
+                if (sel.value !== monthVal && !Array.from(sel.options).some(o => o.value === monthVal)) {
+                    const opt = document.createElement('option');
+                    opt.value = monthVal;
+                    opt.text = monthVal;
+                    sel.appendChild(opt);
+                }
+                sel.value = monthVal;
+            }
+
+            // 构建日历网格（周一起始）
+            const first = new Date(y, m - 1, 1);
+            const daysInMonth = new Date(y, m, 0).getDate();
+            let startWeekday = (first.getDay() + 6) % 7; // 周一=0 ... 周日=6
+            const wkHeads = ['Mon / 一', 'Tue / 二', 'Wed / 三', 'Thu / 四', 'Fri / 五', 'Sat / 六', 'Sun / 日'];
+            let html = wkHeads.map(w => '<div class="heat-wkhead">' + w + '</div>').join('');
+            for (let i = 0; i < startWeekday; i++) html += '<div></div>';
+
+            let miss = 0, low = 0, okDays = 0, workDays = 0, holidayDays = 0;
+            for (let day = 1; day <= daysInMonth; day++) {
+                const ds = y + '-' + String(m).padStart(2, '0') + '-' + String(day).padStart(2, '0');
+                const dow = (startWeekday + day - 1) % 7; // 0=Mon..6=Sun
+                const isWeekend = (dow === 5 || dow === 6);
+                const isFuture = ds > todayStr;
+                const isLeave = !!leaveDays[ds];
+                const lvHours = (typeof leaveDays[ds] === 'number') ? leaveDays[ds] : 0;
+                const isHoliday = !!holidays[ds];
+                let cls = 'heat-off', label = '', sub = '';
+                const h = dayHours[ds] || 0;
+                const worked = h > 0;
+                // V4.3.13: 请假优先于周末判定——周末请假也显示蓝色「假」标记
+                // V4.3.17: 周末/假日实际填报了工时(h>0) → 显示小时数（不再被 Off 吞掉，修复「周末填写的时间没显示」）
+                if (isLeave) { cls = 'heat-leave'; const full = lvHours >= standard; label = full ? '假' : ('假' + lvHours + 'h'); sub = 'Leave'; }
+                else if (worked) {
+                    if (h < standard) { cls = 'heat-low'; label = String(h); sub = 'Short'; low++; }
+                    else { cls = 'heat-ok'; label = String(h); sub = 'OK'; okDays++; }
+                }
+                else if (isWeekend) { cls = 'heat-off'; label = '休'; sub = 'Off'; }
+                else if (isHoliday) { cls = 'heat-off'; label = '休'; sub = 'Holiday'; holidayDays++; }
+                else if (isFuture) { cls = 'heat-off'; label = ''; sub = ''; }
+                else {
+                    workDays++;
+                    cls = 'heat-miss'; label = '漏'; sub = 'Miss'; miss++;
+                }
+                html += '<div class="heat-cell ' + cls + '"><div class="hd">' + day + (label ? ' · ' + label : '') + '</div><div class="hs">' + sub + '</div></div>';
+            }
+            document.getElementById('heatGrid').innerHTML = html;
+
+            // V4.3.11: 可读请假清单（替代原先散落在明细里的 OFF-WORK 8h/0h 混杂记录）
+            const lv = res.leaveDetails || [];
+            const lvBox = document.getElementById('leaveList');
+            if (lv.length === 0) {
+                lvBox.innerHTML = '';
+            } else {
+                const items = lv.map(d => {
+                    const isFull = d.hours >= standard;
+                    const label = isFull ? '全天' : (d.hours + 'h');
+                    const note = d.note ? ('（' + escapeHtml(d.note) + '）') : '';
+                    return `<div style="display:flex; justify-content:space-between; align-items:center; padding:7px 0; border-bottom:1px solid #f2f2f7; font-size:0.82rem;">
+                        <span><b>${d.date.substring(5)}</b> <span style="color:#2b6cd4; font-weight:600;">假 ${label}</span> ${note}</span>
+                    </div>`;
+                }).join('');
+                lvBox.innerHTML = `<div style="font-weight:700; font-size:0.85rem; margin-bottom:2px; color:var(--text-main);">📋 请假明细 / Leave details（${lv.length} 天）</div>${items}`;
+            }
+
+            let summary = 'Workdays / 应出勤 ' + workDays + ' 天';
+            if (holidayDays > 0) summary += ' (含法定假 ' + holidayDays + ' 天 / Holidays)';
+            summary += ' · ';
+            summary += '<span style="color:#1e7d3a;">Met / 达标 ' + okDays + '</span> · ';
+            summary += '<span style="color:#b9770e;">Short / 少填 ' + low + '</span> · ';
+            summary += '<span style="color:#c0392b;">Miss / 漏填 ' + miss + '</span>';
+            if (miss > 0) summary += '　⚠️ ' + miss + ' days need fill-in! / ' + miss + ' 天需补录！';
+            document.getElementById('heatSummary').innerHTML = summary;
+        }
+
+
+        function saveBatchEdit(uuid) {
+            const sid = cssEscape(uuid);
+            const batchLog = batchCurrentLogs.find(l => String(l.uuid) === String(uuid));
+            if (!batchLog || !batchLog.rowHash) { alert('该记录含特殊字符无法校验版本，请联系管理员 / This record cannot be version-checked, please contact admin'); return; }
+            const f = {
+                uuid: uuid,
+                date: document.getElementById('ed_' + sid + '_date').value,
+                project: formatBatchPid(document.getElementById('ed_' + sid + '_pid').value),
+                stage: document.getElementById('ed_' + sid + '_stage').value,
+                hours: document.getElementById('ed_' + sid + '_hours').value,
+                notes: document.getElementById('ed_' + sid + '_notes').value,
+                expectContentHash: batchLog.rowHash || ''
+            };
+            if (!f.date || !f.project || !f.hours) { alert('Date/Project/Hours required / 日期/项目/工时必填'); return; }
+            if (!pMap[f.project]) { alert('Project ID ' + f.project + ' not found / 项目编号不在通讯录'); return; }
+            toggle(true, 'Saving... / 保存修改中...');
+            google.script.run
+                .withSuccessHandler(() => { toggle(false); loadBatchMonth(); })
+                .withFailureHandler(handleServerError)
+                .updateTimesheet(currentToken, f);
+        }
+
+        function delBatchRow(uuid) {
+            const batchLog = batchCurrentLogs.find(l => String(l.uuid) === String(uuid));
+            if (!batchLog || !batchLog.rowHash) { alert('该记录含特殊字符无法校验版本，请联系管理员 / This record cannot be version-checked, please contact admin'); return; }
+            if (!confirm('Delete this record? / 确定删除该条记录？')) return;
+            toggle(true, 'Deleting... / 删除中...');
+            google.script.run
+                .withSuccessHandler(() => { toggle(false); loadBatchMonth(); })
+                .withFailureHandler(handleServerError)
+                .softDeleteRecord(currentToken, uuid, batchLog.rowHash);
+        }
+    </script>
+</body>
+</html>
