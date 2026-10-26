@@ -1,0 +1,160 @@
+{
+ "meta": {
+  "month": "2026-10",
+  "generatedAtBJT": "2026-10-27 01:35:33",
+  "lastRow": 11260,
+  "dataRows": 11245,
+  "readOnly": true,
+  "grouping": "按 I 列 UUID（稳定身份）分组，含已软删行",
+  "source": {
+   "ssId": "1Pi5u9fEawgp7yICWPMMyQCT_LbwTZthQDW-H05xYdVI",
+   "sheet": "DB_工时流水"
+  }
+ },
+ "october": {
+  "rows": 503,
+  "softDeletedRows": 127,
+  "uniqueUuids": 386,
+  "uuidRepeatOccurrences": 117,
+  "dupGroups": 117,
+  "alreadySoftMarked": 116,
+  "alreadySoftMarkedHours": 359.5,
+  "stillLive": 1,
+  "stillLiveHours": 2.0,
+  "payloadConflictGroups": 62,
+  "payloadConflictAlreadySoft": 62,
+  "directionAnomaly_keptLaterRow": 22,
+  "note": "117 组与历史报告数字完全吻合；冗余总工时 361.5h，其中 359.5h 已被软标中和，仅 2.0h 仍在生效。"
+ },
+ "actionable": {
+  "type": "SOFT_MARK_ONE_ROW",
+  "count": 1,
+  "target": {
+   "row": 10807,
+   "uuid": "TS-D6F94979E326",
+   "keeperRow": 7401,
+   "payloadIdentical": true,
+   "fingerprint": "Jerry Fu | 2026-10-08 | 26-084-HK | 2.00 | 报价",
+   "keeperLoggedAt": "2026-10-08T03:07:03.000Z",
+   "dupLoggedAt": "2026-10-08T03:07:03.000Z",
+   "hours": "2"
+  }
+ },
+ "directionAnomalySample": [
+  {
+   "uuid": "TS-AD603FCB4B5A",
+   "keeperRow": 7470,
+   "keeperAt": "2026-10-11T09:43:09.422Z",
+   "softRow": 10876,
+   "softAt": "2026-10-11T09:43:09.000Z",
+   "hours": "3",
+   "payloadIdentical": true
+  },
+  {
+   "uuid": "TS-800CE113974E",
+   "keeperRow": 7471,
+   "keeperAt": "2026-10-11T09:43:09.423Z",
+   "softRow": 10877,
+   "softAt": "2026-10-11T09:43:09.000Z",
+   "hours": "3",
+   "payloadIdentical": true
+  },
+  {
+   "uuid": "TS-2592C55C16EB",
+   "keeperRow": 7472,
+   "keeperAt": "2026-10-11T09:43:09.423Z",
+   "softRow": 10878,
+   "softAt": "2026-10-11T09:43:09.000Z",
+   "hours": "2",
+   "payloadIdentical": true
+  },
+  {
+   "uuid": "TS-52D9853D3B13",
+   "keeperRow": 7480,
+   "keeperAt": "2026-10-12T05:05:46.299Z",
+   "softRow": 10886,
+   "softAt": "2026-10-12T05:05:46.000Z",
+   "hours": "1",
+   "payloadIdentical": true
+  },
+  {
+   "uuid": "TS-8FF1F049CF07",
+   "keeperRow": 7492,
+   "keeperAt": "2026-10-13T02:09:30.314Z",
+   "softRow": 10898,
+   "softAt": "2026-10-13T02:09:30.000Z",
+   "hours": "1",
+   "payloadIdentical": true
+  },
+  {
+   "uuid": "TS-B8B59A7E4A5F",
+   "keeperRow": 7493,
+   "keeperAt": "2026-10-13T02:09:30.318Z",
+   "softRow": 10899,
+   "softAt": "2026-10-13T02:09:30.000Z",
+   "hours": "1",
+   "payloadIdentical": true
+  },
+  {
+   "uuid": "TS-F32B2D0F15B8",
+   "keeperRow": 7494,
+   "keeperAt": "2026-10-13T02:09:30.319Z",
+   "softRow": 10900,
+   "softAt": "2026-10-13T02:09:30.000Z",
+   "hours": "2",
+   "payloadIdentical": true
+  },
+  {
+   "uuid": "TS-B22EA0158CAB",
+   "keeperRow": 7495,
+   "keeperAt": "2026-10-13T02:09:30.325Z",
+   "softRow": 10901,
+   "softAt": "2026-10-13T02:09:30.000Z",
+   "hours": "1",
+   "payloadIdentical": true
+  },
+  {
+   "uuid": "TS-E90E2E179E92",
+   "keeperRow": 7496,
+   "keeperAt": "2026-10-13T02:09:30.326Z",
+   "softRow": 10902,
+   "softAt": "2026-10-13T02:09:30.000Z",
+   "hours": "1",
+   "payloadIdentical": true
+  },
+  {
+   "uuid": "TS-3EE9E6D1A353",
+   "keeperRow": 10908,
+   "keeperAt": "2026-10-13T10:01:17.000Z",
+   "softRow": 7502,
+   "softAt": "2026-10-13T10:01:16.575Z",
+   "hours": "9",
+   "payloadIdentical": true
+  }
+ ],
+ "stillLiveDetail": [
+  {
+   "month": "2026-10",
+   "uuid": "TS-D6F94979E326",
+   "noUuid": false,
+   "fingerprint": "Jerry Fu | 2026-10-08 | 26-084-HK | 2.00 | 报价",
+   "fingerprintSame": true,
+   "keeper": {
+    "row": 7401,
+    "uuid": "TS-D6F94979E326",
+    "loggedAt": "2026-10-08T03:07:03.000Z",
+    "softDel": false,
+    "hours": "2"
+   },
+   "dup": {
+    "row": 10807,
+    "uuid": "TS-D6F94979E326",
+    "loggedAt": "2026-10-08T03:07:03.000Z",
+    "softDel": false,
+    "hours": "2"
+   },
+   "diffCount": 0,
+   "diffs": []
+  }
+ ]
+}
