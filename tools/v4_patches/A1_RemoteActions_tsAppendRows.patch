@@ -1,0 +1,158 @@
+--- a/RemoteActions.js
++++ b/RemoteActions.js
+@@ -75,6 +75,38 @@
+   } catch (e) { /* 日志失败不影响主流程 */ }
+ }
+ 
++/**
++ * [A1] 去重逻辑抽成纯函数 —— 供「锁内写路径」与「锁外 dry 路径」共用，
++ * 保证 dry 预演与实际写入的判定完全一致。
++ * @param {Sheet} sh
++ * @param {Array<Array>} rows  原始请求行（可能多于 14 列，只取前 14）
++ * @param {boolean} force      是否放行请假行
++ * @returns {{rows:Array<Array>, skippedDup:number, skippedLeave:number}}
++ */
++function _tsDedupeForAppend(sh, rows, force) {
++  var last = sh.getLastRow();
++  var exist = {};
++  if (last > 1) {
++    var uuids = sh.getRange(2, 9, last - 1, 1).getValues();
++    for (var i = 0; i < uuids.length; i++) {
++      var u = String(uuids[i][0] || '').trim();
++      if (u) exist[u] = true;
++    }
++  }
++  var toWrite = [], skippedDup = 0, skippedLeave = 0;
++  for (var j = 0; j < rows.length; j++) {
++    var r = rows[j] || [];
++    var uid = String(r[8] || '').trim();
++    if (uid && exist[uid]) { skippedDup++; continue; }
++    if (!force && _tsIsLeaveRowForGuard(r)) { skippedLeave++; continue; }
++    if (uid) exist[uid] = true;                 // 同批内也去重
++    var out = new Array(14);
++    for (var k = 0; k < 14; k++) out[k] = (r[k] === undefined || r[k] === null) ? '' : r[k];
++    toWrite.push(out);
++  }
++  return { rows: toWrite, skippedDup: skippedDup, skippedLeave: skippedLeave };
++}
++
+ function tsAppendRows(e) {
+   e = e || {};
+   var p = e.parameter || {};
+@@ -93,40 +125,26 @@
+     var sh = SpreadsheetApp.openById(TS_ID).getSheetByName(sheetName);
+     if (!sh) return JSON.stringify({ ok: false, error: 'sheet not found: ' + sheetName });
+ 
+-    // 已存在的 UUID（含软删行，避免把已删数据复活）
+-    var last = sh.getLastRow();
+-    var exist = {};
+-    if (last > 1) {
+-      var uuids = sh.getRange(2, 9, last - 1, 1).getValues();
+-      for (var i = 0; i < uuids.length; i++) {
+-        var u = String(uuids[i][0] || '').trim();
+-        if (u) exist[u] = true;
+-      }
+-    }
+-
+-    var toWrite = [], skippedDup = 0, skippedLeave = 0;
+-    for (var j = 0; j < rows.length; j++) {
+-      var r = rows[j] || [];
+-      var uid = String(r[8] || '').trim();
+-      if (uid && exist[uid]) { skippedDup++; continue; }
+-      if (!force && _tsIsLeaveRowForGuard(r)) { skippedLeave++; continue; }
+-      if (uid) exist[uid] = true;      // 同批内也去重
+-      var out = new Array(14);
+-      for (var k = 0; k < 14; k++) out[k] = (r[k] === undefined || r[k] === null) ? '' : r[k];
+-      toWrite.push(out);
+-    }
+-
+-    if (dry || toWrite.length === 0) {
+-      _tsWriteLog('appendRows(dry=' + dry + ')', 'req=' + rows.length + ' wouldWrite=' + toWrite.length +
+-                  ' skipDup=' + skippedDup + ' skipLeave=' + skippedLeave);
+-      return JSON.stringify({ ok: true, dry: dry, requested: rows.length, wouldWrite: toWrite.length,
+-                              skippedDup: skippedDup, skippedLeave: skippedLeave });
+-    }
+-
+-    // period-lock（M8/R12a）：远程批量写同样进 guard 临界区（按 B 列 fillDate 过期间门禁）
++    // [A1] dry：只读预演，锁外执行，与写路径共用同一判定函数
++    if (dry) {
++      var dd = _tsDedupeForAppend(sh, rows, force);
++      _tsWriteLog('appendRows(dry=1)', 'req=' + rows.length + ' wouldWrite=' + dd.rows.length +
++                  ' skipDup=' + dd.skippedDup + ' skipLeave=' + dd.skippedLeave);
++      return JSON.stringify({ ok: true, dry: true, requested: rows.length, wouldWrite: dd.rows.length,
++                              skippedDup: dd.skippedDup, skippedLeave: dd.skippedLeave });
++    }
++
++    // [A1] 关键变更：rows 原样传入，去重由 lockPreWrite 在【持锁状态】下完成
++    var skippedDup = 0, skippedLeave = 0;
+     var res = _plGuardedInsert({
+-      rows: toWrite,
+-      dateOf: function (r) { return r[1]; },        // B 列 fillDate
++      rows: rows,
++      dateOf: function (r) { return r[1]; },          // B 列 fillDate
++      lockPreWrite: function (rowsIn) {               // [A1] 锁内钩子（guard 第 494-498 行调用）
++        var d = _tsDedupeForAppend(sh, rowsIn, force);
++        skippedDup = d.skippedDup;
++        skippedLeave = d.skippedLeave;
++        return { rows: d.rows, duplicates: d.skippedDup };
++      },
+       bizWrite: function (rows2, policy) {
+         var startRow = sh.getLastRow() + 1;
+         sh.getRange(startRow, 1, rows2.length, 14).setValues(rows2);
+@@ -136,15 +154,53 @@
+         return { wrote: rows2.length, verified: got, startRow: startRow };
+       }
+     });
+-    _tsWriteLog('appendRows', 'req=' + rows.length + ' wrote=' + res.wrote + ' verified=' + res.verified +
++
++    // [A1] 全重复时 guard 提前返回 {wrote:0, skippedAll:true} —— 字段缺失要兜住
++    var wrote   = (res && res.wrote) ? res.wrote : 0;
++    var verified = (res && res.verified !== undefined) ? res.verified : 0;
++    var startRow = (res && res.startRow !== undefined) ? res.startRow : null;
++
++    _tsWriteLog('appendRows', 'req=' + rows.length + ' wrote=' + wrote + ' verified=' + verified +
+                 ' skipDup=' + skippedDup + ' skipLeave=' + skippedLeave);
+-    return JSON.stringify({ ok: true, requested: rows.length, wrote: res.wrote, verified: res.verified,
+-                            skippedDup: skippedDup, skippedLeave: skippedLeave, startRow: res.startRow });
++    return JSON.stringify({ ok: true, requested: rows.length, wrote: wrote, verified: verified,
++                            skippedDup: skippedDup, skippedLeave: skippedLeave, startRow: startRow });
+   } catch (err) {
+     _tsWriteLog('appendRows(ERR)', String((err && err.message) || err));
+     return JSON.stringify({ ok: false, error: String((err && err.message) || err) });
+   }
+ }
++
++    if (!dry) {
++      // [A1b] 锁提升到分支之外：无论目标是不是 DB_工时流水，写操作一律在临界区内
++      var _lock = _plAcquire();
++      try {
++        if (sheetName === PL_DB_SHEET) {
++          // period-lock：仅 DB_工时流水 过专项门禁（表头保护 + B/O:Q 期间政策）
++          var chk = _plGuardPatch(sh, cells, ranges);
++          if (!chk.ok) {
++            var pe = new Error('period-lock reject: ' + chk.reason + ' ' + JSON.stringify(chk.offenders || []));
++            pe.plCode = chk.reason;
++            throw pe;
++          }
++        }
++        for (var i = 0; i < cells.length; i++) {
++          var c = cells[i];
++          sh.getRange(Number(c[0]), Number(c[1])).setValue(c[2]);
++          n++;
++        }
++        // ranges 整块写入 —— 每项一次 setValues，避免上千次单格写超时
++        for (var r = 0; r < ranges.length; r++) {
++          var g = ranges[r];
++          var vs = g.values || [];
++          if (!vs.length || !vs[0] || !vs[0].length) continue;
++          sh.getRange(Number(g.row), Number(g.col), vs.length, vs[0].length).setValues(vs);
++          n += vs.length * vs[0].length;
++        }
++        SpreadsheetApp.flush();
++      } finally {
++        try { _lock.releaseLock(); } catch (re) {}
++      }
++    }
+ 
+ /**
+  * V4.3.62 批量改单元格 —— 补类型列等「字段级修复」用。

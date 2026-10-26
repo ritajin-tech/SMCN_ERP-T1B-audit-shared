@@ -1,0 +1,88 @@
+--- a/PeriodLockGuard.js
++++ b/PeriodLockGuard.js
+@@ -617,3 +617,85 @@
+   if (offenders.length) return { ok: false, reason: 'PL_REJECT_PATCH_OFFENDERS', offenders: offenders };
+   return { ok: true, reason: '' };
+ }
++
++// ============================================================
++// 5. [A0] 清理类工具统一护栏（V4.3.87）
++// ------------------------------------------------------------
++// 背景：tsPurgeRows / tsPurgeSoftLeaves / tsDupReport(fix=1) / tsTrimBlank /
++//       _tsSetValuesGuarded 全部「无锁 + 无期间门禁」，而 purge 类走
++//       「全表读 → setValues 写回 → deleteRows 删尾」，一旦调用即可改写或
++//       物理删除已冻结期间（B 列 < cutoff）的数据 —— 与 9/12 事故同型。
++// 契约：
++//   ① 全程持锁（_plAcquire，fail-closed）
++//   ② 默认拒绝触碰已关账期间的行；仅当显式 allowClosed=1 才放行，且必须
++//      同时给出 allowRows 白名单（行号集合），白名单外的关账行一律拒
++//   ③ 目标行 B 列不可解析 → 一律拒（不猜）
++//   ④ dry 默认 1：不显式 dry=0 就只报不写
++// ============================================================
++
++/**
++ * 清理动作的准入检查。**必须在真正的写/删之前调用**，且调用方须在其
++ * try 内持锁执行后续动作（本函数返回后锁已释放，故设计为「先准入、
++ * 再由调用方在自己的锁内执行」两段式，避免 exec 里做长耗时操作占锁过久）。
++ *
++ * @param {Object} o
++ *   o.sheet        Sheet 对象（必填）
++ *   o.targetRows   number[] 目标行号（1-based，必填）
++ *   o.allowClosed  bool 是否允许触碰关账期行（默认 false）
++ *   o.allowRows    number[] allowClosed=true 时的行号白名单（必填）
++ * @returns {{ok:boolean, reason:string, offenders:Array, offenderCount:number, cutoff:string}}
++ */
++function _plGuardCleanup(o) {
++  o = o || {};
++  var policy = _plPolicy();
++  var cutoff = (policy && policy.cutoff) || PL_CUTOFF;
++  var allowClosed = !!o.allowClosed;
++  var allowRows = o.allowRows || [];
++  var targets = o.targetRows || [];
++  var offenders = [];
++
++  var data = o.sheet.getDataRange().getValues();
++  var lastRow = data.length;
++
++  for (var i = 0; i < targets.length; i++) {
++    var rn = Number(targets[i]);
++    if (!rn || rn < 2) { offenders.push({ row: rn, reason: 'PL_REJECT_HEADER_ROW' }); continue; }
++    if (rn > lastRow)  { offenders.push({ row: rn, reason: 'PL_REJECT_ROW_GONE' });  continue; }
++    var biz = _plParseBizDate(data[rn - 1][1]);
++    if (!biz) { offenders.push({ row: rn, reason: 'PL_REJECT_ORIG_UNKNOWN' }); continue; }
++    if (!_plIsClosedBizDate(biz, cutoff)) continue;           // 未关账 → 放行
++    if (allowClosed && allowRows.indexOf(rn) >= 0) continue;  // 关账但在白名单 → 放行
++    offenders.push({ row: rn, reason: 'PL_REJECT_PERIOD_CLOSED' });
++  }
++
++  if (offenders.length) {
++    return { ok: false, reason: 'PL_REJECT_CLEANUP_OFFENDERS', cutoff: cutoff,
++             offenders: offenders.slice(0, 200), offenderCount: offenders.length };
++  }
++  return { ok: true, reason: '', cutoff: cutoff, offenderCount: 0 };
++}
++
++/**
++ * 带锁地执行清理动作（purge / 软删 / trim 统一走这里）。
++ * @param {Object} o
++ *   o.sheet / o.targetRows / o.allowClosed / o.allowRows  同 _plGuardCleanup
++ *   o.dry       bool 默认 true —— 不显式 dry=0 就只做准入检查，不执行
++ *   o.exec      function(data) 真正的写/删；仅在准入通过且 dry=false 时调用
++ *   o.timeoutMs number 可选
++ */
++function _plGuardedCleanup(o) {
++  o = o || {};
++  var dry = (o.dry === false) ? false : true;
++  var lock = _plAcquire(o.timeoutMs);            // fail-closed：拿不到锁直接抛
++  try {
++    var chk = _plGuardCleanup(o);
++    if (!chk.ok) return chk;
++    if (dry) return { ok: true, dry: true, reason: '', cutoff: chk.cutoff };
++    var data = o.sheet.getDataRange().getValues();
++    var r = o.exec(data);
++    try { SpreadsheetApp.flush(); } catch (fe) { /* 与 _plGuardedInsert 同策略，由调用方登记 */ }
++    return { ok: true, dry: false, result: r, cutoff: chk.cutoff };
++  } finally {
++    if (lock) { try { lock.releaseLock(); } catch (re) {} }
++  }
++}
