@@ -1,0 +1,1396 @@
+{
+ "readAtBJT": "2026-10-27 03:21:26",
+ "log": [
+  [
+   1267,
+   "2026-10-16T07:28:20.000Z",
+   "patchCells(dry)",
+   "ss=1oxPj0mzN8poP2vQ7Bm-YKXuU49p9b0c1asyrZn4Py44 sheet=月度异常 cells=0 ranges=1 done=0"
+  ],
+  [
+   1268,
+   "2026-10-16T07:28:24.000Z",
+   "patchCells",
+   "ss=1oxPj0mzN8poP2vQ7Bm-YKXuU49p9b0c1asyrZn4Py44 sheet=月度异常 cells=0 ranges=1 done=512"
+  ],
+  [
+   1269,
+   "2026-10-16T07:28:27.000Z",
+   "patchCells(dry)",
+   "ss=1oxPj0mzN8poP2vQ7Bm-YKXuU49p9b0c1asyrZn4Py44 sheet=月度异常 cells=0 ranges=1 done=0"
+  ],
+  [
+   1270,
+   "2026-10-16T07:28:29.000Z",
+   "patchCells",
+   "ss=1oxPj0mzN8poP2vQ7Bm-YKXuU49p9b0c1asyrZn4Py44 sheet=月度异常 cells=0 ranges=1 done=472"
+  ],
+  [
+   1271,
+   "2026-10-16T07:28:33.000Z",
+   "applyFormat",
+   "ss=1oxPj0mzN8poP2vQ7Bm-YKXuU49p9b0c1asyrZn4Py44 sheet=月度异常 ops=17"
+  ],
+  [
+   1272,
+   "2026-10-16T07:28:35.000Z",
+   "masterCondFormat",
+   "ss=1oxPj0mzN8poP2vQ7Bm-YKXuU49p9b0c1asyrZn4Py44 sheet=月度异常 rules=1"
+  ],
+  [
+   1273,
+   "2026-10-16T07:56:14.000Z",
+   "applyFormat",
+   "ss=1oxPj0mzN8poP2vQ7Bm-YKXuU49p9b0c1asyrZn4Py44 sheet=按月考勤 ops=1"
+  ],
+  [
+   1274,
+   "2026-10-16T07:56:20.000Z",
+   "applyFormat",
+   "ss=1oxPj0mzN8poP2vQ7Bm-YKXuU49p9b0c1asyrZn4Py44 sheet=按月考勤 ops=1"
+  ],
+  [
+   1275,
+   "2026-10-16T09:11:18.000Z",
+   "leave_sync_master",
+   "追加 2 行到主库「请假」分页；跳过已存在 565 行；窗口 2026-04-01~2026-12-31；事件 240 个；无姓名 0 个"
+  ],
+  [
+   1276,
+   "2026-10-16T09:18:02.000Z",
+   "friday_reminder_disabled",
+   "Rita 2026-10-15 指示停用；触发器保留，改 true 后自动恢复"
+  ],
+  [
+   1277,
+   "2026-10-16T09:20:36.000Z",
+   "patchCells(dry)",
+   "ss=1oxPj0mzN8poP2vQ7Bm-YKXuU49p9b0c1asyrZn4Py44 sheet=工时_候选0824 cells=0 ranges=1 done=0"
+  ],
+  [
+   1278,
+   "2026-10-16T09:20:39.000Z",
+   "patchCells",
+   "ss=1oxPj0mzN8poP2vQ7Bm-YKXuU49p9b0c1asyrZn4Py44 sheet=工时_候选0824 cells=0 ranges=1 done=132"
+  ],
+  [
+   1279,
+   "2026-10-16T09:22:28.000Z",
+   "patchCells",
+   "ss=1oxPj0mzN8poP2vQ7Bm-YKXuU49p9b0c1asyrZn4Py44 sheet=按月考勤 cells=0 ranges=1 done=5"
+  ],
+  [
+   1280,
+   "2026-10-16T09:22:31.000Z",
+   "patchCells",
+   "ss=1oxPj0mzN8poP2vQ7Bm-YKXuU49p9b0c1asyrZn4Py44 sheet=按月考勤 cells=0 ranges=1 done=1"
+  ],
+  [
+   1281,
+   "2026-10-16T09:22:34.000Z",
+   "patchCells",
+   "ss=1oxPj0mzN8poP2vQ7Bm-YKXuU49p9b0c1asyrZn4Py44 sheet=按月考勤 cells=0 ranges=1 done=1"
+  ],
+  [
+   1282,
+   "2026-10-16T09:29:03.000Z",
+   "patchCells(dry)",
+   "ss=1oxPj0mzN8poP2vQ7Bm-YKXuU49p9b0c1asyrZn4Py44 sheet=月度异常 cells=0 ranges=1 done=0"
+  ],
+  [
+   1283,
+   "2026-10-16T09:29:06.000Z",
+   "patchCells",
+   "ss=1oxPj0mzN8poP2vQ7Bm-YKXuU49p9b0c1asyrZn4Py44 sheet=月度异常 cells=0 ranges=1 done=512"
+  ],
+  [
+   1284,
+   "2026-10-16T09:29:09.000Z",
+   "patchCells(dry)",
+   "ss=1oxPj0mzN8poP2vQ7Bm-YKXuU49p9b0c1asyrZn4Py44 sheet=月度异常 cells=0 ranges=1 done=0"
+  ],
+  [
+   1285,
+   "2026-10-16T09:29:12.000Z",
+   "patchCells",
+   "ss=1oxPj0mzN8poP2vQ7Bm-YKXuU49p9b0c1asyrZn4Py44 sheet=月度异常 cells=0 ranges=1 done=480"
+  ],
+  [
+   1286,
+   "2026-10-16T09:29:15.000Z",
+   "applyFormat",
+   "ss=1oxPj0mzN8poP2vQ7Bm-YKXuU49p9b0c1asyrZn4Py44 sheet=月度异常 ops=17"
+  ],
+  [
+   1287,
+   "2026-10-16T09:29:18.000Z",
+   "masterCondFormat",
+   "ss=1oxPj0mzN8poP2vQ7Bm-YKXuU49p9b0c1asyrZn4Py44 sheet=月度异常 rules=1"
+  ],
+  [
+   1288,
+   "2026-10-16T09:30:45.000Z",
+   "patchCells",
+   "ss=1oxPj0mzN8poP2vQ7Bm-YKXuU49p9b0c1asyrZn4Py44 sheet=月度视图 cells=0 ranges=1 done=1500"
+  ],
+  [
+   1289,
+   "2026-10-16T09:30:48.000Z",
+   "patchCells",
+   "ss=1oxPj0mzN8poP2vQ7Bm-YKXuU49p9b0c1asyrZn4Py44 sheet=月度视图 cells=0 ranges=1 done=1000"
+  ],
+  [
+   1290,
+   "2026-10-16T09:30:52.000Z",
+   "patchCells",
+   "ss=1oxPj0mzN8poP2vQ7Bm-YKXuU49p9b0c1asyrZn4Py44 sheet=月度视图 cells=0 ranges=1 done=160"
+  ],
+  [
+   1291,
+   "2026-10-16T09:30:55.000Z",
+   "applyFormat",
+   "ss=1oxPj0mzN8poP2vQ7Bm-YKXuU49p9b0c1asyrZn4Py44 sheet=月度视图 ops=3"
+  ],
+  [
+   1292,
+   "2026-10-17T09:18:02.000Z",
+   "friday_reminder_disabled",
+   "Rita 2026-10-15 指示停用；触发器保留，改 true 后自动恢复"
+  ],
+  [
+   1293,
+   "2026-10-18T09:18:02.000Z",
+   "friday_reminder_disabled",
+   "Rita 2026-10-15 指示停用；触发器保留，改 true 后自动恢复"
+  ],
+  [
+   1294,
+   "2026-10-18T16:26:34.000Z",
+   "patchCells",
+   "ss=1oxPj0mzN8poP2vQ7Bm-YKXuU49p9b0c1asyrZn4Py44 sheet=工时_候选0824 cells=0 ranges=1 done=66"
+  ],
+  [
+   1295,
+   "2026-10-19T09:18:02.000Z",
+   "friday_reminder_disabled",
+   "Rita 2026-10-15 指示停用；触发器保留，改 true 后自动恢复"
+  ],
+  [
+   1296,
+   "2026-10-19T09:58:52.000Z",
+   "patchCells(dry)",
+   "ss=1XVvgruEU8nIUjTgLP4x13e7h-Ua7zHrsohoryzwUifQ sheet=Database cells=1 ranges=0 done=0"
+  ],
+  [
+   1297,
+   "2026-10-19T09:58:56.000Z",
+   "patchCells",
+   "ss=1XVvgruEU8nIUjTgLP4x13e7h-Ua7zHrsohoryzwUifQ sheet=Database cells=1 ranges=0 done=1"
+  ],
+  [
+   1298,
+   "2026-10-19T09:59:57.000Z",
+   "patchCells",
+   "ss=1XVvgruEU8nIUjTgLP4x13e7h-Ua7zHrsohoryzwUifQ sheet=Database cells=1 ranges=0 done=1"
+  ],
+  [
+   1299,
+   "2026-10-19T10:00:03.000Z",
+   "patchCells",
+   "ss=1XVvgruEU8nIUjTgLP4x13e7h-Ua7zHrsohoryzwUifQ sheet=Database cells=1 ranges=0 done=1"
+  ],
+  [
+   1300,
+   "2026-10-19T10:00:09.000Z",
+   "patchCells",
+   "ss=1XVvgruEU8nIUjTgLP4x13e7h-Ua7zHrsohoryzwUifQ sheet=Database cells=1 ranges=0 done=1"
+  ],
+  [
+   1301,
+   "2026-10-19T10:00:35.000Z",
+   "patchCells",
+   "ss=1XVvgruEU8nIUjTgLP4x13e7h-Ua7zHrsohoryzwUifQ sheet=Database cells=1 ranges=0 done=1"
+  ],
+  [
+   1302,
+   "2026-10-19T10:00:55.000Z",
+   "patchCells",
+   "ss=1XVvgruEU8nIUjTgLP4x13e7h-Ua7zHrsohoryzwUifQ sheet=Database cells=1 ranges=0 done=1"
+  ],
+  [
+   1303,
+   "2026-10-19T10:09:08.000Z",
+   "patchCells(dry)",
+   "ss=1XVvgruEU8nIUjTgLP4x13e7h-Ua7zHrsohoryzwUifQ sheet=Database cells=1 ranges=0 done=0"
+  ],
+  [
+   1304,
+   "2026-10-19T10:09:21.000Z",
+   "patchCells",
+   "ss=1XVvgruEU8nIUjTgLP4x13e7h-Ua7zHrsohoryzwUifQ sheet=Database cells=1 ranges=0 done=1"
+  ],
+  [
+   1305,
+   "2026-10-19T10:09:51.000Z",
+   "patchCells",
+   "ss=1XVvgruEU8nIUjTgLP4x13e7h-Ua7zHrsohoryzwUifQ sheet=Database cells=1 ranges=0 done=1"
+  ],
+  [
+   1306,
+   "2026-10-19T10:15:04.000Z",
+   "patchCells(dry)",
+   "ss=1XVvgruEU8nIUjTgLP4x13e7h-Ua7zHrsohoryzwUifQ sheet=Database cells=1 ranges=0 done=0"
+  ],
+  [
+   1307,
+   "2026-10-19T10:30:02.000Z",
+   "patchCells",
+   "ss=1XVvgruEU8nIUjTgLP4x13e7h-Ua7zHrsohoryzwUifQ sheet=Database cells=1 ranges=0 done=1"
+  ],
+  [
+   1308,
+   "2026-10-20T07:35:13.000Z",
+   "patchCells",
+   "ss=1XVvgruEU8nIUjTgLP4x13e7h-Ua7zHrsohoryzwUifQ sheet=Database cells=1 ranges=0 done=1"
+  ],
+  [
+   1309,
+   "2026-10-20T08:10:17.000Z",
+   "patchCells(dry)",
+   "ss=1XVvgruEU8nIUjTgLP4x13e7h-Ua7zHrsohoryzwUifQ sheet=VO-PM&Design cells=1 ranges=0 done=0"
+  ],
+  [
+   1310,
+   "2026-10-20T08:10:22.000Z",
+   "patchCells",
+   "ss=1XVvgruEU8nIUjTgLP4x13e7h-Ua7zHrsohoryzwUifQ sheet=VO-PM&Design cells=1 ranges=0 done=1"
+  ],
+  [
+   1311,
+   "2026-10-20T08:11:25.000Z",
+   "patchCells(dry)",
+   "ss=1XVvgruEU8nIUjTgLP4x13e7h-Ua7zHrsohoryzwUifQ sheet=VO-PM&Design cells=135 ranges=0 done=0"
+  ],
+  [
+   1312,
+   "2026-10-20T08:11:30.000Z",
+   "patchCells",
+   "ss=1XVvgruEU8nIUjTgLP4x13e7h-Ua7zHrsohoryzwUifQ sheet=VO-PM&Design cells=135 ranges=0 done=135"
+  ],
+  [
+   1313,
+   "2026-10-20T08:14:08.000Z",
+   "patchCells(dry)",
+   "ss=1Pdb1urK9_YDBoPaftdY9HCZvThyV_PmNhbylq0VCOeY sheet=Total Summary cells=136 ranges=0 done=0"
+  ],
+  [
+   1314,
+   "2026-10-20T08:14:12.000Z",
+   "patchCells",
+   "ss=1Pdb1urK9_YDBoPaftdY9HCZvThyV_PmNhbylq0VCOeY sheet=Total Summary cells=136 ranges=0 done=136"
+  ],
+  [
+   1315,
+   "2026-10-20T08:18:10.000Z",
+   "patchCells(dry)",
+   "ss=1XVvgruEU8nIUjTgLP4x13e7h-Ua7zHrsohoryzwUifQ sheet=VO-PM&Design cells=123 ranges=0 done=0"
+  ],
+  [
+   1316,
+   "2026-10-20T08:18:14.000Z",
+   "patchCells",
+   "ss=1XVvgruEU8nIUjTgLP4x13e7h-Ua7zHrsohoryzwUifQ sheet=VO-PM&Design cells=123 ranges=0 done=123"
+  ],
+  [
+   1317,
+   "2026-10-20T08:18:49.000Z",
+   "patchCells",
+   "ss=1Pdb1urK9_YDBoPaftdY9HCZvThyV_PmNhbylq0VCOeY sheet=Total Summary cells=123 ranges=0 done=123"
+  ],
+  [
+   1318,
+   "2026-10-20T09:18:04.000Z",
+   "friday_reminder_disabled",
+   "Rita 2026-10-15 指示停用；触发器保留，改 true 后自动恢复"
+  ],
+  [
+   1319,
+   "2026-10-21T09:18:02.000Z",
+   "friday_reminder_disabled",
+   "Rita 2026-10-15 指示停用；触发器保留，改 true 后自动恢复"
+  ],
+  [
+   1320,
+   "2026-10-21T10:05:20.000Z",
+   "attendance_calendar_mark",
+   "标记日历：块=9 单元格=246（纯展示，零数据改动）"
+  ],
+  [
+   1321,
+   "2026-10-21T10:56:03.000Z",
+   "attendance_leave_cf",
+   "CF 全量替换：旧规则=2 → 2 条（蓝=假 / 橙=0<h<8），块=9"
+  ],
+  [
+   1322,
+   "2026-10-22T09:18:02.000Z",
+   "friday_reminder_disabled",
+   "Rita 2026-10-15 指示停用；触发器保留，改 true 后自动恢复"
+  ],
+  [
+   1323,
+   "2026-10-23T01:51:41.000Z",
+   "friday_reminder_disabled",
+   "Rita 2026-10-15 指示停用；触发器保留，改 true 后自动恢复"
+  ],
+  [
+   1324,
+   "2026-10-23T09:18:02.000Z",
+   "friday_reminder_disabled",
+   "Rita 2026-10-15 指示停用；触发器保留，改 true 后自动恢复"
+  ],
+  [
+   1325,
+   "2026-10-24T09:18:03.000Z",
+   "friday_reminder_disabled",
+   "Rita 2026-10-15 指示停用；触发器保留，改 true 后自动恢复"
+  ],
+  [
+   1326,
+   "2026-10-25T09:18:03.000Z",
+   "friday_reminder_disabled",
+   "Rita 2026-10-15 指示停用；触发器保留，改 true 后自动恢复"
+  ],
+  [
+   1327,
+   "2026-10-25T14:20:25.000Z",
+   "leave_sync_master",
+   "追加 15 行到主库「请假」分页；跳过已存在 567 行；窗口 2026-04-01~2026-12-31；事件 249 个；无姓名 0 个"
+  ],
+  [
+   1328,
+   "2026-10-25T15:50:14.000Z",
+   "repairLegacyLeave:repair(dry)",
+   "ss=1Pi5u9fEawgp7yICWPMMyQCT_LbwTZthQDW-H05xYdVI sheet=DB_工时流水 rows=153 done=153 skipped=0"
+  ],
+  [
+   1329,
+   "2026-10-25T15:51:23.000Z",
+   "repairLegacyLeave:repair(dry)",
+   "ss=1Pi5u9fEawgp7yICWPMMyQCT_LbwTZthQDW-H05xYdVI sheet=DB_工时流水 rows=153 done=153 skipped=0"
+  ],
+  [
+   1330,
+   "2026-10-25T15:51:51.000Z",
+   "repairLegacyLeave:repair(dry)",
+   "ss=1Pi5u9fEawgp7yICWPMMyQCT_LbwTZthQDW-H05xYdVI sheet=DB_工时流水 rows=153 done=153 skipped=0"
+  ],
+  [
+   1331,
+   "2026-10-25T15:52:00.000Z",
+   "repairLegacyLeave:repair",
+   "ss=1Pi5u9fEawgp7yICWPMMyQCT_LbwTZthQDW-H05xYdVI sheet=DB_工时流水 rows=153 done=153 skipped=0"
+  ],
+  [
+   1332,
+   "2026-10-25T16:07:39.000Z",
+   "setup",
+   "period-lock initialized (closed=true, futureOpen=true, cutoff=2026-10-01) by rita-deploy"
+  ],
+  [
+   1333,
+   "2026-10-25T17:11:30.000Z",
+   "repairLegacyLeave:undo",
+   "ss=1Pi5u9fEawgp7yICWPMMyQCT_LbwTZthQDW-H05xYdVI sheet=DB_工时流水 rows=153 done=153 skipped=0"
+  ],
+  [
+   1334,
+   "2026-10-25T17:17:43.000Z",
+   "repairLegacyLeave:repair(dry)",
+   "ss=1Pi5u9fEawgp7yICWPMMyQCT_LbwTZthQDW-H05xYdVI sheet=DB_工时流水 rows=113 done=113 skipped=0"
+  ],
+  [
+   1335,
+   "2026-10-25T17:18:02.000Z",
+   "repairLegacyLeave:repair(dry)",
+   "ss=1Pi5u9fEawgp7yICWPMMyQCT_LbwTZthQDW-H05xYdVI sheet=DB_工时流水 rows=113 done=113 skipped=0"
+  ],
+  [
+   1336,
+   "2026-10-25T17:18:07.000Z",
+   "repairLegacyLeave:repair",
+   "ss=1Pi5u9fEawgp7yICWPMMyQCT_LbwTZthQDW-H05xYdVI sheet=DB_工时流水 rows=113 done=113 skipped=0"
+  ],
+  [
+   1337,
+   "2026-10-25T18:00:59.000Z",
+   "sync_prod_to_master",
+   "追加 177 行到主库底稿（804.5h）；起始行 5731；剔除 440"
+  ],
+  [
+   1338,
+   "2026-10-25T18:01:35.000Z",
+   "master_views_live",
+   "实时重算「月度视图」：238 行；备份=[OK] 月度视图_重算前_20261026"
+  ],
+  [
+   1339,
+   "2026-10-25T18:02:43.000Z",
+   "attendance_rebuild_live",
+   "实时重算「按月考勤」：552×32，月=12，人=44，备份=[SKIP]"
+  ],
+  [
+   1340,
+   "2026-10-25T21:01:22.000Z",
+   "patchCells",
+   "ss=1XVvgruEU8nIUjTgLP4x13e7h-Ua7zHrsohoryzwUifQ sheet=Project -PM cells=100 ranges=0 done=100"
+  ],
+  [
+   1341,
+   "2026-10-25T21:01:26.000Z",
+   "patchCells",
+   "ss=1XVvgruEU8nIUjTgLP4x13e7h-Ua7zHrsohoryzwUifQ sheet=Project -PM cells=88 ranges=0 done=88"
+  ],
+  [
+   1342,
+   "2026-10-25T22:27:06.000Z",
+   "leave_sync_master",
+   "追加 0 行到主库「请假」分页；跳过已存在 582 行；窗口 2026-04-01~2026-12-31；事件 249 个；无姓名 0 个"
+  ],
+  [
+   1343,
+   "2026-10-26T00:03:14.000Z",
+   "sync_prod_to_master",
+   "无新增，零写入；剔除 440 行"
+  ],
+  [
+   1344,
+   "2026-10-26T00:11:47.000Z",
+   "attendance_rebuild_live",
+   "实时重算「按月考勤」：552×32，月=12，人=44，备份=[SKIP]"
+  ],
+  [
+   1345,
+   "2026-10-26T00:11:52.000Z",
+   "master_views_live",
+   "实时重算「月度视图」：238 行；备份=[SKIP]"
+  ],
+  [
+   1346,
+   "2026-10-26T09:18:04.000Z",
+   "friday_reminder_disabled",
+   "Rita 2026-10-15 指示停用；触发器保留，改 true 后自动恢复"
+  ]
+ ],
+ "sample": [
+  {
+   "row": 10201,
+   "entryTime": "2026-07-09T13:16:27.000Z",
+   "bizDate": "2026-04-30T16:00:00.000Z",
+   "name": "P0004",
+   "type": "",
+   "uuid": "AUTO_LEAVE",
+   "hours": 8,
+   "softdel": true
+  },
+  {
+   "row": 10292,
+   "entryTime": "2026-09-04T22:29:37.000Z",
+   "bizDate": "2026-07-23T16:00:00.000Z",
+   "name": "P0008",
+   "type": "休假",
+   "uuid": "LEAVE-095d05b93c6e476c84ce6267cc323cc7-2026-07-24",
+   "hours": 8,
+   "softdel": true
+  },
+  {
+   "row": 10293,
+   "entryTime": "2026-09-04T22:29:35.000Z",
+   "bizDate": "2026-05-31T16:00:00.000Z",
+   "name": "P0019",
+   "type": "休假",
+   "uuid": "LEAVE-47d243bf4cd84068a418dad6e1d92ec3-2026-06-01",
+   "hours": 8,
+   "softdel": true
+  },
+  {
+   "row": 10294,
+   "entryTime": "2026-09-04T22:29:36.000Z",
+   "bizDate": "2026-06-28T16:00:00.000Z",
+   "name": "P0019",
+   "type": "休假",
+   "uuid": "LEAVE-f03d99ac3df14dac8ddc3177a2b2c443-2026-06-29",
+   "hours": 8,
+   "softdel": true
+  },
+  {
+   "row": 10295,
+   "entryTime": "2026-09-04T22:29:36.000Z",
+   "bizDate": "2026-06-29T16:00:00.000Z",
+   "name": "P0019",
+   "type": "休假",
+   "uuid": "LEAVE-ede30e1fe36841cc9a53daa7d4a8c6bc-2026-06-30",
+   "hours": 8,
+   "softdel": true
+  },
+  {
+   "row": 10296,
+   "entryTime": "2026-09-04T22:29:36.000Z",
+   "bizDate": "2026-06-30T16:00:00.000Z",
+   "name": "P0019",
+   "type": "休假",
+   "uuid": "LEAVE-01270810c955433596fe92ea6d312f7d-2026-07-01",
+   "hours": 8,
+   "softdel": true
+  },
+  {
+   "row": 10297,
+   "entryTime": "2026-08-20T00:10:01.000Z",
+   "bizDate": "2026-07-01T16:00:00.000Z",
+   "name": "P0019",
+   "type": "",
+   "uuid": "LEAVE-3k5rc06v7r8qrjeb9ota2md7rpgoogle-2026-07-02",
+   "hours": 8,
+   "softdel": true
+  },
+  {
+   "row": 10298,
+   "entryTime": "2026-08-20T13:34:04.000Z",
+   "bizDate": "2026-03-31T16:00:00.000Z",
+   "name": "P0013",
+   "type": "",
+   "uuid": "LEAVE-7hq9p12tjp4b6e1sbqafgdsem3google-2026-04-01",
+   "hours": 8,
+   "softdel": true
+  },
+  {
+   "row": 10299,
+   "entryTime": "2026-09-04T22:29:29.000Z",
+   "bizDate": "2026-04-02T16:00:00.000Z",
+   "name": "P0015",
+   "type": "休假",
+   "uuid": "LEAVE-460921a968b4480cb8ff803593c0e530-2026-04-03",
+   "hours": 3,
+   "softdel": true
+  },
+  {
+   "row": 10300,
+   "entryTime": "2026-08-20T13:34:04.000Z",
+   "bizDate": "2026-04-08T16:00:00.000Z",
+   "name": "P0003",
+   "type": "",
+   "uuid": "LEAVE-2jdv6jcd6rco9nmpkhmdmqk2qngoogle-2026-04-09",
+   "hours": 8,
+   "softdel": true
+  },
+  {
+   "row": 10301,
+   "entryTime": "2026-08-20T13:34:04.000Z",
+   "bizDate": "2026-04-09T16:00:00.000Z",
+   "name": "Cuenca Tang",
+   "type": "",
+   "uuid": "LEAVE-0vlaf3iu86gjihiu1go4f1df60google-2026-04-10",
+   "hours": 8,
+   "softdel": true
+  },
+  {
+   "row": 10302,
+   "entryTime": "2026-08-20T13:34:04.000Z",
+   "bizDate": "2026-04-13T16:00:00.000Z",
+   "name": "Joanne Jin",
+   "type": "",
+   "uuid": "LEAVE-49fm99atkathp20neie0b79g2tgoogle-2026-04-14",
+   "hours": 8,
+   "softdel": true
+  },
+  {
+   "row": 10303,
+   "entryTime": "2026-08-20T13:34:04.000Z",
+   "bizDate": "2026-04-14T16:00:00.000Z",
+   "name": "P0006",
+   "type": "",
+   "uuid": "LEAVE-6ille5nrnifo918kdlmd5fok7tgoogle-2026-04-15",
+   "hours": 8,
+   "softdel": true
+  },
+  {
+   "row": 10304,
+   "entryTime": "2026-09-04T22:29:30.000Z",
+   "bizDate": "2026-04-21T16:00:00.000Z",
+   "name": "P0001",
+   "type": "休假",
+   "uuid": "LEAVE-88290e68b5334bd08930257edbba9ef4-2026-04-22",
+   "hours": 3,
+   "softdel": true
+  },
+  {
+   "row": 10305,
+   "entryTime": "2026-08-20T13:34:04.000Z",
+   "bizDate": "2026-04-27T16:00:00.000Z",
+   "name": "P0001",
+   "type": "",
+   "uuid": "LEAVE-3lvhr5ne26nijqs5g90ql2d1lqgoogle-2026-04-28",
+   "hours": 8,
+   "softdel": true
+  },
+  {
+   "row": 10306,
+   "entryTime": "2026-08-20T13:34:04.000Z",
+   "bizDate": "2026-04-29T16:00:00.000Z",
+   "name": "P0002",
+   "type": "",
+   "uuid": "LEAVE-55r44enrvni9e9mcj9j4phvj02google-2026-04-30",
+   "hours": 8,
+   "softdel": true
+  },
+  {
+   "row": 10307,
+   "entryTime": "2026-08-20T13:34:04.000Z",
+   "bizDate": "2026-05-06T16:00:00.000Z",
+   "name": "P0008",
+   "type": "",
+   "uuid": "LEAVE-0nmp8n8b1ne8kcdj6gdd3tj0gmgoogle-2026-05-07",
+   "hours": 8,
+   "softdel": true
+  },
+  {
+   "row": 10308,
+   "entryTime": "2026-08-20T13:34:04.000Z",
+   "bizDate": "2026-05-06T16:00:00.000Z",
+   "name": "Joanne Jin",
+   "type": "",
+   "uuid": "LEAVE-7pkldnt18n1241rdphv36olocigoogle-2026-05-07",
+   "hours": 8,
+   "softdel": true
+  },
+  {
+   "row": 10309,
+   "entryTime": "2026-08-20T13:34:04.000Z",
+   "bizDate": "2026-05-06T16:00:00.000Z",
+   "name": "P0009",
+   "type": "",
+   "uuid": "LEAVE-506vedg3e0sk74h814pvhqrgv5google-2026-05-07",
+   "hours": 8,
+   "softdel": true
+  },
+  {
+   "row": 10310,
+   "entryTime": "2026-08-20T13:34:04.000Z",
+   "bizDate": "2026-05-06T16:00:00.000Z",
+   "name": "David Zhou",
+   "type": "",
+   "uuid": "LEAVE-4rdt8t93nm48lk8rj04bvjbjiigoogle-2026-05-07",
+   "hours": 8,
+   "softdel": true
+  },
+  {
+   "row": 10311,
+   "entryTime": "2026-09-04T22:29:31.000Z",
+   "bizDate": "2026-05-07T16:00:00.000Z",
+   "name": "P0010",
+   "type": "休假",
+   "uuid": "LEAVE-39e0202ee8264a7f9a8d7a69abde158b-2026-05-08",
+   "hours": 5,
+   "softdel": true
+  },
+  {
+   "row": 10312,
+   "entryTime": "2026-09-04T22:29:31.000Z",
+   "bizDate": "2026-05-10T16:00:00.000Z",
+   "name": "P0015",
+   "type": "休假",
+   "uuid": "LEAVE-4e8de613f9d24ad5a4b41d1ac0d78cb7-2026-05-11",
+   "hours": 8,
+   "softdel": true
+  },
+  {
+   "row": 10313,
+   "entryTime": "2026-08-20T13:34:04.000Z",
+   "bizDate": "2026-05-12T16:00:00.000Z",
+   "name": "P0006",
+   "type": "",
+   "uuid": "LEAVE-7o6ccdr6kbpritd9komc0vf3gmgoogle-2026-05-13",
+   "hours": 8,
+   "softdel": true
+  },
+  {
+   "row": 10314,
+   "entryTime": "2026-08-20T13:34:04.000Z",
+   "bizDate": "2026-05-12T16:00:00.000Z",
+   "name": "P0002",
+   "type": "",
+   "uuid": "LEAVE-4ntm2oc2pp80n4g0m0mma8a6olgoogle-2026-05-13",
+   "hours": 8,
+   "softdel": true
+  },
+  {
+   "row": 10315,
+   "entryTime": "2026-09-04T22:29:32.000Z",
+   "bizDate": "2026-05-18T16:00:00.000Z",
+   "name": "P0008",
+   "type": "休假",
+   "uuid": "LEAVE-11c3cc9e9bd8474fa9e5aae4b6264631-2026-05-19",
+   "hours": 3,
+   "softdel": true
+  },
+  {
+   "row": 10316,
+   "entryTime": "2026-08-20T13:34:04.000Z",
+   "bizDate": "2026-05-18T16:00:00.000Z",
+   "name": "P0013",
+   "type": "",
+   "uuid": "LEAVE-0pbg7t4gqi9hf7bpiugtpmhcbogoogle-2026-05-19",
+   "hours": 8,
+   "softdel": true
+  },
+  {
+   "row": 10317,
+   "entryTime": "2026-08-20T13:34:04.000Z",
+   "bizDate": "2026-05-20T16:00:00.000Z",
+   "name": "P0002",
+   "type": "",
+   "uuid": "LEAVE-4mi4ados7db8bdaf24tftcq210google-2026-05-21",
+   "hours": 8,
+   "softdel": true
+  },
+  {
+   "row": 10318,
+   "entryTime": "2026-09-04T22:29:33.000Z",
+   "bizDate": "2026-05-21T16:00:00.000Z",
+   "name": "P0008",
+   "type": "休假",
+   "uuid": "LEAVE-f76d822877e24d15a91cae332431d566-2026-05-22",
+   "hours": 3,
+   "softdel": true
+  },
+  {
+   "row": 10319,
+   "entryTime": "2026-08-20T13:34:04.000Z",
+   "bizDate": "2026-05-25T16:00:00.000Z",
+   "name": "P0010",
+   "type": "",
+   "uuid": "LEAVE-0uvd4l1clhq50j3ql330eh1edjgoogle-2026-05-26",
+   "hours": 8,
+   "softdel": true
+  },
+  {
+   "row": 10320,
+   "entryTime": "2026-08-20T13:34:04.000Z",
+   "bizDate": "2026-05-25T16:00:00.000Z",
+   "name": "P0013",
+   "type": "",
+   "uuid": "LEAVE-04gq2fuau4o072fe74ndfod3f1google-2026-05-26",
+   "hours": 8,
+   "softdel": true
+  },
+  {
+   "row": 10321,
+   "entryTime": "2026-09-04T22:29:33.000Z",
+   "bizDate": "2026-05-28T16:00:00.000Z",
+   "name": "P0010",
+   "type": "休假",
+   "uuid": "LEAVE-7bf884682c60402fa333d4fd993bcfef-2026-05-29",
+   "hours": 3,
+   "softdel": true
+  },
+  {
+   "row": 10322,
+   "entryTime": "2026-09-04T22:29:33.000Z",
+   "bizDate": "2026-05-28T16:00:00.000Z",
+   "name": "P0020",
+   "type": "休假",
+   "uuid": "LEAVE-a1e56147e43d430b9220d23d0fa0a3cf-2026-05-29",
+   "hours": 3,
+   "softdel": true
+  },
+  {
+   "row": 10323,
+   "entryTime": "2026-08-20T13:34:04.000Z",
+   "bizDate": "2026-06-01T16:00:00.000Z",
+   "name": "P0019",
+   "type": "",
+   "uuid": "LEAVE-5ohqoicgmo1kcss2hf2ksivp0qgoogle-2026-06-02",
+   "hours": 8,
+   "softdel": true
+  },
+  {
+   "row": 10324,
+   "entryTime": "2026-08-20T13:34:04.000Z",
+   "bizDate": "2026-06-01T16:00:00.000Z",
+   "name": "P0020",
+   "type": "",
+   "uuid": "LEAVE-1037o9qgg2pme7tcojdimksullgoogle-2026-06-02",
+   "hours": 8,
+   "softdel": true
+  },
+  {
+   "row": 10325,
+   "entryTime": "2026-09-04T22:29:35.000Z",
+   "bizDate": "2026-06-02T16:00:00.000Z",
+   "name": "P0010",
+   "type": "休假",
+   "uuid": "LEAVE-ba747e4942f944bdbb0e7c89b9e0ea9a-2026-06-03",
+   "hours": 3,
+   "softdel": true
+  },
+  {
+   "row": 10326,
+   "entryTime": "2026-08-20T13:34:04.000Z",
+   "bizDate": "2026-06-08T16:00:00.000Z",
+   "name": "P0004",
+   "type": "",
+   "uuid": "LEAVE-7bkor5r7qdt91dt8jc479koe9vgoogle-2026-06-09",
+   "hours": 8,
+   "softdel": true
+  },
+  {
+   "row": 10327,
+   "entryTime": "2026-09-04T22:29:35.000Z",
+   "bizDate": "2026-06-08T16:00:00.000Z",
+   "name": "P0010",
+   "type": "休假",
+   "uuid": "LEAVE-4240b51d59b04d9681cbc2062373dd4f-2026-06-09",
+   "hours": 3,
+   "softdel": true
+  },
+  {
+   "row": 10328,
+   "entryTime": "2026-09-04T22:29:35.000Z",
+   "bizDate": "2026-06-10T16:00:00.000Z",
+   "name": "P0002",
+   "type": "休假",
+   "uuid": "LEAVE-780deba1b5514418ae46ce00b38e6abd-2026-06-11",
+   "hours": 3,
+   "softdel": true
+  },
+  {
+   "row": 10329,
+   "entryTime": "2026-08-20T13:34:04.000Z",
+   "bizDate": "2026-06-10T16:00:00.000Z",
+   "name": "P0013",
+   "type": "",
+   "uuid": "LEAVE-2qan8h6j12amerfjgu20ruhr5dgoogle-2026-06-11",
+   "hours": 8,
+   "softdel": true
+  },
+  {
+   "row": 10330,
+   "entryTime": "2026-08-20T13:34:05.000Z",
+   "bizDate": "2026-06-22T16:00:00.000Z",
+   "name": "P0021",
+   "type": "",
+   "uuid": "LEAVE-0pf185aeqhntdc8p3esmr541kbgoogle-2026-06-23",
+   "hours": 8,
+   "softdel": true
+  },
+  {
+   "row": 10331,
+   "entryTime": "2026-08-20T13:34:05.000Z",
+   "bizDate": "2026-06-24T16:00:00.000Z",
+   "name": "P0006",
+   "type": "",
+   "uuid": "LEAVE-2cbpb4duqe9oqglkij3d8kopj8google-2026-06-25",
+   "hours": 8,
+   "softdel": true
+  },
+  {
+   "row": 10332,
+   "entryTime": "2026-08-20T13:34:05.000Z",
+   "bizDate": "2026-06-24T16:00:00.000Z",
+   "name": "P0010",
+   "type": "",
+   "uuid": "LEAVE-7lj1e9qgtoh47aiq2t4bpb9jh0google-2026-06-25",
+   "hours": 8,
+   "softdel": true
+  },
+  {
+   "row": 10333,
+   "entryTime": "2026-08-20T13:34:05.000Z",
+   "bizDate": "2026-06-24T16:00:00.000Z",
+   "name": "P0013",
+   "type": "",
+   "uuid": "LEAVE-789apkf0hemnse36vl61t29tftgoogle-2026-06-25",
+   "hours": 8,
+   "softdel": true
+  },
+  {
+   "row": 10334,
+   "entryTime": "2026-08-20T13:34:05.000Z",
+   "bizDate": "2026-06-25T16:00:00.000Z",
+   "name": "P0007",
+   "type": "",
+   "uuid": "LEAVE-2oc43q6fsnvjndmgu8mm8mthktgoogle-2026-06-26",
+   "hours": 8,
+   "softdel": true
+  },
+  {
+   "row": 10335,
+   "entryTime": "2026-08-20T13:34:05.000Z",
+   "bizDate": "2026-06-30T16:00:00.000Z",
+   "name": "P0001",
+   "type": "",
+   "uuid": "LEAVE-45t1cbrf68u2encn70cbpn2sjegoogle-2026-07-01",
+   "hours": 8,
+   "softdel": true
+  },
+  {
+   "row": 10336,
+   "entryTime": "2026-09-04T22:29:36.000Z",
+   "bizDate": "2026-06-30T16:00:00.000Z",
+   "name": "P0020",
+   "type": "休假",
+   "uuid": "LEAVE-0b631831fe4c4d1fba7d631a688964f6-2026-07-01",
+   "hours": 5,
+   "softdel": true
+  },
+  {
+   "row": 10337,
+   "entryTime": "2026-08-20T00:10:01.000Z",
+   "bizDate": "2026-07-02T16:00:00.000Z",
+   "name": "P0004",
+   "type": "",
+   "uuid": "LEAVE-33ht3s6p05vjnoat0vjjuecld8google-2026-07-03",
+   "hours": 8,
+   "softdel": true
+  },
+  {
+   "row": 10338,
+   "entryTime": "2026-08-20T00:10:01.000Z",
+   "bizDate": "2026-07-08T16:00:00.000Z",
+   "name": "P0005",
+   "type": "",
+   "uuid": "LEAVE-1ovlqvrev4ggr0ohk3kfh70dsogoogle-2026-07-09",
+   "hours": 8,
+   "softdel": true
+  },
+  {
+   "row": 10339,
+   "entryTime": "2026-09-04T22:29:36.000Z",
+   "bizDate": "2026-07-02T16:00:00.000Z",
+   "name": "P0009",
+   "type": "休假",
+   "uuid": "LEAVE-aa4c9ac535564a51b1a0d3f7879b7fb0-2026-07-03",
+   "hours": 5,
+   "softdel": true
+  },
+  {
+   "row": 10340,
+   "entryTime": "2026-08-20T00:10:01.000Z",
+   "bizDate": "2026-07-15T16:00:00.000Z",
+   "name": "Kian Guo",
+   "type": "",
+   "uuid": "LEAVE-21ejv73mtc4rvjh6dk04q2u054google-2026-07-16",
+   "hours": 8,
+   "softdel": true
+  },
+  {
+   "row": 10341,
+   "entryTime": "2026-09-04T22:29:36.000Z",
+   "bizDate": "2026-07-12T16:00:00.000Z",
+   "name": "P0010",
+   "type": "休假",
+   "uuid": "LEAVE-4bb33cb72f1f4a87ade9f5f1cdb61704-2026-07-13",
+   "hours": 8,
+   "softdel": true
+  },
+  {
+   "row": 10342,
+   "entryTime": "2026-08-20T00:10:01.000Z",
+   "bizDate": "2026-07-13T16:00:00.000Z",
+   "name": "P0010",
+   "type": "",
+   "uuid": "LEAVE-08ssvdqpbisn6fm2butibv7nc8google-2026-07-14",
+   "hours": 8,
+   "softdel": true
+  },
+  {
+   "row": 10343,
+   "entryTime": "2026-08-20T00:10:02.000Z",
+   "bizDate": "2026-07-21T16:00:00.000Z",
+   "name": "P0002",
+   "type": "",
+   "uuid": "LEAVE-11g5dt4auf84itb1cql6bk49qegoogle-2026-07-22",
+   "hours": 8,
+   "softdel": true
+  },
+  {
+   "row": 10344,
+   "entryTime": "2026-09-04T22:29:37.000Z",
+   "bizDate": "2026-07-23T16:00:00.000Z",
+   "name": "P0018",
+   "type": "休假",
+   "uuid": "LEAVE-f1e24da26a224716a41b4b1b8c368dd0-2026-07-24",
+   "hours": 8,
+   "softdel": true
+  },
+  {
+   "row": 10345,
+   "entryTime": "2026-08-20T00:10:02.000Z",
+   "bizDate": "2026-07-29T16:00:00.000Z",
+   "name": "Damon Ping",
+   "type": "",
+   "uuid": "LEAVE-0kkr2do3diac8514bhmdmdh003google-2026-07-30",
+   "hours": 8,
+   "softdel": true
+  },
+  {
+   "row": 10346,
+   "entryTime": "2026-09-04T22:29:37.000Z",
+   "bizDate": "2026-07-29T16:00:00.000Z",
+   "name": "P0001",
+   "type": "休假",
+   "uuid": "LEAVE-3c2e9aa4b781496f9a6920f88257fe47-2026-07-30",
+   "hours": 8,
+   "softdel": true
+  },
+  {
+   "row": 10347,
+   "entryTime": "2026-08-20T00:10:02.000Z",
+   "bizDate": "2026-07-30T16:00:00.000Z",
+   "name": "P0001",
+   "type": "",
+   "uuid": "LEAVE-6e5n5jr84bogl9ggv14f0d8nc9google-2026-07-31",
+   "hours": 8,
+   "softdel": true
+  },
+  {
+   "row": 10748,
+   "entryTime": "2026-09-29T22:37:21.000Z",
+   "bizDate": "2026-08-02T16:00:00.000Z",
+   "name": "P0020",
+   "type": "休假",
+   "uuid": "LEAVE-d89f9e653daf44108b3cddd824bc6f55-2026-08-03",
+   "hours": 8,
+   "softdel": true
+  },
+  {
+   "row": 10749,
+   "entryTime": "2026-09-29T22:37:21.000Z",
+   "bizDate": "2026-08-03T16:00:00.000Z",
+   "name": "P0020",
+   "type": "休假",
+   "uuid": "LEAVE-cd5e984d92f64c8f91df8662a0330319-2026-08-04",
+   "hours": 8,
+   "softdel": true
+  },
+  {
+   "row": 10750,
+   "entryTime": "2026-09-29T22:37:21.000Z",
+   "bizDate": "2026-08-02T16:00:00.000Z",
+   "name": "P0009",
+   "type": "休假",
+   "uuid": "LEAVE-ed9f12823e9041b9a9cadce10300cb2d-2026-08-03",
+   "hours": 8,
+   "softdel": true
+  },
+  {
+   "row": 10751,
+   "entryTime": "2026-09-29T22:37:21.000Z",
+   "bizDate": "2026-08-03T16:00:00.000Z",
+   "name": "P0009",
+   "type": "休假",
+   "uuid": "LEAVE-a00bd1b5a04e47c8a5fa6963f2e1a5d6-2026-08-04",
+   "hours": 8,
+   "softdel": true
+  },
+  {
+   "row": 10752,
+   "entryTime": "2026-09-29T22:37:21.000Z",
+   "bizDate": "2026-08-04T16:00:00.000Z",
+   "name": "P0009",
+   "type": "休假",
+   "uuid": "LEAVE-6050adef8af14cdb8377ef4f0b3ca6a8-2026-08-05",
+   "hours": 8,
+   "softdel": true
+  },
+  {
+   "row": 10753,
+   "entryTime": "2026-09-29T22:37:21.000Z",
+   "bizDate": "2026-08-05T16:00:00.000Z",
+   "name": "P0009",
+   "type": "休假",
+   "uuid": "LEAVE-7ef0cd00c9ff4c67aac7059f8037daa9-2026-08-06",
+   "hours": 8,
+   "softdel": true
+  },
+  {
+   "row": 10754,
+   "entryTime": "2026-09-29T22:37:21.000Z",
+   "bizDate": "2026-08-06T16:00:00.000Z",
+   "name": "P0009",
+   "type": "休假",
+   "uuid": "LEAVE-b84fdafbe06c42578f262856a6487f68-2026-08-07",
+   "hours": 8,
+   "softdel": true
+  },
+  {
+   "row": 10755,
+   "entryTime": "2026-09-29T22:37:21.000Z",
+   "bizDate": "2026-08-02T16:00:00.000Z",
+   "name": "P0001",
+   "type": "休假",
+   "uuid": "LEAVE-0a5d8dad30864ce3acca72259f61ae04-2026-08-03",
+   "hours": 8,
+   "softdel": true
+  },
+  {
+   "row": 10756,
+   "entryTime": "2026-09-29T22:37:21.000Z",
+   "bizDate": "2026-08-03T16:00:00.000Z",
+   "name": "P0001",
+   "type": "休假",
+   "uuid": "LEAVE-5fa63819ed2e4a08ab69eb0fdb5ba6f4-2026-08-04",
+   "hours": 8,
+   "softdel": true
+  },
+  {
+   "row": 10757,
+   "entryTime": "2026-09-29T22:37:21.000Z",
+   "bizDate": "2026-08-02T16:00:00.000Z",
+   "name": "P0002",
+   "type": "休假",
+   "uuid": "LEAVE-74b2ce29116e4246a492759a5ef87460-2026-08-03",
+   "hours": 3,
+   "softdel": true
+  },
+  {
+   "row": 10758,
+   "entryTime": "2026-09-29T22:37:21.000Z",
+   "bizDate": "2026-08-03T16:00:00.000Z",
+   "name": "Ying Zhu",
+   "type": "休假",
+   "uuid": "LEAVE-4de7830b0f99494b835c41b39f990cdb-2026-08-04",
+   "hours": 5,
+   "softdel": true
+  },
+  {
+   "row": 10759,
+   "entryTime": "2026-09-29T22:37:21.000Z",
+   "bizDate": "2026-08-04T16:00:00.000Z",
+   "name": "Kian Guo",
+   "type": "休假",
+   "uuid": "LEAVE-ba1d2c2c1f4843f7bffd75bada62e06b-2026-08-05",
+   "hours": 3,
+   "softdel": true
+  },
+  {
+   "row": 10760,
+   "entryTime": "2026-09-29T22:37:21.000Z",
+   "bizDate": "2026-08-11T16:00:00.000Z",
+   "name": "P0005",
+   "type": "休假",
+   "uuid": "LEAVE-63dd1286a5204b099a1f757f92a6e151-2026-08-12",
+   "hours": 8,
+   "softdel": true
+  },
+  {
+   "row": 10761,
+   "entryTime": "2026-09-29T22:37:21.000Z",
+   "bizDate": "2026-08-13T16:00:00.000Z",
+   "name": "P0008",
+   "type": "休假",
+   "uuid": "LEAVE-1bd8d8b8159140f0b2ad7dfb2ef3621d-2026-08-14",
+   "hours": 8,
+   "softdel": true
+  },
+  {
+   "row": 10762,
+   "entryTime": "2026-09-29T22:37:21.000Z",
+   "bizDate": "2026-08-13T16:00:00.000Z",
+   "name": "P0009",
+   "type": "休假",
+   "uuid": "LEAVE-52048d88cd434fddacd8265e6510557f-2026-08-14",
+   "hours": 8,
+   "softdel": true
+  },
+  {
+   "row": 10763,
+   "entryTime": "2026-09-29T22:37:21.000Z",
+   "bizDate": "2026-08-16T16:00:00.000Z",
+   "name": "P0004",
+   "type": "休假",
+   "uuid": "LEAVE-6665987f0e034ba88820808b1f997359-2026-08-17",
+   "hours": 8,
+   "softdel": true
+  },
+  {
+   "row": 10764,
+   "entryTime": "2026-09-29T22:37:21.000Z",
+   "bizDate": "2026-08-16T16:00:00.000Z",
+   "name": "Ying Zhu",
+   "type": "休假",
+   "uuid": "LEAVE-6cd4db48064b48b2a9219a7caf1f9d58-2026-08-17",
+   "hours": 8,
+   "softdel": true
+  },
+  {
+   "row": 10765,
+   "entryTime": "2026-09-29T22:37:21.000Z",
+   "bizDate": "2026-08-17T16:00:00.000Z",
+   "name": "Ying Zhu",
+   "type": "休假",
+   "uuid": "LEAVE-fb35e5dae3e64e609c58ce0f2391bf57-2026-08-18",
+   "hours": 8,
+   "softdel": true
+  },
+  {
+   "row": 10766,
+   "entryTime": "2026-09-29T22:37:21.000Z",
+   "bizDate": "2026-08-18T16:00:00.000Z",
+   "name": "Ying Zhu",
+   "type": "休假",
+   "uuid": "LEAVE-30fff34c53a249f5803a0eaf0bed3bfe-2026-08-19",
+   "hours": 8,
+   "softdel": true
+  },
+  {
+   "row": 10767,
+   "entryTime": "2026-09-29T22:37:21.000Z",
+   "bizDate": "2026-08-19T16:00:00.000Z",
+   "name": "Ying Zhu",
+   "type": "休假",
+   "uuid": "LEAVE-49fd14747cff44b8bd4590dafcfafadf-2026-08-20",
+   "hours": 8,
+   "softdel": true
+  },
+  {
+   "row": 10768,
+   "entryTime": "2026-09-29T22:37:21.000Z",
+   "bizDate": "2026-08-20T16:00:00.000Z",
+   "name": "Ying Zhu",
+   "type": "休假",
+   "uuid": "LEAVE-2db4dc1b77084483b1b8042c7ac91204-2026-08-21",
+   "hours": 8,
+   "softdel": true
+  },
+  {
+   "row": 10769,
+   "entryTime": "2026-09-29T22:37:21.000Z",
+   "bizDate": "2026-08-19T16:00:00.000Z",
+   "name": "P0013",
+   "type": "休假",
+   "uuid": "LEAVE-0a8a2bc7a688453bbbc5bb49029b273b-2026-08-20",
+   "hours": 8,
+   "softdel": true
+  },
+  {
+   "row": 10770,
+   "entryTime": "2026-09-29T22:37:21.000Z",
+   "bizDate": "2026-08-20T16:00:00.000Z",
+   "name": "P0018",
+   "type": "休假",
+   "uuid": "LEAVE-7aa4b09860304216ab6632e351b4de45-2026-08-21",
+   "hours": 8,
+   "softdel": true
+  },
+  {
+   "row": 10771,
+   "entryTime": "2026-09-29T22:37:21.000Z",
+   "bizDate": "2026-08-24T16:00:00.000Z",
+   "name": "P0004",
+   "type": "休假",
+   "uuid": "LEAVE-0477a0aa0a174438a0ae2d7723bb2de8-2026-08-25",
+   "hours": 5,
+   "softdel": true
+  },
+  {
+   "row": 10772,
+   "entryTime": "2026-09-29T22:37:21.000Z",
+   "bizDate": "2026-08-25T16:00:00.000Z",
+   "name": "P0006",
+   "type": "休假",
+   "uuid": "LEAVE-fbaa0eb65ba84d3c862e7e7a724a8837-2026-08-26",
+   "hours": 8,
+   "softdel": true
+  },
+  {
+   "row": 10773,
+   "entryTime": "2026-09-29T22:37:21.000Z",
+   "bizDate": "2026-08-26T16:00:00.000Z",
+   "name": "P0006",
+   "type": "休假",
+   "uuid": "LEAVE-286a45255d504b96bd1ebc2800b18a8c-2026-08-27",
+   "hours": 8,
+   "softdel": true
+  },
+  {
+   "row": 10774,
+   "entryTime": "2026-09-29T22:37:21.000Z",
+   "bizDate": "2026-08-27T16:00:00.000Z",
+   "name": "P0006",
+   "type": "休假",
+   "uuid": "LEAVE-702978e6f2d740c1b16e420a267eef13-2026-08-28",
+   "hours": 8,
+   "softdel": true
+  },
+  {
+   "row": 10775,
+   "entryTime": "2026-09-29T22:37:21.000Z",
+   "bizDate": "2026-08-25T16:00:00.000Z",
+   "name": "P0019",
+   "type": "休假",
+   "uuid": "LEAVE-d6f3facb516c42b1aaa9ed061e43a800-2026-08-26",
+   "hours": 5,
+   "softdel": true
+  },
+  {
+   "row": 10776,
+   "entryTime": "2026-09-29T22:37:21.000Z",
+   "bizDate": "2026-08-27T16:00:00.000Z",
+   "name": "Kian Guo",
+   "type": "休假",
+   "uuid": "LEAVE-f1af91040e6a40b09a15e1b392d10cb6-2026-08-28",
+   "hours": 8,
+   "softdel": true
+  },
+  {
+   "row": 10777,
+   "entryTime": "2026-09-29T22:37:21.000Z",
+   "bizDate": "2026-08-27T16:00:00.000Z",
+   "name": "P0007",
+   "type": "休假",
+   "uuid": "LEAVE-e1465058c8e54aedb386f3fef654e8a3-2026-08-28",
+   "hours": 8,
+   "softdel": true
+  },
+  {
+   "row": 10778,
+   "entryTime": "2026-09-29T22:37:21.000Z",
+   "bizDate": "2026-08-27T16:00:00.000Z",
+   "name": "Eric Hu",
+   "type": "休假",
+   "uuid": "LEAVE-2ca5b4336c7546e8b5b011cd11149f76-2026-08-28",
+   "hours": 8,
+   "softdel": true
+  },
+  {
+   "row": 10779,
+   "entryTime": "2026-09-29T22:37:21.000Z",
+   "bizDate": "2026-08-27T16:00:00.000Z",
+   "name": "P0001",
+   "type": "休假",
+   "uuid": "LEAVE-0e22fc83bb3944eda62ac40488d3af07-2026-08-28",
+   "hours": 3,
+   "softdel": true
+  },
+  {
+   "row": 10780,
+   "entryTime": "2026-09-29T22:37:21.000Z",
+   "bizDate": "2026-08-30T16:00:00.000Z",
+   "name": "P0013",
+   "type": "休假",
+   "uuid": "LEAVE-c302c63ba34c42948e7eebe13f4ec692-2026-08-31",
+   "hours": 8,
+   "softdel": true
+  }
+ ],
+ "summary": {
+  "sampleCount": 90,
+  "allSoftdelTrue": true,
+  "entryDateRange": "2026-07-09 ~ 2026-09-29",
+  "uuidPrefixes": [
+   "AUTO_LEAVE",
+   "LEAVE"
+  ]
+ }
+}

@@ -1,0 +1,812 @@
+[
+ {
+  "row": 10201,
+  "uuid": "AUTO_LEAVE",
+  "keeperRow": 6795,
+  "expectBase": 6795,
+  "reasons": [
+   "目标行已被软标（幂等跳过）"
+  ]
+ },
+ {
+  "row": 10292,
+  "uuid": "LEAVE-095d05b93c6e476c84ce6267cc323cc7-2026-07-24",
+  "keeperRow": 6886,
+  "expectBase": 6886,
+  "reasons": [
+   "目标行已被软标（幂等跳过）"
+  ]
+ },
+ {
+  "row": 10293,
+  "uuid": "LEAVE-47d243bf4cd84068a418dad6e1d92ec3-2026-06-01",
+  "keeperRow": 6887,
+  "expectBase": 6887,
+  "reasons": [
+   "目标行已被软标（幂等跳过）"
+  ]
+ },
+ {
+  "row": 10294,
+  "uuid": "LEAVE-f03d99ac3df14dac8ddc3177a2b2c443-2026-06-29",
+  "keeperRow": 6888,
+  "expectBase": 6888,
+  "reasons": [
+   "目标行已被软标（幂等跳过）"
+  ]
+ },
+ {
+  "row": 10295,
+  "uuid": "LEAVE-ede30e1fe36841cc9a53daa7d4a8c6bc-2026-06-30",
+  "keeperRow": 6889,
+  "expectBase": 6889,
+  "reasons": [
+   "目标行已被软标（幂等跳过）"
+  ]
+ },
+ {
+  "row": 10296,
+  "uuid": "LEAVE-01270810c955433596fe92ea6d312f7d-2026-07-01",
+  "keeperRow": 6890,
+  "expectBase": 6890,
+  "reasons": [
+   "目标行已被软标（幂等跳过）"
+  ]
+ },
+ {
+  "row": 10297,
+  "uuid": "LEAVE-3k5rc06v7r8qrjeb9ota2md7rpgoogle-2026-07-02",
+  "keeperRow": 6891,
+  "expectBase": 6891,
+  "reasons": [
+   "目标行已被软标（幂等跳过）"
+  ]
+ },
+ {
+  "row": 10298,
+  "uuid": "LEAVE-7hq9p12tjp4b6e1sbqafgdsem3google-2026-04-01",
+  "keeperRow": 6892,
+  "expectBase": 6892,
+  "reasons": [
+   "目标行已被软标（幂等跳过）"
+  ]
+ },
+ {
+  "row": 10299,
+  "uuid": "LEAVE-460921a968b4480cb8ff803593c0e530-2026-04-03",
+  "keeperRow": 6893,
+  "expectBase": 6893,
+  "reasons": [
+   "目标行已被软标（幂等跳过）"
+  ]
+ },
+ {
+  "row": 10300,
+  "uuid": "LEAVE-2jdv6jcd6rco9nmpkhmdmqk2qngoogle-2026-04-09",
+  "keeperRow": 6894,
+  "expectBase": 6894,
+  "reasons": [
+   "目标行已被软标（幂等跳过）"
+  ]
+ },
+ {
+  "row": 10301,
+  "uuid": "LEAVE-0vlaf3iu86gjihiu1go4f1df60google-2026-04-10",
+  "keeperRow": 6895,
+  "expectBase": 6895,
+  "reasons": [
+   "目标行已被软标（幂等跳过）"
+  ]
+ },
+ {
+  "row": 10302,
+  "uuid": "LEAVE-49fm99atkathp20neie0b79g2tgoogle-2026-04-14",
+  "keeperRow": 6896,
+  "expectBase": 6896,
+  "reasons": [
+   "目标行已被软标（幂等跳过）"
+  ]
+ },
+ {
+  "row": 10303,
+  "uuid": "LEAVE-6ille5nrnifo918kdlmd5fok7tgoogle-2026-04-15",
+  "keeperRow": 6897,
+  "expectBase": 6897,
+  "reasons": [
+   "目标行已被软标（幂等跳过）"
+  ]
+ },
+ {
+  "row": 10304,
+  "uuid": "LEAVE-88290e68b5334bd08930257edbba9ef4-2026-04-22",
+  "keeperRow": 6898,
+  "expectBase": 6898,
+  "reasons": [
+   "目标行已被软标（幂等跳过）"
+  ]
+ },
+ {
+  "row": 10305,
+  "uuid": "LEAVE-3lvhr5ne26nijqs5g90ql2d1lqgoogle-2026-04-28",
+  "keeperRow": 6899,
+  "expectBase": 6899,
+  "reasons": [
+   "目标行已被软标（幂等跳过）"
+  ]
+ },
+ {
+  "row": 10306,
+  "uuid": "LEAVE-55r44enrvni9e9mcj9j4phvj02google-2026-04-30",
+  "keeperRow": 6900,
+  "expectBase": 6900,
+  "reasons": [
+   "目标行已被软标（幂等跳过）"
+  ]
+ },
+ {
+  "row": 10307,
+  "uuid": "LEAVE-0nmp8n8b1ne8kcdj6gdd3tj0gmgoogle-2026-05-07",
+  "keeperRow": 6901,
+  "expectBase": 6901,
+  "reasons": [
+   "目标行已被软标（幂等跳过）"
+  ]
+ },
+ {
+  "row": 10308,
+  "uuid": "LEAVE-7pkldnt18n1241rdphv36olocigoogle-2026-05-07",
+  "keeperRow": 6902,
+  "expectBase": 6902,
+  "reasons": [
+   "目标行已被软标（幂等跳过）"
+  ]
+ },
+ {
+  "row": 10309,
+  "uuid": "LEAVE-506vedg3e0sk74h814pvhqrgv5google-2026-05-07",
+  "keeperRow": 6903,
+  "expectBase": 6903,
+  "reasons": [
+   "目标行已被软标（幂等跳过）"
+  ]
+ },
+ {
+  "row": 10310,
+  "uuid": "LEAVE-4rdt8t93nm48lk8rj04bvjbjiigoogle-2026-05-07",
+  "keeperRow": 6904,
+  "expectBase": 6904,
+  "reasons": [
+   "目标行已被软标（幂等跳过）"
+  ]
+ },
+ {
+  "row": 10311,
+  "uuid": "LEAVE-39e0202ee8264a7f9a8d7a69abde158b-2026-05-08",
+  "keeperRow": 6905,
+  "expectBase": 6905,
+  "reasons": [
+   "目标行已被软标（幂等跳过）"
+  ]
+ },
+ {
+  "row": 10312,
+  "uuid": "LEAVE-4e8de613f9d24ad5a4b41d1ac0d78cb7-2026-05-11",
+  "keeperRow": 6906,
+  "expectBase": 6906,
+  "reasons": [
+   "目标行已被软标（幂等跳过）"
+  ]
+ },
+ {
+  "row": 10313,
+  "uuid": "LEAVE-7o6ccdr6kbpritd9komc0vf3gmgoogle-2026-05-13",
+  "keeperRow": 6907,
+  "expectBase": 6907,
+  "reasons": [
+   "目标行已被软标（幂等跳过）"
+  ]
+ },
+ {
+  "row": 10314,
+  "uuid": "LEAVE-4ntm2oc2pp80n4g0m0mma8a6olgoogle-2026-05-13",
+  "keeperRow": 6908,
+  "expectBase": 6908,
+  "reasons": [
+   "目标行已被软标（幂等跳过）"
+  ]
+ },
+ {
+  "row": 10315,
+  "uuid": "LEAVE-11c3cc9e9bd8474fa9e5aae4b6264631-2026-05-19",
+  "keeperRow": 6909,
+  "expectBase": 6909,
+  "reasons": [
+   "目标行已被软标（幂等跳过）"
+  ]
+ },
+ {
+  "row": 10316,
+  "uuid": "LEAVE-0pbg7t4gqi9hf7bpiugtpmhcbogoogle-2026-05-19",
+  "keeperRow": 6910,
+  "expectBase": 6910,
+  "reasons": [
+   "目标行已被软标（幂等跳过）"
+  ]
+ },
+ {
+  "row": 10317,
+  "uuid": "LEAVE-4mi4ados7db8bdaf24tftcq210google-2026-05-21",
+  "keeperRow": 6911,
+  "expectBase": 6911,
+  "reasons": [
+   "目标行已被软标（幂等跳过）"
+  ]
+ },
+ {
+  "row": 10318,
+  "uuid": "LEAVE-f76d822877e24d15a91cae332431d566-2026-05-22",
+  "keeperRow": 6912,
+  "expectBase": 6912,
+  "reasons": [
+   "目标行已被软标（幂等跳过）"
+  ]
+ },
+ {
+  "row": 10319,
+  "uuid": "LEAVE-0uvd4l1clhq50j3ql330eh1edjgoogle-2026-05-26",
+  "keeperRow": 6913,
+  "expectBase": 6913,
+  "reasons": [
+   "目标行已被软标（幂等跳过）"
+  ]
+ },
+ {
+  "row": 10320,
+  "uuid": "LEAVE-04gq2fuau4o072fe74ndfod3f1google-2026-05-26",
+  "keeperRow": 6914,
+  "expectBase": 6914,
+  "reasons": [
+   "目标行已被软标（幂等跳过）"
+  ]
+ },
+ {
+  "row": 10321,
+  "uuid": "LEAVE-7bf884682c60402fa333d4fd993bcfef-2026-05-29",
+  "keeperRow": 6915,
+  "expectBase": 6915,
+  "reasons": [
+   "目标行已被软标（幂等跳过）"
+  ]
+ },
+ {
+  "row": 10322,
+  "uuid": "LEAVE-a1e56147e43d430b9220d23d0fa0a3cf-2026-05-29",
+  "keeperRow": 6916,
+  "expectBase": 6916,
+  "reasons": [
+   "目标行已被软标（幂等跳过）"
+  ]
+ },
+ {
+  "row": 10323,
+  "uuid": "LEAVE-5ohqoicgmo1kcss2hf2ksivp0qgoogle-2026-06-02",
+  "keeperRow": 6917,
+  "expectBase": 6917,
+  "reasons": [
+   "目标行已被软标（幂等跳过）"
+  ]
+ },
+ {
+  "row": 10324,
+  "uuid": "LEAVE-1037o9qgg2pme7tcojdimksullgoogle-2026-06-02",
+  "keeperRow": 6918,
+  "expectBase": 6918,
+  "reasons": [
+   "目标行已被软标（幂等跳过）"
+  ]
+ },
+ {
+  "row": 10325,
+  "uuid": "LEAVE-ba747e4942f944bdbb0e7c89b9e0ea9a-2026-06-03",
+  "keeperRow": 6919,
+  "expectBase": 6919,
+  "reasons": [
+   "目标行已被软标（幂等跳过）"
+  ]
+ },
+ {
+  "row": 10326,
+  "uuid": "LEAVE-7bkor5r7qdt91dt8jc479koe9vgoogle-2026-06-09",
+  "keeperRow": 6920,
+  "expectBase": 6920,
+  "reasons": [
+   "目标行已被软标（幂等跳过）"
+  ]
+ },
+ {
+  "row": 10327,
+  "uuid": "LEAVE-4240b51d59b04d9681cbc2062373dd4f-2026-06-09",
+  "keeperRow": 6921,
+  "expectBase": 6921,
+  "reasons": [
+   "目标行已被软标（幂等跳过）"
+  ]
+ },
+ {
+  "row": 10328,
+  "uuid": "LEAVE-780deba1b5514418ae46ce00b38e6abd-2026-06-11",
+  "keeperRow": 6922,
+  "expectBase": 6922,
+  "reasons": [
+   "目标行已被软标（幂等跳过）"
+  ]
+ },
+ {
+  "row": 10329,
+  "uuid": "LEAVE-2qan8h6j12amerfjgu20ruhr5dgoogle-2026-06-11",
+  "keeperRow": 6923,
+  "expectBase": 6923,
+  "reasons": [
+   "目标行已被软标（幂等跳过）"
+  ]
+ },
+ {
+  "row": 10330,
+  "uuid": "LEAVE-0pf185aeqhntdc8p3esmr541kbgoogle-2026-06-23",
+  "keeperRow": 6924,
+  "expectBase": 6924,
+  "reasons": [
+   "目标行已被软标（幂等跳过）"
+  ]
+ },
+ {
+  "row": 10331,
+  "uuid": "LEAVE-2cbpb4duqe9oqglkij3d8kopj8google-2026-06-25",
+  "keeperRow": 6925,
+  "expectBase": 6925,
+  "reasons": [
+   "目标行已被软标（幂等跳过）"
+  ]
+ },
+ {
+  "row": 10332,
+  "uuid": "LEAVE-7lj1e9qgtoh47aiq2t4bpb9jh0google-2026-06-25",
+  "keeperRow": 6926,
+  "expectBase": 6926,
+  "reasons": [
+   "目标行已被软标（幂等跳过）"
+  ]
+ },
+ {
+  "row": 10333,
+  "uuid": "LEAVE-789apkf0hemnse36vl61t29tftgoogle-2026-06-25",
+  "keeperRow": 6927,
+  "expectBase": 6927,
+  "reasons": [
+   "目标行已被软标（幂等跳过）"
+  ]
+ },
+ {
+  "row": 10334,
+  "uuid": "LEAVE-2oc43q6fsnvjndmgu8mm8mthktgoogle-2026-06-26",
+  "keeperRow": 6928,
+  "expectBase": 6928,
+  "reasons": [
+   "目标行已被软标（幂等跳过）"
+  ]
+ },
+ {
+  "row": 10335,
+  "uuid": "LEAVE-45t1cbrf68u2encn70cbpn2sjegoogle-2026-07-01",
+  "keeperRow": 6929,
+  "expectBase": 6929,
+  "reasons": [
+   "目标行已被软标（幂等跳过）"
+  ]
+ },
+ {
+  "row": 10336,
+  "uuid": "LEAVE-0b631831fe4c4d1fba7d631a688964f6-2026-07-01",
+  "keeperRow": 6930,
+  "expectBase": 6930,
+  "reasons": [
+   "目标行已被软标（幂等跳过）"
+  ]
+ },
+ {
+  "row": 10337,
+  "uuid": "LEAVE-33ht3s6p05vjnoat0vjjuecld8google-2026-07-03",
+  "keeperRow": 6931,
+  "expectBase": 6931,
+  "reasons": [
+   "目标行已被软标（幂等跳过）"
+  ]
+ },
+ {
+  "row": 10338,
+  "uuid": "LEAVE-1ovlqvrev4ggr0ohk3kfh70dsogoogle-2026-07-09",
+  "keeperRow": 6932,
+  "expectBase": 6932,
+  "reasons": [
+   "目标行已被软标（幂等跳过）"
+  ]
+ },
+ {
+  "row": 10339,
+  "uuid": "LEAVE-aa4c9ac535564a51b1a0d3f7879b7fb0-2026-07-03",
+  "keeperRow": 6933,
+  "expectBase": 6933,
+  "reasons": [
+   "目标行已被软标（幂等跳过）"
+  ]
+ },
+ {
+  "row": 10340,
+  "uuid": "LEAVE-21ejv73mtc4rvjh6dk04q2u054google-2026-07-16",
+  "keeperRow": 6934,
+  "expectBase": 6934,
+  "reasons": [
+   "目标行已被软标（幂等跳过）"
+  ]
+ },
+ {
+  "row": 10341,
+  "uuid": "LEAVE-4bb33cb72f1f4a87ade9f5f1cdb61704-2026-07-13",
+  "keeperRow": 6935,
+  "expectBase": 6935,
+  "reasons": [
+   "目标行已被软标（幂等跳过）"
+  ]
+ },
+ {
+  "row": 10342,
+  "uuid": "LEAVE-08ssvdqpbisn6fm2butibv7nc8google-2026-07-14",
+  "keeperRow": 6936,
+  "expectBase": 6936,
+  "reasons": [
+   "目标行已被软标（幂等跳过）"
+  ]
+ },
+ {
+  "row": 10343,
+  "uuid": "LEAVE-11g5dt4auf84itb1cql6bk49qegoogle-2026-07-22",
+  "keeperRow": 6937,
+  "expectBase": 6937,
+  "reasons": [
+   "目标行已被软标（幂等跳过）"
+  ]
+ },
+ {
+  "row": 10344,
+  "uuid": "LEAVE-f1e24da26a224716a41b4b1b8c368dd0-2026-07-24",
+  "keeperRow": 6938,
+  "expectBase": 6938,
+  "reasons": [
+   "目标行已被软标（幂等跳过）"
+  ]
+ },
+ {
+  "row": 10345,
+  "uuid": "LEAVE-0kkr2do3diac8514bhmdmdh003google-2026-07-30",
+  "keeperRow": 6939,
+  "expectBase": 6939,
+  "reasons": [
+   "目标行已被软标（幂等跳过）"
+  ]
+ },
+ {
+  "row": 10346,
+  "uuid": "LEAVE-3c2e9aa4b781496f9a6920f88257fe47-2026-07-30",
+  "keeperRow": 6940,
+  "expectBase": 6940,
+  "reasons": [
+   "目标行已被软标（幂等跳过）"
+  ]
+ },
+ {
+  "row": 10347,
+  "uuid": "LEAVE-6e5n5jr84bogl9ggv14f0d8nc9google-2026-07-31",
+  "keeperRow": 6941,
+  "expectBase": 6941,
+  "reasons": [
+   "目标行已被软标（幂等跳过）"
+  ]
+ },
+ {
+  "row": 10748,
+  "uuid": "LEAVE-d89f9e653daf44108b3cddd824bc6f55-2026-08-03",
+  "keeperRow": 7342,
+  "expectBase": 7342,
+  "reasons": [
+   "目标行已被软标（幂等跳过）"
+  ]
+ },
+ {
+  "row": 10749,
+  "uuid": "LEAVE-cd5e984d92f64c8f91df8662a0330319-2026-08-04",
+  "keeperRow": 7343,
+  "expectBase": 7343,
+  "reasons": [
+   "目标行已被软标（幂等跳过）"
+  ]
+ },
+ {
+  "row": 10750,
+  "uuid": "LEAVE-ed9f12823e9041b9a9cadce10300cb2d-2026-08-03",
+  "keeperRow": 7344,
+  "expectBase": 7344,
+  "reasons": [
+   "目标行已被软标（幂等跳过）"
+  ]
+ },
+ {
+  "row": 10751,
+  "uuid": "LEAVE-a00bd1b5a04e47c8a5fa6963f2e1a5d6-2026-08-04",
+  "keeperRow": 7345,
+  "expectBase": 7345,
+  "reasons": [
+   "目标行已被软标（幂等跳过）"
+  ]
+ },
+ {
+  "row": 10752,
+  "uuid": "LEAVE-6050adef8af14cdb8377ef4f0b3ca6a8-2026-08-05",
+  "keeperRow": 7346,
+  "expectBase": 7346,
+  "reasons": [
+   "目标行已被软标（幂等跳过）"
+  ]
+ },
+ {
+  "row": 10753,
+  "uuid": "LEAVE-7ef0cd00c9ff4c67aac7059f8037daa9-2026-08-06",
+  "keeperRow": 7347,
+  "expectBase": 7347,
+  "reasons": [
+   "目标行已被软标（幂等跳过）"
+  ]
+ },
+ {
+  "row": 10754,
+  "uuid": "LEAVE-b84fdafbe06c42578f262856a6487f68-2026-08-07",
+  "keeperRow": 7348,
+  "expectBase": 7348,
+  "reasons": [
+   "目标行已被软标（幂等跳过）"
+  ]
+ },
+ {
+  "row": 10755,
+  "uuid": "LEAVE-0a5d8dad30864ce3acca72259f61ae04-2026-08-03",
+  "keeperRow": 7349,
+  "expectBase": 7349,
+  "reasons": [
+   "目标行已被软标（幂等跳过）"
+  ]
+ },
+ {
+  "row": 10756,
+  "uuid": "LEAVE-5fa63819ed2e4a08ab69eb0fdb5ba6f4-2026-08-04",
+  "keeperRow": 7350,
+  "expectBase": 7350,
+  "reasons": [
+   "目标行已被软标（幂等跳过）"
+  ]
+ },
+ {
+  "row": 10757,
+  "uuid": "LEAVE-74b2ce29116e4246a492759a5ef87460-2026-08-03",
+  "keeperRow": 7351,
+  "expectBase": 7351,
+  "reasons": [
+   "目标行已被软标（幂等跳过）"
+  ]
+ },
+ {
+  "row": 10758,
+  "uuid": "LEAVE-4de7830b0f99494b835c41b39f990cdb-2026-08-04",
+  "keeperRow": 7352,
+  "expectBase": 7352,
+  "reasons": [
+   "目标行已被软标（幂等跳过）"
+  ]
+ },
+ {
+  "row": 10759,
+  "uuid": "LEAVE-ba1d2c2c1f4843f7bffd75bada62e06b-2026-08-05",
+  "keeperRow": 7353,
+  "expectBase": 7353,
+  "reasons": [
+   "目标行已被软标（幂等跳过）"
+  ]
+ },
+ {
+  "row": 10760,
+  "uuid": "LEAVE-63dd1286a5204b099a1f757f92a6e151-2026-08-12",
+  "keeperRow": 7354,
+  "expectBase": 7354,
+  "reasons": [
+   "目标行已被软标（幂等跳过）"
+  ]
+ },
+ {
+  "row": 10761,
+  "uuid": "LEAVE-1bd8d8b8159140f0b2ad7dfb2ef3621d-2026-08-14",
+  "keeperRow": 7355,
+  "expectBase": 7355,
+  "reasons": [
+   "目标行已被软标（幂等跳过）"
+  ]
+ },
+ {
+  "row": 10762,
+  "uuid": "LEAVE-52048d88cd434fddacd8265e6510557f-2026-08-14",
+  "keeperRow": 7356,
+  "expectBase": 7356,
+  "reasons": [
+   "目标行已被软标（幂等跳过）"
+  ]
+ },
+ {
+  "row": 10763,
+  "uuid": "LEAVE-6665987f0e034ba88820808b1f997359-2026-08-17",
+  "keeperRow": 7357,
+  "expectBase": 7357,
+  "reasons": [
+   "目标行已被软标（幂等跳过）"
+  ]
+ },
+ {
+  "row": 10764,
+  "uuid": "LEAVE-6cd4db48064b48b2a9219a7caf1f9d58-2026-08-17",
+  "keeperRow": 7358,
+  "expectBase": 7358,
+  "reasons": [
+   "目标行已被软标（幂等跳过）"
+  ]
+ },
+ {
+  "row": 10765,
+  "uuid": "LEAVE-fb35e5dae3e64e609c58ce0f2391bf57-2026-08-18",
+  "keeperRow": 7359,
+  "expectBase": 7359,
+  "reasons": [
+   "目标行已被软标（幂等跳过）"
+  ]
+ },
+ {
+  "row": 10766,
+  "uuid": "LEAVE-30fff34c53a249f5803a0eaf0bed3bfe-2026-08-19",
+  "keeperRow": 7360,
+  "expectBase": 7360,
+  "reasons": [
+   "目标行已被软标（幂等跳过）"
+  ]
+ },
+ {
+  "row": 10767,
+  "uuid": "LEAVE-49fd14747cff44b8bd4590dafcfafadf-2026-08-20",
+  "keeperRow": 7361,
+  "expectBase": 7361,
+  "reasons": [
+   "目标行已被软标（幂等跳过）"
+  ]
+ },
+ {
+  "row": 10768,
+  "uuid": "LEAVE-2db4dc1b77084483b1b8042c7ac91204-2026-08-21",
+  "keeperRow": 7362,
+  "expectBase": 7362,
+  "reasons": [
+   "目标行已被软标（幂等跳过）"
+  ]
+ },
+ {
+  "row": 10769,
+  "uuid": "LEAVE-0a8a2bc7a688453bbbc5bb49029b273b-2026-08-20",
+  "keeperRow": 7363,
+  "expectBase": 7363,
+  "reasons": [
+   "目标行已被软标（幂等跳过）"
+  ]
+ },
+ {
+  "row": 10770,
+  "uuid": "LEAVE-7aa4b09860304216ab6632e351b4de45-2026-08-21",
+  "keeperRow": 7364,
+  "expectBase": 7364,
+  "reasons": [
+   "目标行已被软标（幂等跳过）"
+  ]
+ },
+ {
+  "row": 10771,
+  "uuid": "LEAVE-0477a0aa0a174438a0ae2d7723bb2de8-2026-08-25",
+  "keeperRow": 7365,
+  "expectBase": 7365,
+  "reasons": [
+   "目标行已被软标（幂等跳过）"
+  ]
+ },
+ {
+  "row": 10772,
+  "uuid": "LEAVE-fbaa0eb65ba84d3c862e7e7a724a8837-2026-08-26",
+  "keeperRow": 7366,
+  "expectBase": 7366,
+  "reasons": [
+   "目标行已被软标（幂等跳过）"
+  ]
+ },
+ {
+  "row": 10773,
+  "uuid": "LEAVE-286a45255d504b96bd1ebc2800b18a8c-2026-08-27",
+  "keeperRow": 7367,
+  "expectBase": 7367,
+  "reasons": [
+   "目标行已被软标（幂等跳过）"
+  ]
+ },
+ {
+  "row": 10774,
+  "uuid": "LEAVE-702978e6f2d740c1b16e420a267eef13-2026-08-28",
+  "keeperRow": 7368,
+  "expectBase": 7368,
+  "reasons": [
+   "目标行已被软标（幂等跳过）"
+  ]
+ },
+ {
+  "row": 10775,
+  "uuid": "LEAVE-d6f3facb516c42b1aaa9ed061e43a800-2026-08-26",
+  "keeperRow": 7369,
+  "expectBase": 7369,
+  "reasons": [
+   "目标行已被软标（幂等跳过）"
+  ]
+ },
+ {
+  "row": 10776,
+  "uuid": "LEAVE-f1af91040e6a40b09a15e1b392d10cb6-2026-08-28",
+  "keeperRow": 7370,
+  "expectBase": 7370,
+  "reasons": [
+   "目标行已被软标（幂等跳过）"
+  ]
+ },
+ {
+  "row": 10777,
+  "uuid": "LEAVE-e1465058c8e54aedb386f3fef654e8a3-2026-08-28",
+  "keeperRow": 7371,
+  "expectBase": 7371,
+  "reasons": [
+   "目标行已被软标（幂等跳过）"
+  ]
+ },
+ {
+  "row": 10778,
+  "uuid": "LEAVE-2ca5b4336c7546e8b5b011cd11149f76-2026-08-28",
+  "keeperRow": 7372,
+  "expectBase": 7372,
+  "reasons": [
+   "目标行已被软标（幂等跳过）"
+  ]
+ },
+ {
+  "row": 10779,
+  "uuid": "LEAVE-0e22fc83bb3944eda62ac40488d3af07-2026-08-28",
+  "keeperRow": 7373,
+  "expectBase": 7373,
+  "reasons": [
+   "目标行已被软标（幂等跳过）"
+  ]
+ },
+ {
+  "row": 10780,
+  "uuid": "LEAVE-c302c63ba34c42948e7eebe13f4ec692-2026-08-31",
+  "keeperRow": 7374,
+  "expectBase": 7374,
+  "reasons": [
+   "目标行已被软标（幂等跳过）"
+  ]
+ }
+]
