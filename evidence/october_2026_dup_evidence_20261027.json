@@ -34,7 +34,7 @@
    "uuid": "TS-D6F94979E326",
    "keeperRow": 7401,
    "payloadIdentical": true,
-   "fingerprint": "Jerry Fu | 2026-10-08 | 26-084-HK | 2.00 | 报价",
+   "fingerprint": "P0008 | 2026-10-08 | 26-084-HK | 2.00 | 报价",
    "keeperLoggedAt": "2026-10-08T03:07:03.000Z",
    "dupLoggedAt": "2026-10-08T03:07:03.000Z",
    "hours": "2"
@@ -137,7 +137,7 @@
    "month": "2026-10",
    "uuid": "TS-D6F94979E326",
    "noUuid": false,
-   "fingerprint": "Jerry Fu | 2026-10-08 | 26-084-HK | 2.00 | 报价",
+   "fingerprint": "P0008 | 2026-10-08 | 26-084-HK | 2.00 | 报价",
    "fingerprintSame": true,
    "keeper": {
     "row": 7401,

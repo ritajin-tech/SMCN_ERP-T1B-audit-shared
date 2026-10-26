@@ -1,0 +1,58 @@
+{
+  "meta": {
+    "month": "2026-10",
+    "lastRow": 11260,
+    "dataRows": 11245,
+    "generatedAtBJT": "2026-10-27 01:33:12",
+    "source": {
+      "ssId": "1Pi5u9fEawgp7yICWPMMyQCT_LbwTZthQDW-H05xYdVI",
+      "sheet": "DB_工时流水"
+    },
+    "readOnly": true,
+    "note": "只读取证。IDENTICAL=14列负载完全相同（可折叠候选）；CONFLICT=有列不同（禁止自动裁决，须人工）；MULTI=同键3行以上（一律人工）"
+  },
+  "summary": {
+    "totalGroups": 1,
+    "identical": 1,
+    "conflict": 0,
+    "multi": 0,
+    "identicalHours": 2,
+    "conflictHours": 0
+  },
+  "byMonth": {
+    "2026-10": {
+      "groups": 1,
+      "identical": 1,
+      "conflict": 0,
+      "multi": 0,
+      "dupHours": 2
+    }
+  },
+  "identical": [
+    {
+      "month": "2026-10",
+      "uuid": "TS-D6F94979E326",
+      "noUuid": false,
+      "fingerprint": "P0008 | 2026-10-08 | 26-084-HK | 2.00 | 报价",
+      "fingerprintSame": true,
+      "keeper": {
+        "row": 7401,
+        "uuid": "TS-D6F94979E326",
+        "loggedAt": "2026-10-08T03:07:03.000Z",
+        "softDel": false,
+        "hours": "2"
+      },
+      "dup": {
+        "row": 10807,
+        "uuid": "TS-D6F94979E326",
+        "loggedAt": "2026-10-08T03:07:03.000Z",
+        "softDel": false,
+        "hours": "2"
+      },
+      "diffCount": 0,
+      "diffs": []
+    }
+  ],
+  "conflict": [],
+  "multi": []
+}
