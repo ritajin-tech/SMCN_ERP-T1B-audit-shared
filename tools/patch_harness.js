@@ -351,6 +351,62 @@ function runAppend(v, rows, opts) {
     };
   });
 
+  // ---- T9/T10/T11 A0 清理护栏：CAS 必须拒掉被改过/已消失的目标行 ----
+  const sh = () => patched.store.sheets['DB_工时流水'];
+  const rowOf = (uuid) => {
+    const g = sh()._grid;
+    for (let i = 1; i < g.length; i++) if (String(g[i][8] || '').trim() === uuid) return { idx: i, data: g[i] };
+    return null;
+  };
+  const hashOf = (uuid) => {
+    const r = rowOf(uuid); if (!r) return null;
+    return patched.sandbox._tsRowPayloadHash(r.data);
+  };
+
+  check('T9', '[A0] 护栏 dry-run：只校验不写入', () => {
+    seed(patched, 'TS-KKK-11');
+    patched.store.observations = [];
+    const h = hashOf('TS-KKK-11');
+    const r = patched.sandbox._tsGuardedCleanup({ sheet: sh(), expect: [{ uuid: 'TS-KKK-11', payloadHash: h }], dry: true });
+    const writes = patched.store.observations.filter(o => o.op === 'write').length;
+    return {
+      pass: r.ok === true && r.dry === true && r.matched.length === 1 && writes === 0,
+      detail: `ok=${r.ok} dry=${r.dry} matched=${(r.matched || []).length}，写入次数=${writes}（dry 必须零写入）`
+    };
+  });
+
+  check('T10', '[A0] CAS 拒掉「目标行已被改动」', () => {
+    seed(patched, 'TS-LLL-12');
+    const h = hashOf('TS-LLL-12');
+    // 篡改：把该行工时从 2 改成 99（模拟校验后被别人改过）
+    const r0 = rowOf('TS-LLL-12');
+    sh().getRange(r0.idx + 1, 7).setValue('99');
+    patched.store.observations = [];
+    const r = patched.sandbox._tsGuardedCleanup({
+      sheet: sh(), expect: [{ uuid: 'TS-LLL-12', payloadHash: h }], dry: false
+    });
+    const writes = patched.store.observations.filter(o => o.op === 'write').length;
+    const mm = (r.mismatched || [])[0] || {};
+    return {
+      pass: r.ok === false && r.reason === 'PL_REJECT_CLEANUP_CAS_FAILED'
+        && mm.reason === 'PL_REJECT_PAYLOAD_CHANGED' && writes === 0,
+      detail: `ok=${r.ok} reason=${r.reason}，首条 mismatch=${mm.reason}，写入次数=${writes}（必须整批拒下且一次不写）`
+    };
+  });
+
+  check('T11', '[A0] CAS 拒掉「目标行已消失」', () => {
+    seed(patched, 'TS-MMM-13');
+    const h = hashOf('TS-MMM-13');
+    const r = patched.sandbox._tsGuardedCleanup({
+      sheet: sh(), expect: [{ uuid: 'TS-NOPE-14', payloadHash: h }], dry: false
+    });
+    const mm = (r.mismatched || [])[0] || {};
+    return {
+      pass: r.ok === false && mm.reason === 'PL_REJECT_ROW_GONE',
+      detail: `ok=${r.ok} reason=${r.reason}，首条 mismatch=${mm.reason}（行没了必须拒，不能静默跳过）`
+    };
+  });
+
   const failed = RESULTS.filter(r => !r.pass);
   console.log('\n=== 汇总 ===');
   console.log(`${RESULTS.length - failed.length}/${RESULTS.length} 通过`);

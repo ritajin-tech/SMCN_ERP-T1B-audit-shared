@@ -1,6 +1,6 @@
 === 补丁离线行为测试台 ===
 源码：D:/AI_DATA/WorkBuddy/_ts_current_20261026
-补丁后源码目录：C:\Users\rita.jin\AppData\Local\Temp\harness_V5w2w7
+补丁后源码目录：C:\Users\rita.jin\AppData\Local\Temp\harness_5uiP9C
 
 变体加载成功（内存表与锁状态互相隔离）：基线 / 仅A1 / 全补丁
 
@@ -20,8 +20,14 @@
        ok=true wrote=1
 [PASS] T8  dry 预演与真写的去重判定一致
        dry 预演 wouldWrite=1，真写 wrote=1（须一致，dry 才可信）
+[PASS] T9  [A0] 护栏 dry-run：只校验不写入
+       ok=true dry=true matched=1，写入次数=0（dry 必须零写入）
+[PASS] T10  [A0] CAS 拒掉「目标行已被改动」
+       ok=false reason=PL_REJECT_CLEANUP_CAS_FAILED，首条 mismatch=PL_REJECT_PAYLOAD_CHANGED，写入次数=0（必须整批拒下且一次不写）
+[PASS] T11  [A0] CAS 拒掉「目标行已消失」
+       ok=false reason=PL_REJECT_CLEANUP_CAS_FAILED，首条 mismatch=PL_REJECT_ROW_GONE（行没了必须拒，不能静默跳过）
 
 === 汇总 ===
-8/8 通过
+11/11 通过
 
-补丁后源码：C:\Users\rita.jin\AppData\Local\Temp\harness_V5w2w7（可 diff 复核）
+补丁后源码：C:\Users\rita.jin\AppData\Local\Temp\harness_5uiP9C（可 diff 复核）
