@@ -1,0 +1,100 @@
+--- a/PeriodLockGuard.js
++++ b/PeriodLockGuard.js
+@@ -621,3 +621,97 @@
+   if (offenders.length) return { ok: false, reason: 'PL_REJECT_PATCH_OFFENDERS', offenders: offenders };
+   return { ok: true, reason: '' };
+ }
++
++// ============================================================
++// 5. [A0] 清理类工具统一护栏（V4.3.87 · 修正版 v2）
++// ------------------------------------------------------------
++// Tom Q4 修正：v1 示例在【锁外】读 data/targetRows，exec 闭包复用旧快照，
++//   并发变更后可能覆盖或删除未经核定数据。v2 改为：
++//   ① 全程持锁，锁内【单次】读取；② 按稳定身份（I 列 UUID）定位，不用行号；
++//   ③ 期望原负载 hash（CAS）校验，不匹配即拒；④ flush 异常不吞，向上抛。
++// Tom Q5 修正：不提供全局 allowClosed 放开。例外须绑定
++//   {ssId, 记录UUID集合, 原负载hash, 操作, 期限, 批次号} 六要素，缺一即拒。
++// ============================================================
++
++/**
++ * 由 14 列业务负载生成稳定 hash（复用 _plRowContentHash 的覆盖定义）。
++ * 返回 null 表示该行无法无歧义定版，调用方必须 fail-closed 拒之。
++ */
++function _tsRowPayloadHash(row) {
++  return _plRowContentHash(row);
++}
++
++/**
++ * 清理准入：校验「稳定身份 + 原负载 hash」是否与期望一致。
++ * @param {Sheet} sh
++ * @param {Array} expect  [{uuid, payloadHash}] 待清理记录的期望原值
++ * @returns {{ok:boolean, reason:string, matched:Array, mismatched:Array, cutoff:string}}
++ */
++function _tsVerifyCleanupTargets(sh, expect) {
++  var policy = _plPolicy();
++  var cutoff = (policy && policy.cutoff) || PL_CUTOFF;
++  var data = sh.getDataRange().getValues();
++  var byUuid = {};
++  for (var i = 1; i < data.length; i++) {
++    var u = String(data[i][8] || '').trim();
++    if (u) byUuid[u] = { row: i + 1, rowData: data[i] };
++  }
++  var matched = [], mismatched = [];
++  for (var k = 0; k < expect.length; k++) {
++    var e = expect[k] || {};
++    var uid = String(e.uuid || '').trim();
++    var hit = (uid && Object.prototype.hasOwnProperty.call(byUuid, uid)) ? byUuid[uid] : null;
++    if (!hit) { mismatched.push({ uuid: uid, reason: 'PL_REJECT_ROW_GONE' }); continue; }
++    var actual = _tsRowPayloadHash(hit.rowData);
++    if (actual === null) { mismatched.push({ uuid: uid, reason: 'PL_REJECT_CONTENT_ENCODING' }); continue; }
++    if (e.payloadHash && actual !== e.payloadHash) {
++      mismatched.push({ uuid: uid, reason: 'PL_REJECT_PAYLOAD_CHANGED',
++                        expected: e.payloadHash, actual: actual });
++      continue;
++    }
++    matched.push({ uuid: uid, row: hit.row, payloadHash: actual });
++  }
++  if (mismatched.length) {
++    return { ok: false, reason: 'PL_REJECT_CLEANUP_CAS_FAILED', cutoff: cutoff,
++             matched: matched, mismatched: mismatched.slice(0, 200) };
++  }
++  return { ok: true, reason: '', cutoff: cutoff, matched: matched, mismatched: [] };
++}
++
++/**
++ * 带锁执行清理。全程单锁、锁内单次读、CAS 校验、逐行回读。
++ * @param {Object} o
++ *   o.sheet / o.expect([{uuid,payloadHash}]) / o.dry(默认true) /
++ *   o.exec(matched, data) 真正的写/删 / o.op 操作名 / o.batch 批次号
++ */
++function _tsGuardedCleanup(o) {
++  o = o || {};
++  var dry = (o.dry === false) ? false : true;
++  var lock = _plAcquire(o.timeoutMs);              // fail-closed
++  try {
++    var chk = _tsVerifyCleanupTargets(o.sheet, o.expect || []);
++    if (!chk.ok) return chk;
++    if (dry) return { ok: true, dry: true, matched: chk.matched, cutoff: chk.cutoff };
++    var data = o.sheet.getDataRange().getValues(); // 锁内单次读，exec 只能用它
++    var r = (typeof o.exec === 'function') ? o.exec(chk.matched, data) : null;
++    try { SpreadsheetApp.flush(); }
++    catch (fe) {                                   // v1 曾吞掉 flush 异常当成功
++      var err = new Error('PL_UNCERTAIN_CLEANUP_FLUSH_FAILED');
++      err.plCode = 'PL_UNCERTAIN_CLEANUP_FLUSH_FAILED';
++      err.plCause = String((fe && fe.message) || fe);
++      err.message = _plUncertainPayloadMsg(err);
++      throw err;
++    }
++    // 逐行回读，确认实际落库状态
++    var readback = [];
++    for (var i = 0; i < chk.matched.length; i++) {
++      var m = chk.matched[i];
++      var dv = o.sheet.getRange(m.row, 15).getValue();
++      readback.push({ uuid: m.uuid, row: m.row,
++                      softDel: (dv === true || String(dv).toUpperCase() === 'TRUE') });
++    }
++    return { ok: true, dry: false, result: r, readback: readback, cutoff: chk.cutoff };
++  } finally {
++    if (lock) { try { lock.releaseLock(); } catch (re) {} }
++  }
++}

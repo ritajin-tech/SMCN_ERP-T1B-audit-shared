@@ -76,12 +76,11 @@ function _tsWriteLog(action, detail) {
 }
 
 /**
- * [A1] 去重逻辑抽成纯函数 —— 供「锁内写路径」与「锁外 dry 路径」共用，
- * 保证 dry 预演与实际写入的判定完全一致。
- * @param {Sheet} sh
- * @param {Array<Array>} rows  原始请求行（可能多于 14 列，只取前 14）
- * @param {boolean} force      是否放行请假行
- * @returns {{rows:Array<Array>, skippedDup:number, skippedLeave:number}}
+ * [A1] 去重抽成纯函数 —— 供「锁内写路径」与「锁外 dry 路径」共用，
+ * 保证 dry 预演与实际写入判定完全一致。
+ * 同时区分两种跳过：skippedDup(UUID 已存在) / skippedLeave(请假行未 force)。
+ * [Tom Q1] 同键异负载不做自动裁决 —— 本函数只按 UUID 判重，
+ *   负载差异一律保留并上报，不折叠。
  */
 function _tsDedupeForAppend(sh, rows, force) {
   var last = sh.getLastRow();
@@ -104,7 +103,8 @@ function _tsDedupeForAppend(sh, rows, force) {
     for (var k = 0; k < 14; k++) out[k] = (r[k] === undefined || r[k] === null) ? '' : r[k];
     toWrite.push(out);
   }
-  return { rows: toWrite, skippedDup: skippedDup, skippedLeave: skippedLeave };
+  return { rows: toWrite, skippedDup: skippedDup, skippedLeave: skippedLeave,
+           skipped: skippedDup + skippedLeave };
 }
 
 function tsAppendRows(e) {
@@ -125,7 +125,7 @@ function tsAppendRows(e) {
     var sh = SpreadsheetApp.openById(TS_ID).getSheetByName(sheetName);
     if (!sh) return JSON.stringify({ ok: false, error: 'sheet not found: ' + sheetName });
 
-    // [A1] dry：只读预演，锁外执行，与写路径共用同一判定函数
+    // dry：只读预演，锁外执行，与写路径共用同一判定函数
     if (dry) {
       var dd = _tsDedupeForAppend(sh, rows, force);
       _tsWriteLog('appendRows(dry=1)', 'req=' + rows.length + ' wouldWrite=' + dd.rows.length +
@@ -134,16 +134,16 @@ function tsAppendRows(e) {
                               skippedDup: dd.skippedDup, skippedLeave: dd.skippedLeave });
     }
 
-    // [A1] 关键变更：rows 原样传入，去重由 lockPreWrite 在【持锁状态】下完成
+    // rows 原样传入；去重由 lockPreWrite 在持锁状态下完成（A1c 已使其先于预检）
     var skippedDup = 0, skippedLeave = 0;
     var res = _plGuardedInsert({
       rows: rows,
-      dateOf: function (r) { return r[1]; },          // B 列 fillDate
-      lockPreWrite: function (rowsIn) {               // [A1] 锁内钩子（guard 第 494-498 行调用）
+      dateOf: function (r) { return r[1]; },        // B 列 fillDate
+      lockPreWrite: function (rowsIn) {             // 锁内
         var d = _tsDedupeForAppend(sh, rowsIn, force);
         skippedDup = d.skippedDup;
         skippedLeave = d.skippedLeave;
-        return { rows: d.rows, duplicates: d.skippedDup };
+        return { rows: d.rows, duplicates: d.skippedDup, skipped: d.skipped };
       },
       bizWrite: function (rows2, policy) {
         var startRow = sh.getLastRow() + 1;
@@ -155,52 +155,21 @@ function tsAppendRows(e) {
       }
     });
 
-    // [A1] 全重复时 guard 提前返回 {wrote:0, skippedAll:true} —— 字段缺失要兜住
-    var wrote   = (res && res.wrote) ? res.wrote : 0;
+    var wrote    = (res && res.wrote) ? res.wrote : 0;
     var verified = (res && res.verified !== undefined) ? res.verified : 0;
     var startRow = (res && res.startRow !== undefined) ? res.startRow : null;
 
     _tsWriteLog('appendRows', 'req=' + rows.length + ' wrote=' + wrote + ' verified=' + verified +
                 ' skipDup=' + skippedDup + ' skipLeave=' + skippedLeave);
-    return JSON.stringify({ ok: true, requested: rows.length, wrote: wrote, verified: verified,
+    // [Tom Q2] 契约：全重复时返回 wrote/verified/startRow，并附带 skippedDup/skippedLeave，
+    // 与旧 dry 路径的 wouldWrite 语义区分开（调用方按 dry 字段判断）
+    return JSON.stringify({ ok: true, dry: false, requested: rows.length, wrote: wrote, verified: verified,
                             skippedDup: skippedDup, skippedLeave: skippedLeave, startRow: startRow });
   } catch (err) {
     _tsWriteLog('appendRows(ERR)', String((err && err.message) || err));
     return JSON.stringify({ ok: false, error: String((err && err.message) || err) });
   }
 }
-
-    if (!dry) {
-      // [A1b] 锁提升到分支之外：无论目标是不是 DB_工时流水，写操作一律在临界区内
-      var _lock = _plAcquire();
-      try {
-        if (sheetName === PL_DB_SHEET) {
-          // period-lock：仅 DB_工时流水 过专项门禁（表头保护 + B/O:Q 期间政策）
-          var chk = _plGuardPatch(sh, cells, ranges);
-          if (!chk.ok) {
-            var pe = new Error('period-lock reject: ' + chk.reason + ' ' + JSON.stringify(chk.offenders || []));
-            pe.plCode = chk.reason;
-            throw pe;
-          }
-        }
-        for (var i = 0; i < cells.length; i++) {
-          var c = cells[i];
-          sh.getRange(Number(c[0]), Number(c[1])).setValue(c[2]);
-          n++;
-        }
-        // ranges 整块写入 —— 每项一次 setValues，避免上千次单格写超时
-        for (var r = 0; r < ranges.length; r++) {
-          var g = ranges[r];
-          var vs = g.values || [];
-          if (!vs.length || !vs[0] || !vs[0].length) continue;
-          sh.getRange(Number(g.row), Number(g.col), vs.length, vs[0].length).setValues(vs);
-          n += vs.length * vs[0].length;
-        }
-        SpreadsheetApp.flush();
-      } finally {
-        try { _lock.releaseLock(); } catch (re) {}
-      }
-    }
 
 /**
  * V4.3.62 批量改单元格 —— 补类型列等「字段级修复」用。
@@ -226,61 +195,38 @@ function tsPatchCells(e) {
     var sh = SpreadsheetApp.openById(_ssid).getSheetByName(sheetName);
     if (!sh) return JSON.stringify({ ok: false, error: 'sheet not found: ' + sheetName });
     var n = 0;
-function tsPurgeRows(e) {
-  e = e || {};
-  var p = e.parameter || {};
-  var body = (e.postBody && typeof e.postBody === 'object') ? e.postBody : {};
-  var dry = (String(p.dry || body.dry || '').toLowerCase() === '0') ? false : true; // [A0] 默认 dry
-  var delUuids = (body.uuids && body.uuids.length) ? body.uuids : [];
-  var delSoft = ['1', 'true', 'TRUE', 'yes'].indexOf(String(body.soft || p.soft || '')) >= 0;
-  var allowClosed = ['1', 'true', 'TRUE', 'yes'].indexOf(String(body.allowClosed || p.allowClosed || '')) >= 0;
-  var allowRows = (body.allowRows || []).map(function (x) { return Number(x); }).filter(function (x) { return x > 1; });
-
-  try {
-    var sh = getDbSheet();
-    var data = sh.getDataRange().getValues();
-
-    // 先算出「会删哪些行」，再拿这份行号去做准入检查 —— 顺序不能反
-    var targetRows = [];
-    for (var i = 1; i < data.length; i++) {
-      var uid = String(data[i][8] || '');
-      var dv = data[i][14];
-      var isSoft = (dv === true || String(dv).toUpperCase() === 'TRUE');
-      if (delUuids.length && delUuids.indexOf(uid) >= 0) { targetRows.push(i + 1); continue; }
-      if (delSoft && isSoft) targetRows.push(i + 1);
-    }
-    if (!targetRows.length) {
-      return JSON.stringify({ ok: true, dry: dry, action: 'purgeRows', removed: 0, msg: '无匹配行' });
-    }
-
-    var g = _plGuardedCleanup({
-      sheet: sh, targetRows: targetRows, allowClosed: allowClosed, allowRows: allowRows, dry: dry,
-      exec: function () {
-        var retained = [], removed = 0;
-        for (var k = 0; k < data.length; k++) {
-          if (k === 0) { retained.push(data[k]); continue; }
-          if (targetRows.indexOf(k + 1) >= 0) { removed++; continue; }
-          retained.push(data[k]);
+    if (!dry) {
+      // [A1b] 锁提升到分支之外：无论目标是不是 DB_工时流水，写操作一律在临界区内。
+      // v1 补丁曾误把本区域整段替换为 tsPurgeRows（Tom 阻断项 2），v2 修正。
+      var _lock = _plAcquire();
+      try {
+        // period-lock 专项门禁仍只对 DB_工时流水 生效（表头保护 + B / O:Q 期间政策）
+        if (sheetName === PL_DB_SHEET) {
+          var chk = _plGuardPatch(sh, cells, ranges);
+          if (!chk.ok) {
+            var pe = new Error('period-lock reject: ' + chk.reason + ' ' + JSON.stringify(chk.offenders || []));
+            pe.plCode = chk.reason;
+            throw pe;
+          }
         }
-        if (retained.length > 1) _tsSetValuesGuarded(sh, retained, data);
-        var last = sh.getLastRow();
-        if (last > retained.length) sh.deleteRows(retained.length + 1, last - retained.length);
-        return { removed: removed, kept: retained.length };
+        for (var i = 0; i < cells.length; i++) {
+          var c = cells[i];
+          sh.getRange(Number(c[0]), Number(c[1])).setValue(c[2]);
+          n++;
+        }
+        // ranges 整块写入 —— 每项一次 setValues，避免上千次单格写超时
+        for (var r = 0; r < ranges.length; r++) {
+          var g = ranges[r];
+          var vs = g.values || [];
+          if (!vs.length || !vs[0] || !vs[0].length) continue;
+          sh.getRange(Number(g.row), Number(g.col), vs.length, vs[0].length).setValues(vs);
+          n += vs.length * vs[0].length;
+        }
+        SpreadsheetApp.flush();
+      } finally {
+        try { _lock.releaseLock(); } catch (re) {}
       }
-    });
-
-    if (!g.ok) {
-      return JSON.stringify({ ok: false, action: 'purgeRows', error: g.reason,
-                              offenderCount: g.offenderCount, offenders: g.offenders,
-                              hint: '触碰关账期行且未在 allowRows 白名单内；如需放行请显式 allowClosed=1 并附 allowRows' });
     }
-    return JSON.stringify({ ok: true, action: 'purgeRows', dry: dry,
-                            removed: (g.result && g.result.removed) || 0,
-                            kept: (g.result && g.result.kept) || 0, cutoff: g.cutoff });
-  } catch (err) {
-    return JSON.stringify({ ok: false, error: String((err && err.message) || err) });
-  }
-}
     _tsWriteLog('patchCells' + (dry ? '(dry)' : ''), 'ss=' + _ssid + ' sheet=' + sheetName + ' cells=' + cells.length + ' ranges=' + ranges.length + ' done=' + n);
     return JSON.stringify({ ok: true, dry: dry, patched: dry ? 0 : n, requested: cells.length + ranges.length, ssid: SpreadsheetApp.openById(_ssid).getId(), sheet: sheetName });
   } catch (err) {
@@ -823,9 +769,14 @@ function tsDupReport(e) {
     grpOut.push({ key: key, count: arr.length, spanMin: Math.round((maxT - minT) / 60000) });
   }
   grpOut.sort(function (a, b) { return b.count - a.count; });
-  if (fix && kill.length > 0) {
-    kill.sort(function (a, b) { return a - b; });
-    kill.forEach(function (r) { sheet.getRange(r, 15).setValue('TRUE'); });
+  // [A0d][Tom Q8] fix=1 默认拒绝。2 小时窗口口径不适用于本批跨天跨月候选，
+  // 且自动软标属生产写入。保留只读报告能力；写入须走 _tsGuardedCleanup + CAS。
+  if (fix) {
+    return JSON.stringify({ ok: false, error: 'DUP_FIX_DISABLED',
+                            reason: '两小时窗口口径与本次跨天跨月候选不匹配；自动软标已禁用',
+                            hint: '如需清理，请走 purgeRows 并附 {uuid,payloadHash} CAS 清单',
+                            duplicateGroups: grpOut.length, extraRows: kill.length,
+                            rows: kill.slice(0, 500) });
   }
     return JSON.stringify({
       ok: true, action: 'dupreport', fixed: fix ? kill.length : 0,

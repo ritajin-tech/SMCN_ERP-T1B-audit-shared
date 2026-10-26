@@ -1,20 +1,25 @@
 --- a/RemoteActions.js
 +++ b/RemoteActions.js
-@@ -170,49 +170,61 @@
-     var sh = SpreadsheetApp.openById(_ssid).getSheetByName(sheetName);
+@@ -196,46 +196,35 @@
      if (!sh) return JSON.stringify({ ok: false, error: 'sheet not found: ' + sheetName });
      var n = 0;
--    if (!dry) {
+     if (!dry) {
 -      // period-lock：仅 DB_工时流水 进 guard（M1 分列，B 列/O:Q 由 _plGuardPatch 判）；其他表不拦
 -      if (sheetName === PL_DB_SHEET) {
 -        var _lock = _plAcquire();
 -        try {
--          var chk = _plGuardPatch(sh, cells, ranges);
--          if (!chk.ok) {
--            var pe = new Error('period-lock reject: ' + chk.reason + ' ' + JSON.stringify(chk.offenders || []));
--            pe.plCode = chk.reason;
--            throw pe;
--          }
++      // [A1b] 锁提升到分支之外：无论目标是不是 DB_工时流水，写操作一律在临界区内。
++      // v1 补丁曾误把本区域整段替换为 tsPurgeRows（Tom 阻断项 2），v2 修正。
++      var _lock = _plAcquire();
++      try {
++        // period-lock 专项门禁仍只对 DB_工时流水 生效（表头保护 + B / O:Q 期间政策）
++        if (sheetName === PL_DB_SHEET) {
+           var chk = _plGuardPatch(sh, cells, ranges);
+           if (!chk.ok) {
+             var pe = new Error('period-lock reject: ' + chk.reason + ' ' + JSON.stringify(chk.offenders || []));
+             pe.plCode = chk.reason;
+             throw pe;
+           }
 -          for (var i = 0; i < cells.length; i++) {
 -            var c = cells[i];
 -            sh.getRange(Number(c[0]), Number(c[1])).setValue(c[2]);
@@ -31,75 +36,33 @@
 -          SpreadsheetApp.flush();
 -        } finally {
 -          try { _lock.releaseLock(); } catch (re) {}
-+function tsPurgeRows(e) {
-+  e = e || {};
-+  var p = e.parameter || {};
-+  var body = (e.postBody && typeof e.postBody === 'object') ? e.postBody : {};
-+  var dry = (String(p.dry || body.dry || '').toLowerCase() === '0') ? false : true; // [A0] 默认 dry
-+  var delUuids = (body.uuids && body.uuids.length) ? body.uuids : [];
-+  var delSoft = ['1', 'true', 'TRUE', 'yes'].indexOf(String(body.soft || p.soft || '')) >= 0;
-+  var allowClosed = ['1', 'true', 'TRUE', 'yes'].indexOf(String(body.allowClosed || p.allowClosed || '')) >= 0;
-+  var allowRows = (body.allowRows || []).map(function (x) { return Number(x); }).filter(function (x) { return x > 1; });
-+
-+  try {
-+    var sh = getDbSheet();
-+    var data = sh.getDataRange().getValues();
-+
-+    // 先算出「会删哪些行」，再拿这份行号去做准入检查 —— 顺序不能反
-+    var targetRows = [];
-+    for (var i = 1; i < data.length; i++) {
-+      var uid = String(data[i][8] || '');
-+      var dv = data[i][14];
-+      var isSoft = (dv === true || String(dv).toUpperCase() === 'TRUE');
-+      if (delUuids.length && delUuids.indexOf(uid) >= 0) { targetRows.push(i + 1); continue; }
-+      if (delSoft && isSoft) targetRows.push(i + 1);
-+    }
-+    if (!targetRows.length) {
-+      return JSON.stringify({ ok: true, dry: dry, action: 'purgeRows', removed: 0, msg: '无匹配行' });
-+    }
-+
-+    var g = _plGuardedCleanup({
-+      sheet: sh, targetRows: targetRows, allowClosed: allowClosed, allowRows: allowRows, dry: dry,
-+      exec: function () {
-+        var retained = [], removed = 0;
-+        for (var k = 0; k < data.length; k++) {
-+          if (k === 0) { retained.push(data[k]); continue; }
-+          if (targetRows.indexOf(k + 1) >= 0) { removed++; continue; }
-+          retained.push(data[k]);
          }
 -      } else {
 -        for (var i2 = 0; i2 < cells.length; i2++) {
 -          var c2 = cells[i2];
 -          sh.getRange(Number(c2[0]), Number(c2[1])).setValue(c2[2]);
--          n++;
--        }
++        for (var i = 0; i < cells.length; i++) {
++          var c = cells[i];
++          sh.getRange(Number(c[0]), Number(c[1])).setValue(c[2]);
+           n++;
+         }
 -        for (var r2 = 0; r2 < ranges.length; r2++) {
 -          var g2 = ranges[r2];
 -          var vs2 = g2.values || [];
 -          if (!vs2.length || !vs2[0] || !vs2[0].length) continue;
 -          sh.getRange(Number(g2.row), Number(g2.col), vs2.length, vs2[0].length).setValues(vs2);
 -          n += vs2.length * vs2[0].length;
--        }
-+        if (retained.length > 1) _tsSetValuesGuarded(sh, retained, data);
-+        var last = sh.getLastRow();
-+        if (last > retained.length) sh.deleteRows(retained.length + 1, last - retained.length);
-+        return { removed: removed, kept: retained.length };
++        // ranges 整块写入 —— 每项一次 setValues，避免上千次单格写超时
++        for (var r = 0; r < ranges.length; r++) {
++          var g = ranges[r];
++          var vs = g.values || [];
++          if (!vs.length || !vs[0] || !vs[0].length) continue;
++          sh.getRange(Number(g.row), Number(g.col), vs.length, vs[0].length).setValues(vs);
++          n += vs.length * vs[0].length;
+         }
++        SpreadsheetApp.flush();
++      } finally {
++        try { _lock.releaseLock(); } catch (re) {}
        }
--    }
-+    });
-+
-+    if (!g.ok) {
-+      return JSON.stringify({ ok: false, action: 'purgeRows', error: g.reason,
-+                              offenderCount: g.offenderCount, offenders: g.offenders,
-+                              hint: '触碰关账期行且未在 allowRows 白名单内；如需放行请显式 allowClosed=1 并附 allowRows' });
-+    }
-+    return JSON.stringify({ ok: true, action: 'purgeRows', dry: dry,
-+                            removed: (g.result && g.result.removed) || 0,
-+                            kept: (g.result && g.result.kept) || 0, cutoff: g.cutoff });
-+  } catch (err) {
-+    return JSON.stringify({ ok: false, error: String((err && err.message) || err) });
-+  }
-+}
+     }
      _tsWriteLog('patchCells' + (dry ? '(dry)' : ''), 'ss=' + _ssid + ' sheet=' + sheetName + ' cells=' + cells.length + ' ranges=' + ranges.length + ' done=' + n);
-     return JSON.stringify({ ok: true, dry: dry, patched: dry ? 0 : n, requested: cells.length + ranges.length, ssid: SpreadsheetApp.openById(_ssid).getId(), sheet: sheetName });
-   } catch (err) {

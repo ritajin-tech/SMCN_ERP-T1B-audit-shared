@@ -1,0 +1,20 @@
+--- a/RemoteActions.js
++++ b/RemoteActions.js
+@@ -769,9 +769,14 @@
+     grpOut.push({ key: key, count: arr.length, spanMin: Math.round((maxT - minT) / 60000) });
+   }
+   grpOut.sort(function (a, b) { return b.count - a.count; });
+-  if (fix && kill.length > 0) {
+-    kill.sort(function (a, b) { return a - b; });
+-    kill.forEach(function (r) { sheet.getRange(r, 15).setValue('TRUE'); });
++  // [A0d][Tom Q8] fix=1 默认拒绝。2 小时窗口口径不适用于本批跨天跨月候选，
++  // 且自动软标属生产写入。保留只读报告能力；写入须走 _tsGuardedCleanup + CAS。
++  if (fix) {
++    return JSON.stringify({ ok: false, error: 'DUP_FIX_DISABLED',
++                            reason: '两小时窗口口径与本次跨天跨月候选不匹配；自动软标已禁用',
++                            hint: '如需清理，请走 purgeRows 并附 {uuid,payloadHash} CAS 清单',
++                            duplicateGroups: grpOut.length, extraRows: kill.length,
++                            rows: kill.slice(0, 500) });
+   }
+     return JSON.stringify({
+       ok: true, action: 'dupreport', fixed: fix ? kill.length : 0,

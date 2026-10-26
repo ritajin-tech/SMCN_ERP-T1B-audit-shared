@@ -1,0 +1,77 @@
+--- a/PeriodLockGuard.js
++++ b/PeriodLockGuard.js
+@@ -481,23 +481,31 @@
+   var enteredWrite = false;
+   var logAttempted = false;
+   try {
+-    var pre = _plGuardCheckBatch(opts.rows, opts.dateOf, _plPolicy());
++    // [A1c] 取锁提前到预检之前，使「锁内去重」能先于预检执行。
++    // 原实现先对【原始 rows】预检 → 取锁 → 调 lockPreWrite 去重，导致
++    // 「本应被去重跳过的关账期重复行」会先触发 PL_REJECT_* 连坐整批
++    // （Tom Q2 指出的副作用）。_plGuardCheckBatch 是纯函数（不读表），
++    // 取锁提前不改变其判定结果，仅改变「哪些行参与预检」。
++    lock = _plAcquire(opts.timeoutMs);
++    var policy = _plPolicy();
++    var rows = opts.rows;
++    var duplicates = 0;
++    var skipped = 0;
++    if (typeof opts.lockPreWrite === 'function') {
++      var pr = opts.lockPreWrite(rows, policy) || {};
++      rows = pr.rows || [];
++      duplicates = pr.duplicates || 0;
++      skipped = pr.skipped || 0;
++    }
++    if (!rows || rows.length === 0) {              // 全被去重/跳过：无新增，不进业务写
++      return { wrote: 0, duplicates: duplicates, skipped: skipped, skippedAll: true };
++    }
++    // 预检只作用于去重后的候选
++    var pre = _plGuardCheckBatch(rows, opts.dateOf, policy);
+     if (!pre.ok) {
+       var e0 = new Error(pre.reason + ' @row#' + pre.index);
+       e0.plCode = pre.reason;
+       throw e0;
+-    }
+-    lock = _plAcquire(opts.timeoutMs);
+-    var policy = _plPolicy();
+-    var rows = opts.rows;
+-    var duplicates = 0;
+-    if (typeof opts.lockPreWrite === 'function') {
+-      var pr = opts.lockPreWrite(rows, policy);
+-      rows = (pr && pr.rows) || [];               // [审②] 约定返回 {rows, duplicates}
+-      duplicates = (pr && pr.duplicates) || 0;
+-    }
+-    if (!rows || rows.length === 0) {             // [审②] 全重复：无新增，不走业务写
+-      return { wrote: 0, duplicates: duplicates, skippedAll: true };
+     }
+     var post = _plGuardCheckBatch(rows, opts.dateOf, policy);
+     if (!post.ok) {
+@@ -510,14 +518,12 @@
+     try {
+       if (typeof SpreadsheetApp !== 'undefined' && SpreadsheetApp.flush) SpreadsheetApp.flush();
+     } catch (fe) {
+-      // [审③] plLogFailed 按实际登记结果设置（登记成功=false，不再误报）
+       var loggedF2 = _plLogUncertain('flush_failed', 'insert batch');
+       logAttempted = true;
+       var e2 = new Error('PL_UNCERTAIN_FLUSH_FAILED');
+       e2.plCode = 'PL_UNCERTAIN_FLUSH_FAILED';
+       e2.plCause = String((fe && fe.message) || fe);
+       e2.plLogFailed = !loggedF2;
+-      // [审⑧-v7] 契约覆盖 submitBatch/tsAppendRows 路径：载荷进 message
+       e2.message = _plUncertainPayloadMsg(e2);
+       throw e2;
+     }
+@@ -526,13 +532,11 @@
+     if (enteredWrite && !logAttempted) {
+       logAttempted = true;
+       var logged2 = _plLogUncertain('biz_write', 'insert batch err=' + String((e && e.message) || e));
+-      if (e && e.plCode) throw e;                 // 已结构化（flush 路径）不双包
+-      // [审③] 写阶段后失败=结果不确定：统一码+原因+登记状态，与预检拒绝分层
++      if (e && e.plCode) throw e;
+       var ue2 = new Error('PL_UNCERTAIN_BIZ_WRITE_FAILED');
+       ue2.plCode = 'PL_UNCERTAIN_BIZ_WRITE_FAILED';
+       ue2.plCause = String((e && e.message) || e);
+       ue2.plLogFailed = !logged2;
+-      // [审⑧-v7] 契约覆盖 submitBatch/tsAppendRows 路径：载荷进 message
+       ue2.message = _plUncertainPayloadMsg(ue2);
+       throw ue2;
+     }

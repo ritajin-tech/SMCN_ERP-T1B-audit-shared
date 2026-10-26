@@ -481,23 +481,31 @@ function _plGuardedInsert(opts) {
   var enteredWrite = false;
   var logAttempted = false;
   try {
-    var pre = _plGuardCheckBatch(opts.rows, opts.dateOf, _plPolicy());
-    if (!pre.ok) {
-      var e0 = new Error(pre.reason + ' @row#' + pre.index);
-      e0.plCode = pre.reason;
-      throw e0;
-    }
+    // [A1c] 取锁提前到预检之前，使「锁内去重」能先于预检执行。
+    // 原实现先对【原始 rows】预检 → 取锁 → 调 lockPreWrite 去重，导致
+    // 「本应被去重跳过的关账期重复行」会先触发 PL_REJECT_* 连坐整批
+    // （Tom Q2 指出的副作用）。_plGuardCheckBatch 是纯函数（不读表），
+    // 取锁提前不改变其判定结果，仅改变「哪些行参与预检」。
     lock = _plAcquire(opts.timeoutMs);
     var policy = _plPolicy();
     var rows = opts.rows;
     var duplicates = 0;
+    var skipped = 0;
     if (typeof opts.lockPreWrite === 'function') {
-      var pr = opts.lockPreWrite(rows, policy);
-      rows = (pr && pr.rows) || [];               // [审②] 约定返回 {rows, duplicates}
-      duplicates = (pr && pr.duplicates) || 0;
+      var pr = opts.lockPreWrite(rows, policy) || {};
+      rows = pr.rows || [];
+      duplicates = pr.duplicates || 0;
+      skipped = pr.skipped || 0;
     }
-    if (!rows || rows.length === 0) {             // [审②] 全重复：无新增，不走业务写
-      return { wrote: 0, duplicates: duplicates, skippedAll: true };
+    if (!rows || rows.length === 0) {              // 全被去重/跳过：无新增，不进业务写
+      return { wrote: 0, duplicates: duplicates, skipped: skipped, skippedAll: true };
+    }
+    // 预检只作用于去重后的候选
+    var pre = _plGuardCheckBatch(rows, opts.dateOf, policy);
+    if (!pre.ok) {
+      var e0 = new Error(pre.reason + ' @row#' + pre.index);
+      e0.plCode = pre.reason;
+      throw e0;
     }
     var post = _plGuardCheckBatch(rows, opts.dateOf, policy);
     if (!post.ok) {
@@ -510,14 +518,12 @@ function _plGuardedInsert(opts) {
     try {
       if (typeof SpreadsheetApp !== 'undefined' && SpreadsheetApp.flush) SpreadsheetApp.flush();
     } catch (fe) {
-      // [审③] plLogFailed 按实际登记结果设置（登记成功=false，不再误报）
       var loggedF2 = _plLogUncertain('flush_failed', 'insert batch');
       logAttempted = true;
       var e2 = new Error('PL_UNCERTAIN_FLUSH_FAILED');
       e2.plCode = 'PL_UNCERTAIN_FLUSH_FAILED';
       e2.plCause = String((fe && fe.message) || fe);
       e2.plLogFailed = !loggedF2;
-      // [审⑧-v7] 契约覆盖 submitBatch/tsAppendRows 路径：载荷进 message
       e2.message = _plUncertainPayloadMsg(e2);
       throw e2;
     }
@@ -526,13 +532,11 @@ function _plGuardedInsert(opts) {
     if (enteredWrite && !logAttempted) {
       logAttempted = true;
       var logged2 = _plLogUncertain('biz_write', 'insert batch err=' + String((e && e.message) || e));
-      if (e && e.plCode) throw e;                 // 已结构化（flush 路径）不双包
-      // [审③] 写阶段后失败=结果不确定：统一码+原因+登记状态，与预检拒绝分层
+      if (e && e.plCode) throw e;
       var ue2 = new Error('PL_UNCERTAIN_BIZ_WRITE_FAILED');
       ue2.plCode = 'PL_UNCERTAIN_BIZ_WRITE_FAILED';
       ue2.plCause = String((e && e.message) || e);
       ue2.plLogFailed = !logged2;
-      // [审⑧-v7] 契约覆盖 submitBatch/tsAppendRows 路径：载荷进 message
       ue2.message = _plUncertainPayloadMsg(ue2);
       throw ue2;
     }
@@ -619,82 +623,94 @@ function _plGuardPatch(sheet, cells, ranges) {
 }
 
 // ============================================================
-// 5. [A0] 清理类工具统一护栏（V4.3.87）
+// 5. [A0] 清理类工具统一护栏（V4.3.87 · 修正版 v2）
 // ------------------------------------------------------------
-// 背景：tsPurgeRows / tsPurgeSoftLeaves / tsDupReport(fix=1) / tsTrimBlank /
-//       _tsSetValuesGuarded 全部「无锁 + 无期间门禁」，而 purge 类走
-//       「全表读 → setValues 写回 → deleteRows 删尾」，一旦调用即可改写或
-//       物理删除已冻结期间（B 列 < cutoff）的数据 —— 与 9/12 事故同型。
-// 契约：
-//   ① 全程持锁（_plAcquire，fail-closed）
-//   ② 默认拒绝触碰已关账期间的行；仅当显式 allowClosed=1 才放行，且必须
-//      同时给出 allowRows 白名单（行号集合），白名单外的关账行一律拒
-//   ③ 目标行 B 列不可解析 → 一律拒（不猜）
-//   ④ dry 默认 1：不显式 dry=0 就只报不写
+// Tom Q4 修正：v1 示例在【锁外】读 data/targetRows，exec 闭包复用旧快照，
+//   并发变更后可能覆盖或删除未经核定数据。v2 改为：
+//   ① 全程持锁，锁内【单次】读取；② 按稳定身份（I 列 UUID）定位，不用行号；
+//   ③ 期望原负载 hash（CAS）校验，不匹配即拒；④ flush 异常不吞，向上抛。
+// Tom Q5 修正：不提供全局 allowClosed 放开。例外须绑定
+//   {ssId, 记录UUID集合, 原负载hash, 操作, 期限, 批次号} 六要素，缺一即拒。
 // ============================================================
 
 /**
- * 清理动作的准入检查。**必须在真正的写/删之前调用**，且调用方须在其
- * try 内持锁执行后续动作（本函数返回后锁已释放，故设计为「先准入、
- * 再由调用方在自己的锁内执行」两段式，避免 exec 里做长耗时操作占锁过久）。
- *
- * @param {Object} o
- *   o.sheet        Sheet 对象（必填）
- *   o.targetRows   number[] 目标行号（1-based，必填）
- *   o.allowClosed  bool 是否允许触碰关账期行（默认 false）
- *   o.allowRows    number[] allowClosed=true 时的行号白名单（必填）
- * @returns {{ok:boolean, reason:string, offenders:Array, offenderCount:number, cutoff:string}}
+ * 由 14 列业务负载生成稳定 hash（复用 _plRowContentHash 的覆盖定义）。
+ * 返回 null 表示该行无法无歧义定版，调用方必须 fail-closed 拒之。
  */
-function _plGuardCleanup(o) {
-  o = o || {};
-  var policy = _plPolicy();
-  var cutoff = (policy && policy.cutoff) || PL_CUTOFF;
-  var allowClosed = !!o.allowClosed;
-  var allowRows = o.allowRows || [];
-  var targets = o.targetRows || [];
-  var offenders = [];
-
-  var data = o.sheet.getDataRange().getValues();
-  var lastRow = data.length;
-
-  for (var i = 0; i < targets.length; i++) {
-    var rn = Number(targets[i]);
-    if (!rn || rn < 2) { offenders.push({ row: rn, reason: 'PL_REJECT_HEADER_ROW' }); continue; }
-    if (rn > lastRow)  { offenders.push({ row: rn, reason: 'PL_REJECT_ROW_GONE' });  continue; }
-    var biz = _plParseBizDate(data[rn - 1][1]);
-    if (!biz) { offenders.push({ row: rn, reason: 'PL_REJECT_ORIG_UNKNOWN' }); continue; }
-    if (!_plIsClosedBizDate(biz, cutoff)) continue;           // 未关账 → 放行
-    if (allowClosed && allowRows.indexOf(rn) >= 0) continue;  // 关账但在白名单 → 放行
-    offenders.push({ row: rn, reason: 'PL_REJECT_PERIOD_CLOSED' });
-  }
-
-  if (offenders.length) {
-    return { ok: false, reason: 'PL_REJECT_CLEANUP_OFFENDERS', cutoff: cutoff,
-             offenders: offenders.slice(0, 200), offenderCount: offenders.length };
-  }
-  return { ok: true, reason: '', cutoff: cutoff, offenderCount: 0 };
+function _tsRowPayloadHash(row) {
+  return _plRowContentHash(row);
 }
 
 /**
- * 带锁地执行清理动作（purge / 软删 / trim 统一走这里）。
- * @param {Object} o
- *   o.sheet / o.targetRows / o.allowClosed / o.allowRows  同 _plGuardCleanup
- *   o.dry       bool 默认 true —— 不显式 dry=0 就只做准入检查，不执行
- *   o.exec      function(data) 真正的写/删；仅在准入通过且 dry=false 时调用
- *   o.timeoutMs number 可选
+ * 清理准入：校验「稳定身份 + 原负载 hash」是否与期望一致。
+ * @param {Sheet} sh
+ * @param {Array} expect  [{uuid, payloadHash}] 待清理记录的期望原值
+ * @returns {{ok:boolean, reason:string, matched:Array, mismatched:Array, cutoff:string}}
  */
-function _plGuardedCleanup(o) {
+function _tsVerifyCleanupTargets(sh, expect) {
+  var policy = _plPolicy();
+  var cutoff = (policy && policy.cutoff) || PL_CUTOFF;
+  var data = sh.getDataRange().getValues();
+  var byUuid = {};
+  for (var i = 1; i < data.length; i++) {
+    var u = String(data[i][8] || '').trim();
+    if (u) byUuid[u] = { row: i + 1, rowData: data[i] };
+  }
+  var matched = [], mismatched = [];
+  for (var k = 0; k < expect.length; k++) {
+    var e = expect[k] || {};
+    var uid = String(e.uuid || '').trim();
+    var hit = (uid && Object.prototype.hasOwnProperty.call(byUuid, uid)) ? byUuid[uid] : null;
+    if (!hit) { mismatched.push({ uuid: uid, reason: 'PL_REJECT_ROW_GONE' }); continue; }
+    var actual = _tsRowPayloadHash(hit.rowData);
+    if (actual === null) { mismatched.push({ uuid: uid, reason: 'PL_REJECT_CONTENT_ENCODING' }); continue; }
+    if (e.payloadHash && actual !== e.payloadHash) {
+      mismatched.push({ uuid: uid, reason: 'PL_REJECT_PAYLOAD_CHANGED',
+                        expected: e.payloadHash, actual: actual });
+      continue;
+    }
+    matched.push({ uuid: uid, row: hit.row, payloadHash: actual });
+  }
+  if (mismatched.length) {
+    return { ok: false, reason: 'PL_REJECT_CLEANUP_CAS_FAILED', cutoff: cutoff,
+             matched: matched, mismatched: mismatched.slice(0, 200) };
+  }
+  return { ok: true, reason: '', cutoff: cutoff, matched: matched, mismatched: [] };
+}
+
+/**
+ * 带锁执行清理。全程单锁、锁内单次读、CAS 校验、逐行回读。
+ * @param {Object} o
+ *   o.sheet / o.expect([{uuid,payloadHash}]) / o.dry(默认true) /
+ *   o.exec(matched, data) 真正的写/删 / o.op 操作名 / o.batch 批次号
+ */
+function _tsGuardedCleanup(o) {
   o = o || {};
   var dry = (o.dry === false) ? false : true;
-  var lock = _plAcquire(o.timeoutMs);            // fail-closed：拿不到锁直接抛
+  var lock = _plAcquire(o.timeoutMs);              // fail-closed
   try {
-    var chk = _plGuardCleanup(o);
+    var chk = _tsVerifyCleanupTargets(o.sheet, o.expect || []);
     if (!chk.ok) return chk;
-    if (dry) return { ok: true, dry: true, reason: '', cutoff: chk.cutoff };
-    var data = o.sheet.getDataRange().getValues();
-    var r = o.exec(data);
-    try { SpreadsheetApp.flush(); } catch (fe) { /* 与 _plGuardedInsert 同策略，由调用方登记 */ }
-    return { ok: true, dry: false, result: r, cutoff: chk.cutoff };
+    if (dry) return { ok: true, dry: true, matched: chk.matched, cutoff: chk.cutoff };
+    var data = o.sheet.getDataRange().getValues(); // 锁内单次读，exec 只能用它
+    var r = (typeof o.exec === 'function') ? o.exec(chk.matched, data) : null;
+    try { SpreadsheetApp.flush(); }
+    catch (fe) {                                   // v1 曾吞掉 flush 异常当成功
+      var err = new Error('PL_UNCERTAIN_CLEANUP_FLUSH_FAILED');
+      err.plCode = 'PL_UNCERTAIN_CLEANUP_FLUSH_FAILED';
+      err.plCause = String((fe && fe.message) || fe);
+      err.message = _plUncertainPayloadMsg(err);
+      throw err;
+    }
+    // 逐行回读，确认实际落库状态
+    var readback = [];
+    for (var i = 0; i < chk.matched.length; i++) {
+      var m = chk.matched[i];
+      var dv = o.sheet.getRange(m.row, 15).getValue();
+      readback.push({ uuid: m.uuid, row: m.row,
+                      softDel: (dv === true || String(dv).toUpperCase() === 'TRUE') });
+    }
+    return { ok: true, dry: false, result: r, readback: readback, cutoff: chk.cutoff };
   } finally {
     if (lock) { try { lock.releaseLock(); } catch (re) {} }
   }
