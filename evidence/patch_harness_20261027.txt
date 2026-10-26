@@ -1,0 +1,27 @@
+=== 补丁离线行为测试台 ===
+源码：D:/AI_DATA/WorkBuddy/_ts_current_20261026
+补丁后源码目录：C:\Users\rita.jin\AppData\Local\Temp\harness_V5w2w7
+
+变体加载成功（内存表与锁状态互相隔离）：基线 / 仅A1 / 全补丁
+
+[PASS] T1  去重读 I 列时是否持有锁（根因 TOCTOU）
+       基线：读 I 列 1 次，1 次在锁外（=TOCTOU 现场）；补丁后：1 次读，锁外 0 次
+[PASS] T2  同 UUID 二次提交被拦下，且新行不被误杀
+       重复行：基线 wrote=undefined/skipDup=1，补丁后 wrote=0/skipDup=1；新行：基线 wrote=1，补丁后 wrote=1
+[PASS] T3  [Tom Q2] 仅 A1 会连坐整批；A1+A1c 才不会
+       仅A1（去重进锁内但取锁不提前）：wrote=undefined err=PL_REJECT_NEW_DATE_CLOSED @row#0 ← 连坐，正是 Tom Q2 的副作用；全补丁 A1+A1c：wrote=1 skipDup=1（重复行先去重，当期新行正常写入）
+[PASS] T4  锁被占用时 fail-closed（报错，不静默放行）
+       ok=false error=PL_REJECT_LOCK_BUSY，期间写入次数=0（须报错且一次都不写）
+[PASS] T5  [A0d] tsDupReport(fix=1) 的自动改写必须失效
+       基线 fix=1：ok=true（会写 O=TRUE）｜补丁后：ok=false error=DUP_FIX_DISABLED
+[PASS] T6  [A1b] patchCells 持锁 + 值写入正确
+       锁外写入=0（须 0）；ok=true ；O2 实际值='TRUE'（须 TRUE）
+[PASS] T7  回归：无 UUID 的新行不被误杀
+       ok=true wrote=1
+[PASS] T8  dry 预演与真写的去重判定一致
+       dry 预演 wouldWrite=1，真写 wrote=1（须一致，dry 才可信）
+
+=== 汇总 ===
+8/8 通过
+
+补丁后源码：C:\Users\rita.jin\AppData\Local\Temp\harness_V5w2w7（可 diff 复核）
