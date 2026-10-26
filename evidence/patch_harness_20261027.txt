@@ -1,8 +1,10 @@
 === 补丁离线行为测试台 ===
 源码：D:/AI_DATA/WorkBuddy/_ts_current_20261026
-补丁后源码目录：C:\Users\rita.jin\AppData\Local\Temp\harness_5uiP9C
+补丁后源码目录：C:\Users\rita.jin\AppData\Local\Temp\harness_xdhrA3
 
 变体加载成功（内存表与锁状态互相隔离）：基线 / 仅A1 / 全补丁
+
+A7 变体（主库世界）：基线 / 补丁后
 
 [PASS] T1  去重读 I 列时是否持有锁（根因 TOCTOU）
        基线：读 I 列 1 次，1 次在锁外（=TOCTOU 现场）；补丁后：1 次读，锁外 0 次
@@ -26,8 +28,12 @@
        ok=false reason=PL_REJECT_CLEANUP_CAS_FAILED，首条 mismatch=PL_REJECT_PAYLOAD_CHANGED，写入次数=0（必须整批拒下且一次不写）
 [PASS] T11  [A0] CAS 拒掉「目标行已消失」
        ok=false reason=PL_REJECT_CLEANUP_CAS_FAILED，首条 mismatch=PL_REJECT_ROW_GONE（行没了必须拒，不能静默跳过）
+[PASS] T12  [A7] dry：挂起行被计数报出，合法新行判定不变，零写入
+       基线：orphanCount=undefined（裸 continue，静默丢失）；补丁后：orphanCount=1 orphanHours=2 orphanSample=["2026-05-06 Tester  2h"]；addCount 基线与补丁后均为 1（合法新行判定不变）；写入=0，底稿行数=2（dry 必须零写入）
+[PASS] T13  [A7] 真写：挂起行仍不写入底稿，合法新行照常追加，返回值带摘要
+       底稿净增 1 行（UUID=TS-NEW-1，须只有 TS-NEW-1，TS-ORPH-1 不得进底稿）；返回值=[OK] 已追加 1 条 / 3h 到主库底稿，起始行 3，耗时 1ms；[A7] 另有 1 条挂起行 / 2h 未进底稿（录入早于水位线且底稿无匹配，按 Rita 2026-10-27 决定不补录，请人工裁）
 
 === 汇总 ===
-11/11 通过
+13/13 通过
 
-补丁后源码：C:\Users\rita.jin\AppData\Local\Temp\harness_5uiP9C（可 diff 复核）
+补丁后源码：C:\Users\rita.jin\AppData\Local\Temp\harness_xdhrA3（可 diff 复核）

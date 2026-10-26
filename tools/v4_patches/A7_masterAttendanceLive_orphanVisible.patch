@@ -1,0 +1,98 @@
+diff --git a/masterAttendanceLive.js b/masterAttendanceLive.js
+index 758b202..05472c2 100644
+--- a/masterAttendanceLive.js
++++ b/masterAttendanceLive.js
+@@ -28,6 +28,8 @@ var MAL_VIEW_TAB = '月度视图';        // 主库月度汇总
+ 
+ var MAL_MIN_BASE_ROWS = 5000;   // 底稿读到的行数下限（低于此视为读失败，禁止写）
+ var MAL_MAX_ADD_ROWS = 300;     // 单次追加上限
++// [A7] 挂起行（录入时间 ≤ 水位线但底稿没有）摘要的保留上限，防止超大表把内存/日志撑爆
++var ORPHAN_MAX_KEEP = 5000;
+ 
+ // ---------- 基础工具 ----------
+ function _malBizDate(v) {
+@@ -79,6 +81,13 @@ function _malOpt(opt) {
+ //    判定：录入时间 > 底稿水位线 且 UUID/内容键均不在底稿 ⇒ 新增
+ //    剔除：请假行 / 软删行 / 无姓名 / 非 2026 / 无业务日期
+ // ============================================================================
++// [A7] 把挂起行数量拼进返回值，让调用方与邮件正文都能看见（不再静默）
++function _malOrphanSuffix(count, hours) {
++  if (!count) return '';
++  return '；[A7] 另有 ' + count + ' 条挂起行 / ' + (Math.round(hours * 10) / 10)
++    + 'h 未进底稿（录入早于水位线且底稿无匹配，按 Rita 2026-10-27 决定不补录，请人工裁）';
++}
++
+ function syncProdToMaster(opt) {
+   opt = _malOpt(opt);
+   var t0 = Date.now();
+@@ -107,6 +116,8 @@ function syncProdToMaster(opt) {
+ 
+     // 生产表 → 新增候选
+     var add = [], seenU = {}, seenC = {}, excluded = 0;
++    var badTime = 0;                                   // [A7] 无录入时间的异常行计数
++    var orphan = [], orphanCount = 0, orphanHours = 0; // [A7] 挂起行：不写入，但必须可见
+     for (var j = 1; j < rows.length; j++) {
+       var p = rows[j];
+       var name = String(p[2] || '').trim();
+@@ -118,8 +129,20 @@ function syncProdToMaster(opt) {
+       var ck = _malContentKey(name, p[5], p[6], pd, p[7]);
+       if ((pu && baseU[pu]) || baseC[ck]) continue;
+       var pts = p[0] ? new Date(p[0]).getTime() : NaN;
+-      if (isNaN(pts)) continue;                                  // 无录入时间：异常行，不自动加（与本地体检口径一致）
+-      if (watermark !== null && pts <= watermark) continue;      // 录入≤水位线的漏报类不自动加（待人工裁）
++      if (isNaN(pts)) { badTime++; continue; }                  // 无录入时间：异常行，不自动加（与本地体检口径一致）
++      // [A7] 录入时间 ≤ 水位线但底稿没有 = 「挂起行」。原先这里是裸 continue，
++      // 既不写也不报，导致长期静默悬空（2026-10 实测已达 1612 行 / 7238.5h，
++      // 录入时间全部在 4-8 月，9/10 月为零，主库四个月来无人发现）。
++      // Rita 2026-10-27 决定：主库已定稿 ⇒ 这里【仍然不写入】，但必须【可见】：
++      // 计入 orphan 计数与摘要，由 dry 返回值、日志与调用方显式报出。
++      if (watermark !== null && pts <= watermark) {
++        if (orphan.length < ORPHAN_MAX_KEEP) {
++          orphan.push([p[0], pd, name, p[3], p[4], p[5], p[6], pu, p[7]]);
++        }
++        orphanCount++;
++        orphanHours += _malNum(p[6]);
++        continue;
++      }
+       if (pu && seenU[pu]) continue;
+       if (seenC[ck]) continue;
+       if (pu) seenU[pu] = true;
+@@ -136,21 +159,32 @@ function syncProdToMaster(opt) {
+       return JSON.stringify({
+         dry: true, baseRows: base.length - 1, prodRows: rows.length - 1,
+         watermark: watermark ? _malBizDate(new Date(watermark)) + ' ' + Utilities.formatDate(new Date(watermark), 'GMT+8', 'HH:mm:ss') : '(无)',
+-        excluded: excluded, addCount: add.length, addHours: Math.round(addHours * 10) / 10,
+-        sample: add.slice(0, 5).map(function (a) { return a[1] + ' ' + a[2] + ' ' + a[5] + ' ' + a[6] + 'h'; })
++        excluded: excluded, badTime: badTime,
++        addCount: add.length, addHours: Math.round(addHours * 10) / 10,
++        sample: add.slice(0, 5).map(function (a) { return a[1] + ' ' + a[2] + ' ' + a[5] + ' ' + a[6] + 'h'; }),
++        // [A7] 挂起行：按 Rita 决定不补录，但必须报出来
++        orphanCount: orphanCount, orphanHours: Math.round(orphanHours * 10) / 10,
++        orphanSample: orphan.slice(0, 5).map(function (o) {
++          return o[1] + ' ' + o[2] + ' ' + o[4] + ' ' + o[6] + 'h';
++        })
+       });
+     }
+     if (!add.length) {
+-      try { _tsWriteLog('sync_prod_to_master', '无新增，零写入；剔除 ' + excluded + ' 行'); } catch (eL) {}
+-      return '[OK] 无新增，零写入。';
++      try {
++        _tsWriteLog('sync_prod_to_master', '无新增，零写入；剔除 ' + excluded + ' 行'
++          + '；[A7] 挂起行 ' + orphanCount + ' 条 / ' + (Math.round(orphanHours * 10) / 10) + 'h（录入早于水位线且底稿无匹配，按 Rita 决定不补录）');
++      } catch (eL) {}
++      return '[OK] 无新增，零写入。' + _malOrphanSuffix(orphanCount, orphanHours);
+     }
+     var sh = master.getSheetByName(MAL_BASE_TAB);
+     var startRow = Math.max(sh.getLastRow() + 1, base.length + 1);
+     sh.getRange(startRow, 1, add.length, 11).setValues(add);
+     try {
+-      _tsWriteLog('sync_prod_to_master', '追加 ' + add.length + ' 行到主库底稿（' + addHours + 'h）；起始行 ' + startRow + '；剔除 ' + excluded);
++      _tsWriteLog('sync_prod_to_master', '追加 ' + add.length + ' 行到主库底稿（' + addHours + 'h）；起始行 ' + startRow
++        + '；剔除 ' + excluded + '；[A7] 挂起行 ' + orphanCount + ' 条 / ' + (Math.round(orphanHours * 10) / 10) + 'h');
+     } catch (eL2) {}
+-    return '[OK] 已追加 ' + add.length + ' 条 / ' + addHours + 'h 到主库底稿，起始行 ' + startRow + '，耗时 ' + (Date.now() - t0) + 'ms';
++    return '[OK] 已追加 ' + add.length + ' 条 / ' + addHours + 'h 到主库底稿，起始行 ' + startRow
++      + '，耗时 ' + (Date.now() - t0) + 'ms' + _malOrphanSuffix(orphanCount, orphanHours);
+   } catch (err) {
+     try { _tsWriteLog('sync_prod_to_master_error', String(err && err.message || err)); } catch (eL3) {}
+     return '[ERROR] ' + (err && err.message ? err.message : err);
