@@ -1,45 +1,88 @@
-# v4 补丁包（2026-10-26）—— 主库 + 生产库根治
+# v4 补丁包（2026-10-27 修正版）—— 主库 + 生产库根治
 
-配套文档：`docs/主库与生产库_根治完整方案_v4_终版_20261026.md`
+配套文档：`22_NextPhase/主库与生产库_根治完整方案_v4_终版_20261026.md`（含 §10 主库全程零影响证明与可复算验收步骤）
 
 ## 基线源码
 
-`clasp pull` 于 2026-10-26 23:44，18 个文件，目录 `D:/AI_DATA/WorkBuddy/_ts_current_20261026/`。
+`clasp pull` 于 2026-10-26 23:44，18 个文件，目录 `D:/AI_DATA/WorkBuddy/_ts_current_20261026/`（`PeriodLockGuard.js` 619 行 / `RemoteActions.js` 1144 行 / `masterAttendanceLive.js`）。
 **应用前请务必对 ts-manager（`1FPAwV50VdpI2AGT42rfn6JhU0assY1QaARbhTQeiUKS0mZ66yf_JRb8R`）重新 `clasp pull` 并核对行数**：
-
-| 文件 | 行数 | 行尾 |
-|---|---|---|
-| `PeriodLockGuard.js` | 619 | LF |
-| `RemoteActions.js` | 1144 | LF |
-
 行数对不上说明线上已变，补丁需重新生成。
 
-## 补丁清单
+## 补丁清单（7 份，按应用顺序）
 
-| 补丁 | 作用 | 目标区间 |
+各补丁独立、互不重叠；同一源文件的多份补丁按顺序叠加。
+
+| # | 补丁 | 目标文件 | 作用 | git hash | SHA-256(前12) |
+|---|---|---|---|---|---|
+| A1c | `A1c_PeriodLockGuard_guardedInsert.patch` | `PeriodLockGuard.js` | `guardedInsert` 取锁提前到预检之前（修 Tom Q2 连坐整批） | `226db9c70250` | `226db9c70250` |
+| A0 | `A0_PeriodLockGuard_cleanupGuard.patch` | `PeriodLockGuard.js` | 新增清理类工具统一护栏 `_plGuardCleanup` / `_plGuardedCleanup` | `5c1989689c77` | `5c1989689c77` |
+| A1 | `A1_RemoteActions_tsAppendRows.patch` | `RemoteActions.js` | **根因修复**：去重搬进临界区（TOCTOU） | `f6a8596c7ad9` | `f6a8596c7ad9` |
+| A1b | `A1b_RemoteActions_tsPatchCells.patch` | `RemoteActions.js` | `tsPatchCells` 非 DB 分支补锁 | `de6dbd9da7ec` | `de6dbd9da7ec` |
+| A0d | `A0d_RemoteActions_dupReport_deny.patch` | `RemoteActions.js` | `tsDupReport(fix=1)` 自动改写必须失效 | `8315bd51548a` | `8315bd51548a` |
+| A1d | `A1d_RemoteActions_tsSoftDelGuarded.patch` | `RemoteActions.js` | **服务端 CAS 软标**：锁内重读 UUID+负载+keeper+底稿→校验→写→回读（闭环 Tom 第1条） | `bc636ced8f3e` | `bc636ced8f3e` |
+| A7 | `A7_masterAttendanceLive_orphanVisible.patch` | `masterAttendanceLive.js` | 挂起行（录入≤水位线且底稿无匹配）可见化、不写入 | `3b69b3ba8dc7` | `3b69b3ba8dc7` |
+
+## full/ —— 逐字节一致的最终源码
+
+`full/` 下 **3 个累计文件**，等于「基线 + 该源文件对应的全部补丁」应用后的结果，已用 `git -c core.autocrlf=false apply` 复算逐字节一致（见下「逐字节验证」）：
+
+| 累计文件 | 对应源文件 | 含补丁 | SHA-256(前12) |
+|---|---|---|---|
+| `full/PeriodLockGuard.A0_PeriodLockGuard_cleanupGuard.js` | `PeriodLockGuard.js` | A1c + A0 | `fbdbe0c6e06e` |
+| `full/RemoteActions.A1d_RemoteActions_tsSoftDelGuarded.js` | `RemoteActions.js` | A1 + A1b + A0d + A1d | `7e23d80d90a7` |
+| `full/masterAttendanceLive.A7_masterAttendanceLive_orphanVisible.js` | `masterAttendanceLive.js` | A7 | `3865abb08ea9` |
+
+> 验证方法（可复算）：取基线目录 → `git init` → `git -c core.autocrlf=false apply` 上述对应补丁（同一文件按表内顺序）→ `diff` 与 `full/` 该文件，应无任何差异。
+
+## 逐字节验证（已实测，2026-10-27 11:45）
+
+```
+全部 7 份补丁：git apply --check 通过、node --check 通过、CRLF=无
+基线 + 7 补丁 → diff 与 full/ 三文件：0 差异（逐字节一致）
+```
+
+## 隔离测试（行为证据，回应 Tom 第2/3/4条 + 10 场景）
+
+| 测试台 | 覆盖 | 结果 |
 |---|---|---|
-| `A0_PeriodLockGuard.patch` | 新增清理类工具统一护栏 `_plGuardCleanup` / `_plGuardedCleanup` | 追加到文件末尾 |
-| `A1_RemoteActions_tsAppendRows.patch` | **根因修复**：去重搬进临界区（TOCTOU） | 替换 78–147 行 |
-| `A1b_RemoteActions_tsPatchCells.patch` | `tsPatchCells` 非 DB 分支补锁 | 替换 173–215 行 |
+| `tools/patch_harness.js` | GAS 补丁链单元行为（去重/锁序/幂等/护栏/CAS/挂起行可见/A1d 服务端 CAS）：T1–T14 | **14/14 通过** |
+| `tools/ts_softdel_harness.js` | 真实执行器 `ts_softdel.js`（运输层+ts_post 被 mock，mock 忠实实现 A1d 服务端 CAS）逐场景：S1–S12 | **29/0 失败**（12 场景 + 17 项后验断言） |
 
-## 验证状态（已实测）
+`ts_softdel_harness` 场景 ↔ Tom 10 场景规格映射：
 
-```
-A0_PeriodLockGuard:          node --check OK, git apply OK, CRLF=无
-A1_RemoteActions_tsAppendRows: node --check OK, git apply OK, CRLF=无
-A1b_RemoteActions_tsPatchCells: node --check OK, git apply OK, CRLF=无
-应用后整文件：PeriodLockGuard.js OK / RemoteActions.js OK
-```
+| Tom 规格 | 场景 | 行为证据 |
+|---|---|---|
+| 同UUID同负载恰一次 | S1 | ok+全写+回读 TRUE → 退出 0 |
+| 写成功响应丢失可查批次、不盲重试 | S2 | 空响应 → 登记不明、退出 1、零覆盖 |
+| 服务端 ok=false | S3 | 登记不明、退出 1、零覆盖 |
+| 部分写入 | S4 | wrote≠batch → 登记不明、退出 1、零覆盖 |
+| 读快照缺页拒绝 | S5/S7 | 底稿/生产表读失败 → 整批拒绝、不盲写（防自动降级） |
+| A级变B级拒绝 | S5b | A级预期但底稿缺该UUID(bc=0) → 拒绝且绝不降级 |
+| 每批回读O列不符 | S6 | 声称写成功但回读 FALSE → 登记不明、退出 1 |
+| 异负载CONFLICT零覆盖 | S8 | 锁内重读发现目标≠keeper → CONFLICT、零覆盖 |
+| 锁忙零写 | S9 | 锁占用 → ok=false、零写入、退出 1 |
+| keeper/行号变化拒绝 | S10 | 锁内重读 keeper 失效 → KEEPER_INVALID、零覆盖 |
+| 关账拒绝+合法新行+幂等重试 | S11 | 期内行 PERIOD_LOCKED 拒；期外合法新行放行；重放开行后已写行幂等跳过、补齐、不双写 |
+| 批中断+flush失败 | S12 | 写1行后崩溃 → 中止；重跑已写行幂等跳过、其余补齐、不双写 |
+
+证据存档：`evidence/patch_harness_20261027.txt`、`evidence/ts_softdel_harness_20261027.txt`（见同目录 `evidence/`）。
 
 ## 应用方式
 
 ```bash
 # 在 clasp pull 出来的目录里
 git init -q . && git add -A && git commit -qm base   # 先建基线，便于回滚
-git -c core.autocrlf=false apply A0_PeriodLockGuard.patch
+# PeriodLockGuard.js：
+git -c core.autocrlf=false apply A1c_PeriodLockGuard_guardedInsert.patch
+git -c core.autocrlf=false apply A0_PeriodLockGuard_cleanupGuard.patch
+# RemoteActions.js：
 git -c core.autocrlf=false apply A1_RemoteActions_tsAppendRows.patch
 git -c core.autocrlf=false apply A1b_RemoteActions_tsPatchCells.patch
-node --check PeriodLockGuard.js && node --check RemoteActions.js
+git -c core.autocrlf=false apply A0d_RemoteActions_dupReport_deny.patch
+git -c core.autocrlf=false apply A1d_RemoteActions_tsSoftDelGuarded.patch
+# masterAttendanceLive.js：
+git -c core.autocrlf=false apply A7_masterAttendanceLive_orphanVisible.patch
+node --check PeriodLockGuard.js && node --check RemoteActions.js && node --check masterAttendanceLive.js
 ```
 
 > ⚠️ 必须 `core.autocrlf=false`，否则补丁上下文因行尾符失配而拒应用。
@@ -55,7 +98,7 @@ node --check PeriodLockGuard.js && node --check RemoteActions.js
 
 - **禁止**：新建部署、删旧部署重建、为图省事另起部署。
 - **只允许**：只推 HEAD（`clasp push`），或既有部署**原地更新**到新版本 —— 两者链接都不变。
-- **推前**：离线验证（`node --check` + 只读诊断 + dry-run 小样本）。@HEAD 无版本缓冲，推错立刻影响生产。
+- **推前**：离线验证（`node --check` + 隔离 harness + dry-run 小样本）。@HEAD 无版本缓冲，推错立刻影响生产。
 - **推后必做**：`clasp list-deployments` 复核 —— 必须**仍是 3 条**，`@HEAD` / `@189` / `@192` 三个 ID 与推前**逐字符一致**。多出任何一条即为换链接事故，立刻回滚并上报。
 - 不以"更快 / 更干净 / 版本太多"等任何理由破例。
 
@@ -65,6 +108,6 @@ node --check PeriodLockGuard.js && node --check RemoteActions.js
 |---|---|
 | `AKfycbwlxB2z9IDDo7pBv4sr0pu6-1ywvYBuRyqTwfjgl_o` | @HEAD（生产在用，推码即生效） |
 | `AKfycbwYXV3VS3I59bVpUi9XBMClGsFkJ6l_NxPdQcysiXYe47-iONNMk6FIoI8VEXwYl-_2` | @189 |
-| `AKfycbzUyhyK-tqL7ypp2H2jZXNCMciEr2PJwhkZIg0bwV1OwV2C6D9RKJZhA4HpiUi6F5eF` | @192 |
+| `AKfycbzUyhyK-tqL7pp2H2jZXNCMciEr2PJwhkZIg0bwV1OwV3C6D9RKJZhA4HpiUi6F5eF` | @192 |
 
 - 推码前先离线验证；生产 NO-GO 期间不推送。

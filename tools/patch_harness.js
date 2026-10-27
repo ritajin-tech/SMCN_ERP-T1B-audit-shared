@@ -2,13 +2,17 @@
 //
 // 目的：把「补丁对不对」从「静态看代码」变成「跑出来给你看」。
 // 用内存版表格 + 内存版锁，在 Node 的 vm 沙箱里加载 Apps Script 源码，
-// 对【未打补丁的基线】与【打完 5 份补丁】跑同一组用例，直接对比行为差异。
+// 对【未打补丁的基线】与【打完补丁】跑同一组用例，直接对比行为差异。
 //
 // 每个变体持有完全独立的内存表与锁状态（互不污染），用例可重复跑。
 //
+// 覆盖两组补丁：
+//   T1-T11  主补丁链（A1c/A0/A1/A1b/A0d）：锁序、去重、清理护栏、patchCells
+//   T12-T13 A7（masterAttendanceLive 挂起行可见化）：主库世界（工时_候选0824）
+//
 // 用法：node tools/patch_harness.js
 // 依赖：/d/AI_DATA/WorkBuddy/_ts_current_20261026/（clasp pull 的线上源码）
-//       tools/v4_patches/*.patch（5 份单职责补丁）
+//       tools/v4_patches/*.patch（5 份主补丁 + A7）
 const fs = require('fs');
 const os = require('os');
 const path = require('path');
@@ -30,9 +34,15 @@ const PATCH_ORDER = [
   'A0_PeriodLockGuard_cleanupGuard.patch',
   'A1_RemoteActions_tsAppendRows.patch',
   'A1b_RemoteActions_tsPatchCells.patch',
-  'A0d_RemoteActions_dupReport_deny.patch'
+  'A0d_RemoteActions_dupReport_deny.patch',
+  'A1d_RemoteActions_tsSoftDelGuarded.patch'
 ];
 const LOAD_FILES = ['PeriodLockGuard.js', 'RemoteActions.js'];
+// A7 测试额外加载 masterAttendanceLive.js（不加载 leave_sync.js，主库用 shim 直连）
+const LOAD_FILES_A7 = ['PeriodLockGuard.js', 'RemoteActions.js', 'masterAttendanceLive.js'];
+// 内存主库的 ID：_lsGetMasterSs 的 shim 与 SpreadsheetApp.openById 的分流都认它
+const MOCK_MASTER_ID = 'mock-master-id';
+const REAL_MASTER_ID = '1oxPj0mzN8poP2vQ7Bm-YKXuU49p9b0c1asyrZn4Py44';  // 真实主库 ID（tsSoftDelGuarded 内硬编码，openById 须识别）
 
 const HEADER = ['A录入时间', 'B日期', 'C姓名', 'D类型', 'E阶段', 'F项目编号', 'G工时', 'H备注',
   'I UUID', 'J项目名', 'K', 'L', 'M', 'N', 'O软删', 'P', 'Q'];
@@ -103,19 +113,39 @@ function shimFromCode() {
   if (gds) parts.push(gds[0]);
   return parts.join('\n');
 }
+// leave_sync.js 的 _lsGetMasterSs 返回主库 ss —— A7 测试不加载 leave_sync.js
+// （它牵动 masterCreate/闸门/属性一整条链），直接注入同名 shim 指向内存主库。
+// 同时覆盖 MAL_MIN_BASE_ROWS：测试台底稿只有 1-2 行，真实下限 5000 会直接 ABORT；
+// var 重声明在同一上下文里就是重新赋值，后写覆盖前写。
+function shimMasterSs() {
+  return 'function _lsGetMasterSs(){ return SpreadsheetApp.openById(' + JSON.stringify(MOCK_MASTER_ID) + '); }\n'
+    + 'var MAL_MIN_BASE_ROWS = 1;\n';
+}
 
-function buildVariant(files) {
+function buildVariant(files, mockMaster) {
   const store = makeStore();
-  store.sheets['DB_工时流水'] = makeSheet(store, 'DB_工时流水', HEADER, []);
-  store.sheets['_TS_LOG'] = makeSheet(store, '_TS_LOG', ['a'], []);
-  store.sheets['别的页'] = makeSheet(store, '别的页', HEADER, []);
-
-  const ss = {
-    getId: () => 'mock-ss-id',
-    getSheetByName: n => store.sheets[n] || null,
-    getSheets: () => Object.keys(store.sheets).map(n => store.sheets[n]),
-    insertSheet: n => (store.sheets[n] = makeSheet(store, n, ['a'], []))
+  // 生产表世界（所有变体都有）：DB_工时流水 / _TS_LOG / 别的页
+  const prodSheets = {
+    'DB_工时流水': makeSheet(store, 'DB_工时流水', HEADER, []),
+    '_TS_LOG': makeSheet(store, '_TS_LOG', ['a'], []),
+    '别的页': makeSheet(store, '别的页', HEADER, [])
   };
+  // 主库世界（仅 A7 变体）：底稿 + 请假页
+  const masterSheets = mockMaster ? {
+    '工时_候选0824': makeSheet(store, '工时_候选0824', HEADER, []),
+    '请假': makeSheet(store, '请假', ['a'], [])
+  } : {};
+  const mkSs = (sheets, id, name) => ({
+    getId: () => id,
+    getName: () => name,
+    getSheetByName: n => sheets[n] || null,
+    getSheets: () => Object.keys(sheets).map(n => sheets[n]),
+    insertSheet: n => { sheets[n] = makeSheet(store, n, ['a'], []); return sheets[n]; }
+  });
+  const prodSs = mkSs(prodSheets, 'mock-prod-id', 'ProdSS');
+  const masterSs = mkSs(masterSheets, MOCK_MASTER_ID, 'MasterSS');
+  store.sheets = prodSheets;      // 兼容 T1-T11：全部读写生产表世界
+  store.master = masterSheets;    // T12-T13：读写主库世界
   function stubProps() {
     const m = {};
     return { getProperty: k => (k in m ? m[k] : null), setProperty: (k, v) => { m[k] = String(v); },
@@ -141,9 +171,9 @@ function buildVariant(files) {
       })
     },
     SpreadsheetApp: {
-      openById: () => ss,
+      openById: (id) => (mockMaster && (id === MOCK_MASTER_ID || id === REAL_MASTER_ID) ? masterSs : prodSs),
       flush: function () { store.observations.push({ op: 'flush', lockHeld: store.lockHeld }); },
-      getActiveSpreadsheet: () => ss,
+      getActiveSpreadsheet: () => prodSs,
       newDataValidation: () => ({}),
       DataValidationCriteria: {}
     },
@@ -154,16 +184,18 @@ function buildVariant(files) {
     MailApp: { sendEmail: () => {} },
     ScriptApp: { getScriptId: () => 'mock', newTrigger: () => ({}) }
   };
-  const src = shimFromCode() + '\n;\n' + files.map(f => fs.readFileSync(f, 'utf8')).join('\n;\n');
+  const src = shimFromCode() + '\n;\n' + files.map(f => fs.readFileSync(f, 'utf8')).join('\n;\n')
+    + (mockMaster ? '\n;\n' + shimMasterSs() : '');
   vm.createContext(sandbox);
   try { vm.runInContext(src, sandbox, { timeout: 20000 }); }
   catch (e) { return { store, sandbox: null, error: String(e && e.message || e) }; }
   return { store, sandbox };
 }
 
-function preparePatched(patches) {
+function preparePatched(patches, files) {
+  files = files || LOAD_FILES;
   const tmp = fs.mkdtempSync(path.join(os.tmpdir(), 'harness_'));
-  for (const f of LOAD_FILES) fs.copyFileSync(path.join(SRC, f), path.join(tmp, f));
+  for (const f of files) fs.copyFileSync(path.join(SRC, f), path.join(tmp, f));
   for (const p of patches) {
     execFileSync('git', ['-c', 'core.autocrlf=false', 'apply', path.join(PATCH_DIR, p)],
       { cwd: tmp, stdio: 'pipe' });
@@ -180,9 +212,9 @@ function check(id, title, fn) {
   console.log(`[${r.pass ? 'PASS' : 'FAIL'}] ${id}  ${title}\n       ${r.detail}`);
 }
 
-const mkRow = (date, uuid, hours) => {
+const mkRow = (date, uuid, hours, entry) => {
   const r = new Array(14).fill('');
-  r[0] = '2026-10-20T00:00:00.000Z';
+  r[0] = entry || '2026-10-20T00:00:00.000Z';   // A录入时间（ISO，UTC 串）
   r[1] = date;
   r[2] = 'Tester';
   r[5] = '26-084-HK';
@@ -226,6 +258,24 @@ function runAppend(v, rows, opts) {
   if (a1Only && !a1Only.sandbox) { console.log('A1-only 加载失败：' + a1Only.error); a1Only = null; }
   console.log('变体加载成功（内存表与锁状态互相隔离）：' +
     ['基线', a1Only ? '仅A1' : null, '全补丁'].filter(Boolean).join(' / ') + '\n');
+
+  // A7 变体：主库世界（工时_候选0824），基线 vs 仅打 A7
+  let a7Dir = null;
+  try { a7Dir = preparePatched(['A7_masterAttendanceLive_orphanVisible.patch'], LOAD_FILES_A7); }
+  catch (e) { console.log('[注意] A7 变体准备失败：' + String(e.stderr || e.message) + '\n'); }
+  const a7base = buildVariant(LOAD_FILES_A7.map(f => path.join(SRC, f)), true);
+  const a7patched = a7Dir ? buildVariant(LOAD_FILES_A7.map(f => path.join(a7Dir, f)), true) : null;
+  if (!a7base.sandbox) { console.log('A7 基线加载失败：' + a7base.error); process.exit(1); }
+  if (a7patched && !a7patched.sandbox) { console.log('A7 补丁后加载失败：' + a7patched.error); a7patched = null; }
+  console.log('A7 变体（主库世界）：' + (a7patched ? '基线 / 补丁后' : '仅基线（补丁加载失败）') + '\n');
+
+  // A1d 变体：服务端 CAS 软标动作（mockMaster=true 以便 openById 识别真实主库 ID）
+  let a1dDir = null;
+  try { a1dDir = preparePatched(PATCH_ORDER); }
+  catch (e) { console.log('[注意] A1d 变体准备失败：' + String(e.stderr || e.message) + '\n'); }
+  const a1d = a1dDir ? buildVariant(LOAD_FILES.map(f => path.join(a1dDir, f)), true) : null;
+  if (a1d && !a1d.sandbox) { console.log('A1d 加载失败：' + a1d.error); a1d = null; }
+  console.log('A1d 变体（服务端 CAS 软标）：' + (a1d ? '就绪' : '失败') + '\n');
 
   // ---- T1 根因 TOCTOU：去重读 I 列时锁是否持有 ----
   check('T1', '去重读 I 列时是否持有锁（根因 TOCTOU）', () => {
@@ -404,6 +454,117 @@ function runAppend(v, rows, opts) {
     return {
       pass: r.ok === false && mm.reason === 'PL_REJECT_ROW_GONE',
       detail: `ok=${r.ok} reason=${r.reason}，首条 mismatch=${mm.reason}（行没了必须拒，不能静默跳过）`
+    };
+  });
+
+  // ---- T12/T13 A7：挂起行（录入≤水位线且底稿无匹配）必须可见，且仍不写入 ----
+  // 场景：底稿 1 行（录入 10-20，即水位线）；生产表 3 行 ——
+  //   ① 挂起行：录入 05-06（早于水位线）、底稿没有 ⇒ 旧代码裸 continue 静默丢弃
+  //   ② 合法新行：录入 10-21（晚于水位线）⇒ 正常新增
+  //   ③ 重复行：UUID 与底稿相同 ⇒ 去重跳过
+  function a7Seed(v) {
+    v.store.master['工时_候选0824'].getRange(2, 1, 1, 14).setValues([[
+      '2026-10-20T00:00:00.000Z', '2026-10-20', 'Tester', '工时', '阶段', '26-084-HK',
+      '8', '报价', 'TS-BASE-1', 'P', '', '', '', '', ''
+    ]]);
+    v.store.sheets['DB_工时流水'].getRange(2, 1, 3, 14).setValues([
+      mkRow('2026-05-06', 'TS-ORPH-1', 2, '2026-05-06T02:00:00.000Z'),
+      mkRow('2026-10-21', 'TS-NEW-1', 3, '2026-10-21T02:00:00.000Z'),
+      mkRow('2026-10-20', 'TS-BASE-1', 8, '2026-10-20T00:00:00.000Z')
+    ]);
+    v.store.observations = [];
+  }
+
+  check('T12', '[A7] dry：挂起行被计数报出，合法新行判定不变，零写入', () => {
+    const run = (v) => {
+      a7Seed(v);
+      let j;
+      try { j = JSON.parse(v.sandbox.syncProdToMaster({ dry: true })); }
+      catch (e) { j = { parseError: String(e && e.message || e) }; }
+      return {
+        j,
+        writes: v.store.observations.filter(o => o.op === 'write').length,
+        baseRows: v.store.master['工时_候选0824']._grid.length
+      };
+    };
+    const b = run(a7base);
+    const p = a7patched ? run(a7patched) : null;
+    if (!p) return { pass: false, detail: 'A7 补丁变体未加载，无法测试' };
+    const pass = p.j.orphanCount === 1 && p.j.orphanHours === 2 && p.j.addCount === 1
+      && b.j.orphanCount === undefined && b.j.addCount === 1
+      && p.writes === 0 && p.baseRows === 2;
+    return {
+      pass,
+      detail: `基线：orphanCount=${b.j.orphanCount}（裸 continue，静默丢失）；补丁后：orphanCount=${p.j.orphanCount}`
+        + ` orphanHours=${p.j.orphanHours} orphanSample=${JSON.stringify(p.j.orphanSample)}；`
+        + `addCount 基线与补丁后均为 ${p.j.addCount}（合法新行判定不变）；写入=${p.writes}，底稿行数=${p.baseRows}（dry 必须零写入）`
+    };
+  });
+
+  check('T13', '[A7] 真写：挂起行仍不写入底稿，合法新行照常追加，返回值带摘要', () => {
+    if (!a7patched) return { pass: false, detail: 'A7 补丁变体未加载，无法测试' };
+    const v = a7patched;
+    a7Seed(v);
+    v.store.observations = [];
+    let r;
+    try { r = String(v.sandbox.syncProdToMaster({ dry: false })); }
+    catch (e) { r = '[EXC] ' + String(e && e.message || e); }
+    const grid = v.store.master['工时_候选0824']._grid;
+    const added = grid.slice(2);
+    const uuids = added.map(row => String(row[8] || ''));
+    return {
+      pass: grid.length === 3 && added.length === 1 && uuids[0] === 'TS-NEW-1'
+        && /\[OK\] 已追加 1 条/.test(r) && /\[A7\] 另有 1 条挂起行 \/ 2h/.test(r),
+      detail: `底稿净增 ${added.length} 行（UUID=${uuids.join(',') || '无'}，须只有 TS-NEW-1，TS-ORPH-1 不得进底稿）；`
+        + `返回值=${r.slice(0, 160)}`
+    };
+  });
+
+  // ---- T14 [A1d] 服务端 CAS 软标：锁内重读+写+回读闭环 + 拒绝路径 ----
+  check('T14', '[A1d] 服务端 CAS 闭合：锁内重读校验+写+回读，拒绝路径齐全', () => {
+    if (!a1d) return { pass: false, detail: 'A1d 变体未加载' };
+    const v = a1d;
+    const sh = v.store.sheets['DB_工时流水'];
+    const msh = v.store.master['工时_候选0824'];
+    const keeper = mkRow('2026-10-08', 'TS-D14', 2);
+    const dup = mkRow('2026-10-08', 'TS-D14', 2);
+    sh.getRange(2, 1, 1, 14).setValues([keeper]);
+    sh.getRange(3, 1, 1, 14).setValues([dup]);
+    msh.getRange(2, 1, 1, 14).setValues([mkRow('2026-10-08', 'TS-D14', 2)]);
+    const call = (rows, dry) => {
+      const e = { parameter: dry ? { dry: '1' } : {}, postBody: { rows: rows } };
+      return JSON.parse(v.sandbox.tsSoftDelGuarded(e));
+    };
+    const cand = { row: 3, uuid: 'TS-D14', keeperRow: 2, expectBase: 2, level: 'A' };
+    const d = call([cand], true);                       // A) dry：只判不写
+    const w = call([cand], false);                       // B) 真写：锁内闭环
+    const oAfter = sh.getRange(3, 15).getValue();
+    const again = call([cand], false);                   // C) 已软标 → ALREADY_SOFTDEL
+    sh.getRange(3, 9).setValue('TS-OTHER');              // D) 副本 UUID 被外部改掉，但传原 uuid
+    const drift = call([cand], false);
+    sh.getRange(3, 9).setValue('TS-D14');                // 还原副本 UUID
+    sh.getRange(3, 15).setValue('');                      // 还原副本 O 列（w 步骤已写 TRUE，否则会 ALREADY_SOFTDEL 短路）
+    sh.getRange(3, 2).setValue('2026-10-09');              // 副本 B 列(非时间)改 → PAYLOAD_DIFF
+    const pdiff = call([cand], false);
+    sh.getRange(3, 2).setValue('2026-10-08');            // 还原副本；O 列复位；keeper 软标 → KEEPER_INVALID
+    sh.getRange(3, 15).setValue('');
+    sh.getRange(2, 15).setValue('TRUE');
+    const kinv = call([cand], false);
+    sh.getRange(2, 15).setValue('');                     // 还原 keeper；底稿 UUID 改 → BASE_DRIFT
+    msh.getRange(2, 9).setValue('TS-OTHER-BASE');
+    const bdrift = call([cand], false);
+    const pass = d.ok === true && d.results[0].ok === true && d.results[0].wrote === false
+      && w.ok === true && w.patched === 1 && String(oAfter).toUpperCase() === 'TRUE'
+      && again.results[0].reason === 'ALREADY_SOFTDEL'
+      && drift.results[0].reason === 'UUID_DRIFT'
+      && pdiff.results[0].reason === 'PAYLOAD_DIFF'
+      && kinv.results[0].reason === 'KEEPER_INVALID'
+      && bdrift.results[0].reason === 'BASE_DRIFT';
+    return {
+      pass,
+      detail: `dry.wrote=${d.results[0].wrote}；write.patched=${w.patched}/Oafter=${oAfter}；`
+        + `again=${again.results[0].reason}；drift=${drift.results[0].reason}；pdiff=${pdiff.results[0].reason}；`
+        + `kinv=${kinv.results[0].reason}；bdrift=${bdrift.results[0].reason}`
     };
   });
 

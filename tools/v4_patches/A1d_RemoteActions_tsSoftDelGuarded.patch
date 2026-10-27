@@ -1,0 +1,92 @@
+diff --git a/RemoteActions.js b/RemoteActions.js
+index e434fe7..05faafe 100644
+--- a/RemoteActions.js
++++ b/RemoteActions.js
+@@ -21,6 +21,7 @@ var REMOTE_ACTIONS = {
+   readRange:     function(e) { return tsReadRange(e); },
+   appendRows:    function(e) { return tsAppendRows(e); },   // V4.3.62 写入端（幂等，恢复数据用）
+   patchCells:    function(e) { return tsPatchCells(e); },   // V4.3.62 批量改格（补类型列用）
++  softDelGuarded: function(e) { return tsSoftDelGuarded(e); },   // V4.3.87 软标动作，CAS 在服务端锁内闭环
+   createSheet:   function(e) { return tsCreateSheet(e); },   // V4.3.73 建 sheet（受 REMOTE_TOKEN 门控；对称 tsPatchCells 的 ssid 约定）
+   snapshot:      function(e) { return tsSnapshot(e); },     // V4.3.62 每日指纹（差异告警用）
+   trimblank:     function(e) { return tsTrimBlank(e); },     // V4.3.63 删尾部空白行（表格膨胀自愈）
+@@ -1142,3 +1143,79 @@ function plGuardTest(e) {
+     return JSON.stringify({ ok: false, error: String((err && err.message) || err) });
+   }
+ }
++
++// ---- V4.3.87 软标动作：CAS 在服务端锁内闭合 ----
++// 客户端只负责“提出候选 + 把校验条件一起发来”，真正的判定在锁内用锁内重读的实时值做。
++// 修复此前“客户端先校验、再裸发 [row,15,TRUE]”的 TOCTOU 缝隙（Tom 2026-10-27 第1条）。
++function _sdNorm(v) {
++  return (v === undefined || v === null) ? '' : String(v).trim();
++}
++function _sdSoftDel(r) {
++  return (r === true || String(r || '').toUpperCase() === 'TRUE');
++}
++function tsSoftDelGuarded(e) {
++  e = e || {};
++  var p = e.parameter || {};
++  var body = e.postBody || {};
++  var rows = body.rows || p.rows || [];
++  var dry = String(p.dry || body.dry || '0') === '1';
++  var sheetName = String(p.sheet || body.sheet || PL_DB_SHEET);
++  var MASTER_ID = '1oxPj0mzN8poP2vQ7Bm-YKXuU49p9b0c1asyrZn4Py44';
++  var BASE_TAB = '工时_候选0824';
++  if (!rows.length) return JSON.stringify({ ok: false, error: 'no rows provided' });
++  if (rows.length > 2000) return JSON.stringify({ ok: false, error: 'too many rows: ' + rows.length });
++  // 结构化校验：每行必须带 row/uuid/keeperRow
++  for (var z = 0; z < rows.length; z++) {
++    var zr = rows[z] || {};
++    if (zr.row == null || !zr.uuid) return JSON.stringify({ ok: false, error: 'row#' + z + ' missing row or uuid' });
++  }
++  try {
++    var ss = SpreadsheetApp.openById(TS_ID);
++    var sh = ss.getSheetByName(sheetName);
++    if (!sh) return JSON.stringify({ ok: false, error: 'sheet not found: ' + sheetName });
++    var mss = SpreadsheetApp.openById(MASTER_ID);
++    var msh = mss.getSheetByName(BASE_TAB);
++    var _lock = _plAcquire();
++    var results = [], patched = 0;
++    try {
++      for (var i = 0; i < rows.length; i++) {
++        var it = rows[i] || {};
++        var row = Number(it.row), uuid = String(it.uuid || '');
++        var keeperRow = Number(it.keeperRow), expectBase = Number(it.expectBase || keeperRow);
++        var level = String(it.level || '');
++        var timeOnly = !!it.timeOnly;
++        try {
++          var vals = sh.getRange(row, 1, 1, 15).getValues()[0];   // 锁内重读
++          var kVals = sh.getRange(keeperRow, 1, 1, 15).getValues()[0];
++          if (_sdNorm(vals[8]) !== uuid) { results.push({ row: row, ok: false, reason: 'UUID_DRIFT', actual: _sdNorm(vals[8]) }); continue; }
++          if (_sdSoftDel(vals[14])) { results.push({ row: row, ok: false, reason: 'ALREADY_SOFTDEL' }); continue; }
++          if (!kVals || _sdSoftDel(kVals[14])) { results.push({ row: row, ok: false, reason: 'KEEPER_INVALID' }); continue; }
++          var diffs = [];
++          for (var c = 0; c <= 13; c++) if (_sdNorm(vals[c]) !== _sdNorm(kVals[c])) diffs.push(c);
++          var allowed = timeOnly && diffs.length > 0 && diffs.every(function (x) { return x === 0; });
++          if (diffs.length > 0 && !allowed) { results.push({ row: row, ok: false, reason: 'PAYLOAD_DIFF', cols: diffs }); continue; }
++          if (level === 'A') {
++            if (!msh) { results.push({ row: row, ok: false, reason: 'BASE_SHEET_MISSING' }); continue; }
++            var bVals = msh.getRange(expectBase, 1, 1, 15).getValues()[0];
++            if (!bVals || _sdNorm(bVals[8]) !== uuid) { results.push({ row: row, ok: false, reason: 'BASE_DRIFT', expectBase: expectBase, actual: bVals ? _sdNorm(bVals[8]) : null }); continue; }
++          }
++          if (!dry) {
++            sh.getRange(row, 15).setValue('TRUE');
++            SpreadsheetApp.flush();
++            var after = sh.getRange(row, 15).getValue();   // 锁内回读确认
++            if (_sdNorm(after) !== 'TRUE') { results.push({ row: row, ok: false, reason: 'WRITE_NOT_CONFIRMED', actual: String(after) }); continue; }
++          }
++          results.push({ row: row, ok: true, wrote: !dry });
++          patched++;
++        } catch (rerr) {
++          results.push({ row: row, ok: false, reason: 'ROW_READ_FAIL', error: String(rerr && rerr.message || rerr) });
++        }
++      }
++    } finally {
++      try { _lock.releaseLock(); } catch (rl) {}
++    }
++    return JSON.stringify({ ok: true, dry: dry, patched: patched, total: rows.length, results: results });
++  } catch (err) {
++    return JSON.stringify({ ok: false, error: String(err && err.message || err), patched: 0 });
++  }
++}

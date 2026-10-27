@@ -1,0 +1,6 @@
+# Transient harness artifacts (payloads written at runtime)
+_tmp/
+
+# Local credentials / secrets must never enter the public audit repo
+.hktool_remote.json
+_secrets/
