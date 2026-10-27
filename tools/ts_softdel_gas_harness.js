@@ -16,6 +16,9 @@ const crypto = require('crypto');
 
 const HERE = __dirname;
 const GAS_FILE = path.join(HERE, 'v4_patches', 'full', 'ts_softdel_gas_embedded.js');
+// v5 B3（Tom 第 5 项）：真实入口绑定后的最终文件 + 分发器，用于「同版本实际分发」测试
+const FINAL_FILE = path.join(HERE, 'v4_patches', 'full', 'RemoteActions.A1d_v4_FINAL_entry_bound.js');
+const RT_FILE = path.join(HERE, 'v4_patches', 'full', 'RemoteTrigger.js');
 const CORE = require('./ts_softdel_core.js');
 const NORM = require('./ts_softdel_norm.js');
 const PL = require('./period_lock_port.js');
@@ -140,19 +143,42 @@ function gasShim(store) {
       newDataValidation: () => ({}),
       DataValidationCriteria: {}
     },
-    PropertiesService: { getDocumentProperties: () => stubProps(), getScriptProperties: () => stubProps(), getUserProperties: () => stubProps() },
+    // v5 B2：脚本属性绑定到 store.props（可注入），此前每次调用都新建空 map，
+    //   测试无法注入生产策略 —— 真实策略读取路径等于没被测到。
+    PropertiesService: {
+      getDocumentProperties: () => stubProps(store),
+      getScriptProperties: () => stubProps(store),
+      getUserProperties: () => stubProps(store)
+    },
     CacheService: { getScriptCache: () => ({ get: () => null, put: () => {}, remove: () => {} }) },
     Logger: { log: () => {} },
     MailApp: { sendEmail: () => {} },
     ScriptApp: { getScriptId: () => 'mock', newTrigger: () => ({}) }
   };
 }
-function stubProps() {
-  const m = {};
+function stubProps(store) {
+  if (!store.props) store.props = {};      // 与 store 生命周期绑定（同一脚本属性集）
+  const m = store.props;
   return { getProperty: k => (k in m ? m[k] : null), setProperty: (k, v) => { m[k] = String(v); }, deleteProperty: k => { delete m[k]; }, getProperties: () => m };
 }
 
 // ---------- Node 端 deps（读同一份内存表，逻辑与 GAS 包装器镜像）----------
+// v5 B2（Tom 第 3 项）：客户端/测试侧取得主库版本指纹（与服务端 readAllMaster 同源算法，
+// 覆盖 0..14 全列并绑定 rowCount）。真写请求必须携带 expectMasterVersion，否则整批被拒。
+function masterVerOf(store) {
+  const g = (store.sheets[BASE_TAB] || {})._grid || [];
+  const vals = [];
+  // v5 B2：与 GAS 端 readAllMaster 逐字同口径 —— GAS 用 getRange(1,1,last,15)，
+  //   【含表头行】。此前 Node 侧从 r=1 起（不含表头），两边指纹必然不同，
+  //   导致 harness 算出的 expectMasterVersion 在 GAS 侧永远不匹配（被抓到的真实不一致）。
+  for (let r = 0; r < g.length; r++) vals.push(g[r].slice());
+  const allCols = []; for (let ci = 0; ci <= 14; ci++) allCols.push(ci);
+  return NORM._sdSha256(JSON.stringify({
+    rowCount: vals.length,
+    rows: vals.map(row => NORM._sdCanonRow(row, allCols))
+  }));
+}
+
 function nodeDeps(store) {
   const prod = store.sheets[PROD_TAB];
   const master = store.sheets[BASE_TAB] || makeSheet(store, BASE_TAB);
@@ -163,10 +189,13 @@ function nodeDeps(store) {
     isClearance: () => false,
     guardCheck: (bizDate, origBiz, policy) => PL._plGuardCheck(bizDate, origBiz, policy || PL._plPolicy()),
     policy: () => PL._plPolicy(),
-    acquireMasterLock() { if (store.lockBusy) throw new Error('LOCK_BUSY'); lock.held = true; return lock; },
-    acquireLock() { if (store.lockBusy) throw new Error('LOCK_BUSY'); lock.held = true; return lock; },
-    releaseLock(l) { lock.held = false; },
-    releaseMasterLock(l) { lock.held = false; },
+    // v5 B3（Tom 第 5 项）：锁状态提升到 **store 级**（此前每个 deps 各持一个独立 lock 对象，
+    //   两个执行者可“同时”持有同一把锁 ⇒ 无法证明并发互斥，S13 只能是故障注入）。
+    //   现在同一 store 上第二个执行者取同一把锁会被真实拒绝。
+    acquireMasterLock() { if (store.lockBusy || store._mHeld) throw new Error('LOCK_BUSY'); store._mHeld = true; return lock; },
+    acquireLock() { if (store.lockBusy || store._pHeld) throw new Error('LOCK_BUSY'); store._pHeld = true; return lock; },
+    releaseLock(l) { store._pHeld = false; lock.held = false; },
+    releaseMasterLock(l) { store._mHeld = false; lock.held = false; },
     readProdRow(row) { const g = getRow(prod, row); return g ? g.slice() : null; },
     readProdO(row) { const g = getRow(prod, row); return g ? g[14] : null; },
     writeProdO(row, val) { if (!prod) return false; const g = prod._grid[row - 1]; if (!g) return false; g[14] = val; return true; },
@@ -174,7 +203,9 @@ function nodeDeps(store) {
       const g = master._grid;
       const map = {};
       const vals = [];
-      for (let r = 1; r < g.length; r++) {
+      // v5 B2：与 GAS 端 getRange(1,1,last,15) 同口径（含表头行）；
+      //   表头 UUID 为空故不入 map，仅影响指纹 —— 与生产保持一致。
+      for (let r = 0; r < g.length; r++) {
         vals.push(g[r].slice());
         const u = NORM._sdNorm(g[r][8]);
         if (u) (map[u] = map[u] || []).push({ row: r + 1, cells: g[r].slice() });
@@ -191,7 +222,7 @@ function nodeDeps(store) {
     journalAppend(rec) {
       const js = store.sheets['_TS_SOFTDEL_LOG'] || makeSheet(store, '_TS_SOFTDEL_LOG');
       js._grid.push([String(rec.ts), rec.jobId, rec.subBatchId, rec.itemId, rec.requestHash,
-        rec.uuid == null ? null : rec.uuid, rec.state]);
+        rec.uuid == null ? null : rec.uuid, rec.state, rec.reason == null ? null : rec.reason]);
     },
     journalGet(jobId, itemId) {
       const js = store.sheets['_TS_SOFTDEL_LOG'];
@@ -199,7 +230,7 @@ function nodeDeps(store) {
       for (let i = js._grid.length - 1; i >= 1; i--) {
         const g = js._grid[i];
         if (String(g[3] || '') === String(itemId) && String(g[1] || '') === String(jobId))
-          return { jobId: g[1], subBatchId: g[2], itemId: g[3], requestHash: g[4], uuid: g[5], state: g[6] };
+          return { jobId: g[1], subBatchId: g[2], itemId: g[3], requestHash: g[4], uuid: g[5], state: g[6], reason: g[7] };
       }
       return null;
     },
@@ -211,7 +242,7 @@ function nodeDeps(store) {
       for (let i = 1; i < js._grid.length; i++) {
         const g = js._grid[i];
         if (String(g[3] || '') === String(itemId) && String(g[1] || '') === String(jobId))
-          out.push({ jobId: g[1], subBatchId: g[2], itemId: g[3], requestHash: g[4], uuid: g[5], state: g[6] });
+          out.push({ jobId: g[1], subBatchId: g[2], itemId: g[3], requestHash: g[4], uuid: g[5], state: g[6], reason: g[7] });
       }
       return out;
     }
@@ -456,14 +487,14 @@ function seedPair(store, row, keeperRow, opts) {
     vm.createContext(gSand);
     vm.runInContext(fs.readFileSync(GAS_FILE, 'utf8'), gSand, { timeout: 20000 });
     const gCand = sc.setup(gStore);
-    const gE = { parameter: sc.apply ? {} : { dry: '1' }, postBody: { rows: [gCand], dry: sc.apply ? '0' : '1', jobId: TEST_JOB } };
+    const gE = { parameter: sc.apply ? {} : { dry: '1' }, postBody: { rows: [gCand], dry: sc.apply ? '0' : '1', jobId: TEST_JOB, expectMasterVersion: sc.apply ? masterVerOf(gStore) : undefined } };
     let gOut; try { gOut = gSand.tsSoftDelGuarded(gE); } catch (e) { gOut = JSON.stringify({ ok: false, error: String(e.message || e) }); }
 
     // Node 世界
     const nStore = makeStore(); makeSheet(nStore, PROD_TAB); makeSheet(nStore, BASE_TAB);
     const nCand = sc.setup(nStore);
     const nDeps = nodeDeps(nStore);
-    const nE = { parameter: sc.apply ? {} : { dry: '1' }, postBody: { rows: [nCand], dry: sc.apply ? '0' : '1', jobId: TEST_JOB } };
+    const nE = { parameter: sc.apply ? {} : { dry: '1' }, postBody: { rows: [nCand], dry: sc.apply ? '0' : '1', jobId: TEST_JOB, expectMasterVersion: sc.apply ? masterVerOf(nStore) : undefined } };
     let nOut;
     try { nOut = CORE.tsSoftDelGuardedCore(nE, nDeps); }
     catch (e) { nOut = JSON.stringify({ ok: false, error: String(e.message || e) }); }
@@ -498,7 +529,7 @@ function seedPair(store, row, keeperRow, opts) {
     const gCand = { row: 3, keeperRow: 2, uuid: 'TS-GAS-LK', level: 'A', expectHash: hashesFor(pG.target, false), keeperHash: hashesFor(pG.keeper, false), expectBaseHash: hashesFor(pG.target, false) };
     gStore.lockBusy = true;
     const gWritesBefore = gStore.observations.filter(o => o.op === 'write').length;
-    let gOut; try { gOut = gSand.tsSoftDelGuarded({ parameter: {}, postBody: { rows: [gCand], dry: '0', jobId: TEST_JOB } }); } catch (e) { gOut = JSON.stringify({ ok: false, error: String(e.message || e) }); }
+    let gOut; try { gOut = gSand.tsSoftDelGuarded({ parameter: {}, postBody: { rows: [gCand], dry: '0', jobId: TEST_JOB, expectMasterVersion: masterVerOf(gStore) } }); } catch (e) { gOut = JSON.stringify({ ok: false, error: String(e.message || e) }); }
     const gWritesAfter = gStore.observations.filter(o => o.op === 'write').length;
     gStore.lockBusy = false;
 
@@ -507,7 +538,7 @@ function seedPair(store, row, keeperRow, opts) {
     const pN = seedPair(nStore, 3, 2, { uuid: 'TS-GAS-LK' });
     const nCand = { row: 3, keeperRow: 2, uuid: 'TS-GAS-LK', level: 'A', expectHash: hashesFor(pN.target, false), keeperHash: hashesFor(pN.keeper, false), expectBaseHash: hashesFor(pN.target, false) };
     nStore.lockBusy = true;
-    let nOut; try { nOut = CORE.tsSoftDelGuardedCore({ parameter: {}, postBody: { rows: [nCand], dry: '0', jobId: TEST_JOB } }, nDeps); } catch (e) { nOut = JSON.stringify({ ok: false, error: String(e.message || e) }); }
+    let nOut; try { nOut = CORE.tsSoftDelGuardedCore({ parameter: {}, postBody: { rows: [nCand], dry: '0', jobId: TEST_JOB, expectMasterVersion: masterVerOf(nStore) } }, nDeps); } catch (e) { nOut = JSON.stringify({ ok: false, error: String(e.message || e) }); }
     nStore.lockBusy = false;
     const g = JSON.parse(gOut), n = JSON.parse(nOut);
     const pass = g.ok === false && n.ok === false
@@ -523,7 +554,7 @@ function seedPair(store, row, keeperRow, opts) {
     vm.runInContext(fs.readFileSync(GAS_FILE, 'utf8'), gSand, { timeout: 20000 });
     const p = seedPair(gStore, 3, 2, { uuid: 'TS-GAS-RL' });
     const cand = { row: 3, keeperRow: 2, uuid: 'TS-GAS-RL', level: 'A', expectHash: hashesFor(p.target, false), keeperHash: hashesFor(p.keeper, false), expectBaseHash: hashesFor(p.target, false) };
-    let gOut; try { gOut = gSand.tsSoftDelGuarded({ parameter: {}, postBody: { rows: [cand], dry: '0', jobId: TEST_JOB } }); } catch (e) { gOut = JSON.stringify({ ok: false, error: String(e.message || e) }); }
+    let gOut; try { gOut = gSand.tsSoftDelGuarded({ parameter: {}, postBody: { rows: [cand], dry: '0', jobId: TEST_JOB, expectMasterVersion: masterVerOf(gStore) } }); } catch (e) { gOut = JSON.stringify({ ok: false, error: String(e.message || e) }); }
     const g = JSON.parse(gOut);
     const oAfter = (gStore.sheets[PROD_TAB]._grid[3 - 1] || [])[14];
     const pass = g.ok === true && g.patched === 1 && String(oAfter).toUpperCase() === 'TRUE';
@@ -546,7 +577,7 @@ function seedPair(store, row, keeperRow, opts) {
     const p = seedPair(store, 3, 2, { uuid: 'TS-GAS-LK2' });
     const cand = { row: 3, keeperRow: 2, uuid: 'TS-GAS-LK2', level: 'A', expectHash: hashesFor(p.target, false), keeperHash: hashesFor(p.keeper, false), expectBaseHash: hashesFor(p.target, false) };
     let out;
-    try { out = CORE.tsSoftDelGuardedCore({ parameter: {}, postBody: { rows: [cand], dry: '0', jobId: TEST_JOB } }, deps); }
+    try { out = CORE.tsSoftDelGuardedCore({ parameter: {}, postBody: { rows: [cand], dry: '0', jobId: TEST_JOB, expectMasterVersion: masterVerOf(store) } }, deps); }
     catch (e) { out = JSON.stringify({ ok: false, error: 'THROWN: ' + String(e.message || e) }); }
     const j = JSON.parse(out);
     const pass = j.ok === false && /LOCK_BUSY/.test(String(j.error || '')) && masterReleased === 1 && prodReleased === 0;
@@ -561,7 +592,7 @@ function seedPair(store, row, keeperRow, opts) {
     const cand = { row: 3, keeperRow: 2, uuid: 'TS-GAS-LK3', level: 'A', expectHash: hashesFor(p.target, false), keeperHash: hashesFor(p.keeper, false), expectBaseHash: hashesFor(p.target, false) };
     store.lockBusy = true;
     let out;
-    try { out = sand.tsSoftDelGuarded({ parameter: {}, postBody: { rows: [cand], dry: '0', jobId: TEST_JOB } }); }
+    try { out = sand.tsSoftDelGuarded({ parameter: {}, postBody: { rows: [cand], dry: '0', jobId: TEST_JOB, expectMasterVersion: masterVerOf(store) } }); }
     catch (e) { out = JSON.stringify({ ok: false, error: 'THROWN: ' + String(e.message || e) }); }
     store.lockBusy = false;
     const acq = store.observations.filter(o => o.op === 'lock_acquired').length;
@@ -598,7 +629,7 @@ function seedPair(store, row, keeperRow, opts) {
     const deps = nodeDeps(store);
     const p = seedPair(store, 3, 2, { uuid: 'TS-GAS-IDEM' });
     const cand = { row: 3, keeperRow: 2, uuid: 'TS-GAS-IDEM', level: 'A', expectHash: hashesFor(p.target, false), keeperHash: hashesFor(p.keeper, false), expectBaseHash: hashesFor(p.target, false) };
-    const e1 = { parameter: {}, postBody: { rows: [cand], dry: '0', jobId: TEST_JOB } };
+    const e1 = { parameter: {}, postBody: { rows: [cand], dry: '0', jobId: TEST_JOB, batchId: TEST_JOB + '-1', expectMasterVersion: masterVerOf(store) } };
     const r1 = JSON.parse(CORE.tsSoftDelGuardedCore(e1, deps));
     store.sheets[PROD_TAB]._grid[3 - 1][14] = '';   // 模拟 O 被改回/丢失
     const r2 = JSON.parse(CORE.tsSoftDelGuardedCore(e1, deps));
@@ -614,10 +645,10 @@ function seedPair(store, row, keeperRow, opts) {
     const deps = nodeDeps(store);
     const p = seedPair(store, 3, 2, { uuid: 'TS-GAS-CONF' });
     const c1 = { row: 3, keeperRow: 2, uuid: 'TS-GAS-CONF', level: 'A', expectHash: hashesFor(p.target, false), keeperHash: hashesFor(p.keeper, false), expectBaseHash: hashesFor(p.target, false) };
-    const r1 = JSON.parse(CORE.tsSoftDelGuardedCore({ parameter: {}, postBody: { rows: [c1], dry: '0', jobId: TEST_JOB } }, deps));
+    const r1 = JSON.parse(CORE.tsSoftDelGuardedCore({ parameter: {}, postBody: { rows: [c1], dry: '0', jobId: TEST_JOB, batchId: TEST_JOB + '-1', expectMasterVersion: masterVerOf(store) } }, deps));
     const h1 = CORE._requestHashOf(c1);
     const c2 = Object.assign({}, c1, { expectHash: 'sha256:deadbeef' });   // 同键、不同 requestHash
-    const r2 = JSON.parse(CORE.tsSoftDelGuardedCore({ parameter: {}, postBody: { rows: [c2], dry: '0', jobId: TEST_JOB } }, deps));
+    const r2 = JSON.parse(CORE.tsSoftDelGuardedCore({ parameter: {}, postBody: { rows: [c2], dry: '0', jobId: TEST_JOB, batchId: TEST_JOB + '-1', expectMasterVersion: masterVerOf(store) } }, deps));
     const recs = deps.journalList(TEST_JOB, 3);
     const commit1 = recs.find(x => x.requestHash === h1 && x.state === 'COMMITTED');
     const it2 = (r2.results || [])[0] || {};
@@ -630,14 +661,19 @@ function seedPair(store, row, keeperRow, opts) {
     const store = makeStore(); makeSheet(store, PROD_TAB); makeSheet(store, BASE_TAB);
     const deps = nodeDeps(store);
     const p = seedPair(store, 3, 2, { uuid: 'TS-GAS-ST' });
+    const SB = TEST_JOB + '-1';   // v5：真实 subBatchId（与发送端一致）
     const c1 = { row: 3, keeperRow: 2, uuid: 'TS-GAS-ST', level: 'A', expectHash: hashesFor(p.target, false), keeperHash: hashesFor(p.keeper, false), expectBaseHash: hashesFor(p.target, false) };
-    JSON.parse(CORE.tsSoftDelGuardedCore({ parameter: {}, postBody: { rows: [c1], dry: '0', jobId: TEST_JOB } }, deps));
+    JSON.parse(CORE.tsSoftDelGuardedCore({ parameter: {}, postBody: { rows: [c1], dry: '0', jobId: TEST_JOB, batchId: SB, expectMasterVersion: masterVerOf(store) } }, deps));
     const h1 = CORE._requestHashOf(c1);
-    const wrong = JSON.parse(CORE.tsSoftDelStatus({ postBody: { action: 'statusQuery', jobId: TEST_JOB, rows: [{ row: 3, requestHash: 'sha256:WRONG', uuid: c1.uuid }] } }, deps));
-    const right = JSON.parse(CORE.tsSoftDelStatus({ postBody: { action: 'statusQuery', jobId: TEST_JOB, rows: [{ row: 3, requestHash: h1, uuid: c1.uuid }] } }, deps));
-    const w = (wrong.rows || [])[0] || {}, r = (right.rows || [])[0] || {};
-    const pass = w.state === 'UNKNOWN' && r.state === 'COMMITTED' && r.identity === 'BOUND';
-    return { pass, detail: `错 hash → state=${w.state} identity=${w.identity}；对 hash → state=${r.state} identity=${r.identity}` };
+    const qrow = (hash) => ({ row: 3, subBatchId: SB, requestHash: hash, uuid: c1.uuid });
+    const wrong = JSON.parse(CORE.tsSoftDelStatus({ postBody: { action: 'statusQuery', jobId: TEST_JOB, rows: [qrow('sha256:WRONG')] } }, deps));
+    const right = JSON.parse(CORE.tsSoftDelStatus({ postBody: { action: 'statusQuery', jobId: TEST_JOB, rows: [qrow(h1)] } }, deps));
+    // v5 新增：身份声明不全（缺 subBatchId）→ 必须 UNKNOWN，不得放行
+    const incompl = JSON.parse(CORE.tsSoftDelStatus({ postBody: { action: 'statusQuery', jobId: TEST_JOB, rows: [{ row: 3, requestHash: h1, uuid: c1.uuid }] } }, deps));
+    const w = (wrong.rows || [])[0] || {}, r = (right.rows || [])[0] || {}, inc = (incompl.rows || [])[0] || {};
+    const pass = w.state === 'UNKNOWN' && r.state === 'COMMITTED' && r.identity === 'BOUND'
+      && inc.state === 'UNKNOWN' && inc.identity === 'INCOMPLETE_QUERY_IDENTITY';
+    return { pass, detail: `错 hash → ${w.state}/${w.identity}；对 hash → ${r.state}/${r.identity}；缺 subBatchId → ${inc.state}/${inc.identity}` };
   });
 
   // ---- Tom #2：statusQuery 必须经同一受控入口抵达核心 ----
@@ -647,12 +683,357 @@ function seedPair(store, row, keeperRow, opts) {
     vm.runInContext(fs.readFileSync(GAS_FILE, 'utf8'), gSand, { timeout: 20000 });
     const p = seedPair(gStore, 3, 2, { uuid: 'TS-GAS-SQ' });
     const c1 = { row: 3, keeperRow: 2, uuid: 'TS-GAS-SQ', level: 'A', expectHash: hashesFor(p.target, false), keeperHash: hashesFor(p.keeper, false), expectBaseHash: hashesFor(p.target, false) };
-    const w1 = JSON.parse(gSand.tsSoftDelGuarded({ parameter: {}, postBody: { rows: [c1], dry: '0', jobId: TEST_JOB } }));
+    const SB = TEST_JOB + '-1';   // v5：真实 subBatchId
+    const w1 = JSON.parse(gSand.tsSoftDelGuarded({ parameter: {}, postBody: { rows: [c1], dry: '0', jobId: TEST_JOB, batchId: SB, expectMasterVersion: masterVerOf(gStore) } }));
     const h1 = CORE._requestHashOf(c1);
-    const sq = JSON.parse(gSand.tsSoftDelGuarded({ parameter: {}, postBody: { action: 'statusQuery', jobId: TEST_JOB, rows: [{ row: 3, requestHash: h1, uuid: c1.uuid }] } }));
+    const sq = JSON.parse(gSand.tsSoftDelGuarded({ parameter: {}, postBody: { action: 'statusQuery', jobId: TEST_JOB, rows: [{ row: 3, subBatchId: SB, requestHash: h1, uuid: c1.uuid }] } }));
     const r0 = (sq.rows || [])[0] || {};
     const pass = w1.ok === true && sq.action === 'statusQuery' && r0.state === 'COMMITTED' && r0.identity === 'BOUND';
     return { pass, detail: `写入 ok=${w1.ok}；statusQuery action=${sq.action} state=${r0.state} identity=${r0.identity}` };
+  });
+
+
+  // ================= v5 · B1 验收负例与恢复用例（Tom 第 1/2 项） =================
+
+  const mkDeps = () => {
+    const store = makeStore(); makeSheet(store, PROD_TAB); makeSheet(store, BASE_TAB);
+    return { store, deps: nodeDeps(store) };
+  };
+  const mkCand = (p, uuid, extra) => Object.assign({
+    row: 3, keeperRow: 2, uuid, level: 'A',
+    expectHash: hashesFor(p.target, false), keeperHash: hashesFor(p.keeper, false),
+    expectBaseHash: hashesFor(p.target, false)
+  }, extra || {});
+  const logCount = (store, jobId, row) => {
+    const js = store.sheets['_TS_SOFTDEL_LOG'];
+    if (!js) return 0;
+    return js._grid.filter(g => String(g[1] || '') === String(jobId) && String(g[3] || '') === String(row)).length;
+  };
+
+  // ---- 负例 1/5：空 UUID 与 uuid:null 一律拒绝 ----
+  check('S20', '负例：UUID 为空串 / null 一律拒绝，不得放行写入（Tom #1 验收）', () => {
+    const a = mkDeps(); const pa = seedPair(a.store, 3, 2, { uuid: 'TS-GAS-U0' });
+    const ra = JSON.parse(CORE.tsSoftDelGuardedCore({ parameter: {}, postBody: { rows: [mkCand(pa, '')], dry: '0', jobId: TEST_JOB, batchId: TEST_JOB + '-1', expectMasterVersion: masterVerOf(a.store) } }, a.deps));
+    const b = mkDeps(); const pb = seedPair(b.store, 3, 2, { uuid: 'TS-GAS-U1' });
+    const rb = JSON.parse(CORE.tsSoftDelGuardedCore({ parameter: {}, postBody: { rows: [mkCand(pb, null)], dry: '0', jobId: TEST_JOB, batchId: TEST_JOB + '-1', expectMasterVersion: masterVerOf(b.store) } }, b.deps));
+    const ia = (ra.results || [])[0] || {}, ib = (rb.results || [])[0] || {};
+    const oa = a.deps.readProdO(3), ob = b.deps.readProdO(3);
+    const pass = ra.ok === false && rb.ok === false && !(oa === true || String(oa || '').toUpperCase() === 'TRUE')
+      && !(ob === true || String(ob || '').toUpperCase() === 'TRUE');
+    return { pass, detail: `空串 ok=${ra.ok} 拒因=${ia.reason || ra.error || '-'}；null ok=${rb.ok} 拒因=${ib.reason || rb.error || '-'}；O 均未置 TRUE` };
+  });
+
+  // ---- 负例 2/5：错 subBatchId 不得命中完成凭据 ----
+  check('S21', '负例：subBatchId 不符 → 状态查询 SUBBATCH_MISMATCH / UNKNOWN（Tom #1 验收）', () => {
+    const { store, deps } = mkDeps();
+    const SB = TEST_JOB + '-1';
+    const p = seedPair(store, 3, 2, { uuid: 'TS-GAS-SB' });
+    const c1 = mkCand(p, 'TS-GAS-SB');
+    JSON.parse(CORE.tsSoftDelGuardedCore({ parameter: {}, postBody: { rows: [c1], dry: '0', jobId: TEST_JOB, batchId: SB, expectMasterVersion: masterVerOf(store) } }, deps));
+    const h1 = CORE._requestHashOf(c1);
+    const bad = JSON.parse(CORE.tsSoftDelStatus({ postBody: { action: 'statusQuery', jobId: TEST_JOB,
+      rows: [{ row: 3, subBatchId: TEST_JOB + '-9', requestHash: h1, uuid: c1.uuid }] } }, deps));
+    const r0 = (bad.rows || [])[0] || {};
+    const pass = r0.state === 'UNKNOWN' && r0.identity === 'SUBBATCH_MISMATCH';
+    return { pass, detail: `错 subBatchId → state=${r0.state} identity=${r0.identity}` };
+  });
+
+  // ---- 负例 3/5：日志不可读取 ⇒ 拒绝新写（不可读取 ≠ 允许写） ----
+  check('S22', '日志读失败 ⇒ 拒绝新写并登记 JOURNAL_READ_ERROR（Tom #2 验收）', () => {
+    const { store, deps } = mkDeps();
+    const p = seedPair(store, 3, 2, { uuid: 'TS-GAS-JRE' });
+    const c1 = mkCand(p, 'TS-GAS-JRE');
+    deps.journalList = function () { throw new Error('SIMULATED_JOURNAL_READ_FAIL'); };
+    const r = JSON.parse(CORE.tsSoftDelGuardedCore({ parameter: {}, postBody: { rows: [c1], dry: '0', jobId: TEST_JOB, batchId: TEST_JOB + '-1', expectMasterVersion: masterVerOf(store) } }, deps));
+    const it = (r.results || [])[0] || {};
+    const o = deps.readProdO(3);
+    const pass = r.ok === false && it.reason === 'JOURNAL_READ_ERROR' && !(o === true || String(o || '').toUpperCase() === 'TRUE');
+    return { pass, detail: `ok=${r.ok} reason=${it.reason} state=${it.state}；O 未写=${!(o === true || String(o || '').toUpperCase() === 'TRUE')}` };
+  });
+
+  // ---- 恢复用例：写后主库版本漂移 ⇒ VOIDED 持久化，后续不得再报 COMMITTED ----
+  check('S23', '恢复：写后漂移追加 VOIDED；重放被 PRIOR_VOIDED 拦下；status 不再报 COMMITTED（Tom #2）', () => {
+    const { store, deps } = mkDeps();
+    const SB = TEST_JOB + '-1';
+    const p = seedPair(store, 3, 2, { uuid: 'TS-GAS-VOID' });
+    const c1 = mkCand(p, 'TS-GAS-VOID');
+    let n = 0; const orig = deps.readAllMaster;
+    deps.readAllMaster = function () {                 // 第二次（写后复核）返回漂移版本
+      n++; const r = orig.call(deps);
+      // 仅第 2 次（写后复核）漂移；后续读恢复正常，才能验证「重放被 PRIOR_VOIDED 拦下」
+      return (n === 2) ? { map: r.map, complete: true, version: String(r.version) + '-DRIFTED' } : r;
+    };
+    const w = JSON.parse(CORE.tsSoftDelGuardedCore({ parameter: {}, postBody: { rows: [c1], dry: '0', jobId: TEST_JOB, batchId: SB, expectMasterVersion: masterVerOf(store) } }, deps));
+    const h1 = CORE._requestHashOf(c1);
+    const recs = deps.journalList(TEST_JOB, 3);
+    const voided = recs.find(x => x.state === 'VOIDED');
+    const st = JSON.parse(CORE.tsSoftDelStatus({ postBody: { action: 'statusQuery', jobId: TEST_JOB,
+      rows: [{ row: 3, subBatchId: SB, requestHash: h1, uuid: c1.uuid }] } }, deps));
+    const r0 = (st.rows || [])[0] || {};
+    const again = JSON.parse(CORE.tsSoftDelGuardedCore({ parameter: {}, postBody: { rows: [c1], dry: '0', jobId: TEST_JOB, batchId: SB, expectMasterVersion: masterVerOf(store) } }, deps));
+    const it2 = (again.results || [])[0] || {};
+    const pass = w.ok === false && !!voided && r0.state !== 'COMMITTED' && it2.reason === 'PRIOR_VOIDED';
+    return { pass, detail: `写入 ok=${w.ok}；VOIDED 记录=${!!voided}(reason=${voided ? voided.reason : '-'})；status=${r0.state}；重放 reason=${it2.reason}` };
+  });
+
+  // ---- 负例 4/5：dry 的【拒绝】分支同样不写任何业务恢复日志 ----
+  check('S24', 'dry 拒绝分支（UUID/TARGET 漂移等）不留 REJECTED 痕（Tom #2 验收）', () => {
+    const { store, deps } = mkDeps();
+    const p = seedPair(store, 3, 2, { uuid: 'TS-GAS-DRYREJ' });
+    const bad = mkCand(p, 'TS-GAS-DRYREJ', { expectHash: 'sha256:deadbeef' });   // 触发 TARGET_DRIFT
+    const r = JSON.parse(CORE.tsSoftDelGuardedCore({ parameter: {}, postBody: { rows: [bad], dry: '1', jobId: TEST_JOB, batchId: TEST_JOB + '-1' } }, deps));
+    const it = (r.results || [])[0] || {};
+    const n = logCount(store, TEST_JOB, 3);
+    const pass = r.ok === false && it.reason === 'TARGET_DRIFT' && n === 0;
+    return { pass, detail: `dry 拒绝 reason=${it.reason}；日志条数=${n}（须 0）` };
+  });
+
+
+  // ================= v5 · B2 验收：真实期锁策略四态 + 版本缺失拒写（Tom 第 3/4 项） =================
+
+  // 用 GAS 沙箱跑真实策略读取路径（props 注入 store.props）
+  const gasRunWith = (props, opts) => {
+    const store = makeStore(); makeSheet(store, PROD_TAB); makeSheet(store, BASE_TAB);
+    store.props = Object.assign({}, props || {});
+    const sand = gasShim(store); vm.createContext(sand);
+    vm.runInContext(fs.readFileSync(GAS_FILE, 'utf8'), sand, { timeout: 20000 });
+    const p = seedPair(store, 3, 2, Object.assign({ uuid: 'TS-GAS-PL' }, opts || {}));
+    const cand = { row: 3, keeperRow: 2, uuid: 'TS-GAS-PL', level: 'A',
+      expectHash: hashesFor(p.target, false), keeperHash: hashesFor(p.keeper, false),
+      expectBaseHash: hashesFor(p.target, false) };
+    const out = JSON.parse(sand.tsSoftDelGuarded({ parameter: {}, postBody: {
+      rows: [cand], dry: '0', jobId: TEST_JOB, batchId: TEST_JOB + '-1',
+      expectMasterVersion: masterVerOf(store) } }));
+    const it = (out.results || [])[0] || {};
+    return { out, it, o: store.sheets[PROD_TAB]._grid[2][14] };
+  };
+  const POL = (o) => JSON.stringify(Object.assign({ closed: true, futureOpen: true, cutoff: '2026-10-01' }, o || {}));
+
+  // ---- 策略四态 1：策略缺失（真首次态，无哨兵）→ futureOpen=true，未来日期放行 ----
+  check('S25', '期锁策略四态 1/4：策略缺失（真首次态）→ 未来日期放行（Tom #4）', () => {
+    const { out, it } = gasRunWith({});   // 无策略键、无哨兵
+    const pass = out.ok === true && it.wrote === true;
+    return { pass, detail: `ok=${out.ok} wrote=${it.wrote} reason=${it.reason || out.error || '-'}` };
+  });
+
+  // ---- 策略四态 2：JSON 损坏 → fail-closed（futureOpen=false）→ 未来日期被拒 ----
+  check('S26', '期锁策略四态 2/4：策略 JSON 损坏 → fail-closed 收紧，未来日期被拒（Tom #4）', () => {
+    const { out, it } = gasRunWith({ PERIOD_LOCK_STATE: '{broken', PERIOD_LOCK_POLICY_INIT: '1' });
+    const pass = out.ok === false && it.reason === 'PERIOD_LOCKED'
+      && /PL_REJECT_FUTURE_CLOSED/.test(String(it.detail || ''));
+    return { pass, detail: `ok=${out.ok} reason=${it.reason} detail=${it.detail || out.error}` };
+  });
+
+  // ---- 策略四态 3：futureOpen=false → 未来日期被拒 ----
+  check('S27', '期锁策略四态 3/4：策略 futureOpen=false → 未来日期被拒（Tom #4）', () => {
+    const { out, it } = gasRunWith({ PERIOD_LOCK_STATE: POL({ futureOpen: false }), PERIOD_LOCK_POLICY_INIT: '1' });
+    const pass = out.ok === false && it.reason === 'PERIOD_LOCKED'
+      && /PL_REJECT_FUTURE_CLOSED/.test(String(it.detail || ''));
+    return { pass, detail: `ok=${out.ok} reason=${it.reason} detail=${it.detail || out.error}` };
+  });
+
+  // ---- 策略四态 4：关账 cutoff 调整（业务日落在新的锁定期内）→ 被拒 ----
+  check('S28', '期锁策略四态 4/4：关账 cutoff 调整后业务日落进锁定期 → 被拒（Tom #4）', () => {
+    // 业务日 2026-10-02 < cutoff 2026-10-05 ⇒ PL_REJECT_NEW_DATE_CLOSED
+    const { out, it } = gasRunWith(
+      { PERIOD_LOCK_STATE: POL({ cutoff: '2026-10-05' }), PERIOD_LOCK_POLICY_INIT: '1' },
+      { date: new Date(Date.UTC(2026, 9, 2)) });
+    const pass = out.ok === false && it.reason === 'PERIOD_LOCKED'
+      && /PL_REJECT_NEW_DATE_CLOSED/.test(String(it.detail || ''));
+    return { pass, detail: `ok=${out.ok} reason=${it.reason} detail=${it.detail || out.error}` };
+  });
+
+  // ---- 版本缺失拒写（真写必须声明 expectMasterVersion）----
+  check('S29', '真写缺 expectMasterVersion → 整批 MASTER_VERSION_REQUIRED；dry 探测可回显版本（Tom #3）', () => {
+    const store = makeStore(); makeSheet(store, PROD_TAB); makeSheet(store, BASE_TAB);
+    const deps = nodeDeps(store);
+    const p = seedPair(store, 3, 2, { uuid: 'TS-GAS-MV' });
+    const c1 = { row: 3, keeperRow: 2, uuid: 'TS-GAS-MV', level: 'A', expectHash: hashesFor(p.target, false),
+      keeperHash: hashesFor(p.keeper, false), expectBaseHash: hashesFor(p.target, false) };
+    const noVer = JSON.parse(CORE.tsSoftDelGuardedCore({ parameter: {}, postBody: { rows: [c1], dry: '0', jobId: TEST_JOB, batchId: TEST_JOB + '-1' } }, deps));
+    const probe = JSON.parse(CORE.tsSoftDelGuardedCore({ parameter: {}, postBody: { rows: [c1], dry: '1', jobId: TEST_JOB, batchId: TEST_JOB + '-probe' } }, deps));
+    const withVer = JSON.parse(CORE.tsSoftDelGuardedCore({ parameter: {}, postBody: { rows: [c1], dry: '0', jobId: TEST_JOB, batchId: TEST_JOB + '-1', expectMasterVersion: masterVerOf(store) } }, deps));
+    const badVer = JSON.parse(CORE.tsSoftDelGuardedCore({ parameter: {}, postBody: { rows: [c1], dry: '0', jobId: TEST_JOB, batchId: TEST_JOB + '-1', expectMasterVersion: 'sha256:WRONG' } }, deps));
+    const pass = noVer.ok === false && noVer.error === 'MASTER_VERSION_REQUIRED'
+      && !!probe.masterVersion && probe.masterVersion === masterVerOf(store)
+      && withVer.ok === true && badVer.ok === false && badVer.error === 'MASTER_VERSION_MISMATCH';
+    return { pass, detail: `缺版本=${noVer.error}；探测回显=${!!probe.masterVersion}且与本地一致=${probe.masterVersion === masterVerOf(store)}；正确版本 ok=${withVer.ok}；错版本=${badVer.error}` };
+  });
+
+
+  // ============ v5 · B3：同版本实际分发 + 严格响应 + O 类型统一 + 真实交错（Tom 第 5/6 项） ============
+
+  // 真实分发沙箱：加载【最终入口绑定文件】+【RemoteTrigger 分发器】
+  const makeDispatch = (store) => {
+    const sand = Object.assign(gasShim(store), {
+      // RemoteTrigger 的 _rtResponse 需要 ContentService；_rtMaybeHandle 需要 Session
+      ContentService: {
+        MimeType: { JSON: 'JSON' },
+        createTextOutput: (t) => ({ setMimeType: () => ({ getContent: () => String(t) }) })
+      },
+      Session: { getScriptTimeZone: () => 'GMT+8' }
+    });
+    vm.createContext(sand);
+    vm.runInContext(fs.readFileSync(FINAL_FILE, 'utf8'), sand, { timeout: 60000 });
+    vm.runInContext(fs.readFileSync(RT_FILE, 'utf8'), sand, { timeout: 30000 });
+    return sand;
+  };
+  const DISP_UUID = 'TS-GAS-DISP';
+  const dispCand = (p) => ({ row: 3, keeperRow: 2, uuid: DISP_UUID, level: 'A',
+    expectHash: hashesFor(p.target, false), keeperHash: hashesFor(p.keeper, false),
+    expectBaseHash: hashesFor(p.target, false) });
+
+  // ---- 真实分发：经 _rtMaybeHandlePost → REMOTE_ACTIONS → tsSoftDelGuarded ----
+  check('S30', '同版本实际分发：_rtMaybeHandlePost → REMOTE_ACTIONS.softDelGuarded → 抵达核心并写入（Tom #5）', () => {
+    const store = makeStore(); makeSheet(store, PROD_TAB); makeSheet(store, BASE_TAB);
+    const sand = makeDispatch(store);
+    const p = seedPair(store, 3, 2, { uuid: DISP_UUID });
+    const SB = TEST_JOB + '-1';
+    const payload = { action: 'softDelGuarded', jobId: TEST_JOB, batchId: SB, dry: '0',
+      expectMasterVersion: masterVerOf(store), rows: [dispCand(p)] };
+    // 1) 无 token → 被门控拒绝（首跑顺便初始化 token）
+    const r1 = JSON.parse(sand._rtMaybeHandlePost({ postData: { contents: JSON.stringify(payload) } }).getContent());
+    const tok = (store.props || {}).REMOTE_TOKEN;
+    // 2) 带 token → 抵达核心
+    const r2 = JSON.parse(sand._rtMaybeHandlePost({ postData: { contents: JSON.stringify(Object.assign({}, payload, { token: tok })) } }).getContent());
+    let inner = null; try { inner = JSON.parse(r2.message); } catch (e) { inner = null; }
+    const o = store.sheets[PROD_TAB]._grid[3 - 1][14];
+    // 注：分发器 _rtMaybeHandle 会把 action 统一 toLowerCase 后再查表，
+    //     故回显的 r2.action 为小写 'softdelguarded' —— 这正是大小写不敏感查表能命中的原因。
+    const pass = r1.ok === false && !!tok && r2.ok === true
+      && String(r2.action).toLowerCase() === 'softdelguarded'
+      && !!inner && inner.ok === true && String(o).toUpperCase() === 'TRUE';
+    return { pass, detail: `无 token ok=${r1.ok}；带 token ok=${r2.ok} action=${r2.action}；核心 ok=${inner ? inner.ok : '-'}；O[3]=${o}` };
+  });
+
+  // ---- 装配形态：postData.contents / parameter.payload 可达；rows 放 parameter 不可达 ----
+  check('S31', '装配契约：postData.contents 与 parameter.payload 均能抵达；rows 置于 parameter 不可达（Tom #5）', () => {
+    const mk = () => { const st = makeStore(); makeSheet(st, PROD_TAB); makeSheet(st, BASE_TAB); return st; };
+    const run = (st, e) => {
+      const sand = makeDispatch(st);
+      const p = seedPair(st, 3, 2, { uuid: DISP_UUID });
+      const SB = TEST_JOB + '-1';
+      const base = { action: 'softDelGuarded', jobId: TEST_JOB, batchId: SB, dry: '0',
+        expectMasterVersion: masterVerOf(st), rows: [dispCand(p)] };
+      const tok0 = (st.props || {}).REMOTE_TOKEN;
+      const body = Object.assign({}, base, tok0 ? { token: tok0 } : {});
+      const r0 = JSON.parse(sand._rtMaybeHandlePost(e(body)).getContent());
+      const tok = (st.props || {}).REMOTE_TOKEN || tok0;
+      const body2 = Object.assign({}, base, { token: tok });
+      const r = JSON.parse(sand._rtMaybeHandlePost(e(body2)).getContent());
+      let inner = null; try { inner = JSON.parse(r.message); } catch (err) { inner = null; }
+      return { r, inner, st };
+    };
+    // 形态 1：postData.contents（JSON 串）
+    const a = run(mk(), (b) => ({ postData: { contents: JSON.stringify(b) } }));
+    // 形态 2：parameter.payload（JSON 串）
+    const b = run(mk(), (b2) => ({ parameter: { payload: JSON.stringify(b2) } }));
+    // 形态 3：rows 放在 parameter 标量上（不经 postBody）→ 核心拿不到 rows，必须拒绝
+    const c = run(mk(), (b3) => {
+      const q = Object.assign({}, b3); const rows = q.rows; delete q.rows;
+      const params = {}; Object.keys(q).forEach(k => { params[k] = q[k]; });
+      return { parameter: params, postBody: {}, rowsOnParameter: rows };
+    });
+    const raw = (x) => String((x.r && (x.r.message !== undefined ? x.r.message : x.r.error)) || '').slice(0, 90);
+    const pass = a.inner && a.inner.ok === true && b.inner && b.inner.ok === true
+      && c.inner && c.inner.ok === false;
+    return { pass, detail: `postData=${a.inner ? a.inner.ok : '-'}；parameter.payload=${b.inner ? b.inner.ok : '-'}[${raw(b)}]；`
+      + `rows 仅走 parameter=${c.inner ? c.inner.ok : '-'}（须 false，印证 rows 只走 postBody）[${raw(c)}]` };
+  });
+
+  // ---- statusQuery 经同一入口抵达 ----
+  check('S32', 'statusQuery 经同一受控入口抵达核心（经 REMOTE_ACTIONS 分发，非直调）（Tom #5）', () => {
+    const store = makeStore(); makeSheet(store, PROD_TAB); makeSheet(store, BASE_TAB);
+    const sand = makeDispatch(store);
+    const p = seedPair(store, 3, 2, { uuid: DISP_UUID });
+    // 候选须【写前一次性取用】：seedPair 返回的是活引用，写入会改写其 O 列，
+    // 若写成后再重算哈希（dispCand(p) 含 hashesFor(p.target)）会带上 O=TRUE，与日志不一致。
+    const cand = dispCand(p);
+    const SB = TEST_JOB + '-1';
+    const w = { action: 'softDelGuarded', jobId: TEST_JOB, batchId: SB, dry: '0',
+      expectMasterVersion: masterVerOf(store), rows: [cand] };
+    // 先无 token 触发一次以初始化 token
+    sand._rtMaybeHandlePost({ postData: { contents: JSON.stringify(w) } });
+    const tok = (store.props || {}).REMOTE_TOKEN;
+    const wOut = JSON.parse(sand._rtMaybeHandlePost({ postData: { contents: JSON.stringify(Object.assign({}, w, { token: tok })) } }).getContent());
+    const h = CORE._requestHashOf(cand);
+    const sq = { action: 'statusQuery', jobId: TEST_JOB, token: tok,
+      rows: [{ row: 3, subBatchId: SB, requestHash: h, uuid: DISP_UUID }] };
+    const r = JSON.parse(sand._rtMaybeHandlePost({ postData: { contents: JSON.stringify(sq) } }).getContent());
+    let inner = null; try { inner = JSON.parse(r.message); } catch (e) { inner = null; }
+    const r0 = (inner && inner.rows ? inner.rows[0] : null) || {};
+    if (process.env.DBG_S32) {
+      const jt = Object.keys(store.sheets || {});
+      const jn = jt.filter(k => /LOG|JOURNAL/i.test(k));
+      console.log('   [DBG] sheets=' + jt.join('|'));
+      console.log('   [DBG] 写响应=' + JSON.stringify(wOut || null));
+      console.log('   [DBG] wantHash=' + h + ' SB=' + SB);
+      jn.forEach(k => console.log('   [DBG] ' + k + ' => ' + JSON.stringify((store.sheets[k]._grid || []).slice(0, 8))));
+      console.log('   [DBG] status=' + JSON.stringify(r0));
+    }
+    const pass = r.ok === true && !!inner && inner.action === 'statusQuery'
+      && r0.state === 'COMMITTED' && r0.identity === 'BOUND';
+    return { pass, detail: `分发 ok=${r.ok} action=${inner ? inner.action : '-'}；state=${r0.state} identity=${r0.identity}` };
+  });
+
+  // ---- O 类型统一：布尔 true / 字符串 'TRUE' / 'true' 三种真实返回均判成功 ----
+  check('S33', "O 类型统一：回读为布尔 true / 'TRUE' / 'true' 均判成功（Tom #6）", () => {
+    const variants = [true, 'TRUE', 'true'];
+    const got = [];
+    for (const v of variants) {
+      const store = makeStore(); makeSheet(store, PROD_TAB); makeSheet(store, BASE_TAB);
+      const deps = nodeDeps(store);
+      const p = seedPair(store, 3, 2, { uuid: 'TS-GAS-OT' });
+      const c1 = { row: 3, keeperRow: 2, uuid: 'TS-GAS-OT', level: 'A', expectHash: hashesFor(p.target, false),
+        keeperHash: hashesFor(p.keeper, false), expectBaseHash: hashesFor(p.target, false) };
+      // 写后回读返回指定形态（模拟 GAS getValues 的真实差异）
+      const origWrite = deps.writeProdO;
+      deps.writeProdO = function (row, val) { const okk = origWrite(row, val); deps.readProdO = () => v; return okk; };
+      const r = JSON.parse(CORE.tsSoftDelGuardedCore({ parameter: {}, postBody: { rows: [c1], dry: '0',
+        jobId: TEST_JOB, batchId: TEST_JOB + '-1', expectMasterVersion: masterVerOf(store) } }, deps));
+      got.push({ v: String(v), ok: r.ok, reason: ((r.results || [])[0] || {}).reason || r.error || '-' });
+    }
+    const pass = got.every(g => g.ok === true);
+    return { pass, detail: got.map(g => `${g.v}→ok=${g.ok}${g.ok ? '' : '(' + g.reason + ')'}`).join('；') };
+  });
+
+  // ---- 真实双执行者交错：A 持第一锁期间 B 并发调用被真实拒绝；A 完成后 B 重试成功 ----
+  check('S34', '真实双执行者交错：A 持锁期间 B 并发被 LOCK_BUSY 拒；B 事后重试不得冒领成功；A 同身份重试真幂等（Tom #5）', () => {
+    const store = makeStore(); makeSheet(store, PROD_TAB); makeSheet(store, BASE_TAB);
+    const depsA = nodeDeps(store);
+    const p = seedPair(store, 3, 2, { uuid: 'TS-GAS-CC' });
+    const c1 = { row: 3, keeperRow: 2, uuid: 'TS-GAS-CC', level: 'A', expectHash: hashesFor(p.target, false),
+      keeperHash: hashesFor(p.keeper, false), expectBaseHash: hashesFor(p.target, false) };
+    const mv = masterVerOf(store);
+    let bOut = null;
+    const origM = depsA.acquireMasterLock;
+    depsA.acquireMasterLock = function () {
+      const l = origM();                       // A 取到第一把锁（store 级互斥生效）
+      // A 尚未跑完，另一个【真实执行者 B】在同一 store 上并发发起请求
+      const depsB = nodeDeps(store);
+      bOut = JSON.parse(CORE.tsSoftDelGuardedCore({ parameter: {}, postBody: { rows: [c1], dry: '0',
+        jobId: TEST_JOB + 'B', batchId: TEST_JOB + 'B-1', expectMasterVersion: mv } }, depsB));
+      return l;
+    };
+    const aOut = JSON.parse(CORE.tsSoftDelGuardedCore({ parameter: {}, postBody: { rows: [c1], dry: '0',
+      jobId: TEST_JOB, batchId: TEST_JOB + '-1', expectMasterVersion: mv } }, depsA));
+    // A 完成后锁已释放。B 用【另一身份(jobId B)】重试：行已被 A 软标，
+    //   B 无自己的完成凭据 ⇒ 必须以 ALREADY_SOFTDEL 拒绝，不得冒领 wrote:true。
+    //   （先前版本断言"B 重试成功"是错的：那等于让无凭据的第三方把别人的写入记到自己账上。）
+    const bAfter = JSON.parse(CORE.tsSoftDelGuardedCore({ parameter: {}, postBody: { rows: [c1], dry: '0',
+      jobId: TEST_JOB + 'B', batchId: TEST_JOB + 'B-1', expectMasterVersion: mv } }, nodeDeps(store)));
+    const bItem = (((bAfter.results) || [])[0]) || {};
+    // A 用【同身份】重试：命中完成凭据 + 复核实时 O/UUID/keeper ⇒ 真幂等成功（wrote:true）
+    const aAgain = JSON.parse(CORE.tsSoftDelGuardedCore({ parameter: {}, postBody: { rows: [c1], dry: '0',
+      jobId: TEST_JOB, batchId: TEST_JOB + '-1', expectMasterVersion: mv } }, nodeDeps(store)));
+    const aItem = (((aAgain.results) || [])[0]) || {};
+    const bj = bOut || {};
+    const pass = aOut.ok === true && bj.ok === false && /LOCK_BUSY/.test(String(bj.error || ''))
+      && bAfter.ok === false && bItem.reason === 'ALREADY_SOFTDEL' && bItem.wrote !== true
+      && aAgain.ok === true && aItem.idempotent === true && aItem.wrote === true;
+    return { pass, detail: `A ok=${aOut.ok}；并发 B ok=${bj.ok} error=${bj.error || '-'}；`
+      + `B 事后重试 ok=${bAfter.ok} reason=${bItem.reason || bAfter.error || '-'}（须 ALREADY_SOFTDEL，不得冒领）；`
+      + `A 同身份重试 ok=${aAgain.ok} idempotent=${aItem.idempotent} wrote=${aItem.wrote}` };
   });
 
   const failed = RESULTS.filter(r => !r.pass);

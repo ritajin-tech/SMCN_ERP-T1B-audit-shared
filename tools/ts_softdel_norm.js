@@ -106,8 +106,19 @@ function _sdNorm(v) {
   if (/^-?\d+(\.\d+)?$/.test(s)) return String(Number(s));
   return s;
 }
+// ---- O 列归一化（v5，Tom 第 6 项）----
+// 真实返回的 O 值可能是布尔 true（GAS getValues 对勾选框/布尔单元格）、字符串 'TRUE'/'true'、
+// 空值或别的类型。此前用 _sdNorm(true) 会得到小写 'true'，与 'TRUE' 比较必然失败，
+// 并把一次**已经成功**的写入误记为 REJECTED（谎报未写）。统一入口：一律归一为大写串。
+function _sdNormO(v) {
+  if (v === undefined || v === null) return '';
+  if (v === true) return 'TRUE';
+  if (v === false) return 'FALSE';
+  if (typeof v === 'number') return String(v);
+  return String(v).trim().toUpperCase();
+}
 function _sdSoftDel(r) {
-  return (r === true || String(r || '').toUpperCase() === 'TRUE');
+  return _sdNormO(r) === 'TRUE';
 }
 
 // ---- 固定测试向量（跨 GAS/Node 一致性证据）----
@@ -150,7 +161,7 @@ if (typeof module !== 'undefined' && module.exports) {
   module.exports = {
     _sdIsoTz: _sdIsoTz, _sdCellTok: _sdCellTok, _sdHashCols: _sdHashCols,
     _sdCanonRow: _sdCanonRow, _sdSha256: _sdSha256, _sdRowHash: _sdRowHash,
-    _sdNorm: _sdNorm, _sdSoftDel: _sdSoftDel,
+    _sdNorm: _sdNorm, _sdNormO: _sdNormO, _sdSoftDel: _sdSoftDel,
     _sdTestVectors: _sdTestVectors, _sdSelfTest: _sdSelfTest
   };
 }

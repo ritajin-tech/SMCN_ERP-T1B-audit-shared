@@ -85,6 +85,32 @@ def main():
         '// ============================================================\n'
     )
     out_text = '\n'.join(kept).rstrip('\n') + '\n' + header + '\n' + embedded.rstrip('\n') + '\n'
+
+    # 2.5) 入口注册：statusQuery 必须是 REMOTE_ACTIONS 的【真实表项】，否则分发器
+    #      （RemoteTrigger._rtMaybeHandle 用 action.toLowerCase() 线性查表）永远查不到它，
+    #      客户端 action=statusQuery 会落到 "unknown action"，S32 实测即此缺口。
+    #      它复用【同一个受控入口】tsSoftDelGuarded(e)，不另开入口（Tom #5）。
+    reg_lines = out_text.split('\n')
+    idx_sd = None
+    has_sq = False
+    for i, l in enumerate(reg_lines):
+        if re.search(r"^\s*softDelGuarded:\s*function\(e\)", l):
+            idx_sd = i
+        if re.search(r"^\s*statusQuery:\s*function\(e\)", l):
+            has_sq = True
+    reg_note = ''
+    if idx_sd is None:
+        print('[FAIL] 未找到 REMOTE_ACTIONS.softDelGuarded 表项，无法注册 statusQuery')
+        return 1
+    if not has_sq:
+        reg_lines.insert(idx_sd + 1,
+                        "  statusQuery:   function(e) { return tsSoftDelGuarded(e); },"
+                        "   // V4.3.87 状态查询：复用同一受控入口（核心内按 action 分流到 tsSoftDelStatus），不另开入口")
+        reg_note = '（本次新增）'
+        out_text = '\n'.join(reg_lines)
+    print('[OK] 入口注册：softDelGuarded=第 %d 行；statusQuery=%s' % (
+        idx_sd + 1, ('已存在' if has_sq else '第 %d 行' % (idx_sd + 2))))
+
     io.open(OUT, 'w', encoding='utf-8', newline='\n').write(out_text)
 
     # 3) 静态映射（用最终文件行号）
@@ -96,8 +122,9 @@ def main():
         return None
     m = {
         'route':          find(r"softDelGuarded:\s*function\(e\)"),
+        'route_status':   find(r"statusQuery:\s*function\(e\)"),
         'entry':          find(r'^function tsSoftDelGuarded\(e\) \{'),
-        'status_branch':  find(r"action === 'statusQuery'"),
+        'status_branch':  find(r"_act === 'statusquery'"),
         'core':           find(r'^function tsSoftDelGuardedCore\(e, deps\) \{'),
         'core_status':    find(r'^function tsSoftDelStatus\(e, deps\) \{'),
         'wrapper':        find(r'^function _sdGasLock\(\) \{'),
@@ -121,10 +148,14 @@ def main():
     md.append('\n| 环节 | 最终文件位置 | 说明 |\n|---|---|---|\n')
     md.append('| 路由注册 | 第 %s 行 `softDelGuarded: function(e) { return tsSoftDelGuarded(e); }` | '
               'REMOTE_ACTIONS 表项，未改动 |\n' % m['route'])
+    md.append('| 路由注册（状态查询） | 第 %s 行 `statusQuery: function(e) { return tsSoftDelGuarded(e); }` | '
+              '【v5-B3 新增】分发器按 `action.toLowerCase()` 线性查表，**没有该键则 statusQuery 永远不可达**'
+              '（实测返回 `unknown action`）；此处复用同一入口，不另开入口 |\n' % m['route_status'])
     md.append('| 受控入口 | 第 %s 行 `function tsSoftDelGuarded(e)` | 【新】由生成文件提供；'
               '旧定义已删除，全局唯一 |\n' % m['entry'])
-    md.append('| statusQuery 分支 | 第 %s 行 `action === \'statusQuery\'` | 状态查询**经同一入口**分流，'
-              '不是第二个入口 |\n' % m['status_branch'])
+    md.append('| statusQuery 分流 | 第 %s 行 `_act === \'statusquery\'` | 状态查询**经同一入口**分流，'
+              '不是第二个入口；改为**大小写不敏感**（分发器已把 action 小写化，'
+              '原按 `\'statusQuery\'` 精确比较 ⇒ 真实分发永远分流不到） |\n' % m['status_branch'])
     md.append('| 业务核心 | 第 %s 行 `function tsSoftDelGuardedCore(e, deps)` | 与 Node 模块同源 |\n' % m['core'])
     md.append('| 状态查询实现 | 第 %s 行 `function tsSoftDelStatus(e, deps)` | 只读，逐项绑定身份 |\n' % m['core_status'])
     md.append('| 依赖装配 | 第 %s 行 `function _sdGasLock()` 起 | GAS 原生依赖注入；'

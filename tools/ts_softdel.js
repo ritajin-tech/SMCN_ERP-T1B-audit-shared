@@ -150,10 +150,17 @@ function loadJobId() { try { return JSON.parse(fs.readFileSync(jobIdFile(), 'utf
     }
     const idOf = {};
     if (manifest && Array.isArray(manifest.rows)) {
-      manifest.rows.forEach(r => { idOf[r.row] = { requestHash: r.requestHash, uuid: r.uuid }; });
+      manifest.rows.forEach(r => {
+        idOf[r.row] = { requestHash: r.requestHash, uuid: r.uuid, subBatchId: r.subBatchId };
+      });
     }
+    // v5（Tom 第 1 项）：--status 必须发【四项完整身份】row + subBatchId + requestHash + uuid，
+    //   缺任一 → 服务端按白名单判 INCOMPLETE_QUERY_IDENTITY，客户端也按同一规则判 UNKNOWN。
     const statusPayload = { action: 'statusQuery', jobId: jobId,
-      rows: o.status.map(r => ({ row: r, requestHash: idOf[r] ? idOf[r].requestHash : null, uuid: idOf[r] ? idOf[r].uuid : null })) };
+      rows: o.status.map(r => ({ row: r,
+        subBatchId: idOf[r] ? (idOf[r].subBatchId || null) : null,
+        requestHash: idOf[r] ? (idOf[r].requestHash || null) : null,
+        uuid: idOf[r] ? (idOf[r].uuid || null) : null })) };
     const spf = path.join(__dirname, '..', '_tmp', 'ts_status_query.json');
     fs.writeFileSync(spf, JSON.stringify(statusPayload), 'utf8');
     const qenv = Object.assign({}, process.env, { TS_WEBAPP_OVERRIDE: WEBAPP, TS_POST_BIN, TS_WRITE_FREEZE: '0' });
@@ -170,7 +177,8 @@ function loadJobId() { try { return JSON.parse(fs.readFileSync(jobIdFile(), 'utf
       const jr = journalRows.find(x => x.itemId === r);
       const oVal = reread[r];
       const oTrue = (oVal === true || String(oVal || '').toUpperCase() === 'TRUE');
-      const bound = !!(idOf[r] && idOf[r].requestHash);
+      // v5（Tom 第 1 项）：客户端自身也必须声明完整身份（四项缺一不可）
+      const bound = !!(idOf[r] && idOf[r].requestHash && idOf[r].subBatchId && idOf[r].uuid);
       let state;
       if (!bound) {
         // 无法绑身份 → 一律 UNKNOWN（绝不据服务端自称的 COMMITTED 下结论）
@@ -178,8 +186,8 @@ function loadJobId() { try { return JSON.parse(fs.readFileSync(jobIdFile(), 'utf
       } else if (!jr) {
         // 无日志：O=TRUE 但来源不明（可能是历史软标/他请求），不能断言本请求完成
         state = oTrue ? 'O_TRUE_SOURCE_UNKNOWN' : 'UNKNOWN';
-      } else if (jr.identity && jr.identity !== 'BOUND') {
-        // 服务端判定身份不符（requestHash/subBatch/uuid 任一不匹配）
+      } else if (jr.identity !== 'BOUND') {
+        // v5：服务端【缺失】identity 也必须判失败 —— 不再「缺失即放过」
         state = 'UNKNOWN';
       } else if (jr.state === 'COMMITTED') {
         // Tom #5：独立 O 回读不符 → 不得返回 COMMITTED
@@ -295,6 +303,10 @@ function loadJobId() { try { return JSON.parse(fs.readFileSync(jobIdFile(), 'utf
   if (fail.length > 10) process.stderr.write('  ... 其余 ' + (fail.length - 10) + ' 行见输出\n');
 
   const jobId = 'J' + Date.now().toString(36) + Math.random().toString(36).slice(2, 8);
+  // v5（Tom 第 1 项）：分批大小提前定义 —— manifest 必须记录每行所属批次的【真实】subBatchId。
+  //   此前 manifest 只存顶层 jobId，而实际发送是 jobId-N，导致 --status 发的 subBatchId 与
+  //   服务端日志中的 subBatchId 永久不一致（身份绑定名存实亡）。
+  const BATCH = 300;
   const payload = {
     jobId, batchId: jobId,
     rows: pass.map(p => {
@@ -313,11 +325,27 @@ function loadJobId() { try { return JSON.parse(fs.readFileSync(jobIdFile(), 'utf
   };
   // Tom #5：原请求清单持久化 —— 不落盘则 --status 无从比对 requestHash，身份绑定会永久退化。
   // 此处尚未发生任何写入，落盘失败即可安全中止。
-  const manifestRows = payload.rows.map(r => Object.assign({}, r, { requestHash: requestHashOf(r) }));
+  const manifestRows = payload.rows.map((r, ri) => Object.assign({}, r, {
+    requestHash: requestHashOf(r),
+    subBatchId: jobId + '-' + (Math.floor(ri / BATCH) + 1)
+  }));
+  // v5 B2：真写必须端到端绑定主库版本 —— 先探测，写不进 manifest 就中止。
+  let masterVersion = null;
+  // 无候选行时客户端已预筛全部拒绝，不存在写入，也就无需版本绑定；
+  // 若仍发探测（rows 为空）反而会被服务端拒，把「预筛拒绝」误报成「探测失败」。
+  if (o.apply && payload.rows.length) {
+    masterVersion = probeMasterVersion(payload.rows, jobId);
+    if (!masterVersion) {
+      process.stderr.write('[ABORT] 主库版本探测失败（无法做版本前后绑定，拒绝盲写）\n');
+      process.exit(1);
+    }
+    process.stderr.write('[PROBE] 主库版本指纹已取得并写入 manifest\n');
+  }
   const manifestFile = path.join(__dirname, '..', '_tmp', 'ts_softdel_manifest_' + jobId + '.json');
   try {
     fs.mkdirSync(path.dirname(manifestFile), { recursive: true });
-    fs.writeFileSync(manifestFile, JSON.stringify({ jobId, batchId: jobId, timeOnly: o.timeOnly, rows: manifestRows }, null, 2), 'utf8');
+    fs.writeFileSync(manifestFile, JSON.stringify({ jobId, batchSize: BATCH, timeOnly: o.timeOnly,
+      masterVersion: masterVersion, rows: manifestRows }, null, 2), 'utf8');
     process.stderr.write('[MANIFEST] 原请求清单已写入 ' + manifestFile + '\n');
   } catch (me) {
     process.stderr.write('[ABORT] 原请求清单落盘失败（无法做身份绑定，拒绝盲写）：' + (me && me.message) + '\n');
@@ -351,14 +379,14 @@ function loadJobId() { try { return JSON.parse(fs.readFileSync(jobIdFile(), 'utf
   // 且每批后独立回读生产 O 列做后验。注意：服务端默认 dry=true（fail-closed），
   // 真写须显式 dry=false 且 TS_WRITE_FREEZE=0；本执行器发 dry:'0'（=false）。
   saveJobId(jobId);
-  const BATCH = 300;
   const pfile = path.join(__dirname, '..', '_tmp', 'ts_softdel_payload.json');
   try { fs.mkdirSync(path.dirname(pfile), { recursive: true }); } catch (e) {}
   let done = 0;
   for (let s = 0; s < payload.rows.length; s += BATCH) {
     const batch = payload.rows.slice(s, s + BATCH);
     const subBatchId = jobId + '-' + (Math.floor(s / BATCH) + 1);
-    fs.writeFileSync(pfile, JSON.stringify({ jobId, batchId: subBatchId, dry: '0', rows: batch }), 'utf8');
+    fs.writeFileSync(pfile, JSON.stringify({ jobId, batchId: subBatchId, dry: '0',
+      expectMasterVersion: masterVersion, rows: batch }), 'utf8');
     process.stderr.write('[APPLY] 批次 ' + (Math.floor(s / BATCH) + 1) + '：' + batch.length + ' 行 ...\n');
     try {
       const r = execFileSync('python', [TS_POST_BIN, 'softDelGuarded', pfile], { encoding: 'utf8', env: process.env });
@@ -376,6 +404,17 @@ function loadJobId() { try { return JSON.parse(fs.readFileSync(jobIdFile(), 'utf
       }
       if (j.jobId !== jobId) {
         process.stderr.write('[FAIL] jobId 不匹配（疑似非本服务/串批）：期望 ' + jobId + ' 实际 ' + j.jobId + ' —— 登记不明，不盲重试\n');
+        process.exit(1);
+      }
+      // v5（Tom 第 1 项）：不只信 version 一个字符串 —— 独立校验 action 回显，
+      //   防止「另一动作/另一服务的响应」被当作本次软标结果接受。
+      if (j.action !== undefined && j.action !== 'softDelGuarded') {
+        process.stderr.write('[FAIL] 响应 action 回显不符（须 softDelGuarded）：实际 ' + j.action + ' —— 登记不明，不盲重试\n');
+        process.exit(1);
+      }
+      // v5 B2：服务端须回显主库版本且与本批声明一致（前后绑定的服务端侧证据）
+      if (j.masterVersion !== undefined && String(j.masterVersion) !== String(masterVersion)) {
+        process.stderr.write('[FAIL] 响应 masterVersion 与声明不符：声明 ' + masterVersion + ' 实际 ' + j.masterVersion + ' —— 登记不明，不盲重试\n');
         process.exit(1);
       }
       if (j.batchId == null) {  // 条件 #4/#5：缺 batchId 字段 → 拒绝（保持字面 batchId 便于契约断言）
@@ -414,12 +453,14 @@ function loadJobId() { try { return JSON.parse(fs.readFileSync(jobIdFile(), 'utf
         }
       }
       // 计数一致性（Tom #5）：patched === 实际 wrote 项数；total === 请求行数
-      if (typeof j.total === 'number' && j.total !== batch.length) {
-        process.stderr.write('[FAIL] 响应 total(' + j.total + ') ≠ 请求行数(' + batch.length + ') —— 计数不一致，登记不明，不盲重试\n');
+      // v5（Tom 第 6 项）：此前为 `typeof === 'number' &&`，缺失/字符串/浮点会被整段跳过；
+      //   改为「必须是整数且精确相等」，缺失或任何非整数一律拒。
+      if (!Number.isInteger(j.total) || j.total !== batch.length) {
+        process.stderr.write('[FAIL] 响应 total 非整数或不等于请求行数（total=' + JSON.stringify(j.total) + ' 请求=' + batch.length + '）—— 计数不一致，登记不明，不盲重试\n');
         process.exit(1);
       }
-      if (typeof j.patched === 'number' && j.patched !== wroteCount) {
-        process.stderr.write('[FAIL] 响应 patched(' + j.patched + ') ≠ 实际 wrote 项数(' + wroteCount + ') —— 计数不一致，登记不明，不盲重试\n');
+      if (!Number.isInteger(j.patched) || j.patched !== wroteCount) {
+        process.stderr.write('[FAIL] 响应 patched 非整数或不等于实际 wrote 项数（patched=' + JSON.stringify(j.patched) + ' 实际=' + wroteCount + '）—— 计数不一致，登记不明，不盲重试\n');
         process.exit(1);
       }
       // 独立回读后验（不信任返回声明）
@@ -442,6 +483,31 @@ function loadJobId() { try { return JSON.parse(fs.readFileSync(jobIdFile(), 'utf
 })();
 
 // 每批后独立回读（只读通道，不写生产）确认这些行的 O 列 == TRUE。
+// v5 B2（Tom 第 3 项）：真写前先做一次 **dry 探测**取得服务端主库版本指纹。
+//   此前客户端从不发送 expectMasterVersion，服务端又是 truthy 回退 ⇒ 版本前后绑定形同虚设。
+//   现在：探测 → 取得 masterVersion → 写入 manifest → 每批真写声明该版本 → 服务端比对。
+//   探测本身是 dry，不产生任何写入；探测失败 → 返回 null → 调用方中止（fail-closed）。
+function probeMasterVersion(rows, jobId) {
+  const pf = path.join(__dirname, '..', '_tmp', 'ts_softdel_probe.json');
+  const probe = { action: 'softDelGuarded', jobId, batchId: jobId + '-probe', dry: '1', rows: rows.slice(0, 1) };
+  try { fs.mkdirSync(path.dirname(pf), { recursive: true }); } catch (e) {}
+  fs.writeFileSync(pf, JSON.stringify(probe), 'utf8');
+  try {
+    const r = execFileSync('python', [TS_POST_BIN, 'softDelGuarded', pf], { encoding: 'utf8', env: process.env });
+    const j = JSON.parse(r);
+    if (j && j.masterVersion) return String(j.masterVersion);
+    // 服务端的 fail-closed 原因（主库读不完整 / 缺期锁依赖等）必须可见，不能只静默返回 null
+    process.stderr.write('[PROBE] 探测响应无 masterVersion（fail-closed）：' + String(r).slice(0, 400) + '\n');
+    return null;
+  } catch (e) {
+    // 探测失败必须可诊断：把子进程的 stdout/stderr 一并打出，
+    // 否则「主库读不完整 / 缺期锁依赖」等 fail-closed 原因会被吞成一句“探测失败”。
+    const d = String((e.stdout || '') + (e.stderr || '') + (e.message || e));
+    process.stderr.write('[PROBE] 主库版本探测失败（fail-closed，不盲写）：' + d.slice(0, 400) + '\n');
+    return null;
+  }
+}
+
 async function rereadO(rows) {
   const out = {};
   for (const row of rows) {

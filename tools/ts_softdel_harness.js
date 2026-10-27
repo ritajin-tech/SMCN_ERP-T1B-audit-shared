@@ -159,7 +159,9 @@ const server = http.createServer((req, res) => {
       fs.appendFileSync(path.join(os.tmpdir(),'hb.log'), 'GAS-POST ok=' + (function(){try{return JSON.parse(out).ok}catch(e){return 'parsefail'}}()) + '\n');
       if (mockCfg.forceDryResponse) { try { const o = JSON.parse(out); o.dry = true; out = JSON.stringify(o); } catch (e) {} }
       if (mockCfg.stripBatchId) { try { const o = JSON.parse(out); delete o.batchId; out = JSON.stringify(o); } catch (e) {} }
-      if (mockCfg.dropWriteResponse) { close(); res.writeHead(200, { 'Content-Type': 'application/json' }); res.end(''); console.error('[MOCK] /gas -> dropped'); return; }
+      // v5 B2：只丢【真写】响应；dry 探测必须正常返回，否则执行器的版本探测会被误伤
+      //  （探测失败 → ABORT → 写入根本不会发生，反而掩盖“写后丢响应”这一被测行为）。
+      if (mockCfg.dropWriteResponse && String(pl2.dry) !== '1') { close(); res.writeHead(200, { 'Content-Type': 'application/json' }); res.end(''); console.error('[MOCK] /gas -> dropped'); return; }
       server._gasResult = out;
       close(); res.writeHead(302, { 'Location': abs + u + '_result' });
       res.end();
@@ -302,7 +304,13 @@ function runCoreUnit() {
     return Object.assign(d, extra || {});
   }
   function callCore(d, rows, body) {
-    const e = { postBody: Object.assign({ rows }, body || {}) };
+    // v5 B2：真写必须声明 expectMasterVersion，否则整批 MASTER_VERSION_REQUIRED
+    //   （会掩盖本场景真正要断言的原因）。此处从被测 deps 的 readAllMaster 取版本注入。
+    let mv = null;
+    try { const m = (typeof d.readAllMaster === 'function') ? d.readAllMaster() : null; mv = m ? m.version : null; } catch (e) { mv = null; }
+    const b = Object.assign({ rows }, body || {});
+    if (b.expectMasterVersion === undefined && mv) b.expectMasterVersion = mv;
+    const e = { postBody: b };
     return JSON.parse(tsSoftDelGuardedCore(e, d));
   }
   // 自指混合类型：row:'3' 与 keeperRow:3 —— 解析后相等必须拒绝（旧逻辑 '3'===3 不拒绝）

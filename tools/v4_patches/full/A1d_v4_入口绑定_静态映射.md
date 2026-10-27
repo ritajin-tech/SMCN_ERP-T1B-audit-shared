@@ -23,13 +23,14 @@
 | 环节 | 最终文件位置 | 说明 |
 |---|---|---|
 | 路由注册 | 第 24 行 `softDelGuarded: function(e) { return tsSoftDelGuarded(e); }` | REMOTE_ACTIONS 表项，未改动 |
-| 受控入口 | 第 1998 行 `function tsSoftDelGuarded(e)` | 【新】由生成文件提供；旧定义已删除，全局唯一 |
-| statusQuery 分支 | 第 1590 行 `action === 'statusQuery'` | 状态查询**经同一入口**分流，不是第二个入口 |
-| 业务核心 | 第 1587 行 `function tsSoftDelGuardedCore(e, deps)` | 与 Node 模块同源 |
-| 状态查询实现 | 第 1882 行 `function tsSoftDelStatus(e, deps)` | 只读，逐项绑定身份 |
-| 依赖装配 | 第 1992 行 `function _sdGasLock()` 起 | GAS 原生依赖注入；ScriptLock 仅作用于本脚本（已如实声明） |
-| 全量日志检索 | 第 1976 行 `function _sdGasJournalList(` | 供身份检索，不再只取最后一条 |
-| 版本常量 | 第 1480 行 | 与 Node 侧 `ts_softdel_core.js` 同源同值 |
+| 路由注册（状态查询） | 第 25 行 `statusQuery: function(e) { return tsSoftDelGuarded(e); }` | 【v5-B3 新增】分发器按 `action.toLowerCase()` 线性查表，**没有该键则 statusQuery 永远不可达**（实测返回 `unknown action`）；此处复用同一入口，不另开入口 |
+| 受控入口 | 第 2198 行 `function tsSoftDelGuarded(e)` | 【新】由生成文件提供；旧定义已删除，全局唯一 |
+| statusQuery 分流 | 第 1676 行 `_act === 'statusquery'` | 状态查询**经同一入口**分流，不是第二个入口；改为**大小写不敏感**（分发器已把 action 小写化，原按 `'statusQuery'` 精确比较 ⇒ 真实分发永远分流不到） |
+| 业务核心 | 第 1668 行 `function tsSoftDelGuardedCore(e, deps)` | 与 Node 模块同源 |
+| 状态查询实现 | 第 2060 行 `function tsSoftDelStatus(e, deps)` | 只读，逐项绑定身份 |
+| 依赖装配 | 第 2192 行 `function _sdGasLock()` 起 | GAS 原生依赖注入；ScriptLock 仅作用于本脚本（已如实声明） |
+| 全量日志检索 | 第 2176 行 `function _sdGasJournalList(` | 供身份检索，不再只取最后一条 |
+| 版本常量 | 第 1555 行 | 与 Node 侧 `ts_softdel_core.js` 同源同值 |
 
 ## 3. doPost / 请求装配（如实说明可证明与不可证明的部分）
 - **可静态证明**：`REMOTE_ACTIONS.softDelGuarded` → `tsSoftDelGuarded(e)` → `tsSoftDelGuardedCore(e, deps)`；`action=statusQuery` 时在同一入口内分流到 `tsSoftDelStatus(e, deps)`。

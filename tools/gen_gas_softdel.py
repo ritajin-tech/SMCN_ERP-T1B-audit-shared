@@ -49,6 +49,27 @@ def strip_leading_strict(src):
     return re.sub(r"^\s*'use strict';\s*\n", '', src)
 
 
+def parse_exports(src, name):
+    """从源文件的 module.exports = { ... } 自动解析导出名（单一可信源）。
+
+    此前导出名是**硬编码列表**，新增函数忘了同步 → GAS 侧 `pl.新函数` 为 undefined，
+    运行时才炸（本次 _plPolicyFromProps 即因此静默失败）。改为自动解析，杜绝再漏。
+    """
+    m = re.search(r'module\.exports\s*=\s*\{(.*?)\n\s*\};', src, re.S)
+    if not m:
+        raise SystemExit('[FATAL] 无法解析 %s 的 module.exports 块' % name)
+    # 支持一行多个键（name: value, name: value）
+    # 末尾一项后面可能既无逗号也无换行（直接接 }），故 lookahead 需含 $ 与空白边界
+    names = re.findall(r'(?<!\w)(\w+)\s*:\s*(\w+)\s*(?=,|\n|\}|$)', m.group(1))
+    names = [a for a, b in names]
+    if not names:
+        raise SystemExit('[FATAL] %s 的 module.exports 解析结果为空' % name)
+    for nm in names:
+        if not re.search(r'(?m)^(function|var)\s+%s\b' % re.escape(nm), src):
+            raise SystemExit('[FATAL] %s 导出的 %s 在源文件中未找到定义' % (name, nm))
+    return names
+
+
 def build_iife(src, name, exports):
     """
     把一个源文件（已去掉 module.exports）包成 IIFE，返回 { name: {...exports} }。
@@ -96,9 +117,10 @@ var BASE_TAB = '工时_候选0824';
 function _sdGasJournalAppend(rec) {
   var ss = SpreadsheetApp.openById(TS_ID);
   var js = ss.getSheetByName('_TS_SOFTDEL_LOG');
-  if (!js) { js = ss.insertSheet('_TS_SOFTDEL_LOG'); js.appendRow(['ts', 'jobId', 'subBatchId', 'itemId', 'requestHash', 'uuid', 'state']); }
+  // v5：新增 reason 列 —— VOIDED 记录必须能说明「为什么失效」，否则失效只有状态没有依据。
+  if (!js) { js = ss.insertSheet('_TS_SOFTDEL_LOG'); js.appendRow(['ts', 'jobId', 'subBatchId', 'itemId', 'requestHash', 'uuid', 'state', 'reason']); }
   js.appendRow([Utilities.formatDate(new Date(), 'GMT+8', 'yyyy-MM-dd HH:mm:ss'),
-    rec.jobId, rec.subBatchId, rec.itemId, rec.requestHash, rec.uuid, rec.state]);
+    rec.jobId, rec.subBatchId, rec.itemId, rec.requestHash, rec.uuid, rec.state, rec.reason]);
 }
 function _sdGasJournalGet(jobId, itemId) {
   try {
@@ -108,7 +130,7 @@ function _sdGasJournalGet(jobId, itemId) {
     var g = js.getDataRange().getValues();
     for (var i = g.length - 1; i >= 1; i--) {
       if (String(g[i][1] || '') === String(jobId) && String(g[i][3] || '') === String(itemId)) {
-        return { jobId: g[i][1], subBatchId: g[i][2], itemId: g[i][3], requestHash: g[i][4], uuid: g[i][5], state: g[i][6] };
+        return { jobId: g[i][1], subBatchId: g[i][2], itemId: g[i][3], requestHash: g[i][4], uuid: g[i][5], state: g[i][6], reason: g[i][7] };
       }
     }
   } catch (e) {}
@@ -125,7 +147,7 @@ function _sdGasJournalList(jobId, itemId) {
     var out = [];
     for (var i = 1; i < g.length; i++) {
       if (String(g[i][1] || '') === String(jobId) && String(g[i][3] || '') === String(itemId)) {
-        out.push({ jobId: g[i][1], subBatchId: g[i][2], itemId: g[i][3], requestHash: g[i][4], uuid: g[i][5], state: g[i][6] });
+        out.push({ jobId: g[i][1], subBatchId: g[i][2], itemId: g[i][3], requestHash: g[i][4], uuid: g[i][5], state: g[i][6], reason: g[i][7] });
       }
     }
     return out;
@@ -150,11 +172,24 @@ function tsSoftDelGuarded(e) {
     var mss = SpreadsheetApp.openById(MASTER_ID);
     var msh = mss.getSheetByName(BASE_TAB);
 
+    // 真实策略读取（v5 B2）：把 PropertiesService 注入 pl._plPolicyFromProps。
+    // propsGetter 抛错时由 _plPolicyFromProps 内部收敛为 fail-closed，此处不再额外吞异常。
+    function _sdGasPolicy() {
+      return pl._plPolicyFromProps(function (k) {
+        return PropertiesService.getScriptProperties().getProperty(k);
+      });
+    }
+
     var deps = {
       PL_DB_SHEET: PL_DB_SHEET,
       isClearance: function (tok, rows) { return false; },          // 默认不放开门禁
-      guardCheck: function (bizDate, origBiz, policy) { return pl._plGuardCheck(bizDate, origBiz, policy || pl._plPolicy()); },
-      policy: function () { return pl._plPolicy(); },
+      guardCheck: function (bizDate, origBiz, policy) { return pl._plGuardCheck(bizDate, origBiz, policy || _sdGasPolicy()); },
+      // v5 B2（Tom 第 4 项）：policy 改为【真实读取生产 PropertiesService 策略】。
+      //   此前固定返回 pl._plPolicy()（source:'unset'），等于生产策略从未被执行入口遵守。
+      //   _plPolicyFromProps 内部 fail-closed：读取异常 / 哨兵未知 / 策略丢失 /
+      //   JSON 损坏 / schema 非法 一律收紧（closed=true, futureOpen=false）。
+      //   边界：**只读**，不初始化、不改写生产策略。
+      policy: _sdGasPolicy,
       // 诚实声明：LockService.getScriptLock() 按 Google 官方说明【仅作用于脚本】，
       // 只能序列化本项目内的并发执行；不提供跨项目/跨文档互斥，本处不声称跨项目写协调。
       acquireMasterLock: _sdGasLock,                                  // 本项目内并发串行化（先取）
@@ -215,12 +250,9 @@ def main():
     pl_src = read(PL)
 
     # 1) norm / pl 内联为 IIFE（与 Node 模块同源）
-    norm_iife = build_iife(norm_src, 'norm',
-                           ['_sdIsoTz', '_sdCellTok', '_sdHashCols', '_sdCanonRow', '_sdSha256',
-                            '_sdRowHash', '_sdNorm', '_sdSoftDel', '_sdTestVectors', '_sdSelfTest'])
-    pl_iife = build_iife(pl_src, 'pl',
-                         ['PL_CUTOFF', 'PL_UNKNOWN', '_plParseBizDate', '_plIsClosedBizDate',
-                          '_plGuardCheck', '_plPolicy'])
+    # 导出名自动解析（不再硬编码）—— 见 parse_exports 说明
+    norm_iife = build_iife(norm_src, 'norm', parse_exports(norm_src, 'norm'))
+    pl_iife = build_iife(pl_src, 'pl', parse_exports(pl_src, 'pl'))
 
     # 2) 核心：去掉 require + module.exports
     core_clean = strip_core_export(strip_core_requires(core_src))
@@ -283,7 +315,7 @@ def main():
     map_lines.append('| `readAllMaster` | 读主库底稿 + 内容指纹作为 `version` |')
     map_lines.append('| `acquireLock/acquireMasterLock` | `LockService.getScriptLock().tryLock(30000)`（LOCK_BUSY fail-closed） |')
     map_lines.append('| `journalAppend/journalGet/journalList` | `_TS_SOFTDEL_LOG` 页签持久化（journalList 供身份检索） |')
-    map_lines.append('| `guardCheck/policy` | 调用内联 `pl._plGuardCheck/_plPolicy` |')
+    map_lines.append('| `guardCheck/policy` | 调用内联 `pl._plGuardCheck`；policy 经 `pl._plPolicyFromProps` **真实读 PropertiesService**（fail-closed） |')
     map_lines.append('')
     with open(MAP_PATH, 'w', encoding='utf-8', newline='\n') as f:
         f.write('\n'.join(map_lines) + '\n')
