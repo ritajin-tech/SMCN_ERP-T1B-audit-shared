@@ -80,8 +80,23 @@ function _rtMaybeHandle(e) {
         if (String(_k).toLowerCase() === action && typeof REMOTE_ACTIONS[_k] === "function") { _rtKey = _k; break; }
       }
       if (_rtKey) {
+        // 单一运输契约（回应 Tom 复审 #1）：核心动作（tsSoftDelGuardedCore / tsSoftDelStatus）
+        // 返回的是【JSON 字符串】，此处解析后【合并】到响应信封顶层，使 version / jobId / action /
+        // rows / total / patched / masterVersion 等对客户端直接可见 —— 而非塞进 result.message 再要求
+        // 客户端二次拆包（否则「内层手动拆包断言通过」≠「真实客户端可用」）。非 JSON 字符串
+        // （如内置 status 返回 "ok"）保持 message 字段不动。
         var out = REMOTE_ACTIONS[_rtKey](e);
-        if (out !== undefined && out !== null) result.message = String(out);
+        if (out !== undefined && out !== null) {
+          var _s = String(out);
+          try {
+            var _parsed = JSON.parse(_s);
+            if (_parsed && typeof _parsed === 'object') {
+              for (var _pk in _parsed) { if (_parsed.hasOwnProperty(_pk)) result[_pk] = _parsed[_pk]; }
+            } else {
+              result.message = _s;
+            }
+          } catch (_je) { result.message = _s; }
+        }
       } else {
         result.message = "unknown action: " + action + ". available: " + _rtActionList().join(", ");
       }

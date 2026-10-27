@@ -277,7 +277,7 @@ function tsSoftDelGuardedCore(e, deps) {
             anyFail = true; continue;
           }
           if (!_sdSoftDel(oNow)) {
-            _jrn(deps, jobId, batchId, itemId, requestHash, uuid, dry, 'UNKNOWN', 'IDEMPOTENT_O_DRIFT');
+            _jrn(deps, jobId, batchId, itemId, requestHash, uuid, dry, 'UNKNOWN', 'IDEMPOTENT_O_DRIFT', keeperRow);
             results.push({ row: row, ok: false, wrote: false, reason: 'IDEMPOTENT_O_DRIFT', expect: 'TRUE', actual: String(oNow) });
             anyFail = true; continue;
           }
@@ -288,14 +288,18 @@ function tsSoftDelGuardedCore(e, deps) {
           var idKeeper = null;
           try { idKeeper = deps.readProdRow ? deps.readProdRow(keeperRow) : null; } catch (ke) { idKeeper = null; }
           if (idErr || !idRow || !idKeeper) {
-            _jrn(deps, jobId, batchId, itemId, requestHash, uuid, dry, 'UNKNOWN', 'IDEMPOTENT_IDENTITY_UNAVAILABLE');
+            _jrn(deps, jobId, batchId, itemId, requestHash, uuid, dry, 'UNKNOWN', 'IDEMPOTENT_IDENTITY_UNAVAILABLE', keeperRow);
             results.push({ row: row, ok: false, wrote: false, reason: 'IDEMPOTENT_IDENTITY_UNAVAILABLE', state: 'UNKNOWN', error: idErr || '' });
             anyFail = true; continue;
           }
-          if (norm._sdNorm(idRow[8]) !== uuid || _sdSoftDel(idKeeper[14])) {
-            _jrn(deps, jobId, batchId, itemId, requestHash, uuid, dry, 'UNKNOWN', 'IDEMPOTENT_IDENTITY_DRIFT');
+          // v6（Tom #4）：诚实核【keeper】——除目标 UUID 与 keeper 未软标外，必须复核 keeper 当前负载
+          //   仍与原快照一致（liveKHash === it.keeperHash）；否则「keeper 行已被改写/替换」也照样报成功。
+          var liveKHashIdem = _sdRowHash(idKeeper, timeOnly);
+          if (norm._sdNorm(idRow[8]) !== uuid || _sdSoftDel(idKeeper[14]) || liveKHashIdem !== it.keeperHash) {
+            _jrn(deps, jobId, batchId, itemId, requestHash, uuid, dry, 'UNKNOWN', 'IDEMPOTENT_IDENTITY_DRIFT', keeperRow);
             results.push({ row: row, ok: false, wrote: false, reason: 'IDEMPOTENT_IDENTITY_DRIFT',
-              state: 'UNKNOWN', uuidActual: norm._sdNorm(idRow[8]), keeperO: String(idKeeper[14]) });
+              state: 'UNKNOWN', uuidActual: norm._sdNorm(idRow[8]), keeperO: String(idKeeper[14]),
+              keeperHashActual: liveKHashIdem, keeperHashExpect: it.keeperHash });
             anyFail = true; continue;
           }
           results.push({ row: row, ok: true, wrote: true, level: level, idempotent: true });
@@ -306,32 +310,32 @@ function tsSoftDelGuardedCore(e, deps) {
         if (_anyCommit) {
           // 同 jobId+itemId 但不同 requestHash → 复用冲突，拒绝（防串批/重放）。
           // 冲突记录以 REJECTED 追加，绝不覆盖/替换原完成凭据（Tom #4）。
-          _jrn(deps, jobId, batchId, itemId, requestHash, uuid, dry, 'REJECTED');
+          _jrn(deps, jobId, batchId, itemId, requestHash, uuid, dry, 'REJECTED', keeperRow);
           results.push({ row: row, ok: false, reason: 'KEY_REUSE_CONFLICT', priorHash: _anyCommit.requestHash });
           anyFail = true; continue;
         }
 
         // 锁内重读实时值
         var vals = deps.readProdRow(row);
-        if (!vals) { _jrn(deps, jobId, batchId, itemId, requestHash, uuid, dry, 'REJECTED'); results.push({ row: row, ok: false, reason: 'ROW_NOT_FOUND' }); anyFail = true; continue; }
+        if (!vals) { _jrn(deps, jobId, batchId, itemId, requestHash, uuid, dry, 'REJECTED', keeperRow); results.push({ row: row, ok: false, reason: 'ROW_NOT_FOUND' }); anyFail = true; continue; }
         var kVals = deps.readProdRow(keeperRow);
 
-        if (norm._sdNorm(vals[8]) !== uuid) { _jrn(deps, jobId, batchId, itemId, requestHash, uuid, dry, 'REJECTED'); results.push({ row: row, ok: false, reason: 'UUID_DRIFT', actual: norm._sdNorm(vals[8]) }); anyFail = true; continue; }
-        if (_sdSoftDel(vals[14])) { _jrn(deps, jobId, batchId, itemId, requestHash, uuid, dry, 'REJECTED'); results.push({ row: row, ok: false, wrote: false, reason: 'ALREADY_SOFTDEL' }); anyFail = true; continue; }
-        if (!kVals || _sdSoftDel(kVals[14])) { _jrn(deps, jobId, batchId, itemId, requestHash, uuid, dry, 'REJECTED'); results.push({ row: row, ok: false, reason: 'KEEPER_INVALID' }); anyFail = true; continue; }
+        if (norm._sdNorm(vals[8]) !== uuid) { _jrn(deps, jobId, batchId, itemId, requestHash, uuid, dry, 'REJECTED', keeperRow); results.push({ row: row, ok: false, reason: 'UUID_DRIFT', actual: norm._sdNorm(vals[8]) }); anyFail = true; continue; }
+        if (_sdSoftDel(vals[14])) { _jrn(deps, jobId, batchId, itemId, requestHash, uuid, dry, 'REJECTED', keeperRow); results.push({ row: row, ok: false, wrote: false, reason: 'ALREADY_SOFTDEL' }); anyFail = true; continue; }
+        if (!kVals || _sdSoftDel(kVals[14])) { _jrn(deps, jobId, batchId, itemId, requestHash, uuid, dry, 'REJECTED', keeperRow); results.push({ row: row, ok: false, reason: 'KEEPER_INVALID' }); anyFail = true; continue; }
 
         // 条件 #2：CAS 绑定到已审计原值（SHA-256 指纹，含列1业务日期/排除列0当 timeOnly/含列14审计）
         var liveHash = _sdRowHash(vals, timeOnly);
         var liveKHash = _sdRowHash(kVals, timeOnly);
-        if (liveHash !== it.expectHash) { _jrn(deps, jobId, batchId, itemId, requestHash, uuid, dry, 'REJECTED'); results.push({ row: row, ok: false, reason: 'TARGET_DRIFT', expect: it.expectHash, actual: liveHash }); anyFail = true; continue; }
-        if (liveKHash !== it.keeperHash) { _jrn(deps, jobId, batchId, itemId, requestHash, uuid, dry, 'REJECTED'); results.push({ row: row, ok: false, reason: 'KEEPER_DRIFT', expect: it.keeperHash, actual: liveKHash }); anyFail = true; continue; }
+        if (liveHash !== it.expectHash) { _jrn(deps, jobId, batchId, itemId, requestHash, uuid, dry, 'REJECTED', keeperRow); results.push({ row: row, ok: false, reason: 'TARGET_DRIFT', expect: it.expectHash, actual: liveHash }); anyFail = true; continue; }
+        if (liveKHash !== it.keeperHash) { _jrn(deps, jobId, batchId, itemId, requestHash, uuid, dry, 'REJECTED', keeperRow); results.push({ row: row, ok: false, reason: 'KEEPER_DRIFT', expect: it.keeperHash, actual: liveKHash }); anyFail = true; continue; }
 
         // 条件 #2：timeOnly 时录入时间分别绑定（双方），差异被接受但必须"被声明且匹配"
         if (timeOnly) {
           var liveEntry = _sdCellHash(vals[0]);
           var liveKEntry = _sdCellHash(kVals[0]);
           if (liveEntry !== it.expectEntryTime || liveKEntry !== it.keeperEntryTime) {
-            _jrn(deps, jobId, batchId, itemId, requestHash, uuid, dry, 'REJECTED');
+            _jrn(deps, jobId, batchId, itemId, requestHash, uuid, dry, 'REJECTED', keeperRow);
             results.push({ row: row, ok: false, reason: 'ENTRY_TIME_DRIFT' }); anyFail = true; continue;
           }
         }
@@ -345,30 +349,30 @@ function tsSoftDelGuardedCore(e, deps) {
           if (tA !== tB) diffs.push(c);
         }
         var allowed = timeOnly && diffs.length > 0 && diffs.every(function (x) { return x === 0; });
-        if (diffs.length > 0 && !allowed) { _jrn(deps, jobId, batchId, itemId, requestHash, uuid, dry, 'REJECTED'); results.push({ row: row, ok: false, reason: 'PAYLOAD_DIFF', cols: diffs }); anyFail = true; continue; }
+        if (diffs.length > 0 && !allowed) { _jrn(deps, jobId, batchId, itemId, requestHash, uuid, dry, 'REJECTED', keeperRow); results.push({ row: row, ok: false, reason: 'PAYLOAD_DIFF', cols: diffs }); anyFail = true; continue; }
 
         // 条件 #3：真实期锁（锁内对目标行业务日期跑真实 _plGuardCheck）。
         //   业务日期以【原始值】传入（可能是 Date 或字符串），由 _plParseBizDate 原生处理；
         //   不再经 _sdNorm 把 Date 污损成一长串 ISO 串导致解析失败被整体拒掉。
         var bizDate = vals[1];
         var g = deps.guardCheck(bizDate, null, policy);
-        if (!g.ok && !clearanceOk) { _jrn(deps, jobId, batchId, itemId, requestHash, uuid, dry, 'REJECTED'); results.push({ row: row, ok: false, reason: 'PERIOD_LOCKED', date: norm._sdNorm(bizDate), detail: g.reason || '' }); anyFail = true; continue; }
+        if (!g.ok && !clearanceOk) { _jrn(deps, jobId, batchId, itemId, requestHash, uuid, dry, 'REJECTED', keeperRow); results.push({ row: row, ok: false, reason: 'PERIOD_LOCKED', date: norm._sdNorm(bizDate), detail: g.reason || '' }); anyFail = true; continue; }
 
         // 等级与底稿核对（A：底稿恰 1 行且哈希/状态相符；B：底稿 0 行）
         if (level === 'A') {
           var mMatches = masterMap[uuid] || [];
-          if (mMatches.length !== 1) { _jrn(deps, jobId, batchId, itemId, requestHash, uuid, dry, 'REJECTED'); results.push({ row: row, ok: false, reason: (mMatches.length === 0 ? 'BASE_NOT_FOUND' : 'BASE_NOT_UNIQUE'), count: mMatches.length }); anyFail = true; continue; }
+          if (mMatches.length !== 1) { _jrn(deps, jobId, batchId, itemId, requestHash, uuid, dry, 'REJECTED', keeperRow); results.push({ row: row, ok: false, reason: (mMatches.length === 0 ? 'BASE_NOT_FOUND' : 'BASE_NOT_UNIQUE'), count: mMatches.length }); anyFail = true; continue; }
           var mHash = _sdRowHash(mMatches[0].cells, false);
-          if (mHash !== it.expectBaseHash) { _jrn(deps, jobId, batchId, itemId, requestHash, uuid, dry, 'REJECTED'); results.push({ row: row, ok: false, reason: 'BASE_DRIFT', expect: it.expectBaseHash, actual: mHash }); anyFail = true; continue; }
+          if (mHash !== it.expectBaseHash) { _jrn(deps, jobId, batchId, itemId, requestHash, uuid, dry, 'REJECTED', keeperRow); results.push({ row: row, ok: false, reason: 'BASE_DRIFT', expect: it.expectBaseHash, actual: mHash }); anyFail = true; continue; }
         } else {
           var mB = masterMap[uuid] || [];
-          if (mB.length !== 0) { _jrn(deps, jobId, batchId, itemId, requestHash, uuid, dry, 'REJECTED'); results.push({ row: row, ok: false, reason: 'BASE_HAS_MATCH', count: mB.length }); anyFail = true; continue; }
+          if (mB.length !== 0) { _jrn(deps, jobId, batchId, itemId, requestHash, uuid, dry, 'REJECTED', keeperRow); results.push({ row: row, ok: false, reason: 'BASE_HAS_MATCH', count: mB.length }); anyFail = true; continue; }
         }
 
         // PREPARED 日志：落盘前必须成功；日志失败 → 阻断写，记为 UNKNOWN（Tom #4）。
         // dry 不写业务恢复日志（Tom #4）：dry 不产生任何写入，也就不该产生「待恢复」凭据，
         // 否则状态查询会把一次 dry 的 PREPARED 误读成「本请求已落盘待确认」。
-        var prepOk = _jrn(deps, jobId, batchId, itemId, requestHash, uuid, dry, 'PREPARED');
+        var prepOk = _jrn(deps, jobId, batchId, itemId, requestHash, uuid, dry, 'PREPARED', keeperRow);
         if (!prepOk) { results.push({ row: row, ok: false, wrote: false, reason: 'PREPARED_LOG_FAILED' }); anyFail = true; continue; }
 
         // 写 O 列（仅非 dry 且上述全过）
@@ -378,14 +382,14 @@ function tsSoftDelGuardedCore(e, deps) {
             wroteOk = deps.writeProdO(row, 'TRUE');
           } catch (we) {
             // 条件 #6：flush 异常 —— 已尝试写但无法确认落盘，区分"已写未确认"
-            _jrn(deps, jobId, batchId, itemId, requestHash, uuid, dry, 'UNKNOWN');
+            _jrn(deps, jobId, batchId, itemId, requestHash, uuid, dry, 'UNKNOWN', null, keeperRow);
             results.push({ row: row, ok: false, wrote: false, reason: 'WRITE_FLUSH_EXCEPTION', error: String(we && we.message || we) });
             anyFail = true; continue;
           }
           if (!wroteOk) {
             // Tom #4：writeProdO 返回 false 只说明「未确认」，不说明「未写」（GAS flush 异常被吞时尤其如此）。
             // 因此登记 UNKNOWN（写可能已发生），绝不记 REJECTED 以免被误读为「已确认未写」。
-            _jrn(deps, jobId, batchId, itemId, requestHash, uuid, dry, 'UNKNOWN');
+            _jrn(deps, jobId, batchId, itemId, requestHash, uuid, dry, 'UNKNOWN', null, keeperRow);
             results.push({ row: row, ok: false, wrote: false, reason: 'WRITE_FAILED_UNCONFIRMED', state: 'UNKNOWN' });
             anyFail = true; continue;
           }
@@ -393,7 +397,7 @@ function tsSoftDelGuardedCore(e, deps) {
           try { after = deps.readProdO(row); }
           catch (re) {
             // 写了但回读失败 → 已写未确认（非"未写"），留 UNKNOWN
-            _jrn(deps, jobId, batchId, itemId, requestHash, uuid, dry, 'UNKNOWN');
+            _jrn(deps, jobId, batchId, itemId, requestHash, uuid, dry, 'UNKNOWN', null, keeperRow);
             results.push({ row: row, ok: false, wrote: true, reason: 'WRITE_UNCONFIRMED', error: String(re && re.message || re) });
             anyFail = true; continue;
           }
@@ -402,51 +406,58 @@ function tsSoftDelGuardedCore(e, deps) {
           //   ②写已发生但回读不符 ⇒ 只能登记 UNKNOWN，**不能**记 REJECTED
           //   （REJECTED 会被误读为「已确认未写」，而此处写可能已经落盘）。
           if (norm._sdNormO(after) !== 'TRUE') {
-            _jrn(deps, jobId, batchId, itemId, requestHash, uuid, dry, 'UNKNOWN', 'WRITE_NOT_CONFIRMED');
+            _jrn(deps, jobId, batchId, itemId, requestHash, uuid, dry, 'UNKNOWN', 'WRITE_NOT_CONFIRMED', keeperRow);
             results.push({ row: row, ok: false, wrote: true, reason: 'WRITE_NOT_CONFIRMED', state: 'UNKNOWN', actual: String(after) });
             anyFail = true; continue;
           }
           wrote = true;
-          // COMMITTED 日志：若落盘失败 → 已写但无凭证，记 UNKNOWN（不谎称 COMMITTED）
-          var commitOk = _jrn(deps, jobId, batchId, itemId, requestHash, uuid, dry, 'COMMITTED');
-          if (!commitOk) {
-            results.push({ row: row, ok: false, wrote: true, reason: 'COMMITTED_LOG_FAILED', state: 'UNKNOWN' });
-            anyFail = true; continue;
-          }
+          // v6（Tom #3）：COMMITTED 不在本行内落盘 —— 必须等【写后主库版本复核通过】（见下方 post-loop）
+          //   统一落 COMMITTED。此处只确认 O 写入成功；崩溃窗口（写后/复核前进程终止）恢复为 UNKNOWN，
+          //   禁止自动重写（见 _findCommit 的 VOIDED > COMMITTED 优先级）。
         }
-        var _rr = { row: row, ok: true, wrote: wrote, level: level, requestHash: requestHash, uuid: uuid };
+        var _rr = { row: row, ok: true, wrote: wrote, level: level, requestHash: requestHash, uuid: uuid, keeperRow: keeperRow };
         results.push(_rr);
         if (wrote) { patched++; wroteRows.push(_rr); }
       } catch (rerr) {
         // 读类异常 → 行未读/未写（非 flush）；flush 已在上面单独区分
-        _jrn(deps, jobId, batchId, itemId, requestHash, uuid, dry, 'REJECTED');
+        _jrn(deps, jobId, batchId, itemId, requestHash, uuid, dry, 'REJECTED', keeperRow);
         results.push({ row: row, ok: false, reason: 'ROW_READ_FAIL', error: String(rerr && rerr.message || rerr) });
         anyFail = true;
       }
     }
     // 写后主库版本复核（Tom #6：读前后绑定）—— 本批次只写生产 O 列，主库版本必须不变；
     //   若前后不一致，说明快照在读期间已被改动，已写行的归属不能确认为本请求所为 → UNKNOWN。
-    //   注意：此处不追加日志，避免用「后见 UNKNOWN」覆盖既有的 COMMITTED 完成凭据（Tom #4）。
+    // v6（Tom #3）：完成协议状态机。复核通过后才逐行落 COMMITTED；复核漂移则 VOID 已写行，
+    //   绝不产生「写已发生但无/错凭证」的可被误读为最终成功的 COMMITTED。
+    //   崩溃窗口（写后/复核前进程终止）恢复为 UNKNOWN（无 COMMITTED 日志），禁止自动重写。
     if (wroteRows.length) {
       var mAfter = null;
       try { mAfter = (typeof deps.readAllMaster === 'function') ? deps.readAllMaster() : null; } catch (ma) { mAfter = null; }
       var mAfterV = (mAfter && mAfter.version) ? String(mAfter.version) : null;
-      if (!mAfter || !mAfter.complete || !mAfterV || mAfterV !== String(master.version)) {
+      var _drift = !mAfter || !mAfter.complete || !mAfterV || mAfterV !== String(master.version);
+      if (_drift) {
         for (var w = 0; w < wroteRows.length; w++) {
           wroteRows[w].ok = false;
           wroteRows[w].wrote = true;
           wroteRows[w].state = 'UNKNOWN';
           wroteRows[w].reason = 'MASTER_VERSION_DRIFT_POST_WRITE';
-        }
-        // v5（Tom 第 2 项）：把失效状态【持久化】。此前只改内存结果、不落日志，
-        //   COMMITTED 已先写入 ⇒ 后续 status / _findCommit 仍优先命中旧 COMMITTED，
-        //   只要 O 为 TRUE 就又能报告成功 —— 漂移被永久遗忘。现逐行追加 VOIDED，
-        //   并按 _findCommit 的 VOIDED > COMMITTED 优先级覆盖此前完成结论。
-        for (var w2 = 0; w2 < wroteRows.length; w2++) {
-          journal(deps, jobId, batchId, wroteRows[w2].row, wroteRows[w2].requestHash,
-            'VOIDED', wroteRows[w2].uuid, 'MASTER_VERSION_DRIFT_POST_WRITE');
+          // 持久化失效：逐行追加 VOIDED，按 _findCommit 的 VOIDED > COMMITTED 优先级覆盖后续查询结论。
+          journal(deps, jobId, batchId, wroteRows[w].row, wroteRows[w].requestHash,
+            'VOIDED', wroteRows[w].uuid, 'MASTER_VERSION_DRIFT_POST_WRITE', wroteRows[w].keeperRow);
         }
         anyFail = true;
+      } else {
+        // 复核通过 → 仅此刻落 COMMITTED；若某行 COMMITTED 落盘失败，标记 UNKNOWN（写可能已发生），不谎称 COMMITTED。
+        for (var w2 = 0; w2 < wroteRows.length; w2++) {
+          var _cOk = journal(deps, jobId, batchId, wroteRows[w2].row, wroteRows[w2].requestHash,
+            'COMMITTED', wroteRows[w2].uuid, null, wroteRows[w2].keeperRow);
+          if (!_cOk) {
+            wroteRows[w2].ok = false; wroteRows[w2].state = 'UNKNOWN'; wroteRows[w2].reason = 'COMMITTED_LOG_FAILED';
+            anyFail = true;
+          } else {
+            wroteRows[w2].state = 'COMMITTED';
+          }
+        }
       }
       masterVersionAfter = mAfterV;
     }
@@ -455,18 +466,23 @@ function tsSoftDelGuardedCore(e, deps) {
     try { if (deps.releaseMasterLock && _mlock) deps.releaseMasterLock(_mlock); } catch (rl2) {}
   }
   // 诚实上报：任一失败 → 批次 ok=false（不暗示原子回滚）
-  return _res(!anyFail, { batchId: batchId, jobId: jobId, dry: dry, patched: patched, total: rows.length, results: results,
+  // v6（Tom #1）：写响应显式带 action，使真实客户端（经 RemoteTrigger 透传后）可校验 action 必填且等于 softDelGuarded。
+  return _res(!anyFail, { action: 'softDelGuarded', batchId: batchId, jobId: jobId, dry: dry, patched: patched, total: rows.length, results: results,
     masterVersion: String(master.version || ''), masterVersionAfter: masterVersionAfter });
 }
 
 // 条件 #4 强制日志：返回布尔。缺失依赖或写抛异常 → false（调用方据此阻断写）。
 // 记录中持久保存【原请求身份】：jobId + subBatchId + itemId + requestHash + uuid，供状态查询逐项绑定。
-function journal(deps, jobId, subBatchId, itemId, requestHash, state, uuid, reason) {
+// v6（Tom #4）：日志持久化【完整身份】，含 keeperRow —— 状态查询可据 entry.keeperRow 复核
+//   当前 keeper 行仍有效（未被软标/未被换），不能仅凭「原日志 + 当前 O=TRUE」就归属本请求。
+function journal(deps, jobId, subBatchId, itemId, requestHash, state, uuid, reason, keeperRow) {
   if (typeof deps.journalAppend !== 'function') return false;
   try {
     deps.journalAppend({ jobId: jobId, subBatchId: subBatchId, itemId: itemId, requestHash: requestHash,
       state: state, uuid: uuid == null ? null : String(uuid),
-      reason: reason == null ? null : String(reason), ts: Date.now() });
+      reason: reason == null ? null : String(reason),
+      keeperRow: keeperRow == null ? null : Number(keeperRow),
+      ts: Date.now() });
     return true;
   } catch (e) {
     return false;   // 日志写失败 → 返回 false，绝不吞掉后假装成功
@@ -477,9 +493,9 @@ function journal(deps, jobId, subBatchId, itemId, requestHash, state, uuid, reas
 //   理由：dry 不产生任何写入，也就没有「待恢复」状态；若 dry 也留 REJECTED 痕，
 //   后续状态查询会把一次 dry 的拒绝误读成「本请求已落盘待裁定」。
 //   dry 时返回 true（=无需日志，不阻断流程）；非 dry 时与 journal 等价。
-function _jrn(deps, jobId, subBatchId, itemId, requestHash, uuid, dry, state, reason) {
+function _jrn(deps, jobId, subBatchId, itemId, requestHash, uuid, dry, state, reason, keeperRow) {
   if (dry) return true;
-  return journal(deps, jobId, subBatchId, itemId, requestHash, state, uuid, reason);
+  return journal(deps, jobId, subBatchId, itemId, requestHash, state, uuid, reason, keeperRow);
 }
 
 // ---- 日志身份检索（Tom #4：不得只取「最后一条」，必须按 requestHash/subBatchId/uuid 绑定）----
@@ -600,6 +616,16 @@ function tsSoftDelStatus(e, deps) {
       }
     }
 
+    // v6（Tom #4）：状态查询也须复核【当前】keeper 行仍有效（未被软标/未被换）。
+    //   原 COMMITTED 日志只证明「当时」keeper 有效；若后续 keeper 行被改写/软标，凭据失效，不能归属本请求。
+    if (identityOk && entry && entry.keeperRow != null) {
+      var _kRow = null, _kErr = null;
+      try { _kRow = deps.readProdRow ? deps.readProdRow(Number(entry.keeperRow)) : null; } catch (ke2) { _kErr = String(ke2 && ke2.message || ke2); }
+      if (_kErr || !_kRow || _sdSoftDel(_kRow[14])) {
+        identityOk = false; identityWhy = 'KEEPER_DRIFT_ON_STATUS';
+      }
+    }
+
     var oVal = null, oErr = null;
     try { oVal = deps.readProdO ? deps.readProdO(itemId) : null; }
     catch (re) { oErr = String(re && re.message || re); }
@@ -626,7 +652,8 @@ function tsSoftDelStatus(e, deps) {
       state: state, journalState: entry ? entry.state : null,
       identity: identityOk ? 'BOUND' : identityWhy, oValue: oVal, oReadError: oErr });
   }
-  return _res(true, { action: 'statusQuery', batchId: jobId, rows: out });
+  // v6（Tom #1）：状态查询响应显式带 action + jobId + 精确 version（_res 已注入 version），客户端据此校验身份契约。
+  return _res(true, { action: 'statusQuery', jobId: jobId, batchId: jobId, rows: out });
 }
 
 module.exports = {

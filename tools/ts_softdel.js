@@ -168,6 +168,10 @@ function loadJobId() { try { return JSON.parse(fs.readFileSync(jobIdFile(), 'utf
     try {
       const sq = execFileSync('python', [TS_POST_BIN, 'softDelGuarded', spf], { encoding: 'utf8', env: qenv });
       let sj; try { sj = JSON.parse(sq); } catch (e) {}
+      // 单一运输契约兜底：若部署侧旧形态把核心结果塞在 message，解析一次再合并
+      if (sj && typeof sj === 'object' && !sj.rows && typeof sj.message === 'string') {
+        try { const m = JSON.parse(sj.message); if (m && typeof m === 'object') sj = Object.assign({}, m, sj); } catch (_e) {}
+      }
       journalRows = (sj && sj.rows) || [];
     } catch (e) {
       process.stderr.write('[STATUS] 服务端 journal 查询失败（登记 UNKNOWN，不自动重试）：' + ((e.stderr || e.message || '').slice(0, 300)) + '\n');
@@ -396,6 +400,13 @@ function loadJobId() { try { return JSON.parse(fs.readFileSync(jobIdFile(), 'utf
         process.stderr.write('[FAIL] 服务端响应非 JSON（登记不明、不盲重试）：' + r.slice(0, 300) + '\n');
         process.exit(1);
       }
+      // 单一运输契约（回应 Tom #1）：分发器把核心 JSON 合并到信封顶层（version/jobId/action/rows 等直接可见）。
+      // 兜底：若部署侧仍是旧形态（核心结果塞在 message 字段），客户端严格校验外层后解析 message 一次，
+      // 绝不把「外层 success 包络」当作内层成功。
+      if (j && typeof j === 'object' && !j.version && typeof j.message === 'string') {
+        try { const m = JSON.parse(j.message); if (m && typeof m === 'object') j = Object.assign({}, m, j); }
+        catch (_pe) { /* 保持 j 不变，交由后续契约校验拒绝 */ }
+      }
       // 条件 #4/#5：严格响应契约（逐字闭合 Tom 复审条件 #5：version 精确 / jobId / batchId===subBatchId / dry===false / ok===true / 计数一致）
       if (typeof j !== 'object' || !j) { process.stderr.write('[FAIL] 响应非对象（登记不明、不盲重试）\n'); process.exit(1); }
       if (j.version !== CORE_VERSION) {
@@ -406,15 +417,16 @@ function loadJobId() { try { return JSON.parse(fs.readFileSync(jobIdFile(), 'utf
         process.stderr.write('[FAIL] jobId 不匹配（疑似非本服务/串批）：期望 ' + jobId + ' 实际 ' + j.jobId + ' —— 登记不明，不盲重试\n');
         process.exit(1);
       }
-      // v5（Tom 第 1 项）：不只信 version 一个字符串 —— 独立校验 action 回显，
-      //   防止「另一动作/另一服务的响应」被当作本次软标结果接受。
-      if (j.action !== undefined && j.action !== 'softDelGuarded') {
-        process.stderr.write('[FAIL] 响应 action 回显不符（须 softDelGuarded）：实际 ' + j.action + ' —— 登记不明，不盲重试\n');
+      // v6（Tom #1）：action 为【必需】字段 —— 缺失或回显不符即拒绝，不得「缺失就跳过」。
+      //   防止「另一动作/另一服务的响应」被当作本次软标结果接受；大小写不敏感（分发器回显小写 softdelguarded）。
+      if (j.action === undefined || j.action === null || String(j.action).toLowerCase() !== 'softdelguarded') {
+        process.stderr.write('[FAIL] 响应 action 缺失或回显不符（须 softDelGuarded）：实际 ' + j.action + ' —— 登记不明，不盲重试\n');
         process.exit(1);
       }
-      // v5 B2：服务端须回显主库版本且与本批声明一致（前后绑定的服务端侧证据）
-      if (j.masterVersion !== undefined && String(j.masterVersion) !== String(masterVersion)) {
-        process.stderr.write('[FAIL] 响应 masterVersion 与声明不符：声明 ' + masterVersion + ' 实际 ' + j.masterVersion + ' —— 登记不明，不盲重试\n');
+      // v6（Tom #1）：masterVersion 为【必需】字段 —— 缺失/空/与声明不符即拒绝（不得「缺失就跳过」）。
+      //   服务端侧前后绑定的证据；core 写响应恒带 masterVersion，dry 探测亦回显，故恒非空。
+      if (j.masterVersion === undefined || j.masterVersion === null || String(j.masterVersion) === '' || String(j.masterVersion) !== String(masterVersion)) {
+        process.stderr.write('[FAIL] 响应 masterVersion 缺失/空/与声明不符：声明 ' + masterVersion + ' 实际 ' + j.masterVersion + ' —— 登记不明，不盲重试\n');
         process.exit(1);
       }
       if (j.batchId == null) {  // 条件 #4/#5：缺 batchId 字段 → 拒绝（保持字面 batchId 便于契约断言）

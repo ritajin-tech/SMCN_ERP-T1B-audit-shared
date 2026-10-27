@@ -902,7 +902,8 @@ function seedPair(store, row, keeperRow, opts) {
     const tok = (store.props || {}).REMOTE_TOKEN;
     // 2) 带 token → 抵达核心
     const r2 = JSON.parse(sand._rtMaybeHandlePost({ postData: { contents: JSON.stringify(Object.assign({}, payload, { token: tok })) } }).getContent());
-    let inner = null; try { inner = JSON.parse(r2.message); } catch (e) { inner = null; }
+    // 单一运输契约（Tom #1）：分发器已把核心 JSON 合并到信封顶层，(r2 直接是核心响应，无需再拆 message)。
+    const inner = r2;
     const o = store.sheets[PROD_TAB]._grid[3 - 1][14];
     // 注：分发器 _rtMaybeHandle 会把 action 统一 toLowerCase 后再查表，
     //     故回显的 r2.action 为小写 'softdelguarded' —— 这正是大小写不敏感查表能命中的原因。
@@ -927,7 +928,8 @@ function seedPair(store, row, keeperRow, opts) {
       const tok = (st.props || {}).REMOTE_TOKEN || tok0;
       const body2 = Object.assign({}, base, { token: tok });
       const r = JSON.parse(sand._rtMaybeHandlePost(e(body2)).getContent());
-      let inner = null; try { inner = JSON.parse(r.message); } catch (err) { inner = null; }
+      // 单一运输契约（Tom #1）：分发器已合并到顶层，r 直接是核心响应
+      const inner = r;
       return { r, inner, st };
     };
     // 形态 1：postData.contents（JSON 串）
@@ -940,7 +942,7 @@ function seedPair(store, row, keeperRow, opts) {
       const params = {}; Object.keys(q).forEach(k => { params[k] = q[k]; });
       return { parameter: params, postBody: {}, rowsOnParameter: rows };
     });
-    const raw = (x) => String((x.r && (x.r.message !== undefined ? x.r.message : x.r.error)) || '').slice(0, 90);
+    const raw = (x) => String((x.r && (x.r.error !== undefined ? x.r.error : x.r.message)) || '').slice(0, 90);
     const pass = a.inner && a.inner.ok === true && b.inner && b.inner.ok === true
       && c.inner && c.inner.ok === false;
     return { pass, detail: `postData=${a.inner ? a.inner.ok : '-'}；parameter.payload=${b.inner ? b.inner.ok : '-'}[${raw(b)}]；`
@@ -966,7 +968,8 @@ function seedPair(store, row, keeperRow, opts) {
     const sq = { action: 'statusQuery', jobId: TEST_JOB, token: tok,
       rows: [{ row: 3, subBatchId: SB, requestHash: h, uuid: DISP_UUID }] };
     const r = JSON.parse(sand._rtMaybeHandlePost({ postData: { contents: JSON.stringify(sq) } }).getContent());
-    let inner = null; try { inner = JSON.parse(r.message); } catch (e) { inner = null; }
+    // 单一运输契约（Tom #1）：分发器已合并到顶层，r 直接是核心响应
+    const inner = r;
     const r0 = (inner && inner.rows ? inner.rows[0] : null) || {};
     if (process.env.DBG_S32) {
       const jt = Object.keys(store.sheets || {});
@@ -1040,6 +1043,150 @@ function seedPair(store, row, keeperRow, opts) {
     return { pass, detail: `A ok=${aOut.ok}；并发 B ok=${bj.ok} error=${bj.error || '-'}；`
       + `B 事后重试 ok=${bAfter.ok} reason=${bItem.reason || bAfter.error || '-'}（须 ALREADY_SOFTDEL，不得冒领）；`
       + `A 同身份重试 ok=${aAgain.ok} idempotent=${aItem.idempotent} wrote=${aItem.wrote}` };
+  });
+
+  // ---- 写后主库版本漂移 → VOID（Tom #2/#3：崩溃窗口恢复=UNKNOWN，禁止自动重写）----
+  check('S35', '写后主库版本漂移→VOID：状态查询得 UNKNOWN（VOIDED>COMMITTED），不冒领成功（Tom #2/#3）', () => {
+    const store = makeStore(); makeSheet(store, PROD_TAB); makeSheet(store, BASE_TAB);
+    const deps = nodeDeps(store);
+    const p = seedPair(store, 3, 2, { uuid: 'TS-GAS-DRIFT' });
+    const c1 = { row: 3, keeperRow: 2, uuid: 'TS-GAS-DRIFT', level: 'A', expectHash: hashesFor(p.target, false),
+      keeperHash: hashesFor(p.keeper, false), expectBaseHash: hashesFor(p.target, false) };
+    const V1 = masterVerOf(store);
+    const V2 = V1 + '-DRIFTED';           // 写期间主库被改动，复核时版本已变
+    let calls = 0;
+    const origRead = deps.readAllMaster;
+    deps.readAllMaster = function () { calls++; const b = origRead(); return Object.assign({}, b, { version: calls === 1 ? V1 : V2 }); };
+    const r = JSON.parse(CORE.tsSoftDelGuardedCore({ parameter: {}, postBody: { rows: [c1], dry: '0',
+      jobId: TEST_JOB, batchId: TEST_JOB + '-1', expectMasterVersion: V1 } }, deps));
+    const item = ((r.results || [])[0]) || {};
+    const st = JSON.parse(CORE.tsSoftDelStatus({ parameter: {}, postBody: { jobId: TEST_JOB, batchId: TEST_JOB + '-1',
+      rows: [{ row: 3, requestHash: item.requestHash, subBatchId: TEST_JOB + '-1', uuid: 'TS-GAS-DRIFT' }] } }, nodeDeps(store)));
+    const stItem = ((st.rows || [])[0]) || {};
+    const pass = r.ok === false && item.wrote === true && item.state === 'UNKNOWN'
+      && item.reason === 'MASTER_VERSION_DRIFT_POST_WRITE'
+      && (stItem.state === 'UNKNOWN' || stItem.state === 'VOIDED') && stItem.identity === 'BOUND';
+    return { pass, detail: `写 ok=${r.ok} wrote=${item.wrote} state=${item.state} reason=${item.reason || '-'}；status state=${stItem.state} identity=${stItem.identity}` };
+  });
+
+  // ============ Tom #2 验收：主库版本快照必须【内容绑定】，任何主库改动都导致指纹变化→拒绝 ============
+  // 指纹 fp = SHA256({rowCount, rows: canon(0..14 全列)})；下列场景分别改变 lastRow / 中间行 / 列值缺失 /
+  // 异源同串 / 探测-候选错位，全部必须 MASTER_VERSION_MISMATCH 且零业务写入。
+
+  check('S36', '主库 lastRow 变化（新增一行）→ 指纹变化 → 真写 MASTER_VERSION_MISMATCH，零业务写入（Tom #2）', () => {
+    const store = makeStore(); makeSheet(store, PROD_TAB); makeSheet(store, BASE_TAB);
+    const deps = nodeDeps(store);
+    const p = seedPair(store, 3, 2, { uuid: 'TS-GAS-LR' });
+    const c1 = { row: 3, keeperRow: 2, uuid: 'TS-GAS-LR', level: 'A', expectHash: hashesFor(p.target, false),
+      keeperHash: hashesFor(p.keeper, false), expectBaseHash: hashesFor(p.target, false) };
+    const V1 = masterVerOf(store);
+    store.sheets[BASE_TAB]._grid.push(new Array(15).fill(null));   // 模拟主库新增一行 → lastRow 变化
+    const V2 = masterVerOf(store);
+    let bizWrites = 0; const _w = deps.writeProdO; deps.writeProdO = (r, v) => { bizWrites++; return _w(r, v); };
+    const r = JSON.parse(CORE.tsSoftDelGuardedCore({ parameter: {}, postBody: { rows: [c1], dry: '0',
+      jobId: TEST_JOB, batchId: TEST_JOB + '-1', expectMasterVersion: V1 } }, deps));
+    const o = store.sheets[PROD_TAB]._grid[3 - 1][14];
+    const pass = r.ok === false && r.error === 'MASTER_VERSION_MISMATCH' && V1 !== V2
+      && bizWrites === 0 && String(o).toUpperCase() !== 'TRUE';
+    return { pass, detail: `V1≠V2=${V1 !== V2}；错误=${r.error}；业务写入=${bizWrites}；O[3]=${o}` };
+  });
+
+  check('S37', '主库中间行单元格漂移（非种子行）→ 指纹变化 → 真写 MASTER_VERSION_MISMATCH（Tom #2）', () => {
+    const store = makeStore(); makeSheet(store, PROD_TAB); makeSheet(store, BASE_TAB);
+    const deps = nodeDeps(store);
+    const p = seedPair(store, 3, 2, { uuid: 'TS-GAS-MID' });
+    const c1 = { row: 3, keeperRow: 2, uuid: 'TS-GAS-MID', level: 'A', expectHash: hashesFor(p.target, false),
+      keeperHash: hashesFor(p.keeper, false), expectBaseHash: hashesFor(p.target, false) };
+    const V1 = masterVerOf(store);
+    store.sheets[BASE_TAB]._grid[0][0] = 'DRIFT_MIDPAGE';   // 表头条目的改动也计入指纹
+    const V2 = masterVerOf(store);
+    const r = JSON.parse(CORE.tsSoftDelGuardedCore({ parameter: {}, postBody: { rows: [c1], dry: '0',
+      jobId: TEST_JOB, batchId: TEST_JOB + '-1', expectMasterVersion: V1 } }, deps));
+    const pass = r.ok === false && r.error === 'MASTER_VERSION_MISMATCH' && V1 !== V2;
+    return { pass, detail: `V1≠V2=${V1 !== V2}；错误=${r.error}` };
+  });
+
+  check('S38', '主库某列值被清空/消失（revision 类字段缺位）→ 指纹变化 → 真写 MASTER_VERSION_MISMATCH（Tom #2）', () => {
+    const store = makeStore(); makeSheet(store, PROD_TAB); makeSheet(store, BASE_TAB);
+    const deps = nodeDeps(store);
+    const p = seedPair(store, 3, 2, { uuid: 'TS-GAS-REV' });
+    const c1 = { row: 3, keeperRow: 2, uuid: 'TS-GAS-REV', level: 'A', expectHash: hashesFor(p.target, false),
+      keeperHash: hashesFor(p.keeper, false), expectBaseHash: hashesFor(p.target, false) };
+    const V1 = masterVerOf(store);
+    store.sheets[BASE_TAB]._grid[1][5] = null;   // 模拟某业务列值消失
+    const V2 = masterVerOf(store);
+    const r = JSON.parse(CORE.tsSoftDelGuardedCore({ parameter: {}, postBody: { rows: [c1], dry: '0',
+      jobId: TEST_JOB, batchId: TEST_JOB + '-1', expectMasterVersion: V1 } }, deps));
+    const pass = r.ok === false && r.error === 'MASTER_VERSION_MISMATCH' && V1 !== V2;
+    return { pass, detail: `V1≠V2=${V1 !== V2}；错误=${r.error}` };
+  });
+
+  check('S39', '异源同串版本被拒：声明版本取自【另一份不同主库】的快照，与服务端实际指纹不等 → MISMATCH（Tom #2）', () => {
+    const storeA = makeStore(); makeSheet(storeA, PROD_TAB); makeSheet(storeA, BASE_TAB);
+    const storeB = makeStore(); makeSheet(storeB, PROD_TAB); makeSheet(storeB, BASE_TAB);
+    seedPair(storeA, 3, 2, { uuid: 'TS-GAS-DSA' });
+    seedPair(storeB, 3, 2, { uuid: 'TS-GAS-DSB' });
+    const depsA = nodeDeps(storeA);
+    const p = seedPair(storeA, 3, 2, { uuid: 'TS-GAS-DSA' });
+    const c1 = { row: 3, keeperRow: 2, uuid: 'TS-GAS-DSA', level: 'A', expectHash: hashesFor(p.target, false),
+      keeperHash: hashesFor(p.keeper, false), expectBaseHash: hashesFor(p.target, false) };
+    const verA = masterVerOf(storeA), verB = masterVerOf(storeB);   // 不同内容 → 不同指纹
+    const r = JSON.parse(CORE.tsSoftDelGuardedCore({ parameter: {}, postBody: { rows: [c1], dry: '0',
+      jobId: TEST_JOB, batchId: TEST_JOB + '-1', expectMasterVersion: verB } }, depsA));   // 声明异源版本
+    const pass = r.ok === false && r.error === 'MASTER_VERSION_MISMATCH' && verA !== verB;
+    return { pass, detail: `verA≠verB=${verA !== verB}；声明异源版本=${r.error}` };
+  });
+
+  check('S40', '探测-候选错位：dry 探测得 V1，候选却按过期 V2 构建，apply 时主库已变 V3 → MISMATCH，不写（Tom #2）', () => {
+    const store = makeStore(); makeSheet(store, PROD_TAB); makeSheet(store, BASE_TAB);
+    const deps = nodeDeps(store);
+    const p = seedPair(store, 3, 2, { uuid: 'TS-GAS-PVC' });
+    const c1 = { row: 3, keeperRow: 2, uuid: 'TS-GAS-PVC', level: 'A', expectHash: hashesFor(p.target, false),
+      keeperHash: hashesFor(p.keeper, false), expectBaseHash: hashesFor(p.target, false) };
+    const V_probe = masterVerOf(store);          // 探测时主库状态
+    const V2_stale = V_probe + '-STALE-CANDIDATE'; // 候选按过期版本构建
+    const V3_changed = V_probe + '-CHANGED-AT-APPLY'; // apply 时主库已变
+    const orig = deps.readAllMaster;
+    deps.readAllMaster = () => { const b = orig(); return Object.assign({}, b, { version: V3_changed }); };
+    let bizWrites = 0; const _w = deps.writeProdO; deps.writeProdO = (r, v) => { bizWrites++; return _w(r, v); };
+    const r = JSON.parse(CORE.tsSoftDelGuardedCore({ parameter: {}, postBody: { rows: [c1], dry: '0',
+      jobId: TEST_JOB, batchId: TEST_JOB + '-1', expectMasterVersion: V2_stale } }, deps));
+    const pass = r.ok === false && r.error === 'MASTER_VERSION_MISMATCH' && bizWrites === 0;
+    return { pass, detail: `错误=${r.error}；业务写入=${bizWrites}` };
+  });
+
+  // ============ Tom #6 验收：harness 必须【可观测真实写入计数】，而非假绿 ============
+  check('S41', 'harness 观测真实写入计数：成功行=1 业务写+2 日志(PREPARED+COMMITTED)+≥1 期锁校验；MISMATCH=0 写 0 日志（Tom #6）', () => {
+    // —— 成功路径 ——
+    const s1 = makeStore(); makeSheet(s1, PROD_TAB); makeSheet(s1, BASE_TAB);
+    const d1 = nodeDeps(s1);
+    const p1 = seedPair(s1, 3, 2, { uuid: 'TS-GAS-WC' });
+    const c1 = { row: 3, keeperRow: 2, uuid: 'TS-GAS-WC', level: 'A', expectHash: hashesFor(p1.target, false),
+      keeperHash: hashesFor(p1.keeper, false), expectBaseHash: hashesFor(p1.target, false) };
+    let bw1 = 0, je1 = 0, pc1 = 0;
+    const _w1 = d1.writeProdO; d1.writeProdO = (r, v) => { bw1++; return _w1(r, v); };
+    const _j1 = d1.journalAppend; d1.journalAppend = (rec) => { je1++; return _j1(rec); };
+    const _g1 = d1.guardCheck; d1.guardCheck = (a, b, pp) => { pc1++; return _g1(a, b, pp); };
+    const ok1 = JSON.parse(CORE.tsSoftDelGuardedCore({ parameter: {}, postBody: { rows: [c1], dry: '0',
+      jobId: TEST_JOB, batchId: TEST_JOB + '-1', expectMasterVersion: masterVerOf(s1) } }, d1));
+    // 成功单行真实日志序列 = PREPARED(行375) + COMMITTED(行452) = 2 条；零写入/MISMATCH = 0 条
+    const successCounts = ok1.ok === true && bw1 === 1 && je1 === 2 && pc1 >= 1;
+
+    // —— 失败路径（版本不符）—— 必须零业务写、零日志
+    const s2 = makeStore(); makeSheet(s2, PROD_TAB); makeSheet(s2, BASE_TAB);
+    const d2 = nodeDeps(s2);
+    const p2 = seedPair(s2, 3, 2, { uuid: 'TS-GAS-WCF' });
+    const c2 = { row: 3, keeperRow: 2, uuid: 'TS-GAS-WCF', level: 'A', expectHash: hashesFor(p2.target, false),
+      keeperHash: hashesFor(p2.keeper, false), expectBaseHash: hashesFor(p2.target, false) };
+    let bw2 = 0, je2 = 0;
+    const _w2 = d2.writeProdO; d2.writeProdO = (r, v) => { bw2++; return _w2(r, v); };
+    const _j2 = d2.journalAppend; d2.journalAppend = (rec) => { je2++; return _j2(rec); };
+    const ok2 = JSON.parse(CORE.tsSoftDelGuardedCore({ parameter: {}, postBody: { rows: [c2], dry: '0',
+      jobId: TEST_JOB, batchId: TEST_JOB + '-1', expectMasterVersion: 'sha256:WRONG' } }, d2));
+    const failCounts = ok2.ok === false && ok2.error === 'MASTER_VERSION_MISMATCH' && bw2 === 0 && je2 === 0;
+
+    const pass = successCounts && failCounts;
+    return { pass, detail: `成功: ok=${ok1.ok} 业务写=${bw1} 日志=${je1} 策略校验=${pc1}；失败: 错误=${ok2.error} 业务写=${bw2} 日志=${je2}` };
   });
 
   const failed = RESULTS.filter(r => !r.pass);
