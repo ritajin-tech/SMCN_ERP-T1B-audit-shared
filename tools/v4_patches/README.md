@@ -41,31 +41,48 @@
 基线 + 7 补丁 → diff 与 full/ 三文件：0 差异（逐字节一致）
 ```
 
-## 隔离测试（行为证据，回应 Tom 第2/3/4条 + 10 场景）
+## 隔离测试（行为证据，回应 Tom 第1/2/3/4/5条）
 
-| 测试台 | 覆盖 | 结果 |
-|---|---|---|
-| `tools/patch_harness.js` | GAS 补丁链单元行为（去重/锁序/幂等/护栏/CAS/挂起行可见/A1d 服务端 CAS）：T1–T14 | **14/14 通过** |
-| `tools/ts_softdel_harness.js` | 真实执行器 `ts_softdel.js`（运输层+ts_post 被 mock，mock 忠实实现 A1d 服务端 CAS）逐场景：S1–S12 | **29/0 失败**（12 场景 + 17 项后验断言） |
+### 测试台一：`tools/patch_harness.js`（GAS 补丁链单元行为）
+GAS 补丁链单元行为（去重/锁序/幂等/护栏/CAS/挂起行可见/A1d 服务端 CAS）：**T1–T14 → 14/14 通过**。
+证据存档：`evidence/patch_harness_20261027.txt`（另 `_tmp/evidence/` 亦存）。
 
-`ts_softdel_harness` 场景 ↔ Tom 10 场景规格映射：
+### 测试台二：`tools/ts_softdel_harness.js`（**忠实隔离 harness，16/0**）
+**真实** `ts_softdel.js` 执行器 + **真实** `ts_post.py` 运输层，经 `127.0.0.1` 隔离端点，服务端用**真实** `ts_softdel_core.js` 业务核心；mock 仅替换存储/锁/网络。不加载任何生产地址/密钥。
+> 本 harness **取代**此前 commit `f43f910` 的 expanded `ts_softdel_harness`（旧版因 mock 装配缺陷未能真实证明核心）；旧版 `patch_harness.js`（T14 14/14）保留作 GAS 补丁链单元证据。
+
+结果：**16 通过 / 0 失败**（场景 A–I）。证据存档：`evidence/ts_softdel_harness_20261027.txt`。
+
+忠实 harness 场景 ↔ Tom 复审规格映射：
 
 | Tom 规格 | 场景 | 行为证据 |
 |---|---|---|
-| 同UUID同负载恰一次 | S1 | ok+全写+回读 TRUE → 退出 0 |
-| 写成功响应丢失可查批次、不盲重试 | S2 | 空响应 → 登记不明、退出 1、零覆盖 |
-| 服务端 ok=false | S3 | 登记不明、退出 1、零覆盖 |
-| 部分写入 | S4 | wrote≠batch → 登记不明、退出 1、零覆盖 |
-| 读快照缺页拒绝 | S5/S7 | 底稿/生产表读失败 → 整批拒绝、不盲写（防自动降级） |
-| A级变B级拒绝 | S5b | A级预期但底稿缺该UUID(bc=0) → 拒绝且绝不降级 |
-| 每批回读O列不符 | S6 | 声称写成功但回读 FALSE → 登记不明、退出 1 |
-| 异负载CONFLICT零覆盖 | S8 | 锁内重读发现目标≠keeper → CONFLICT、零覆盖 |
-| 锁忙零写 | S9 | 锁占用 → ok=false、零写入、退出 1 |
-| keeper/行号变化拒绝 | S10 | 锁内重读 keeper 失效 → KEEPER_INVALID、零覆盖 |
-| 关账拒绝+合法新行+幂等重试 | S11 | 期内行 PERIOD_LOCKED 拒；期外合法新行放行；重放开行后已写行幂等跳过、补齐、不双写 |
-| 批中断+flush失败 | S12 | 写1行后崩溃 → 中止；重跑已写行幂等跳过、其余补齐、不双写 |
+| 端到端 happy path（默认 dry-run 失败封闭） | A | 退出 0；载荷携带 batchId + 每行 expectHash/keeperHash/expectBaseHash |
+| 真实写 + 独立回读确认（闭环点1/3） | B | apply 退出 0；apply 后该行 O=TRUE（**独立回读确认**） |
+| 已软标行诚实拒（不虚构 ok:true） | C | ALREADY_SOFTDEL，O 仍 TRUE |
+| 分页完整性·生产表中间页失败（点4） | D | 整批 ABORT 且退出 1 |
+| 分页完整性·末页截短 | E | 整批 ABORT 且退出 1 |
+| 分页完整性·lastRow 漂移 | F | 整批 ABORT 且退出 1 |
+| 分页完整性·底稿漏页 | G | 整批 ABORT 且退出 1 |
+| 期锁拦截（无 clearance） | H | PERIOD_LOCKED，ok=false，O 仍非 TRUE |
+| 响应丢失+副作用已发生+状态回读（点2/3） | I | FAIL/登记不明、不盲重试；核心仍真实写入 O=TRUE；`--status` 回读确认 WROTE_OR_ALREADY_APPLIED |
 
-证据存档：`evidence/patch_harness_20261027.txt`、`evidence/ts_softdel_harness_20261027.txt`（见同目录 `evidence/`）。
+证据存档：`evidence/ts_softdel_harness_20261027.txt`。
+
+## 本 commit（在 `f43f910` 之上）新增/变更交付物
+
+| 文件 | 状态 | 说明 |
+|---|---|---|
+| `tools/ts_softdel_core.js` | **新增** | 软标【真实服务端业务核心】，单一可信源：GAS `tsSoftDelGuarded` 与 Node 隔离 harness 共用同一套 `_sdNorm/_sdNormHash/CAS/期锁/fail-closed` 逻辑，仅经 deps 注入存储/锁/网络。 |
+| `tools/ts_softdel.js` | 变更 | 软标执行器：分页完整性（任一页失败/截短/lastRow 漂移→ABORT 退出1）、结构化三级 hash 载荷、批量严格响应校验（batchId+逐行一一对应+ok=false 拒+独立 rereadO 后验）、防降级（safe→A / notInBase→B）。 |
+| `tools/ts_post.py` | 变更 | 写入端运输层：`TS_WRITE_FREEZE` 默认冻结；GAS 302→GET 取回响应体；stdout 仅 JSON 信封、诊断走 stderr。 |
+| `tools/ts_softdel_harness.js` | **替换** | 忠实隔离 harness（16/0），取代旧 expanded harness（旧版 mock 装配缺陷已修正）。 |
+| `tools/ts_softdel_verify.js` | **新增** | 执行后只读复核器：O 全 TRUE / keeper 零误伤 / 主库底稿零变化。 |
+| `tools/forensics/base_uuid_audit.js` | 变更 | 底稿侧取证：发 per-row 三级 hash（与核心一致），供执行器绑定审计原值。 |
+| `docs/T1-B_复审交付说明_20261027.md` | **新增** | 本次复审交付说明：实际调用链 + 契约 + 完整性 + 真实核心隔离证据 + 分层对账 + 逐项回应 Tom 6 点。 |
+| `evidence/ts_softdel_harness_20261027.txt` | 新增 | 忠实 harness 16/0 原始输出。 |
+
+> 注：`patch_harness.js`（T14 14/14）、`pseudonymize_evidence.py`、`v4_genpatches.py` 已于先前 commit 入库，本次随镜像保持一致。
 
 ## 应用方式
 

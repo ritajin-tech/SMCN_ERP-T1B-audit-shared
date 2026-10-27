@@ -1163,77 +1163,169 @@ function plGuardTest(e) {
   }
 }
 
-// ---- V4.3.87 软标动作：CAS 在服务端锁内闭合 ----
+// ---- V4.3.87 软标动作：CAS 在服务端锁内闭合（加固版，回应 Tom 复审）----
 // 客户端只负责“提出候选 + 把校验条件一起发来”，真正的判定在锁内用锁内重读的实时值做。
-// 修复此前“客户端先校验、再裸发 [row,15,TRUE]”的 TOCTOU 缝隙（Tom 2026-10-27 第1条）。
+// 加固项（Tom 点2/3/6 + 分阶段方案）：
+//  - 期锁：锁内对目标行业务日期跑 _plGuardCheck；锁定期默认拒（PERIOD_LOCKED），仅独立授权 clearance 放行（默认不放开门禁）。
+//  - CAS 绑定到已审计原值：请求须携带 target/keeper 规范化 14 列 hash 与 A 级底稿 hash；锁内重读实时 hash 与预期比对，目标+keeper 一起漂移也会因 hash 不符被拒（DRIFT）。
+//  - fail-closed：默认 dry（不写，除非显式 dry='0'）；sheet 锁定 PL_DB_SHEET（拒绝调用方覆盖）；结构化校验拒绝 row==keeperRow/重复目标/越界/非法 level/未知字段；timeOnly 严格布尔；部分写后诚实返回 ok=false 并逐行标明。
+//  - 批次 journal：返回逐项 {row,ok,wrote,reason}；提供只读状态查询（按 row 回读真实 O）。
+// 逻辑与 tools/ts_softdel_core.js 单一可信源保持一致（GAS 端内联副本）。
 function _sdNorm(v) {
-  return (v === undefined || v === null) ? '' : String(v).trim();
+  if (v === undefined || v === null) return '';
+  if (typeof v === 'number') return String(v);
+  if (typeof v === 'boolean') return v ? 'true' : 'false';
+  var s = String(v).trim();
+  if (/^-?\d+(\.\d+)?$/.test(s)) return String(Number(s));
+  return s;
 }
 function _sdSoftDel(r) {
   return (r === true || String(r || '').toUpperCase() === 'TRUE');
 }
+// 规范化 hash：对 2..13 列（排除 0=录入时间、1=业务日期两个日期列）做内容指纹。
+// 排除日期列：列0 是 timeOnly 允许差异列；列1 是 Date，GAS 原生与 hktool 序列化不同，避免跨格式误判；
+// 其正确性由服务端 _plGuardCheck（期锁）与 PAYLOAD_DIFF（目标vs keeper，同格式）兜底。
+function _sdNormHash(cells) {
+  var s = '';
+  for (var c = 2; c <= 13; c++) s += '\x1f' + _sdNorm(cells ? cells[c] : '');
+  var h = 5381;
+  for (var i = 0; i < s.length; i++) h = ((h << 5) + h + s.charCodeAt(i)) >>> 0;
+  return 'h' + h.toString(16);
+}
+function _isTrue(v) { return v === true || v === 'true' || v === 1 || v === '1'; }
+function _isFalse(v) { return v === false || v === 'false' || v === 0 || v === '0' || v == null; }
+var _SD_ROW_KEYS = ['row', 'uuid', 'keeperRow', 'level', 'timeOnly', 'expectHash', 'keeperHash', 'expectBaseHash', 'clearance'];
+
+function _sdBuildMasterMap(msh) {
+  var map = {};
+  if (!msh) return map;
+  var last = msh.getLastRow();
+  if (!last) return map;
+  var vals = msh.getRange(1, 1, last, 15).getValues();
+  for (var r = 0; r < vals.length; r++) {
+    var u = _sdNorm(vals[r][8]);
+    if (u) { (map[u] = map[u] || []).push({ row: r + 1, cells: vals[r] }); }
+  }
+  return map;
+}
+// 历史清理放行：默认 false（不放开门禁）。确需对锁定期行软标，须由 Rita 明确授权单独的 clearance 机制。
+function _sdIsClearance(tok) { return false; }
+
 function tsSoftDelGuarded(e) {
   e = e || {};
   var p = e.parameter || {};
   var body = e.postBody || {};
   var rows = body.rows || p.rows || [];
-  var dry = String(p.dry || body.dry || '0') === '1';
+  var dry = true;                                  // fail-closed：默认不写
+  var dryExplicit = (p.dry !== undefined) ? p.dry : body.dry;
+  if (dryExplicit !== undefined && _isFalse(dryExplicit)) dry = false;
+  var batchId = body.batchId || p.batchId || null;
   var sheetName = String(p.sheet || body.sheet || PL_DB_SHEET);
   var MASTER_ID = '1oxPj0mzN8poP2vQ7Bm-YKXuU49p9b0c1asyrZn4Py44';
   var BASE_TAB = '工时_候选0824';
+
   if (!rows.length) return JSON.stringify({ ok: false, error: 'no rows provided' });
   if (rows.length > 2000) return JSON.stringify({ ok: false, error: 'too many rows: ' + rows.length });
-  // 结构化校验：每行必须带 row/uuid/keeperRow
+  if (sheetName !== PL_DB_SHEET) {
+    return JSON.stringify({ ok: false, error: 'sheet not allowed: ' + sheetName + ' (must be ' + PL_DB_SHEET + ')' });
+  }
+  // 结构化校验：字段白名单 + 合法值（fail-closed）
+  var seenTarget = {};
   for (var z = 0; z < rows.length; z++) {
     var zr = rows[z] || {};
-    if (zr.row == null || !zr.uuid) return JSON.stringify({ ok: false, error: 'row#' + z + ' missing row or uuid' });
+    var unknown = Object.keys(zr).filter(function (k) { return _SD_ROW_KEYS.indexOf(k) < 0; });
+    if (unknown.length) return JSON.stringify({ ok: false, error: 'row#' + z + ' unknown fields: ' + unknown.join(',') });
+    var zrow = Number(zr.row), zk = Number(zr.keeperRow);
+    if (!Number.isInteger(zrow) || zrow < 2) return JSON.stringify({ ok: false, error: 'row#' + z + ' bad row: ' + zr.row });
+    if (!Number.isInteger(zk) || zk < 2) return JSON.stringify({ ok: false, error: 'row#' + z + ' bad keeperRow: ' + zr.keeperRow });
+    if (!zr.uuid) return JSON.stringify({ ok: false, error: 'row#' + z + ' missing uuid' });
+    if (zr.row === zr.keeperRow) return JSON.stringify({ ok: false, error: 'row#' + z + ' row==keeperRow (self-reference)' });
+    if (zr.level !== 'A' && zr.level !== 'B') return JSON.stringify({ ok: false, error: 'row#' + z + ' bad level: ' + zr.level });
+    if (!zr.expectHash || !zr.keeperHash) return JSON.stringify({ ok: false, error: 'row#' + z + ' missing expectHash/keeperHash' });
+    if (zr.level === 'A' && !zr.expectBaseHash) return JSON.stringify({ ok: false, error: 'row#' + z + ' A-level missing expectBaseHash' });
+    if (zr.timeOnly != null && !_isTrue(zr.timeOnly) && !_isFalse(zr.timeOnly)) {
+      return JSON.stringify({ ok: false, error: 'row#' + z + ' bad timeOnly' });
+    }
+    if (seenTarget[zrow]) return JSON.stringify({ ok: false, error: 'duplicate target row: ' + zrow });
+    seenTarget[zrow] = true;
   }
+
+  var clearanceToken = body.clearance || p.clearance || null;
+  var clearanceOk = clearanceToken ? !!_sdIsClearance(clearanceToken) : false;
+
   try {
     var ss = SpreadsheetApp.openById(TS_ID);
     var sh = ss.getSheetByName(sheetName);
     if (!sh) return JSON.stringify({ ok: false, error: 'sheet not found: ' + sheetName });
     var mss = SpreadsheetApp.openById(MASTER_ID);
     var msh = mss.getSheetByName(BASE_TAB);
+    var masterMap = _sdBuildMasterMap(msh);
     var _lock = _plAcquire();
-    var results = [], patched = 0;
+    var results = [], patched = 0, anyFail = false;
     try {
       for (var i = 0; i < rows.length; i++) {
         var it = rows[i] || {};
         var row = Number(it.row), uuid = String(it.uuid || '');
-        var keeperRow = Number(it.keeperRow), expectBase = Number(it.expectBase || keeperRow);
-        var level = String(it.level || '');
-        var timeOnly = !!it.timeOnly;
+        var keeperRow = Number(it.keeperRow), level = String(it.level || '');
+        var timeOnly = _isTrue(it.timeOnly);
         try {
           var vals = sh.getRange(row, 1, 1, 15).getValues()[0];   // 锁内重读
+          if (!vals) { results.push({ row: row, ok: false, reason: 'ROW_NOT_FOUND' }); anyFail = true; continue; }
           var kVals = sh.getRange(keeperRow, 1, 1, 15).getValues()[0];
-          if (_sdNorm(vals[8]) !== uuid) { results.push({ row: row, ok: false, reason: 'UUID_DRIFT', actual: _sdNorm(vals[8]) }); continue; }
-          if (_sdSoftDel(vals[14])) { results.push({ row: row, ok: false, reason: 'ALREADY_SOFTDEL' }); continue; }
-          if (!kVals || _sdSoftDel(kVals[14])) { results.push({ row: row, ok: false, reason: 'KEEPER_INVALID' }); continue; }
+
+          if (_sdNorm(vals[8]) !== uuid) { results.push({ row: row, ok: false, reason: 'UUID_DRIFT', actual: _sdNorm(vals[8]) }); anyFail = true; continue; }
+          if (_sdSoftDel(vals[14])) { results.push({ row: row, ok: false, wrote: false, reason: 'ALREADY_SOFTDEL' }); anyFail = true; continue; }
+          if (!kVals || _sdSoftDel(kVals[14])) { results.push({ row: row, ok: false, reason: 'KEEPER_INVALID' }); anyFail = true; continue; }
+
+          // CAS 绑定到已审计原值：实时规范化 hash 必须与请求携带的预期 hash 一致
+          var liveHash = _sdNormHash(vals);
+          var liveKHash = _sdNormHash(kVals);
+          if (liveHash !== it.expectHash) { results.push({ row: row, ok: false, reason: 'TARGET_DRIFT', expect: it.expectHash, actual: liveHash }); anyFail = true; continue; }
+          if (liveKHash !== it.keeperHash) { results.push({ row: row, ok: false, reason: 'KEEPER_DRIFT', expect: it.keeperHash, actual: liveKHash }); anyFail = true; continue; }
+
           var diffs = [];
           for (var c = 0; c <= 13; c++) if (_sdNorm(vals[c]) !== _sdNorm(kVals[c])) diffs.push(c);
           var allowed = timeOnly && diffs.length > 0 && diffs.every(function (x) { return x === 0; });
-          if (diffs.length > 0 && !allowed) { results.push({ row: row, ok: false, reason: 'PAYLOAD_DIFF', cols: diffs }); continue; }
-          if (level === 'A') {
-            if (!msh) { results.push({ row: row, ok: false, reason: 'BASE_SHEET_MISSING' }); continue; }
-            var bVals = msh.getRange(expectBase, 1, 1, 15).getValues()[0];
-            if (!bVals || _sdNorm(bVals[8]) !== uuid) { results.push({ row: row, ok: false, reason: 'BASE_DRIFT', expectBase: expectBase, actual: bVals ? _sdNorm(bVals[8]) : null }); continue; }
+          if (diffs.length > 0 && !allowed) { results.push({ row: row, ok: false, reason: 'PAYLOAD_DIFF', cols: diffs }); anyFail = true; continue; }
+
+          // 期锁：锁内对目标行业务日期跑 _plGuardCheck；锁定期默认拒，除非独立授权 clearance
+          var bizDate = _sdNorm(vals[1]);
+          if (typeof _plGuardCheck === 'function') {
+            var g = _plGuardCheck(bizDate, null, _plPolicy());
+            if (!g.ok && !clearanceOk) { results.push({ row: row, ok: false, reason: 'PERIOD_LOCKED', date: bizDate, detail: g.reason || '' }); anyFail = true; continue; }
           }
+
+          // 等级与底稿核对（A：底稿恰 1 行且 hash/状态相符；B：底稿 0 行）
+          if (level === 'A') {
+            var mMatches = masterMap[uuid] || [];
+            if (mMatches.length !== 1) { results.push({ row: row, ok: false, reason: (mMatches.length === 0 ? 'BASE_NOT_FOUND' : 'BASE_NOT_UNIQUE'), count: mMatches.length }); anyFail = true; continue; }
+            var mHash = _sdNormHash(mMatches[0].cells);
+            if (mHash !== it.expectBaseHash) { results.push({ row: row, ok: false, reason: 'BASE_DRIFT', expect: it.expectBaseHash, actual: mHash }); anyFail = true; continue; }
+          } else {
+            var mB = masterMap[uuid] || [];
+            if (mB.length !== 0) { results.push({ row: row, ok: false, reason: 'BASE_HAS_MATCH', count: mB.length }); anyFail = true; continue; }
+          }
+
+          var wrote = false;
           if (!dry) {
             sh.getRange(row, 15).setValue('TRUE');
             SpreadsheetApp.flush();
             var after = sh.getRange(row, 15).getValue();   // 锁内回读确认
-            if (_sdNorm(after) !== 'TRUE') { results.push({ row: row, ok: false, reason: 'WRITE_NOT_CONFIRMED', actual: String(after) }); continue; }
+            if (_sdNorm(after) !== 'TRUE') { results.push({ row: row, ok: false, reason: 'WRITE_NOT_CONFIRMED', actual: String(after) }); anyFail = true; continue; }
+            wrote = true;
           }
-          results.push({ row: row, ok: true, wrote: !dry });
-          patched++;
+          results.push({ row: row, ok: true, wrote: wrote, level: level });
+          if (wrote) patched++;
         } catch (rerr) {
           results.push({ row: row, ok: false, reason: 'ROW_READ_FAIL', error: String(rerr && rerr.message || rerr) });
+          anyFail = true;
         }
       }
     } finally {
       try { _lock.releaseLock(); } catch (rl) {}
     }
-    return JSON.stringify({ ok: true, dry: dry, patched: patched, total: rows.length, results: results });
+    // 诚实上报：任一失败 → 批次 ok=false（不暗示原子回滚）
+    return JSON.stringify({ ok: !anyFail, batchId: batchId, dry: dry, patched: patched, total: rows.length, results: results });
   } catch (err) {
     return JSON.stringify({ ok: false, error: String(err && err.message || err), patched: 0 });
   }

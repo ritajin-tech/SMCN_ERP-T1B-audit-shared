@@ -1,0 +1,28 @@
+mock listening on 61870
+=== 场景A：端到端 happy path（真实执行器+真实运输层+真实核心，dry-run 默认）===
+  ✓ dry-run 退出 0
+  ✓ CAS 通过行数>0（"通过"在 stderr）
+  ✓ 输出含 action=softDelGuarded
+  ✓ 载荷携带 batchId + 每行 expectHash/keeperHash/expectBaseHash
+=== 场景B：端到端 APPLY（真实写，经真实运输层→真实核心→回读确认）===
+  ✓ apply 退出 0
+  ✓ apply 后该行 O=TRUE（独立回读确认）
+=== 场景C：已软标行（ALREADY_SOFTDEL 诚实返回 ok:false，非 ok:true）===
+  ✓ 已软标行被拒（O 仍 TRUE，且报"已被软标"）
+=== 场景D：分页完整性——生产表中间页失败→整批拒绝（Tom 点4）===
+  ✓ 生产表中间页失败→执行器 ABORT 且退出 1
+=== 场景E：分页完整性——末页截短→整批拒绝 ===
+  ✓ 末页截短→执行器 ABORT 且退出 1
+=== 场景F：分页完整性——lastRow 漂移→整批拒绝 ===
+  ✓ lastRow 漂移→执行器 ABORT 且退出 1
+=== 场景G：底稿漏页→整批拒绝（readAll 通用完整性，独立注入 master 失败页）===
+  ✓ 底稿中间页失败→执行器 ABORT 且退出 1
+=== 场景H：期锁（真实核心，无 clearance→PERIOD_LOCKED）===
+  ✓ 期锁生效→服务端 ok=false（不写，报 PERIOD_LOCKED）
+  ✓ 期锁拦截未写（O 仍非 TRUE）
+=== 场景I：响应丢失（写后丢响应）→ 登记不明、不盲重试；--status 回读确认已写 ===
+  ✓ 响应丢失→执行器 FAIL/登记不明（不盲重试）
+  ✓ 响应丢失期间核心仍真实写入 O=TRUE（副作用已发生，非幻觉）
+  ✓ --status 回读确认行6 已写（WROTE_OR_ALREADY_APPLIED）
+
+=== 忠实 harness 结果：16 通过 / 0 失败 ===

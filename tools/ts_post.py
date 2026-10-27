@@ -13,7 +13,8 @@
 import json, io, os, sys, urllib.parse, urllib.request, urllib.error
 
 HERE = os.path.dirname(os.path.abspath(__file__))
-CFG = os.path.join(HERE, '.ts_selfcheck.json')
+# 默认读脚本同目录的 .ts_selfcheck.json；隔离测试可用 TS_SELFCHECK 指向临时配置（默认不变）。
+CFG = os.environ.get('TS_SELFCHECK', os.path.join(HERE, '.ts_selfcheck.json'))
 
 # [A2] 清理期止血开关 —— 生产表 NO-GO 期间冻结一切写入动作。
 # 默认冻结（不设环境变量即冻结）。确需写入须由 Rita 明确解除：
@@ -84,13 +85,13 @@ def main():
         payload = {'action': action, 'token': token}
         if action == 'appendRows':
             rows = data.get('rows', [])
-            print('待写入行数: %d' % len(rows))
+            sys.stderr.write('待写入行数: %d\n' % len(rows))
             payload['rows'] = rows
             for k in ('force', 'sheet'):
                 if k in data: payload[k] = data[k]
         elif action == 'patchCells':
             cells = data.get('cells', [])
-            print('待修改格数: %d' % len(cells))
+            sys.stderr.write('待修改格数: %d\n' % len(cells))
             payload['cells'] = cells
             if 'sheet' in data: payload['sheet'] = data['sheet']
         else:
@@ -98,13 +99,15 @@ def main():
         if dry:
             payload['dry'] = '1'
 
-    print('POST %s  action=%s dry=%s' % (url.split('/macros/')[0] + '/macros/...', action, dry))
+    sys.stderr.write('POST %s  action=%s dry=%s\n' % (url.split('/macros/')[0] + '/macros/...', action, dry))
     res = post(url, payload)
     try:
+        if isinstance(res, dict):
+            res.setdefault('_env', 'ts_post/1')   # 版本化信封：stdout 仅此一个 JSON，诊断全走 stderr
         out = json.dumps(res, ensure_ascii=False, indent=2)
     except Exception:
-        out = json.dumps({'raw': str(res)[:4000]}, ensure_ascii=False)
-    print(out)   # 完整输出（不截断），供调用方严格解析；此前 [:2000] 会漏报大批次失败（Tom 阻断2）
+        out = json.dumps({'raw': str(res)[:4000], '_env': 'ts_post/1'}, ensure_ascii=False)
+    sys.stdout.write(out)   # stdout 仅 JSON 信封，供调用方严格解析；诊断一律走 stderr（Tom 点1）
     try:
         rf = os.path.join(HERE, '_tmp', 'ts_post_last_response.json')
         os.makedirs(os.path.dirname(rf), exist_ok=True)

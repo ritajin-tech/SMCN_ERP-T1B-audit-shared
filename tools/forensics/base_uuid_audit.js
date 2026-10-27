@@ -61,15 +61,35 @@ const contentKey = (nm, proj, hrs, dt, note) =>
   [nm, String(proj || '').toLowerCase(), String(hrs || ''), dt, String(note || '')].join('\u0002');
 const softDel = r => (r[14] === true || String(r[14] || '').toUpperCase() === 'TRUE');
 
+// CAS 绑定用：与 ts_softdel_core.js / GAS _sdNorm 完全一致的规范化与 hash。
+// 数值字符串规范化（"8.0"→"8"），与 GAS 原生数值对齐；hash 取 2..13 列（排除日期列 0/1）。
+const _sdNorm = v => {
+  if (v === undefined || v === null) return '';
+  if (typeof v === 'number') return String(v);
+  if (typeof v === 'boolean') return v ? 'true' : 'false';
+  var s = String(v).trim();
+  if (/^-?\d+(\.\d+)?$/.test(s)) return String(Number(s));
+  return s;
+};
+function _sdNormHash(cells) {
+  var s = '';
+  for (var c = 2; c <= 13; c++) s += '\x1f' + _sdNorm(cells ? cells[c] : '');
+  var h = 5381;
+  for (var i = 0; i < s.length; i++) h = ((h << 5) + h + s.charCodeAt(i)) >>> 0;
+  return 'h' + h.toString(16);
+}
+
 (async () => {
   // ---- 底稿侧 ----
-  const base = await readAll(MASTER_ID, BASE_TAB, 'K');
+  const base = await readAll(MASTER_ID, BASE_TAB, 'O');
   const bRow = base.rows.slice(1);
   const baseUuidCount = {}, baseUuidRows = {};
+  const baseByRow = {};
   const baseKeyCount = {};
   let bNoUuid = 0;
   for (const r of bRow) {
     const c = r.cells;
+    baseByRow[r.row] = c;
     const u = norm(c[8]);
     if (u) { baseUuidCount[u] = (baseUuidCount[u] || 0) + 1; (baseUuidRows[u] = baseUuidRows[u] || []).push(r.row); }
     else bNoUuid++;
@@ -101,9 +121,26 @@ const softDel = r => (r[14] === true || String(r[14] || '').toUpperCase() === 'T
     if (rows.length >= 2 || (rows.length === 1 && b >= 2)) {
       dupGroups++;
       const liveH = +live.reduce((s, x) => s + x.hours, 0).toFixed(1);
+      // 逐冗余行 CAS 绑定 hash（绑定到本次冻结审计快照，执行时服务端锁内重读实时值比对）
+      const targets = [];
+      if (live.length >= 2) {
+        const keeper = live[0];
+        const baseRowNums = baseUuidRows[u] || [];
+        for (let k = 1; k < live.length; k++) {
+          const trow = live[k];
+          targets.push({
+            row: trow.row,
+            keeperRow: keeper.row,
+            targetHash: _sdNormHash(trow.cells),
+            keeperHash: _sdNormHash(keeper.cells),
+            baseHash: (b === 1 && baseRowNums[0] != null) ? _sdNormHash(baseByRow[baseRowNums[0]]) : undefined
+          });
+        }
+      }
       const rec = { uuid: u, prodRows: rows.length, prodLive: live.length, prodLiveHours: liveH,
                     baseRows: b, baseRowNums: (baseUuidRows[u] || []).slice(0, 5),
                     prodRowNums: rows.map(x => x.row).slice(0, 5),
+                    targets: targets,
                     month: malBizDate(rows[0].cells[1]).slice(0, 7) };
       if (b === 0) verdict.notInBase.push(rec);
       else if (b === 1 && live.length >= 2) verdict.safe.push(rec);          // 底稿 1 份，生产 ≥2 份 → 软标多余份安全
