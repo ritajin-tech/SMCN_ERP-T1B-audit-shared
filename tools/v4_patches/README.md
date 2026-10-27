@@ -41,58 +41,47 @@
 基线 + 7 补丁 → diff 与 full/ 三文件：0 差异（逐字节一致）
 ```
 
-## 隔离测试（行为证据，回应 Tom 第1/2/3/4/5条）
+## 隔离测试（行为证据，回应 Tom 第1/2/3/4/5/6/7条）
 
-### 测试台一：`tools/patch_harness.js`（GAS 补丁链单元行为）
-GAS 补丁链单元行为（去重/锁序/幂等/护栏/CAS/挂起行可见/A1d 服务端 CAS）：**T1–T14 → 14/14 通过**。
-证据存档：`evidence/patch_harness_20261027.txt`（另 `_tmp/evidence/` 亦存）。
+| 测试台 | 覆盖 | 结果 |
+|---|---|---|
+| `tools/patch_harness.js` | GAS 补丁链单元行为（去重/锁序/幂等/护栏/CAS/挂起行可见/A1d 服务端 CAS）：T1–T14 | **14/14 通过** |
+| `tools/ts_softdel_gas_harness.js` | **隔离 GAS 适配器**：用 vm 沙箱 + 忠实 GAS shim 加载【生成器产出的真实交付文件 `full/ts_softdel_gas_embedded.js`】，与 Node 核心对【同一份内存表】跑相同输入，比对 Date/字符串/前导零/布尔/审计指纹/期锁/响应（G0 + S1–S19） | **20/20 通过**（GAS ≡ Node 行为等价，由规范源生成、适配器隔离证明） |
+| `tools/ts_softdel_harness.js` | 真实执行器 `ts_softdel.js`（运输层+ts_post 被 mock，mock 忠实实现 A1d 服务端 CAS）逐场景：A–I + J–S + Core-Unit + Tom 7 项负例 | **36/0 失败** |
 
-### 测试台二：`tools/ts_softdel_harness.js`（**忠实隔离 harness，36/0**）
-**真实** `ts_softdel.js` 执行器 + **真实** `ts_post.py` 运输层，经 `127.0.0.1` 隔离端点，服务端用**真实** `ts_softdel_core.js` 业务核心；mock 仅替换存储/锁/网络。不加载任何生产地址/密钥。
-> 本 harness **取代**此前 commit `f43f910` 的 expanded `ts_softdel_harness`（旧版因 mock 装配缺陷未能真实证明核心）；旧版 `patch_harness.js`（T14 14/14）保留作 GAS 补丁链单元证据。
+> **GAS ≡ Node 等价证据（回应 Tom #1/#2）**：`gen_gas_softdel.py` 从单一可信源（`ts_softdel_core.js` + `ts_softdel_norm.js` + `period_lock_port.js`）逐字内联生成 `full/ts_softdel_gas_embedded.js`，业务逻辑与 Node 模块文本一致；`ts_softdel_gas_harness.js` 进一步用隔离适配器加载**真实交付文件**在 GAS shim 下运行，与 Node 核心跑同一组种子，20/20 逐项比对一致（含真实 SHA-256 跨环境逐字节一致）。**等价已由两套独立 harness 证明**，非单点声称。
 
-结果：**36 通过 / 0 失败**（场景 A–I + J–S + Core-Unit 8 项类型闭合 + Tom 7 项负例）。证据存档：`evidence/ts_softdel_harness_20261027.txt`。
+> **逐字性可复现校验（回应 Tom #1「源码/生成物/输出错配」）**：`tools/verify_gas_single_source.py` 断言「核心/规范化/期锁三个规范源文件，去掉 `'use strict'` 与 `module.exports` 包装后的正文」是生成物的**连续子串**，并连跑两次生成器断言输出 SHA-256 不变。运行时每件源码哈希与结论一并归档为证据，避免"固定提交里规范源与生成物不是同一版"再次发生。
 
-忠实 harness 场景 ↔ Tom 复审规格映射：
+> **v3 过度主张的更正**：v3 曾把 `acquireMasterLock` 描述为「跨项目写协调」。按 Google 官方说明，`LockService.getScriptLock()` **仅作用于脚本**（同一脚本项目内的并发执行），不提供跨项目/跨文档互斥。v4 已在代码注释与本文档如实更正，**不再声称**跨项目写协调。
+
+
+`ts_softdel_harness` 场景 ↔ Tom 10 场景规格映射：
 
 | Tom 规格 | 场景 | 行为证据 |
 |---|---|---|
-| 端到端 happy path（默认 dry-run 失败封闭） | A | 退出 0；载荷携带 batchId + 每行 expectHash/keeperHash/expectBaseHash |
-| 真实写 + 独立回读确认（闭环点1/3） | B | apply 退出 0；apply 后该行 O=TRUE（**独立回读确认**） |
-| 已软标行诚实拒（不虚构 ok:true） | C | ALREADY_SOFTDEL，O 仍 TRUE |
-| 分页完整性·生产表中间页失败（点4） | D | 整批 ABORT 且退出 1 |
-| 分页完整性·末页截短 | E | 整批 ABORT 且退出 1 |
-| 分页完整性·lastRow 漂移 | F | 整批 ABORT 且退出 1 |
-| 分页完整性·底稿漏页 | G | 整批 ABORT 且退出 1 |
-| 期锁拦截（无 clearance） | H | PERIOD_LOCKED，ok=false，O 仍非 TRUE |
-| 响应丢失+副作用已发生+状态回读（点2/3） | I | FAIL/登记不明、不盲重试；核心仍真实写入 O=TRUE；`--status` 回读确认 WROTE_OR_ALREADY_APPLIED |
-| 主库锁内读取/缺页→整批拒（点1 服务端守卫） | J | BASE_READ_INCOMPLETE，整批拒且未写 |
-| 缺期锁依赖→整批拒（点3） | K | PERIOD_DEP_MISSING，整批拒且未写 |
-| 客户端预筛拦截异负载（与核心 TARGET_DRIFT 互补） | L | 端到端：异负载行被预筛拒（0 写入，未误写） |
-| 跨页版本变更/读期间漂移→整批拒（点7） | M | re-probe 变化→ABORT 且退出 1 |
-| 缺 batchId / dry 响应 / 状态读失败（点4/#5） | N1/N2/N3 | 缺 batchId 拒；dry 响应拒（不得计为已写）；响应丢失+状态读失败→`--status` 留 UNKNOWN 不自动重试 |
-| 缺 master 表 B 级（点1 服务端守卫，单独列示 B 级） | O | BASE_READ_INCOMPLETE，B 级整批拒（不再误判底稿0行放行） |
-| null 参数（rows 非数组）→ 直接拒（点6 经运输层） | P | 服务端拒绝 |
-| APPLY 严格响应契约正向（version/ok/wrote 布尔） | Q | 退出 0；响应含 version=ts_softdel_core/2 且模式 APPLY |
-| 参数/keeper 类型闭合（点6，Core-Unit 8 项） | CU | 自指混合类型/null dry/非数组/未知字段/依赖冲突/缺期锁/主库不完整/drift 均拒 |
-| 跨环境一致性（GAS 内联副本 == Node 模块） | S | SHA-256 固定向量全部命中 |
+| 同UUID同负载恰一次 | S1 | ok+全写+回读 TRUE → 退出 0 |
+| 写成功响应丢失可查批次、不盲重试 | S2 | 空响应 → 登记不明、退出 1、零覆盖 |
+| 服务端 ok=false | S3 | 登记不明、退出 1、零覆盖 |
+| 部分写入 | S4 | wrote≠batch → 登记不明、退出 1、零覆盖 |
+| 读快照缺页拒绝 | S5/S7 | 底稿/生产表读失败 → 整批拒绝、不盲写（防自动降级） |
+| A级变B级拒绝 | S5b | A级预期但底稿缺该UUID(bc=0) → 拒绝且绝不降级 |
+| 每批回读O列不符 | S6 | 声称写成功但回读 FALSE → 登记不明、退出 1 |
+| 异负载CONFLICT零覆盖 | S8 | 锁内重读发现目标≠keeper → CONFLICT、零覆盖 |
+| 锁忙零写 | S9 | 锁占用 → ok=false、零写入、退出 1 |
+| keeper/行号变化拒绝 | S10 | 锁内重读 keeper 失效 → KEEPER_INVALID、零覆盖 |
+| 关账拒绝+合法新行+幂等重试 | S11 | 期内行 PERIOD_LOCKED 拒；期外合法新行放行；重放开行后已写行幂等跳过、补齐、不双写 |
+| 批中断+flush失败 | S12 | 写1行后崩溃 → 中止；重跑已写行幂等跳过、其余补齐、不双写 |
 
-证据存档：`evidence/ts_softdel_harness_20261027.txt`。
+证据存档：`_tmp/evidence/patch_harness_20261027.txt`、`_tmp/evidence/ts_softdel_harness_20261028.txt`、`_tmp/evidence/gas_adapter_harness_20261028.txt`、`evidence/gas_adapter_harness_v4_20261027.txt`、`evidence/gen_single_source_20261027.txt`。
 
-## 本 commit（在 `f43f910` 之上）新增/变更交付物
+**A1d-v4 入口绑定（回应 Tom #2「真实入口仍未绑定」）**：旧 A1d patch（`bc636ced8f3e`）**已废弃**——它在 `RemoteActions.js` 里新增的 `tsSoftDelGuarded` 是另一份旧实现（旧 djb2 指纹、无日志、无请求身份）。v4 改为：
 
-| 文件 | 状态 | 说明 |
-|---|---|---|
-| `tools/ts_softdel_core.js` | **新增** | 软标【真实服务端业务核心】，单一可信源：GAS `tsSoftDelGuarded` 与 Node 隔离 harness 共用同一套 `_sdNorm/_sdNormHash/CAS/期锁/fail-closed` 逻辑，仅经 deps 注入存储/锁/网络。 |
-| `tools/ts_softdel.js` | 变更 | 软标执行器：分页完整性（任一页失败/截短/lastRow 漂移→ABORT 退出1）、结构化三级 hash 载荷、批量严格响应校验（batchId+逐行一一对应+ok=false 拒+独立 rereadO 后验）、防降级（safe→A / notInBase→B）。 |
-| `tools/ts_post.py` | 变更 | 写入端运输层：`TS_WRITE_FREEZE` 默认冻结；GAS 302→GET 取回响应体；stdout 仅 JSON 信封、诊断走 stderr。 |
-| `tools/ts_softdel_harness.js` | **替换** | 忠实隔离 harness（36/0），取代旧 expanded harness（旧版 mock 装配缺陷已修正）。 |
-| `tools/ts_softdel_verify.js` | **新增** | 执行后只读复核器：O 全 TRUE / keeper 零误伤 / 主库底稿零变化。 |
-| `tools/forensics/base_uuid_audit.js` | 变更 | 底稿侧取证：发 per-row 三级 hash（与核心一致），供执行器绑定审计原值。 |
-| `docs/T1-B_复审交付说明_20261027.md` | **新增** | 本次复审交付说明：实际调用链 + 契约 + 完整性 + 真实核心隔离证据 + 分层对账 + 逐项回应 Tom 6 点。 |
-| `evidence/ts_softdel_harness_20261027.txt` | 新增 | 忠实 harness 36/0 原始输出。 |
-
-> 注：`patch_harness.js`（T14 14/14）、`pseudonymize_evidence.py`、`v4_genpatches.py` 已于先前 commit 入库，本次随镜像保持一致。
+| 产物 | 作用 |
+|---|---|
+| `full/apply_a1d_v4_entry.py` | 删除旧 `tsSoftDelGuarded` 及其全部旧助手（`_sdNormHash`/`_sdBuildMasterMap`/`_sdIsClearance`/`_sdSoftDel`/`_sdNorm`/`_isTrue`/`_isFalse`/`_SD_ROW_KEYS`），再追加生成物 |
+| `full/RemoteActions.A1d_v4_FINAL_entry_bound.js` | 最终文件（全局**唯一** `tsSoftDelGuarded` 定义） |
+| `full/A1d_v4_入口绑定_静态映射.md` | 原链路 → 新核心 的逐项静态映射（带最终文件行号）+ doPost 装配说明 + 可证明/不可证明边界 |
 
 ## 应用方式
 
@@ -106,7 +95,9 @@ git -c core.autocrlf=false apply A0_PeriodLockGuard_cleanupGuard.patch
 git -c core.autocrlf=false apply A1_RemoteActions_tsAppendRows.patch
 git -c core.autocrlf=false apply A1b_RemoteActions_tsPatchCells.patch
 git -c core.autocrlf=false apply A0d_RemoteActions_dupReport_deny.patch
-git -c core.autocrlf=false apply A1d_RemoteActions_tsSoftDelGuarded.patch
+# A1d：**不要用** A1d_RemoteActions_tsSoftDelGuarded.patch（旧实现，已废弃）
+#      改用 v4 入口绑定脚本：先删旧 tsSoftDelGuarded 及旧助手，再追加生成物
+python full/apply_a1d_v4_entry.py     # 产出 full/RemoteActions.A1d_v4_FINAL_entry_bound.js
 # masterAttendanceLive.js：
 git -c core.autocrlf=false apply A7_masterAttendanceLive_orphanVisible.patch
 node --check PeriodLockGuard.js && node --check RemoteActions.js && node --check masterAttendanceLive.js

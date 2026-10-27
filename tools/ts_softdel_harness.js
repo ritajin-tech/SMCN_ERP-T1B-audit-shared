@@ -356,7 +356,7 @@ server.listen(0, '127.0.0.1', async () => {
   let r = await runExecutor(['--audit-safe', '--emit', path.join(os.tmpdir(), 'ts_iso_payload.json')]);
   check('dry-run 退出 0', r.code === 0, { code: r.code, err: r.stderr.slice(-300) });
   check('CAS 通过行数>0（"通过"在 stderr）', /通过/.test(r.stderr), r.stderr.slice(-200));
-  check('输出含 version=ts_softdel_core/2', (r.stdout + r.stderr).includes('ts_softdel_core/2'), r.stdout.slice(0, 200));
+  check('输出含 version=ts_softdel_core/4', (r.stdout + r.stderr).includes('ts_softdel_core/4'), r.stdout.slice(0, 200));
   let payload = null;
   try { payload = JSON.parse(fs.readFileSync(path.join(os.tmpdir(), 'ts_iso_payload.json'), 'utf8')); } catch (e) {}
   check('载荷携带 jobId + 每行 expectHash/keeperHash/expectBaseHash(SHA-256)', payload && payload.jobId && payload.rows[0] && /^sha256:/.test(payload.rows[0].expectHash) && /^sha256:/.test(payload.rows[0].keeperHash) && /^sha256:/.test(payload.rows[0].expectBaseHash), payload && payload.rows && payload.rows[0]);
@@ -481,7 +481,7 @@ server.listen(0, '127.0.0.1', async () => {
   prodRows[22][14] = false;
   r = await runExecutor(['--rows', '22', '--apply']);
   try { fs.appendFileSync(path.join(os.tmpdir(),'hb.log'), 'SCEN-Q-resolve code=' + r.code + '\n'); } catch (e) {}
-  check('Q APPLY 退出 0 且响应含 version=ts_softdel_core/2 且模式 APPLY', r.code === 0 && /ts_softdel_core\/2/.test(r.stdout + r.stderr) && /"mode": "APPLY"/.test(r.stdout), { code: r.code, out: r.stdout.slice(-300) });
+  check('Q APPLY 退出 0 且响应含 version=ts_softdel_core/4 且模式 APPLY', r.code === 0 && /ts_softdel_core\/4/.test(r.stdout + r.stderr) && /"mode": "APPLY"/.test(r.stdout), { code: r.code, out: r.stdout.slice(-300) });
   check('Q APPLY 后行22 O=TRUE', _sdNorm(prodRows[22][14]) === 'TRUE', prodRows[22][14]);
 
   if (process.env.HARNESS_STOP_AFTER === 'Q') { console.log('[STOP_AFTER=Q] 提前退出'); server.close(); process.exit(fail ? 1 : 0); }

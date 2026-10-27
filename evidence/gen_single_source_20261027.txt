@@ -1,0 +1,21 @@
+=== GAS 单源可复现校验（回应 Tom #1）===
+生成物：v4_patches\full\ts_softdel_gas_embedded.js  SHA-256=a1ec5e2cbea5d562a53b11f65fffe678a06d56d47f08c405d1cee65cd031d968
+
+--- 断言1：规范源正文必须是生成物的连续子串（逐字内联）---
+  ts_softdel_core.js   正文长度= 25394  连续子串命中=YES  SHA-256=ae62c0345ef357f7…  git-blob=962acca50039
+  ts_softdel_norm.js   正文长度=  5705  连续子串命中=YES  SHA-256=1b5cbdfc4484125f…  git-blob=6ee700b8a148
+  period_lock_port.js  正文长度=  3443  连续子串命中=YES  SHA-256=bb59178da5ebc640…  git-blob=c474f8d7d9c4
+
+--- 断言2：连跑两次生成器，产出 SHA-256 必须相同 ---
+  生成器退出码：0 / 0
+  第0次(现有)=a1ec5e2cbea5d562a53b11f65fffe678a06d56d47f08c405d1cee65cd031d968
+  第1次       =a1ec5e2cbea5d562a53b11f65fffe678a06d56d47f08c405d1cee65cd031d968
+  第2次       =a1ec5e2cbea5d562a53b11f65fffe678a06d56d47f08c405d1cee65cd031d968
+  三次一致=YES
+
+--- 断言3：生成物 VERSION 必须与规范源 ts_softdel_core.js 一致 ---
+  规范源 VERSION = ts_softdel_core/4
+  生成物 VERSION = ts_softdel_core/4
+  一致=YES
+
+=== 结论：全部断言通过 ===

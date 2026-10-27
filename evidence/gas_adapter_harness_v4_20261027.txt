@@ -1,0 +1,48 @@
+=== 隔离 GAS 适配器 harness（跨环境等价证明）===
+GAS 生成物：D:\AI_DATA\WorkBuddy\SMCN_ERP\tools\v4_patches\full\ts_softdel_gas_embedded.js
+
+GAS 生成物加载成功（已定义 tsSoftDelGuarded 等全局）
+
+[PASS] G0  norm 跨环境自检：GAS 与 Node 的 4 个固定 SHA-256 向量一致
+       4 向量全一致（含前导零 V2 / 业务日期 V3 / timeOnly V4）
+[PASS] S1  dry 有效 A 级对 → 双方 ok:true, wrote:false
+       一致（ok=true patched=0 results=1） ＋ 预期值断言通过
+[PASS] S2  真实写入 → 双方 patched:1, O 列= TRUE
+       一致（ok=true patched=1 results=1） ＋ 预期值断言通过
+[PASS] S3  目标已软标 → 双方 ALREADY_SOFTDEL
+       一致（ok=false patched=0 results=1） ＋ 预期值断言通过
+[PASS] S4  目标 UUID 被改 → 双方 UUID_DRIFT
+       一致（ok=false patched=0 results=1） ＋ 预期值断言通过
+[PASS] S5  负载列真实不同 → 双方 PAYLOAD_DIFF
+       一致（ok=false patched=0 results=1） ＋ 预期值断言通过
+[PASS] S6  前导零 "007" 一致 → 双方通过（类型保全）
+       一致（ok=true patched=0 results=1） ＋ 预期值断言通过
+[PASS] S7  timeOnly 对 → 双方通过
+       一致（ok=true patched=0 results=1） ＋ 预期值断言通过
+[PASS] S8  业务日期 < cut-off → 双方 PERIOD_LOCKED
+       一致（ok=false patched=0 results=1） ＋ 预期值断言通过
+[PASS] S9  底稿哈希不符 → 双方 BASE_DRIFT
+       一致（ok=false patched=0 results=1） ＋ 预期值断言通过
+[PASS] S10  业务日期 Date 类型（GAS 原生）→ 通过
+       一致（ok=true patched=0 results=1） ＋ 预期值断言通过
+[PASS] S11  锁被占用 → 双方 LOCK_BUSY（fail-closed，不写）
+       GAS ok=false error=MASTER_LOCK_BUSY；Node ok=false error=MASTER_LOCK_BUSY；锁占用期间 GAS 写入次数=0（须 0）
+[PASS] S12  锁释放后 → 同一请求成功（O=TRUE），证明锁确实被释放
+       ok=true patched=1 O[3]=TRUE（释放后写入成功）
+[PASS] S13  共享 store 双执行者交错：第一锁成功/第二锁失败 → 第一锁必须被释放（Tom #3）
+       ok=false error=LOCK_BUSY；第一锁释放=1（须 1）；第二锁释放=0（须 0，未取得）
+[PASS] S14  锁获取失败不留悬挂锁：GAS 侧 released≥acquired 且未持锁（Tom #3）
+       ok=false error=MASTER_LOCK_BUSY；acquired=0 released=0 lockHeld=false（须 released>=acquired）
+[PASS] S15  dry 不写业务恢复日志（Tom #4）：GAS 与 Node 的 journal 条数均为 0
+       Node ok=true 日志=0（须 0）；GAS ok=true 日志=0（须 0）
+[PASS] S16  幂等命中但实时 O 已非 TRUE → 不得声称 wrote:true（Tom #4）
+       首次 ok=true patched=1；二次 reason=IDEMPOTENT_O_DRIFT wrote=false（须 IDEMPOTENT_O_DRIFT 且 wrote≠true）
+[PASS] S17  同键不同 requestHash 的 REJECTED 不覆盖原 COMMITTED 凭据（Tom #4）
+       首次 ok=true；二次 reason=KEY_REUSE_CONFLICT；原 COMMITTED 凭据仍在=true（日志共 3 条）
+[PASS] S18  状态查询身份绑定：requestHash 不符 → UNKNOWN；相符且 O=TRUE → COMMITTED（Tom #5）
+       错 hash → state=UNKNOWN identity=REQUEST_HASH_MISMATCH；对 hash → state=COMMITTED identity=BOUND
+[PASS] S19  statusQuery 经同一受控入口抵达核心（Tom #2）：GAS tsSoftDelGuarded(action=statusQuery)
+       写入 ok=true；statusQuery action=statusQuery state=COMMITTED identity=BOUND
+
+=== 汇总 ===
+20/20 通过

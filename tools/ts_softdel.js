@@ -36,7 +36,18 @@ const MASTER_ID = '1oxPj0mzN8poP2vQ7Bm-YKXuU49p9b0c1asyrZn4Py44';
 const BASE_TAB = '工时_候选0824';
 
 const _sdNorm = norm._sdNorm;
+const _sdSha256 = norm._sdSha256;
+const _sdCellTok = norm._sdCellTok;
 const softDel = r => (r[14] === true || String(r[14] || '').toUpperCase() === 'TRUE');
+const _cellHash = v => _sdSha256(JSON.stringify(_sdCellTok(v)));
+
+// 请求身份指纹：直接复用服务端核心导出的同一函数（单一可信源），
+// 不再在客户端另写一份 —— 否则键序/类型/undefined 省略规则任一不一致，
+// --status 的身份绑定就会永久失配并退化为 UNKNOWN。
+const requestHashOf = require('./ts_softdel_core.js')._requestHashOf;
+// 期望的服务端版本【从核心导出读取】，不再在客户端硬编码版本字符串 ——
+// 这正是 Tom #1 抓到的「规范源与生成物版本错配」的成因，改成单一可信源后不可能再错配。
+const CORE_VERSION = require('./ts_softdel_core.js').VERSION;
 
 // ---- 只读通道（hktool）----
 function call(pl) {
@@ -129,7 +140,20 @@ function loadJobId() { try { return JSON.parse(fs.readFileSync(jobIdFile(), 'utf
   if (o.status && o.status.length) {
     process.stderr.write('[STATUS] 批次日志查询（服务端 journal + 独立 O 回读）...\n');
     const jobId = o.jobId || loadJobId();
-    const statusPayload = { action: 'statusQuery', jobId: jobId, rows: o.status.map(r => ({ row: r })) };
+    // Tom #5：状态查询必须携带原请求身份（requestHash/uuid），否则服务端无从逐项绑定，
+    // 客户端也不能据服务端自称的 COMMITTED 下结论。
+    const mfFile = path.join(__dirname, '..', '_tmp', 'ts_softdel_manifest_' + jobId + '.json');
+    let manifest = null;
+    try { manifest = JSON.parse(fs.readFileSync(mfFile, 'utf8')); } catch (e) { manifest = null; }
+    if (!manifest) {
+      process.stderr.write('[STATUS] 未找到原请求清单 ' + mfFile + ' → 无法逐项绑定身份，全部登记 UNKNOWN，不盲判\n');
+    }
+    const idOf = {};
+    if (manifest && Array.isArray(manifest.rows)) {
+      manifest.rows.forEach(r => { idOf[r.row] = { requestHash: r.requestHash, uuid: r.uuid }; });
+    }
+    const statusPayload = { action: 'statusQuery', jobId: jobId,
+      rows: o.status.map(r => ({ row: r, requestHash: idOf[r] ? idOf[r].requestHash : null, uuid: idOf[r] ? idOf[r].uuid : null })) };
     const spf = path.join(__dirname, '..', '_tmp', 'ts_status_query.json');
     fs.writeFileSync(spf, JSON.stringify(statusPayload), 'utf8');
     const qenv = Object.assign({}, process.env, { TS_WEBAPP_OVERRIDE: WEBAPP, TS_POST_BIN, TS_WRITE_FREEZE: '0' });
@@ -144,16 +168,27 @@ function loadJobId() { try { return JSON.parse(fs.readFileSync(jobIdFile(), 'utf
     const reread = await rereadO(o.status);
     const out = o.status.map(r => {
       const jr = journalRows.find(x => x.itemId === r);
-      const oTrue = (reread[r] === true || reread[r] === 'true' || reread[r] === 'TRUE');
+      const oVal = reread[r];
+      const oTrue = (oVal === true || String(oVal || '').toUpperCase() === 'TRUE');
+      const bound = !!(idOf[r] && idOf[r].requestHash);
       let state;
-      if (!jr) {
+      if (!bound) {
+        // 无法绑身份 → 一律 UNKNOWN（绝不据服务端自称的 COMMITTED 下结论）
+        state = 'UNKNOWN';
+      } else if (!jr) {
         // 无日志：O=TRUE 但来源不明（可能是历史软标/他请求），不能断言本请求完成
         state = oTrue ? 'O_TRUE_SOURCE_UNKNOWN' : 'UNKNOWN';
-      } else if (jr.state === 'COMMITTED') state = 'COMMITTED';
-      else if (jr.state === 'REJECTED') state = 'REJECTED';
+      } else if (jr.identity && jr.identity !== 'BOUND') {
+        // 服务端判定身份不符（requestHash/subBatch/uuid 任一不匹配）
+        state = 'UNKNOWN';
+      } else if (jr.state === 'COMMITTED') {
+        // Tom #5：独立 O 回读不符 → 不得返回 COMMITTED
+        state = oTrue ? 'COMMITTED' : 'UNKNOWN';
+      } else if (jr.state === 'REJECTED') state = 'REJECTED';
       else if (jr.state === 'UNKNOWN') state = 'UNKNOWN';
       else state = jr.state;
-      return { row: r, state, journalState: jr ? jr.state : null, oValue: reread[r] };
+      return { row: r, state, journalState: jr ? jr.state : null,
+        identity: jr ? jr.identity : (bound ? 'NO_JOURNAL' : 'MANIFEST_MISSING'), oValue: oVal };
     });
     process.stdout.write(JSON.stringify({ action: 'statusQuery', jobId, rows: out }, null, 2));
     return;
@@ -246,6 +281,8 @@ function loadJobId() { try { return JSON.parse(fs.readFileSync(jobIdFile(), 'utf
     else {
       pass.push({ ...t, hours: parseFloat(_sdNorm(dup[6])) || 0,
                   bizDate: new Date(new Date(_sdNorm(dup[1])).getTime() + 8 * 3600e3).toISOString().slice(0, 10),
+                  // Tom #5：timeOnly 下录入时间虽排除出行哈希，但仍须【分别绑定】双方录入时间
+                  expectEntryTime: _cellHash(dup[0]), keeperEntryTime: _cellHash(keep[0]),
                   level: t.fromSafe ? 'A' : 'B' });
     }
   }
@@ -260,18 +297,40 @@ function loadJobId() { try { return JSON.parse(fs.readFileSync(jobIdFile(), 'utf
   const jobId = 'J' + Date.now().toString(36) + Math.random().toString(36).slice(2, 8);
   const payload = {
     jobId, batchId: jobId,
-    rows: pass.map(p => ({
-      row: p.row, uuid: p.uuid, keeperRow: p.keeperRow, level: p.level, timeOnly: o.timeOnly,
-      expectHash: p.expectHash, keeperHash: p.keeperHash, expectBaseHash: p.expectBaseHash
-    }))
+    rows: pass.map(p => {
+      const r = {
+        row: p.row, uuid: p.uuid, keeperRow: p.keeperRow, level: p.level, timeOnly: o.timeOnly,
+        expectHash: p.expectHash, keeperHash: p.keeperHash, expectBaseHash: p.expectBaseHash
+      };
+      // Tom #5：timeOnly 时必须把双方录入时间绑定进载荷；否则服务端会因
+      // 缺 expectEntryTime/keeperEntryTime 而整批拒绝（_validateInput 硬性要求）。
+      if (o.timeOnly === true) {
+        r.expectEntryTime = p.expectEntryTime;
+        r.keeperEntryTime = p.keeperEntryTime;
+      }
+      return r;
+    })
   };
+  // Tom #5：原请求清单持久化 —— 不落盘则 --status 无从比对 requestHash，身份绑定会永久退化。
+  // 此处尚未发生任何写入，落盘失败即可安全中止。
+  const manifestRows = payload.rows.map(r => Object.assign({}, r, { requestHash: requestHashOf(r) }));
+  const manifestFile = path.join(__dirname, '..', '_tmp', 'ts_softdel_manifest_' + jobId + '.json');
+  try {
+    fs.mkdirSync(path.dirname(manifestFile), { recursive: true });
+    fs.writeFileSync(manifestFile, JSON.stringify({ jobId, batchId: jobId, timeOnly: o.timeOnly, rows: manifestRows }, null, 2), 'utf8');
+    process.stderr.write('[MANIFEST] 原请求清单已写入 ' + manifestFile + '\n');
+  } catch (me) {
+    process.stderr.write('[ABORT] 原请求清单落盘失败（无法做身份绑定，拒绝盲写）：' + (me && me.message) + '\n');
+    process.exit(1);
+  }
+
   const out = {
     meta: {
       generatedAtBJT: new Date(Date.now() + 8 * 3600e3).toISOString().replace('T', ' ').slice(0, 19),
       mode: o.apply ? 'APPLY' : 'DRY_RUN',
       logic: 'A/B 级冗余副本软标（O 列 = TRUE，不物理删）',
       cas: '服务端 tsSoftDelGuarded 锁内重读 UUID+负载+keeper+底稿映射+SHA-256指纹+期锁 校验后写并回读',
-      action: 'softDelGuarded', jobId, batchId: jobId, version: 'ts_softdel_core/2'
+      action: 'softDelGuarded', jobId, batchId: jobId, version: CORE_VERSION
     },
     passed: pass, rejected: fail,
     totals: { rows: pass.length, hours: +totalH.toFixed(1) },
@@ -309,15 +368,22 @@ function loadJobId() { try { return JSON.parse(fs.readFileSync(jobIdFile(), 'utf
         process.stderr.write('[FAIL] 服务端响应非 JSON（登记不明、不盲重试）：' + r.slice(0, 300) + '\n');
         process.exit(1);
       }
-      // 条件 #4：严格响应契约
+      // 条件 #4/#5：严格响应契约（逐字闭合 Tom 复审条件 #5：version 精确 / jobId / batchId===subBatchId / dry===false / ok===true / 计数一致）
       if (typeof j !== 'object' || !j) { process.stderr.write('[FAIL] 响应非对象（登记不明、不盲重试）\n'); process.exit(1); }
-      if (typeof j.version !== 'string') { process.stderr.write('[FAIL] 响应缺 version 字段（契约不符）：' + JSON.stringify(j).slice(0, 200) + '\n'); process.exit(1); }
-      if (j.batchId && j.batchId !== subBatchId) {
-        process.stderr.write('[FAIL] 批次ID不匹配（疑似串批）：期望 ' + subBatchId + ' 实际 ' + j.batchId + ' —— 登记不明，不盲重试\n');
+      if (j.version !== CORE_VERSION) {
+        process.stderr.write('[FAIL] 响应 version 不符（须 ' + CORE_VERSION + '）：' + JSON.stringify(j).slice(0, 200) + ' —— 登记不明，不盲重试\n');
         process.exit(1);
       }
-      if (j.batchId == null) {  // 条件 #4：缺 batchId 字段 → 拒绝
+      if (j.jobId !== jobId) {
+        process.stderr.write('[FAIL] jobId 不匹配（疑似非本服务/串批）：期望 ' + jobId + ' 实际 ' + j.jobId + ' —— 登记不明，不盲重试\n');
+        process.exit(1);
+      }
+      if (j.batchId == null) {  // 条件 #4/#5：缺 batchId 字段 → 拒绝（保持字面 batchId 便于契约断言）
         process.stderr.write('[FAIL] 响应缺 batchId 字段（契约不符，疑似非本服务响应）—— 登记不明，不盲重试\n');
+        process.exit(1);
+      }
+      if (j.batchId !== subBatchId) {
+        process.stderr.write('[FAIL] 批次ID不匹配（疑似串批）：期望 ' + subBatchId + ' 实际 ' + j.batchId + ' —— 登记不明，不盲重试\n');
         process.exit(1);
       }
       if (j.ok !== true) {  // 严格布尔
@@ -325,9 +391,9 @@ function loadJobId() { try { return JSON.parse(fs.readFileSync(jobIdFile(), 'utf
         process.stderr.write('[FAIL] 服务端返回 ok≠true：' + (j.error ? ('[' + j.error + '] ') : '') + bad.join('；') + ' —— 登记不明，不盲重试\n');
         process.exit(1);
       }
-      // dry 响应：本应 apply，却回 dry=true → 契约矛盾，未真实写入，不得计入 done
-      if (j.dry === true) {
-        process.stderr.write('[FAIL] 响应 dry=true 但本批申请 apply（dry=0）—— 服务端未真实写入，拒绝并登记不明，不盲重试\n');
+      // dry 响应：本应 apply，却回 dry≠false → 契约矛盾，未真实写入，不得计入 done
+      if (j.dry !== false) {
+        process.stderr.write('[FAIL] 响应 dry≠false（期望 false，实际 ' + j.dry + '）—— 服务端未真实写入，拒绝并登记不明，不盲重试\n');
         process.exit(1);
       }
       const results = Array.isArray(j.results) ? j.results : [];
@@ -340,11 +406,21 @@ function loadJobId() { try { return JSON.parse(fs.readFileSync(jobIdFile(), 'utf
         process.exit(1);
       }
       // 逐项 ok/wrote 严格布尔；只有 wrote===true 才算真实写入
+      const wroteCount = results.filter(x => x.ok === true && x.wrote === true).length;
       for (const x of results) {
         if (x.ok !== true || x.wrote !== true) {
           process.stderr.write('[FAIL] 响应项非(ok&wrote 均为true)：row' + (x && x.row) + ' ok=' + x.ok + ' wrote=' + x.wrote + ' reason=' + x.reason + ' —— 登记不明，不盲重试\n');
           process.exit(1);
         }
+      }
+      // 计数一致性（Tom #5）：patched === 实际 wrote 项数；total === 请求行数
+      if (typeof j.total === 'number' && j.total !== batch.length) {
+        process.stderr.write('[FAIL] 响应 total(' + j.total + ') ≠ 请求行数(' + batch.length + ') —— 计数不一致，登记不明，不盲重试\n');
+        process.exit(1);
+      }
+      if (typeof j.patched === 'number' && j.patched !== wroteCount) {
+        process.stderr.write('[FAIL] 响应 patched(' + j.patched + ') ≠ 实际 wrote 项数(' + wroteCount + ') —— 计数不一致，登记不明，不盲重试\n');
+        process.exit(1);
       }
       // 独立回读后验（不信任返回声明）
       const reread = await rereadO(batch.map(b => b.row));

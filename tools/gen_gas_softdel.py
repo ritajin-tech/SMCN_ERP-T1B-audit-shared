@@ -96,9 +96,9 @@ var BASE_TAB = '工时_候选0824';
 function _sdGasJournalAppend(rec) {
   var ss = SpreadsheetApp.openById(TS_ID);
   var js = ss.getSheetByName('_TS_SOFTDEL_LOG');
-  if (!js) { js = ss.insertSheet('_TS_SOFTDEL_LOG'); js.appendRow(['ts', 'jobId', 'subBatchId', 'itemId', 'requestHash', 'state']); }
+  if (!js) { js = ss.insertSheet('_TS_SOFTDEL_LOG'); js.appendRow(['ts', 'jobId', 'subBatchId', 'itemId', 'requestHash', 'uuid', 'state']); }
   js.appendRow([Utilities.formatDate(new Date(), 'GMT+8', 'yyyy-MM-dd HH:mm:ss'),
-    rec.jobId, rec.subBatchId, rec.itemId, rec.requestHash, rec.state]);
+    rec.jobId, rec.subBatchId, rec.itemId, rec.requestHash, rec.uuid, rec.state]);
 }
 function _sdGasJournalGet(jobId, itemId) {
   try {
@@ -108,11 +108,28 @@ function _sdGasJournalGet(jobId, itemId) {
     var g = js.getDataRange().getValues();
     for (var i = g.length - 1; i >= 1; i--) {
       if (String(g[i][1] || '') === String(jobId) && String(g[i][3] || '') === String(itemId)) {
-        return { jobId: g[i][1], subBatchId: g[i][2], itemId: g[i][3], requestHash: g[i][4], state: g[i][5] };
+        return { jobId: g[i][1], subBatchId: g[i][2], itemId: g[i][3], requestHash: g[i][4], uuid: g[i][5], state: g[i][6] };
       }
     }
   } catch (e) {}
   return null;
+}
+// 全量日志（Tom #4）：状态查询/幂等检索必须能看到该 jobId+itemId 下的【全部】记录，
+// 不能只取「最后一条」—— 否则不同 requestHash 的冲突记录会遮蔽原完成凭据。
+function _sdGasJournalList(jobId, itemId) {
+  try {
+    var ss = SpreadsheetApp.openById(TS_ID);
+    var js = ss.getSheetByName('_TS_SOFTDEL_LOG');
+    if (!js) return [];
+    var g = js.getDataRange().getValues();
+    var out = [];
+    for (var i = 1; i < g.length; i++) {
+      if (String(g[i][1] || '') === String(jobId) && String(g[i][3] || '') === String(itemId)) {
+        out.push({ jobId: g[i][1], subBatchId: g[i][2], itemId: g[i][3], requestHash: g[i][4], uuid: g[i][5], state: g[i][6] });
+      }
+    }
+    return out;
+  } catch (e) { return []; }
 }
 
 function _sdGasLock() {
@@ -138,13 +155,25 @@ function tsSoftDelGuarded(e) {
       isClearance: function (tok, rows) { return false; },          // 默认不放开门禁
       guardCheck: function (bizDate, origBiz, policy) { return pl._plGuardCheck(bizDate, origBiz, policy || pl._plPolicy()); },
       policy: function () { return pl._plPolicy(); },
-      acquireMasterLock: _sdGasLock,                                  // 主库文档锁（跨项目写协调）
-      acquireLock: _sdGasLock,                                        // 生产文档锁（同锁可重入）
+      // 诚实声明：LockService.getScriptLock() 按 Google 官方说明【仅作用于脚本】，
+      // 只能序列化本项目内的并发执行；不提供跨项目/跨文档互斥，本处不声称跨项目写协调。
+      acquireMasterLock: _sdGasLock,                                  // 本项目内并发串行化（先取）
+      acquireLock: _sdGasLock,                                        // 同锁可重入（后取）
       releaseLock: function (lk) { try { lk.releaseLock(); } catch (e) {} },
       releaseMasterLock: function (lk) { try { lk.releaseLock(); } catch (e) {} },
       readProdRow: function (row) { try { return sh.getRange(row, 1, 1, 15).getValues()[0]; } catch (e) { return null; } },
-      readProdO: function (row) { try { return sh.getRange(row, 15).getValue(); } catch (e) { return null; } },
-      writeProdO: function (row, val) { try { sh.getRange(row, 15).setValue(val); SpreadsheetApp.flush(); return true; } catch (e) { return false; } },
+      // Tom #4：读失败必须向上抛出（让核心登记 UNKNOWN），不能吞成 null 冒充「读到了空值」。
+      readProdO: function (row) { return sh.getRange(row, 15).getValue(); },
+      // Tom #4：区分「未写」与「已写但未确认」—— setValue 失败 = 未写（false）；
+      //   setValue 成功但 flush 失败 = 写可能已发生、无法确认 → 抛出，由核心记 UNKNOWN，
+      //   绝不返回 false 让核心误判为「已确认未写」。
+      writeProdO: function (row, val) {
+        try { sh.getRange(row, 15).setValue(val); }
+        catch (e) { return false; }
+        try { SpreadsheetApp.flush(); }
+        catch (fe) { throw new Error('FLUSH_FAILED: ' + (fe && fe.message || fe)); }
+        return true;
+      },
       readAllMaster: function () {
         try {
           if (!msh) return { map: {}, complete: false, error: 'MASTER_TAB_MISSING', version: null };
@@ -157,15 +186,20 @@ function tsSoftDelGuarded(e) {
               if (u) (map[u] = map[u] || []).push({ row: r + 1, cells: vals[r] });
             }
           }
-          // version：主库内容指纹（真实快照，内容变则版本变）—— 绑定真实修订（Tom #6）
-          var fp = norm._sdSha256(JSON.stringify(vals.map(function (row) {
-            return norm._sdCanonRow(row, [1, 2, 3, 4, 5, 6, 7, 8, 9]);
-          })));
+          // version：主库内容指纹（真实快照，内容变则版本变）。
+          // Tom #6：指纹必须覆盖【全部相关列 0..14】并绑定 rowCount ——
+          //   只覆盖 1..9 列会让 0/10..14 列的改动（含同 rowCount 改值）不触发版本变化。
+          var allCols = []; for (var ci = 0; ci <= 14; ci++) allCols.push(ci);
+          var fp = norm._sdSha256(JSON.stringify({
+            rowCount: vals.length,
+            rows: vals.map(function (row) { return norm._sdCanonRow(row, allCols); })
+          }));
           return { map: map, complete: true, version: fp };
         } catch (e) { return { map: {}, complete: false, error: String(e && e.message || e), version: null }; }
       },
       journalAppend: _sdGasJournalAppend,                              // 强制日志依赖
-      journalGet: _sdGasJournalGet
+      journalGet: _sdGasJournalGet,
+      journalList: _sdGasJournalList                                   // 全量日志（身份检索用）
     };
     return tsSoftDelGuardedCore(e, deps);
   } catch (err) {
@@ -248,7 +282,7 @@ def main():
     map_lines.append('| `readProdRow/readProdO/writeProdO` | `sh.getRange(...)` 直读生产表 |')
     map_lines.append('| `readAllMaster` | 读主库底稿 + 内容指纹作为 `version` |')
     map_lines.append('| `acquireLock/acquireMasterLock` | `LockService.getScriptLock().tryLock(30000)`（LOCK_BUSY fail-closed） |')
-    map_lines.append('| `journalAppend/journalGet` | `_TS_SOFTDEL_LOG` 页签持久化 |')
+    map_lines.append('| `journalAppend/journalGet/journalList` | `_TS_SOFTDEL_LOG` 页签持久化（journalList 供身份检索） |')
     map_lines.append('| `guardCheck/policy` | 调用内联 `pl._plGuardCheck/_plPolicy` |')
     map_lines.append('')
     with open(MAP_PATH, 'w', encoding='utf-8', newline='\n') as f:

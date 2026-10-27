@@ -1,0 +1,132 @@
+# -*- coding: utf-8 -*-
+"""
+GAS 单源可复现校验器（回应 Tom #1「源码/生成物/输出错配」）
+
+断言三件事，任一件不成立即以非 0 退出：
+  1) 【逐字内联】三个规范源文件（core / norm / period_lock）去掉 'use strict' 与
+     module.exports 包装后的正文，必须是生成物 ts_softdel_gas_embedded.js 的【连续子串】。
+     —— 这条直接证伪/证实"GAS 副本是另一份手抄逻辑"的怀疑。
+  2) 【生成可复现】连跑两次生成器，产出文件 SHA-256 必须完全相同。
+  3) 【版本自洽】生成物里的 VERSION 常量必须与规范源 ts_softdel_core.js 的 VERSION 相同。
+
+输出逐件源码的 SHA-256 与 git blob 哈希，供固定提交比对；结论写入证据文件。
+"""
+import hashlib
+import io
+import os
+import re
+import subprocess
+import sys
+
+HERE = os.path.dirname(os.path.abspath(__file__))
+TOOLS = HERE
+EMB = os.path.join(HERE, 'v4_patches', 'full', 'ts_softdel_gas_embedded.js')
+GEN = os.path.join(HERE, 'gen_gas_softdel.py')
+EVID = os.path.join(HERE, '..', '_tmp', 'evidence', 'gen_single_source_20261027.txt')
+
+SOURCES = [
+    ('ts_softdel_core.js', os.path.join(TOOLS, 'ts_softdel_core.js')),
+    ('ts_softdel_norm.js', os.path.join(TOOLS, 'ts_softdel_norm.js')),
+    ('period_lock_port.js', os.path.join(TOOLS, 'period_lock_port.js')),
+]
+
+
+def sha256_file(p):
+    with open(p, 'rb') as f:
+        return hashlib.sha256(f.read()).hexdigest()
+
+
+def git_blob(p):
+    try:
+        out = subprocess.run(['git', 'hash-object', p], capture_output=True, text=True, cwd=HERE)
+        return out.stdout.strip() or '(n/a)'
+    except Exception:
+        return '(n/a)'
+
+
+def load_generator():
+    """直接加载生成器模块，复用它的【同一套】去壳函数 —— 校验器不再另写一份变换逻辑。"""
+    import importlib.util
+    spec = importlib.util.spec_from_file_location('gen_gas_softdel', GEN)
+    mod = importlib.util.module_from_spec(spec)
+    spec.loader.exec_module(mod)
+    return mod
+
+
+def main():
+    rep = []
+    ok = True
+
+    emb_src = io.open(EMB, encoding='utf-8').read()
+
+    rep.append('=== GAS 单源可复现校验（回应 Tom #1）===')
+    rep.append('生成物：%s  SHA-256=%s' % (os.path.relpath(EMB, HERE), sha256_file(EMB)))
+    rep.append('')
+
+    # 1) 逐字内联
+    rep.append('--- 断言1：规范源正文必须是生成物的连续子串（逐字内联）---')
+    gg = load_generator()
+    for name, path in SOURCES:
+        src = io.open(path, encoding='utf-8').read()
+        if name == 'ts_softdel_core.js':
+            # 核心：生成器用 strip_core_export(strip_core_requires(src)) 后直接内联
+            body = gg.strip_core_export(gg.strip_core_requires(src)).rstrip()
+        else:
+            # norm / period_lock：包成 IIFE，正文 = strip_leading_strict(strip_module_export(src))
+            body = gg.strip_leading_strict(gg.strip_module_export(src)).rstrip()
+        # 生成物里是缩进过的？逐字内联不做缩进变换，直接用 strip 后的正文比对
+        found = body in emb_src
+        rep.append('  %-20s 正文长度=%6d  连续子串命中=%s  SHA-256=%s  git-blob=%s'
+                   % (name, len(body), 'YES' if found else 'NO', sha256_file(path)[:16] + '…', git_blob(path)[:12]))
+        if not found:
+            ok = False
+            # 给出首个不匹配的片段，便于定位
+            for k in range(0, min(len(body), 4000), 200):
+                if body[k:k + 200] not in emb_src:
+                    rep.append('    首个未命中片段 @%d: %r' % (k, body[k:k + 200]))
+                    break
+    rep.append('')
+
+    # 2) 生成可复现
+    rep.append('--- 断言2：连跑两次生成器，产出 SHA-256 必须相同 ---')
+    before = sha256_file(EMB)
+    r1 = subprocess.run([sys.executable, GEN], capture_output=True, text=True, cwd=HERE)
+    mid = sha256_file(EMB)
+    r2 = subprocess.run([sys.executable, GEN], capture_output=True, text=True, cwd=HERE)
+    after = sha256_file(EMB)
+    stable = (before == mid == after)
+    rep.append('  生成器退出码：%s / %s' % (r1.returncode, r2.returncode))
+    rep.append('  第0次(现有)=%s' % before)
+    rep.append('  第1次       =%s' % mid)
+    rep.append('  第2次       =%s' % after)
+    rep.append('  三次一致=%s' % ('YES' if stable else 'NO'))
+    if not stable or r1.returncode != 0 or r2.returncode != 0:
+        ok = False
+    rep.append('')
+
+    # 3) 版本自洽
+    rep.append('--- 断言3：生成物 VERSION 必须与规范源 ts_softdel_core.js 一致 ---')
+    emb_src2 = io.open(EMB, encoding='utf-8').read()
+    m_emb = re.search(r"var VERSION = '([^']+)'", emb_src2)
+    core_src = io.open(SOURCES[0][1], encoding='utf-8').read()
+    m_core = re.search(r"var VERSION = '([^']+)'", core_src)
+    v_emb = m_emb.group(1) if m_emb else None
+    v_core = m_core.group(1) if m_core else None
+    same = (v_emb is not None and v_emb == v_core)
+    rep.append('  规范源 VERSION = %s' % v_core)
+    rep.append('  生成物 VERSION = %s' % v_emb)
+    rep.append('  一致=%s' % ('YES' if same else 'NO'))
+    if not same:
+        ok = False
+    rep.append('')
+    rep.append('=== 结论：%s ===' % ('全部断言通过' if ok else '存在失败断言（见上）'))
+
+    text = '\n'.join(rep) + '\n'
+    os.makedirs(os.path.dirname(EVID), exist_ok=True)
+    io.open(EVID, 'w', encoding='utf-8', newline='\n').write(text)
+    print(text)
+    return 0 if ok else 1
+
+
+if __name__ == '__main__':
+    sys.exit(main())

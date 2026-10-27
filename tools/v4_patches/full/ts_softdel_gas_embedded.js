@@ -256,7 +256,15 @@ function _plPolicy() {
   _plPolicy: _plPolicy };
 })();
 
-// ts_softdel_core.js — 软标动作【真实服务端业务核心】（v3：回应 Tom 2026-10-27 复审 7 项条件 + 闭环）
+// ts_softdel_core.js — 软标动作【真实服务端业务核心】（v4：回应 Tom 2026-10-27 复审 6 项阻断）
+// v4 相对 v3 的实质改动（均为行为改动，非措辞）：
+//   T#4 日志身份：不再按 jobId+itemId 取「最后一条」，改为按【请求身份】检索完成凭据
+//       （requestHash + subBatchId + uuid 逐项绑定）；冲突记录以 REJECTED 追加，绝不覆盖原完成凭据；
+//       幂等命中也必须先复核实时 O 列仍为 TRUE 才能声称 wrote:true。
+//   T#4 dry 语义：dry 不写任何业务恢复日志（无写入即无「待恢复」凭据）。
+//   T#4 写结果诚实：writeProdO 返回 false 只表示「未确认」，登记 UNKNOWN 而非 REJECTED。
+//   T#6 主库版本前后绑定：支持 expectMasterVersion 声明；写后复核主库版本，漂移 → 已写行记 UNKNOWN。
+//   T#5 状态查询：逐项绑定原 manifest（jobId+subBatchId+requestHash+uuid），身份不符/读失败一律 UNKNOWN。
 // 单一可信源：GAS 部署（RemoteActions）与原生 Node 隔离 harness 共用同一份逻辑，
 // 仅通过 deps 注入存储/锁/网络/期锁/日志依赖，不在测试替身里另写一份更强的服务端逻辑。
 //
@@ -275,8 +283,12 @@ function _plPolicy() {
 //  #6 参数/keeper 类型闭合：用解析后 zrow===zk（非 '2'===2 绕过）；严格 JSON 类型；拒绝 null/未知 dry、
 //      非数组 rows、越界/表头、空/非法 uuid、未知顶层字段、重复/循环依赖（先建 keeper 图）；
 //      flush 异常区分"已写未确认"与"未写"（非一律 ROW_READ_FAIL）。
-//  #7 分页版本闭合：主库读取返回 version（真实内容指纹），缺失/空 → 整批拒绝；读依赖缺失 → 整批拒绝；
-//      跨项目写协调 = 主库文档锁（acquireMasterLock），finally 释放。
+//  #7 分页版本闭合：主库读取返回 version（真实内容指纹），缺失/空 → 整批拒绝；读依赖缺失 → 整批拒绝。
+//
+// 锁作用域的诚实声明（更正 v3 的过度主张）：GAS 的 LockService.getScriptLock() 按 Google 官方说明
+//   **仅作用于脚本**（同一脚本项目内的并发执行），不提供跨项目/跨文档/跨用户的互斥。
+//   因此本核心的 acquireMasterLock 只能序列化【本项目内】的并发执行，
+//   **不声称**跨项目写协调或跨文档互斥；跨项目协调须另设外部协调器，本版本未实现、未声称。
 
 'use strict';
 
@@ -285,10 +297,10 @@ var _sdCellTok = norm._sdCellTok;
 var _sdSoftDel = norm._sdSoftDel;
 var _sdSha256 = norm._sdSha256;
 
-var VERSION = 'ts_softdel_core/3';
+var VERSION = 'ts_softdel_core/4';
 var ROW_KEYS = ['row', 'uuid', 'keeperRow', 'level', 'timeOnly', 'expectHash',
   'keeperHash', 'expectBaseHash', 'clearance', 'expectEntryTime', 'keeperEntryTime'];
-var TOP_KEYS = ['batchId', 'rows', 'dry', 'sheet', 'clearance', 'jobId', 'action', 'token'];
+var TOP_KEYS = ['batchId', 'rows', 'dry', 'sheet', 'clearance', 'jobId', 'action', 'token', 'expectMasterVersion'];
 
 // 单格规范化 token（用于 timeOnly 的录入时间绑定，单格）
 function _sdCellHash(v) { return _sdSha256(JSON.stringify(_sdCellTok(v))); }
@@ -297,6 +309,19 @@ function _res(ok, extra) {
   var o = { ok: !!ok, version: VERSION };
   for (var k in extra) if (extra.hasOwnProperty(k)) o[k] = extra[k];
   return JSON.stringify(o);
+}
+
+// 请求身份指纹（单一可信源）：客户端执行器与服务端核心【共用本函数】计算 requestHash，
+// 杜绝两侧各写一份导致键序/类型/undefined 省略规则不一致、身份绑定永久失配。
+// 注：JSON.stringify 会省略值为 undefined 的键，故 B 级（无 expectBaseHash）与非 timeOnly
+// （无录入时间）会自然少键 —— 两侧必须走同一函数才能保证逐字一致。
+function _requestHashOf(it) {
+  return _sdSha256(JSON.stringify({
+    row: Number(it.row), uuid: String(it.uuid || ''), keeperRow: Number(it.keeperRow),
+    level: String(it.level || ''), timeOnly: (it.timeOnly === true),
+    expectHash: it.expectHash, keeperHash: it.keeperHash, expectBaseHash: it.expectBaseHash,
+    expectEntryTime: it.expectEntryTime, keeperEntryTime: it.keeperEntryTime
+  }));
 }
 
 // 结构化校验（输入形态 + 逐行 + keeper 图）；返回 {error} 或 {rows}
@@ -410,10 +435,24 @@ function tsSoftDelGuardedCore(e, deps) {
   }
   var policy = (typeof deps.policy === 'function') ? deps.policy() : pl._plPolicy();
 
-  // 条件 #1/#7：跨项目写协调 —— 主库文档锁 + 生产文档锁（固定顺序：master 先，prod 后）
-  var _mlock = deps.acquireMasterLock ? deps.acquireMasterLock() : null;
-  var _lock = deps.acquireLock();
-  var results = [], patched = 0, anyFail = false;
+  // 条件 #1/#7：锁获取（固定顺序：master 先，prod 后）。
+  // Tom #3：两次取锁都必须处在受保护的释放路径下 —— 第二把锁获取失败时，第一把锁必须被释放，
+  //   否则留下永不释放的悬挂锁。v3 把两次取锁写在 try 之外，正是该缺陷；v4 显式闭合，
+  //   且取锁失败返回结构化响应（不再向外抛出，避免调用方拿到非 JSON 的崩溃）。
+  var _mlock = null, _lock = null;
+  try {
+    _mlock = deps.acquireMasterLock ? deps.acquireMasterLock() : null;
+  } catch (me1) {
+    return _res(false, { error: 'MASTER_LOCK_BUSY', detail: String(me1 && me1.message || me1), batchId: batchId, jobId: jobId });
+  }
+  try {
+    _lock = deps.acquireLock();
+  } catch (le1) {
+    // 第二把锁失败 → 立刻释放第一把锁，闭合悬挂路径
+    if (deps.releaseMasterLock && _mlock) { try { deps.releaseMasterLock(_mlock); } catch (x1) {} }
+    return _res(false, { error: 'LOCK_BUSY', detail: String(le1 && le1.message || le1), batchId: batchId, jobId: jobId });
+  }
+  var results = [], patched = 0, anyFail = false, wroteRows = [], masterVersionAfter = null;
   try {
     // 条件 #1/#7：主库全量读取必须在锁内（消除 build-masterMap-before-lock 的 TOCTOU）；
     //         读依赖缺失/读不完整/版本缺失 → 整批拒绝，B 级不会再被"误判底稿0行"放行。
@@ -429,34 +468,50 @@ function tsSoftDelGuardedCore(e, deps) {
     }
     var masterMap = master.map || {};
 
+    // Tom #6：主库版本【前后绑定】—— 调用方可显式声明预期版本，不符即整批拒绝；
+    //   未声明时也记录 version，并在写后再复核（见响应 masterVersion / masterVersionAfter）。
+    var expectMasterVersion = body.expectMasterVersion || p.expectMasterVersion || null;
+    if (expectMasterVersion != null && String(expectMasterVersion) !== String(master.version)) {
+      return _res(false, { error: 'MASTER_VERSION_MISMATCH', expect: String(expectMasterVersion), actual: String(master.version), batchId: batchId, jobId: jobId });
+    }
+
     for (var i = 0; i < rows.length; i++) {
       var it = rows[i] || {};
       var row = Number(it.row), uuid = String(it.uuid || '');
       var keeperRow = Number(it.keeperRow), level = String(it.level || '');
       var timeOnly = (it.timeOnly === true);
       var itemId = row;
-      var requestHash = _sdSha256(JSON.stringify({
-        row: row, uuid: uuid, keeperRow: keeperRow, level: level, timeOnly: timeOnly,
-        expectHash: it.expectHash, keeperHash: it.keeperHash, expectBaseHash: it.expectBaseHash,
-        expectEntryTime: it.expectEntryTime, keeperEntryTime: it.keeperEntryTime
-      }));
+      var requestHash = _requestHashOf(it);
       var wrote = false, writtenUnconfirmed = false;
       try {
-        // 同身份复用冲突检测（条件 #4）：若已存在该 jobId+itemId 的日志，按 requestHash 区分
-        if (typeof deps.journalGet === 'function') {
-          var prior = deps.journalGet(jobId, itemId);
-          if (prior && prior.state === 'COMMITTED') {
-            if (prior.requestHash === requestHash) {
-              // 同身份已完成（幂等安全）→ 不再写，直接报成功
-              results.push({ row: row, ok: true, wrote: true, level: level, idempotent: true });
-              patched++;
-              continue;
-            }
-            // 同 jobId+itemId 但不同 requestHash → 复用冲突，拒绝（防串批/重放）
-            journal(deps, jobId, batchId, itemId, requestHash, 'REJECTED');
-            results.push({ row: row, ok: false, reason: 'KEY_REUSE_CONFLICT', priorHash: prior.requestHash });
+        // 同身份复用检测（Tom #4）：按【请求身份】检索完成凭据，不再只看「最后一条」；
+        //   且幂等命中也必须复核实时 O 列仍为 TRUE，否则不能声称 wrote:true。
+        var _recs = _journalRecords(deps, jobId, itemId);
+        var _commit = _findCommit(_recs, requestHash);
+        if (_commit) {
+          var oNow = null, oErr = null;
+          try { oNow = deps.readProdO ? deps.readProdO(row) : null; }
+          catch (oe) { oErr = String(oe && oe.message || oe); }
+          if (oErr || oNow === null || oNow === undefined) {
+            results.push({ row: row, ok: false, wrote: false, reason: 'IDEMPOTENT_RECHECK_UNAVAILABLE', state: 'UNKNOWN', error: oErr || '' });
             anyFail = true; continue;
           }
+          if (!_sdSoftDel(oNow)) {
+            journal(deps, jobId, batchId, itemId, requestHash, 'UNKNOWN');
+            results.push({ row: row, ok: false, wrote: false, reason: 'IDEMPOTENT_O_DRIFT', expect: 'TRUE', actual: String(oNow) });
+            anyFail = true; continue;
+          }
+          results.push({ row: row, ok: true, wrote: true, level: level, idempotent: true });
+          patched++;
+          continue;
+        }
+        var _anyCommit = _findAnyCommit(_recs);
+        if (_anyCommit) {
+          // 同 jobId+itemId 但不同 requestHash → 复用冲突，拒绝（防串批/重放）。
+          // 冲突记录以 REJECTED 追加，绝不覆盖/替换原完成凭据（Tom #4）。
+          journal(deps, jobId, batchId, itemId, requestHash, 'REJECTED', uuid);
+          results.push({ row: row, ok: false, reason: 'KEY_REUSE_CONFLICT', priorHash: _anyCommit.requestHash });
+          anyFail = true; continue;
         }
 
         // 锁内重读实时值
@@ -513,9 +568,13 @@ function tsSoftDelGuardedCore(e, deps) {
           if (mB.length !== 0) { journal(deps, jobId, batchId, itemId, requestHash, 'REJECTED'); results.push({ row: row, ok: false, reason: 'BASE_HAS_MATCH', count: mB.length }); anyFail = true; continue; }
         }
 
-        // PREPARED 日志：落盘前必须成功；日志失败 → 阻断写，记为 UNKNOWN（Tom #4）
-        var prepOk = journal(deps, jobId, batchId, itemId, requestHash, 'PREPARED');
-        if (!prepOk) { results.push({ row: row, ok: false, wrote: false, reason: 'PREPARED_LOG_FAILED' }); anyFail = true; continue; }
+        // PREPARED 日志：落盘前必须成功；日志失败 → 阻断写，记为 UNKNOWN（Tom #4）。
+        // dry 不写业务恢复日志（Tom #4）：dry 不产生任何写入，也就不该产生「待恢复」凭据，
+        // 否则状态查询会把一次 dry 的 PREPARED 误读成「本请求已落盘待确认」。
+        if (!dry) {
+          var prepOk = journal(deps, jobId, batchId, itemId, requestHash, 'PREPARED', uuid);
+          if (!prepOk) { results.push({ row: row, ok: false, wrote: false, reason: 'PREPARED_LOG_FAILED' }); anyFail = true; continue; }
+        }
 
         // 写 O 列（仅非 dry 且上述全过）
         if (!dry) {
@@ -528,7 +587,13 @@ function tsSoftDelGuardedCore(e, deps) {
             results.push({ row: row, ok: false, wrote: false, reason: 'WRITE_FLUSH_EXCEPTION', error: String(we && we.message || we) });
             anyFail = true; continue;
           }
-          if (!wroteOk) { journal(deps, jobId, batchId, itemId, requestHash, 'REJECTED'); results.push({ row: row, ok: false, reason: 'WRITE_FAILED' }); anyFail = true; continue; }
+          if (!wroteOk) {
+            // Tom #4：writeProdO 返回 false 只说明「未确认」，不说明「未写」（GAS flush 异常被吞时尤其如此）。
+            // 因此登记 UNKNOWN（写可能已发生），绝不记 REJECTED 以免被误读为「已确认未写」。
+            journal(deps, jobId, batchId, itemId, requestHash, 'UNKNOWN', uuid);
+            results.push({ row: row, ok: false, wrote: false, reason: 'WRITE_FAILED_UNCONFIRMED', state: 'UNKNOWN' });
+            anyFail = true; continue;
+          }
           var after = null;
           try { after = deps.readProdO(row); }
           catch (re) {
@@ -546,8 +611,9 @@ function tsSoftDelGuardedCore(e, deps) {
             anyFail = true; continue;
           }
         }
-        results.push({ row: row, ok: true, wrote: wrote, level: level });
-        if (wrote) patched++;
+        var _rr = { row: row, ok: true, wrote: wrote, level: level };
+        results.push(_rr);
+        if (wrote) { patched++; wroteRows.push(_rr); }
       } catch (rerr) {
         // 读类异常 → 行未读/未写（非 flush）；flush 已在上面单独区分
         journal(deps, jobId, batchId, itemId, requestHash, 'REJECTED');
@@ -555,54 +621,140 @@ function tsSoftDelGuardedCore(e, deps) {
         anyFail = true;
       }
     }
+    // 写后主库版本复核（Tom #6：读前后绑定）—— 本批次只写生产 O 列，主库版本必须不变；
+    //   若前后不一致，说明快照在读期间已被改动，已写行的归属不能确认为本请求所为 → UNKNOWN。
+    //   注意：此处不追加日志，避免用「后见 UNKNOWN」覆盖既有的 COMMITTED 完成凭据（Tom #4）。
+    if (wroteRows.length) {
+      var mAfter = null;
+      try { mAfter = (typeof deps.readAllMaster === 'function') ? deps.readAllMaster() : null; } catch (ma) { mAfter = null; }
+      var mAfterV = (mAfter && mAfter.version) ? String(mAfter.version) : null;
+      if (!mAfter || !mAfter.complete || !mAfterV || mAfterV !== String(master.version)) {
+        for (var w = 0; w < wroteRows.length; w++) {
+          wroteRows[w].ok = false;
+          wroteRows[w].wrote = true;
+          wroteRows[w].state = 'UNKNOWN';
+          wroteRows[w].reason = 'MASTER_VERSION_DRIFT_POST_WRITE';
+        }
+        anyFail = true;
+      }
+      masterVersionAfter = mAfterV;
+    }
   } finally {
     try { if (deps.releaseLock) deps.releaseLock(_lock); } catch (rl) {}
     try { if (deps.releaseMasterLock && _mlock) deps.releaseMasterLock(_mlock); } catch (rl2) {}
   }
   // 诚实上报：任一失败 → 批次 ok=false（不暗示原子回滚）
-  return _res(!anyFail, { batchId: batchId, jobId: jobId, dry: dry, patched: patched, total: rows.length, results: results });
+  return _res(!anyFail, { batchId: batchId, jobId: jobId, dry: dry, patched: patched, total: rows.length, results: results,
+    masterVersion: String(master.version || ''), masterVersionAfter: masterVersionAfter });
 }
 
 // 条件 #4 强制日志：返回布尔。缺失依赖或写抛异常 → false（调用方据此阻断写）。
-function journal(deps, jobId, subBatchId, itemId, requestHash, state) {
+// 记录中持久保存【原请求身份】：jobId + subBatchId + itemId + requestHash + uuid，供状态查询逐项绑定。
+function journal(deps, jobId, subBatchId, itemId, requestHash, state, uuid) {
   if (typeof deps.journalAppend !== 'function') return false;
   try {
-    deps.journalAppend({ jobId: jobId, subBatchId: subBatchId, itemId: itemId, requestHash: requestHash, state: state, ts: Date.now() });
+    deps.journalAppend({ jobId: jobId, subBatchId: subBatchId, itemId: itemId, requestHash: requestHash, state: state, uuid: uuid == null ? null : String(uuid), ts: Date.now() });
     return true;
   } catch (e) {
     return false;   // 日志写失败 → 返回 false，绝不吞掉后假装成功
   }
 }
 
-// 条件 #5：只读批次日志查询 —— 验同一身份/请求；读取失败留 UNKNOWN；O=TRUE 来源不明 ≠ 完成；
-//   COMMITTED 与回读 O 矛盾 → UNKNOWN（Tom #4，防"日志说成功、实际没写"的谎报）。
+// ---- 日志身份检索（Tom #4：不得只取「最后一条」，必须按 requestHash/subBatchId/uuid 绑定）----
+// 返回该 jobId+itemId 下的全部日志（append 顺序）。deps.journalList 为权威；缺失则退化为单条 journalGet。
+function _journalRecords(deps, jobId, itemId) {
+  var recs = null;
+  if (typeof deps.journalList === 'function') {
+    try { recs = deps.journalList(jobId, itemId); } catch (e) { recs = null; }
+  }
+  if (Array.isArray(recs)) return recs;
+  if (typeof deps.journalGet === 'function') {
+    try {
+      var one = deps.journalGet(jobId, itemId);
+      return one ? [one] : [];
+    } catch (e2) { return []; }
+  }
+  return [];
+}
+// 按【请求身份】定位完成凭据：必须 requestHash 相同 且 state==='COMMITTED' 且非 dry 记录。
+function _findCommit(records, requestHash) {
+  for (var i = records.length - 1; i >= 0; i--) {
+    var r = records[i];
+    if (r && r.state === 'COMMITTED' && r.requestHash === requestHash && r.dry !== true) return r;
+  }
+  return null;
+}
+// 任一完成凭据（不论 requestHash）—— 用于「同键复用冲突」判定
+function _findAnyCommit(records) {
+  for (var j = records.length - 1; j >= 0; j--) {
+    var q = records[j];
+    if (q && q.state === 'COMMITTED' && q.dry !== true) return q;
+  }
+  return null;
+}
+function _lastRecord(records) {
+  for (var k = records.length - 1; k >= 0; k--) if (records[k]) return records[k];
+  return null;
+}
+
+// 条件 #5：只读批次日志查询 —— 逐项绑定原 manifest（jobId + subBatchId + requestHash + uuid）；
+//   身份不符 / 读失败一律 UNKNOWN；O=TRUE 来源不明 ≠ 完成；COMMITTED 与回读 O 矛盾 → UNKNOWN。
 function tsSoftDelStatus(e, deps) {
   var p = e.parameter || {};
   var body = e.postBody || {};
   var jobId = body.jobId || p.jobId || null;
+  var defBatch = (body.batchId != null) ? body.batchId : ((p.batchId != null) ? p.batchId : null);
   var rows = body.rows || p.rows || [];
   if (!Array.isArray(rows)) rows = [];
   var out = [];
   for (var i = 0; i < rows.length; i++) {
-    var itemId = (rows[i] && rows[i].row != null) ? Number(rows[i].row) : Number(rows[i]);
-    var entry = (typeof deps.journalGet === 'function') ? deps.journalGet(jobId, itemId) : null;
-    var oVal = deps.readProdO ? deps.readProdO(itemId) : null;
+    var rq = rows[i] || {};
+    var itemId = (rq && rq.row != null) ? Number(rq.row) : Number(rq);
+    var wantHash = (rq.requestHash != null) ? String(rq.requestHash) : null;
+    var wantBatch = (rq.subBatchId != null) ? String(rq.subBatchId)
+      : ((rq.batchId != null) ? String(rq.batchId) : (defBatch != null ? String(defBatch) : null));
+    var wantUuid = (rq.uuid != null) ? String(rq.uuid) : null;
+
+    var recs = _journalRecords(deps, jobId, itemId);
+    var entry = wantHash ? (_findCommit(recs, wantHash) || _lastRecord(recs)) : _lastRecord(recs);
+
+    // 身份绑定校验：日志记录的身份必须与本次查询声明一致，否则不可归属本请求
+    var identityOk = true, identityWhy = '';
+    if (entry) {
+      if (wantHash && entry.requestHash != null && String(entry.requestHash) !== wantHash) {
+        identityOk = false; identityWhy = 'REQUEST_HASH_MISMATCH';
+      } else if (wantBatch && entry.subBatchId != null && String(entry.subBatchId) !== wantBatch) {
+        identityOk = false; identityWhy = 'SUBBATCH_MISMATCH';
+      } else if (wantUuid && entry.uuid != null && String(entry.uuid) !== wantUuid) {
+        identityOk = false; identityWhy = 'UUID_MISMATCH';
+      }
+    }
+
+    var oVal = null, oErr = null;
+    try { oVal = deps.readProdO ? deps.readProdO(itemId) : null; }
+    catch (re) { oErr = String(re && re.message || re); }
     var oTrue = (oVal === true || String(oVal || '').toUpperCase() === 'TRUE');
+
     var state;
-    if (!entry) {
-      // 无日志：O=TRUE 但来源不明（可能是历史软标/他请求），不能断言本请求完成
+    if (oErr) {
+      state = 'UNKNOWN';                       // 读失败 → 不明，绝不乐观断言
+    } else if (!entry) {
       state = oTrue ? 'O_TRUE_SOURCE_UNKNOWN' : 'UNKNOWN';
+    } else if (!identityOk) {
+      state = 'UNKNOWN';                       // 身份不符 → 不能归属本请求
     } else if (entry.state === 'COMMITTED') {
-      // COMMITTED 与回读 O 矛盾 → UNKNOWN（Tom #4）
       state = oTrue ? 'COMMITTED' : 'UNKNOWN';
     } else if (entry.state === 'UNKNOWN') {
       state = 'UNKNOWN';
     } else if (entry.state === 'REJECTED') {
       state = 'REJECTED';
     } else {
-      state = entry.state;   // PREPARED 等
+      state = entry.state;                     // PREPARED 等
     }
-    out.push({ jobId: jobId, itemId: itemId, state: state, journalState: entry ? entry.state : null, oValue: oVal });
+    out.push({ jobId: jobId, itemId: itemId, subBatchId: entry ? entry.subBatchId : null,
+      requestHash: entry ? entry.requestHash : null, uuid: entry ? entry.uuid : null,
+      state: state, journalState: entry ? entry.state : null,
+      identity: identityOk ? 'BOUND' : identityWhy, oValue: oVal, oReadError: oErr });
   }
   return _res(true, { action: 'statusQuery', batchId: jobId, rows: out });
 }
@@ -621,9 +773,9 @@ var BASE_TAB = '工时_候选0824';
 function _sdGasJournalAppend(rec) {
   var ss = SpreadsheetApp.openById(TS_ID);
   var js = ss.getSheetByName('_TS_SOFTDEL_LOG');
-  if (!js) { js = ss.insertSheet('_TS_SOFTDEL_LOG'); js.appendRow(['ts', 'jobId', 'subBatchId', 'itemId', 'requestHash', 'state']); }
+  if (!js) { js = ss.insertSheet('_TS_SOFTDEL_LOG'); js.appendRow(['ts', 'jobId', 'subBatchId', 'itemId', 'requestHash', 'uuid', 'state']); }
   js.appendRow([Utilities.formatDate(new Date(), 'GMT+8', 'yyyy-MM-dd HH:mm:ss'),
-    rec.jobId, rec.subBatchId, rec.itemId, rec.requestHash, rec.state]);
+    rec.jobId, rec.subBatchId, rec.itemId, rec.requestHash, rec.uuid, rec.state]);
 }
 function _sdGasJournalGet(jobId, itemId) {
   try {
@@ -633,11 +785,28 @@ function _sdGasJournalGet(jobId, itemId) {
     var g = js.getDataRange().getValues();
     for (var i = g.length - 1; i >= 1; i--) {
       if (String(g[i][1] || '') === String(jobId) && String(g[i][3] || '') === String(itemId)) {
-        return { jobId: g[i][1], subBatchId: g[i][2], itemId: g[i][3], requestHash: g[i][4], state: g[i][5] };
+        return { jobId: g[i][1], subBatchId: g[i][2], itemId: g[i][3], requestHash: g[i][4], uuid: g[i][5], state: g[i][6] };
       }
     }
   } catch (e) {}
   return null;
+}
+// 全量日志（Tom #4）：状态查询/幂等检索必须能看到该 jobId+itemId 下的【全部】记录，
+// 不能只取「最后一条」—— 否则不同 requestHash 的冲突记录会遮蔽原完成凭据。
+function _sdGasJournalList(jobId, itemId) {
+  try {
+    var ss = SpreadsheetApp.openById(TS_ID);
+    var js = ss.getSheetByName('_TS_SOFTDEL_LOG');
+    if (!js) return [];
+    var g = js.getDataRange().getValues();
+    var out = [];
+    for (var i = 1; i < g.length; i++) {
+      if (String(g[i][1] || '') === String(jobId) && String(g[i][3] || '') === String(itemId)) {
+        out.push({ jobId: g[i][1], subBatchId: g[i][2], itemId: g[i][3], requestHash: g[i][4], uuid: g[i][5], state: g[i][6] });
+      }
+    }
+    return out;
+  } catch (e) { return []; }
 }
 
 function _sdGasLock() {
@@ -663,13 +832,25 @@ function tsSoftDelGuarded(e) {
       isClearance: function (tok, rows) { return false; },          // 默认不放开门禁
       guardCheck: function (bizDate, origBiz, policy) { return pl._plGuardCheck(bizDate, origBiz, policy || pl._plPolicy()); },
       policy: function () { return pl._plPolicy(); },
-      acquireMasterLock: _sdGasLock,                                  // 主库文档锁（跨项目写协调）
-      acquireLock: _sdGasLock,                                        // 生产文档锁（同锁可重入）
+      // 诚实声明：LockService.getScriptLock() 按 Google 官方说明【仅作用于脚本】，
+      // 只能序列化本项目内的并发执行；不提供跨项目/跨文档互斥，本处不声称跨项目写协调。
+      acquireMasterLock: _sdGasLock,                                  // 本项目内并发串行化（先取）
+      acquireLock: _sdGasLock,                                        // 同锁可重入（后取）
       releaseLock: function (lk) { try { lk.releaseLock(); } catch (e) {} },
       releaseMasterLock: function (lk) { try { lk.releaseLock(); } catch (e) {} },
       readProdRow: function (row) { try { return sh.getRange(row, 1, 1, 15).getValues()[0]; } catch (e) { return null; } },
-      readProdO: function (row) { try { return sh.getRange(row, 15).getValue(); } catch (e) { return null; } },
-      writeProdO: function (row, val) { try { sh.getRange(row, 15).setValue(val); SpreadsheetApp.flush(); return true; } catch (e) { return false; } },
+      // Tom #4：读失败必须向上抛出（让核心登记 UNKNOWN），不能吞成 null 冒充「读到了空值」。
+      readProdO: function (row) { return sh.getRange(row, 15).getValue(); },
+      // Tom #4：区分「未写」与「已写但未确认」—— setValue 失败 = 未写（false）；
+      //   setValue 成功但 flush 失败 = 写可能已发生、无法确认 → 抛出，由核心记 UNKNOWN，
+      //   绝不返回 false 让核心误判为「已确认未写」。
+      writeProdO: function (row, val) {
+        try { sh.getRange(row, 15).setValue(val); }
+        catch (e) { return false; }
+        try { SpreadsheetApp.flush(); }
+        catch (fe) { throw new Error('FLUSH_FAILED: ' + (fe && fe.message || fe)); }
+        return true;
+      },
       readAllMaster: function () {
         try {
           if (!msh) return { map: {}, complete: false, error: 'MASTER_TAB_MISSING', version: null };
@@ -682,15 +863,20 @@ function tsSoftDelGuarded(e) {
               if (u) (map[u] = map[u] || []).push({ row: r + 1, cells: vals[r] });
             }
           }
-          // version：主库内容指纹（真实快照，内容变则版本变）—— 绑定真实修订（Tom #6）
-          var fp = norm._sdSha256(JSON.stringify(vals.map(function (row) {
-            return norm._sdCanonRow(row, [1, 2, 3, 4, 5, 6, 7, 8, 9]);
-          })));
+          // version：主库内容指纹（真实快照，内容变则版本变）。
+          // Tom #6：指纹必须覆盖【全部相关列 0..14】并绑定 rowCount ——
+          //   只覆盖 1..9 列会让 0/10..14 列的改动（含同 rowCount 改值）不触发版本变化。
+          var allCols = []; for (var ci = 0; ci <= 14; ci++) allCols.push(ci);
+          var fp = norm._sdSha256(JSON.stringify({
+            rowCount: vals.length,
+            rows: vals.map(function (row) { return norm._sdCanonRow(row, allCols); })
+          }));
           return { map: map, complete: true, version: fp };
         } catch (e) { return { map: {}, complete: false, error: String(e && e.message || e), version: null }; }
       },
       journalAppend: _sdGasJournalAppend,                              // 强制日志依赖
-      journalGet: _sdGasJournalGet
+      journalGet: _sdGasJournalGet,
+      journalList: _sdGasJournalList                                   // 全量日志（身份检索用）
     };
     return tsSoftDelGuardedCore(e, deps);
   } catch (err) {

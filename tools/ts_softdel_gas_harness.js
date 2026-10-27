@@ -179,19 +179,41 @@ function nodeDeps(store) {
         const u = NORM._sdNorm(g[r][8]);
         if (u) (map[u] = map[u] || []).push({ row: r + 1, cells: g[r].slice() });
       }
-      const fp = NORM._sdSha256(JSON.stringify(vals.map(row => NORM._sdCanonRow(row, [1, 2, 3, 4, 5, 6, 7, 8, 9]))));
+      // Tom #6：指纹必须覆盖全部相关列 0..14 并绑定 rowCount，
+      // 只覆盖 1..9 列会让 0/10..14 列的改动（含同 rowCount 改值）不触发版本变化。
+      const allCols = []; for (let ci = 0; ci <= 14; ci++) allCols.push(ci);
+      const fp = NORM._sdSha256(JSON.stringify({
+        rowCount: vals.length,
+        rows: vals.map(row => NORM._sdCanonRow(row, allCols))
+      }));
       return { map, complete: true, version: fp };
     },
-    journalAppend(rec) { const js = store.sheets['_TS_SOFTDEL_LOG'] || makeSheet(store, '_TS_SOFTDEL_LOG'); js._grid.push([String(rec.ts), rec.jobId, rec.subBatchId, rec.itemId, rec.requestHash, rec.state]); },
+    journalAppend(rec) {
+      const js = store.sheets['_TS_SOFTDEL_LOG'] || makeSheet(store, '_TS_SOFTDEL_LOG');
+      js._grid.push([String(rec.ts), rec.jobId, rec.subBatchId, rec.itemId, rec.requestHash,
+        rec.uuid == null ? null : rec.uuid, rec.state]);
+    },
     journalGet(jobId, itemId) {
       const js = store.sheets['_TS_SOFTDEL_LOG'];
       if (!js) return null;
       for (let i = js._grid.length - 1; i >= 1; i--) {
         const g = js._grid[i];
         if (String(g[3] || '') === String(itemId) && String(g[1] || '') === String(jobId))
-          return { jobId: g[1], subBatchId: g[2], itemId: g[3], requestHash: g[4], state: g[5] };
+          return { jobId: g[1], subBatchId: g[2], itemId: g[3], requestHash: g[4], uuid: g[5], state: g[6] };
       }
       return null;
+    },
+    // Tom #4：全量日志 —— 身份检索必须看到该 jobId+itemId 下的全部记录，不能只取最后一条
+    journalList(jobId, itemId) {
+      const js = store.sheets['_TS_SOFTDEL_LOG'];
+      if (!js) return [];
+      const out = [];
+      for (let i = 1; i < js._grid.length; i++) {
+        const g = js._grid[i];
+        if (String(g[3] || '') === String(itemId) && String(g[1] || '') === String(jobId))
+          out.push({ jobId: g[1], subBatchId: g[2], itemId: g[3], requestHash: g[4], uuid: g[5], state: g[6] });
+      }
+      return out;
     }
   };
 }
@@ -307,6 +329,21 @@ function seedPair(store, row, keeperRow, opts) {
   // 场景驱动：同一组种子，GAS 与 Node 各跑一次，比对
   const scenarios = [];
   function add(id, title, opts) { scenarios.push(Object.assign({ id, title }, opts)); }
+
+  // Tom #3：S1–S10 除「两侧相等」外，还必须【逐项断言预期成功/拒绝值】——
+  // 只比相等会出现「两侧同错也通过」的假绿。
+  const EXPECT = {
+    S1:  { ok: true,  patched: 0 },
+    S2:  { ok: true,  patched: 1 },
+    S3:  { ok: false, reason: 'ALREADY_SOFTDEL' },
+    S4:  { ok: false, reason: 'UUID_DRIFT' },
+    S5:  { ok: false, reason: 'PAYLOAD_DIFF' },
+    S6:  { ok: true,  patched: 0 },
+    S7:  { ok: true,  patched: 0 },
+    S8:  { ok: false, reason: 'PERIOD_LOCKED' },
+    S9:  { ok: false, reason: 'BASE_DRIFT' },
+    S10: { ok: true,  patched: 0 }
+  };
 
   // S1：dry 有效 A 级对
   add('S1', 'dry 有效 A 级对 → 双方 ok:true, wrote:false', {
@@ -431,7 +468,25 @@ function seedPair(store, row, keeperRow, opts) {
     try { nOut = CORE.tsSoftDelGuardedCore(nE, nDeps); }
     catch (e) { nOut = JSON.stringify({ ok: false, error: String(e.message || e) }); }
 
-    check(sc.id, sc.title, () => compareRun(gOut, nOut, gStore, nStore, gCand.row));
+    check(sc.id, sc.title, () => {
+      const eq = compareRun(gOut, nOut, gStore, nStore, gCand.row);
+      const exp = EXPECT[sc.id];
+      if (!exp) return eq;
+      const gv = JSON.parse(gOut), nv = JSON.parse(nOut);
+      const issues = [];
+      const chk = (tag, o) => {
+        Object.keys(exp).forEach(k => {
+          const got = o[k], want = exp[k];
+          if (k === 'reason') {
+            const gr0 = (o.results && o.results[0]) ? o.results[0].reason : null;
+            if (String(gr0 || '') !== String(want)) issues.push(`${tag}.results[0].reason: 期望=${want} 实际=${JSON.stringify(gr0)}`);
+          } else if (got !== want) issues.push(`${tag}.${k}: 期望=${JSON.stringify(want)} 实际=${JSON.stringify(got)}`);
+        });
+      };
+      chk('GAS', gv); chk('Node', nv);
+      if (issues.length) return { pass: false, detail: '预期值断言失败 → ' + issues.join('； ') };
+      return { pass: eq.pass, detail: eq.pass ? (eq.detail + ' ＋ 预期值断言通过') : eq.detail };
+    });
   }
 
   // S11：锁占用 → 双方 fail-closed LOCK_BUSY（回应 Tom #2 锁交错/第二锁失败释放第一锁）
@@ -473,6 +528,131 @@ function seedPair(store, row, keeperRow, opts) {
     const oAfter = (gStore.sheets[PROD_TAB]._grid[3 - 1] || [])[14];
     const pass = g.ok === true && g.patched === 1 && String(oAfter).toUpperCase() === 'TRUE';
     return { pass, detail: `ok=${g.ok} patched=${g.patched} O[3]=${oAfter}（释放后写入成功）` };
+  });
+
+  // ---- Tom #3：锁序闭合（双执行者共享 store 交错 + 第二锁失败释放第一锁）----
+  check('S13', '共享 store 双执行者交错：第一锁成功/第二锁失败 → 第一锁必须被释放（Tom #3）', () => {
+    const store = makeStore(); makeSheet(store, PROD_TAB); makeSheet(store, BASE_TAB);
+    const deps = nodeDeps(store);
+    let masterReleased = 0, prodReleased = 0;
+    const origMaster = deps.acquireMasterLock, origRelM = deps.releaseMasterLock, origRelP = deps.releaseLock;
+    deps.acquireMasterLock = function () {
+      const l = origMaster();
+      store.lockBusy = true;   // 模拟执行者 B 占用：第一把锁成功后，第二把锁必然失败
+      return l;
+    };
+    deps.releaseMasterLock = function (l) { masterReleased++; return origRelM(l); };
+    deps.releaseLock = function (l) { prodReleased++; return origRelP(l); };
+    const p = seedPair(store, 3, 2, { uuid: 'TS-GAS-LK2' });
+    const cand = { row: 3, keeperRow: 2, uuid: 'TS-GAS-LK2', level: 'A', expectHash: hashesFor(p.target, false), keeperHash: hashesFor(p.keeper, false), expectBaseHash: hashesFor(p.target, false) };
+    let out;
+    try { out = CORE.tsSoftDelGuardedCore({ parameter: {}, postBody: { rows: [cand], dry: '0', jobId: TEST_JOB } }, deps); }
+    catch (e) { out = JSON.stringify({ ok: false, error: 'THROWN: ' + String(e.message || e) }); }
+    const j = JSON.parse(out);
+    const pass = j.ok === false && /LOCK_BUSY/.test(String(j.error || '')) && masterReleased === 1 && prodReleased === 0;
+    return { pass, detail: `ok=${j.ok} error=${j.error}；第一锁释放=${masterReleased}（须 1）；第二锁释放=${prodReleased}（须 0，未取得）` };
+  });
+
+  check('S14', '锁获取失败不留悬挂锁：GAS 侧 released≥acquired 且未持锁（Tom #3）', () => {
+    const store = makeStore(); makeSheet(store, PROD_TAB); makeSheet(store, BASE_TAB);
+    const sand = gasShim(store); vm.createContext(sand);
+    vm.runInContext(fs.readFileSync(GAS_FILE, 'utf8'), sand, { timeout: 20000 });
+    const p = seedPair(store, 3, 2, { uuid: 'TS-GAS-LK3' });
+    const cand = { row: 3, keeperRow: 2, uuid: 'TS-GAS-LK3', level: 'A', expectHash: hashesFor(p.target, false), keeperHash: hashesFor(p.keeper, false), expectBaseHash: hashesFor(p.target, false) };
+    store.lockBusy = true;
+    let out;
+    try { out = sand.tsSoftDelGuarded({ parameter: {}, postBody: { rows: [cand], dry: '0', jobId: TEST_JOB } }); }
+    catch (e) { out = JSON.stringify({ ok: false, error: 'THROWN: ' + String(e.message || e) }); }
+    store.lockBusy = false;
+    const acq = store.observations.filter(o => o.op === 'lock_acquired').length;
+    const rel = store.observations.filter(o => o.op === 'lock_released').length;
+    const j = JSON.parse(out);
+    const pass = j.ok === false && store.lockHeld !== true && rel >= acq;
+    return { pass, detail: `ok=${j.ok} error=${j.error}；acquired=${acq} released=${rel} lockHeld=${store.lockHeld}（须 released>=acquired）` };
+  });
+
+  // ---- Tom #4：dry 独立语义（不写业务恢复日志）----
+  check('S15', 'dry 不写业务恢复日志（Tom #4）：GAS 与 Node 的 journal 条数均为 0', () => {
+    const nStore = makeStore(); makeSheet(nStore, PROD_TAB); makeSheet(nStore, BASE_TAB);
+    const nDeps = nodeDeps(nStore);
+    const pn = seedPair(nStore, 3, 2, { uuid: 'TS-GAS-DRY' });
+    const cn = { row: 3, keeperRow: 2, uuid: 'TS-GAS-DRY', level: 'A', expectHash: hashesFor(pn.target, false), keeperHash: hashesFor(pn.keeper, false), expectBaseHash: hashesFor(pn.target, false) };
+    const nOut = JSON.parse(CORE.tsSoftDelGuardedCore({ parameter: {}, postBody: { rows: [cn], dry: '1', jobId: TEST_JOB } }, nDeps));
+    const nLog = nStore.sheets['_TS_SOFTDEL_LOG'] ? Math.max(0, nStore.sheets['_TS_SOFTDEL_LOG']._grid.length - 1) : 0;
+
+    const gStore = makeStore(); makeSheet(gStore, PROD_TAB); makeSheet(gStore, BASE_TAB);
+    const gSand = gasShim(gStore); vm.createContext(gSand);
+    vm.runInContext(fs.readFileSync(GAS_FILE, 'utf8'), gSand, { timeout: 20000 });
+    const pg = seedPair(gStore, 3, 2, { uuid: 'TS-GAS-DRY' });
+    const cg = { row: 3, keeperRow: 2, uuid: 'TS-GAS-DRY', level: 'A', expectHash: hashesFor(pg.target, false), keeperHash: hashesFor(pg.keeper, false), expectBaseHash: hashesFor(pg.target, false) };
+    const gOut = JSON.parse(gSand.tsSoftDelGuarded({ parameter: {}, postBody: { rows: [cg], dry: '1', jobId: TEST_JOB } }));
+    const gLog = gStore.sheets['_TS_SOFTDEL_LOG'] ? Math.max(0, gStore.sheets['_TS_SOFTDEL_LOG']._grid.length - 1) : 0;
+
+    const pass = nOut.ok === true && gOut.ok === true && nLog === 0 && gLog === 0;
+    return { pass, detail: `Node ok=${nOut.ok} 日志=${nLog}（须 0）；GAS ok=${gOut.ok} 日志=${gLog}（须 0）` };
+  });
+
+  // ---- Tom #4：幂等命中必须先复核实时 O，不能无条件声称 wrote:true ----
+  check('S16', '幂等命中但实时 O 已非 TRUE → 不得声称 wrote:true（Tom #4）', () => {
+    const store = makeStore(); makeSheet(store, PROD_TAB); makeSheet(store, BASE_TAB);
+    const deps = nodeDeps(store);
+    const p = seedPair(store, 3, 2, { uuid: 'TS-GAS-IDEM' });
+    const cand = { row: 3, keeperRow: 2, uuid: 'TS-GAS-IDEM', level: 'A', expectHash: hashesFor(p.target, false), keeperHash: hashesFor(p.keeper, false), expectBaseHash: hashesFor(p.target, false) };
+    const e1 = { parameter: {}, postBody: { rows: [cand], dry: '0', jobId: TEST_JOB } };
+    const r1 = JSON.parse(CORE.tsSoftDelGuardedCore(e1, deps));
+    store.sheets[PROD_TAB]._grid[3 - 1][14] = '';   // 模拟 O 被改回/丢失
+    const r2 = JSON.parse(CORE.tsSoftDelGuardedCore(e1, deps));
+    const it2 = (r2.results || [])[0] || {};
+    const pass = r1.ok === true && r1.patched === 1 && r2.ok === false
+      && it2.reason === 'IDEMPOTENT_O_DRIFT' && it2.wrote !== true;
+    return { pass, detail: `首次 ok=${r1.ok} patched=${r1.patched}；二次 reason=${it2.reason} wrote=${it2.wrote}（须 IDEMPOTENT_O_DRIFT 且 wrote≠true）` };
+  });
+
+  // ---- Tom #4：冲突记录不得覆盖原完成凭据 ----
+  check('S17', '同键不同 requestHash 的 REJECTED 不覆盖原 COMMITTED 凭据（Tom #4）', () => {
+    const store = makeStore(); makeSheet(store, PROD_TAB); makeSheet(store, BASE_TAB);
+    const deps = nodeDeps(store);
+    const p = seedPair(store, 3, 2, { uuid: 'TS-GAS-CONF' });
+    const c1 = { row: 3, keeperRow: 2, uuid: 'TS-GAS-CONF', level: 'A', expectHash: hashesFor(p.target, false), keeperHash: hashesFor(p.keeper, false), expectBaseHash: hashesFor(p.target, false) };
+    const r1 = JSON.parse(CORE.tsSoftDelGuardedCore({ parameter: {}, postBody: { rows: [c1], dry: '0', jobId: TEST_JOB } }, deps));
+    const h1 = CORE._requestHashOf(c1);
+    const c2 = Object.assign({}, c1, { expectHash: 'sha256:deadbeef' });   // 同键、不同 requestHash
+    const r2 = JSON.parse(CORE.tsSoftDelGuardedCore({ parameter: {}, postBody: { rows: [c2], dry: '0', jobId: TEST_JOB } }, deps));
+    const recs = deps.journalList(TEST_JOB, 3);
+    const commit1 = recs.find(x => x.requestHash === h1 && x.state === 'COMMITTED');
+    const it2 = (r2.results || [])[0] || {};
+    const pass = r1.ok === true && r2.ok === false && it2.reason === 'KEY_REUSE_CONFLICT' && !!commit1;
+    return { pass, detail: `首次 ok=${r1.ok}；二次 reason=${it2.reason}；原 COMMITTED 凭据仍在=${!!commit1}（日志共 ${recs.length} 条）` };
+  });
+
+  // ---- Tom #5：状态查询逐项绑定原 manifest 身份 ----
+  check('S18', '状态查询身份绑定：requestHash 不符 → UNKNOWN；相符且 O=TRUE → COMMITTED（Tom #5）', () => {
+    const store = makeStore(); makeSheet(store, PROD_TAB); makeSheet(store, BASE_TAB);
+    const deps = nodeDeps(store);
+    const p = seedPair(store, 3, 2, { uuid: 'TS-GAS-ST' });
+    const c1 = { row: 3, keeperRow: 2, uuid: 'TS-GAS-ST', level: 'A', expectHash: hashesFor(p.target, false), keeperHash: hashesFor(p.keeper, false), expectBaseHash: hashesFor(p.target, false) };
+    JSON.parse(CORE.tsSoftDelGuardedCore({ parameter: {}, postBody: { rows: [c1], dry: '0', jobId: TEST_JOB } }, deps));
+    const h1 = CORE._requestHashOf(c1);
+    const wrong = JSON.parse(CORE.tsSoftDelStatus({ postBody: { action: 'statusQuery', jobId: TEST_JOB, rows: [{ row: 3, requestHash: 'sha256:WRONG', uuid: c1.uuid }] } }, deps));
+    const right = JSON.parse(CORE.tsSoftDelStatus({ postBody: { action: 'statusQuery', jobId: TEST_JOB, rows: [{ row: 3, requestHash: h1, uuid: c1.uuid }] } }, deps));
+    const w = (wrong.rows || [])[0] || {}, r = (right.rows || [])[0] || {};
+    const pass = w.state === 'UNKNOWN' && r.state === 'COMMITTED' && r.identity === 'BOUND';
+    return { pass, detail: `错 hash → state=${w.state} identity=${w.identity}；对 hash → state=${r.state} identity=${r.identity}` };
+  });
+
+  // ---- Tom #2：statusQuery 必须经同一受控入口抵达核心 ----
+  check('S19', 'statusQuery 经同一受控入口抵达核心（Tom #2）：GAS tsSoftDelGuarded(action=statusQuery)', () => {
+    const gStore = makeStore(); makeSheet(gStore, PROD_TAB); makeSheet(gStore, BASE_TAB);
+    const gSand = gasShim(gStore); vm.createContext(gSand);
+    vm.runInContext(fs.readFileSync(GAS_FILE, 'utf8'), gSand, { timeout: 20000 });
+    const p = seedPair(gStore, 3, 2, { uuid: 'TS-GAS-SQ' });
+    const c1 = { row: 3, keeperRow: 2, uuid: 'TS-GAS-SQ', level: 'A', expectHash: hashesFor(p.target, false), keeperHash: hashesFor(p.keeper, false), expectBaseHash: hashesFor(p.target, false) };
+    const w1 = JSON.parse(gSand.tsSoftDelGuarded({ parameter: {}, postBody: { rows: [c1], dry: '0', jobId: TEST_JOB } }));
+    const h1 = CORE._requestHashOf(c1);
+    const sq = JSON.parse(gSand.tsSoftDelGuarded({ parameter: {}, postBody: { action: 'statusQuery', jobId: TEST_JOB, rows: [{ row: 3, requestHash: h1, uuid: c1.uuid }] } }));
+    const r0 = (sq.rows || [])[0] || {};
+    const pass = w1.ok === true && sq.action === 'statusQuery' && r0.state === 'COMMITTED' && r0.identity === 'BOUND';
+    return { pass, detail: `写入 ok=${w1.ok}；statusQuery action=${sq.action} state=${r0.state} identity=${r0.identity}` };
   });
 
   const failed = RESULTS.filter(r => !r.pass);
