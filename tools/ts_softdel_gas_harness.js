@@ -157,7 +157,13 @@ function gasShim(store) {
   };
 }
 function stubProps(store) {
-  if (!store.props) store.props = {};      // 与 store 生命周期绑定（同一脚本属性集）
+  // v6（Tom #5）：默认注入一份「运维已显式初始化」的开放期锁策略，
+  //   模拟生产环境（期锁由运维显式初始化：sentinel='1' + 合法策略）。
+  //   真实写入路径因此能跑通期锁放行；无策略/非法哨兵的负例用 gasRunWith 显式传空/坏 props 触发 fail-closed。
+  if (!store.props) store.props = {
+    PERIOD_LOCK_POLICY_INIT: '1',
+    PERIOD_LOCK_STATE: JSON.stringify({ closed: true, futureOpen: true, cutoff: '2026-10-01', updatedBy: 'harness-default', updatedAt: '', source: 'props' })
+  };
   const m = store.props;
   return { getProperty: k => (k in m ? m[k] : null), setProperty: (k, v) => { m[k] = String(v); }, deleteProperty: k => { delete m[k]; }, getProperties: () => m };
 }
@@ -809,11 +815,11 @@ function seedPair(store, row, keeperRow, opts) {
   };
   const POL = (o) => JSON.stringify(Object.assign({ closed: true, futureOpen: true, cutoff: '2026-10-01' }, o || {}));
 
-  // ---- 策略四态 1：策略缺失（真首次态，无哨兵）→ futureOpen=true，未来日期放行 ----
-  check('S25', '期锁策略四态 1/4：策略缺失（真首次态）→ 未来日期放行（Tom #4）', () => {
+  // ---- 策略四态 1：两键都缺（无哨兵、无策略）→ fail-closed 收紧，未来日期被拒（Tom #5 新契约：无可核策略即拒写）----
+  check('S25', '期锁策略四态 1/4：两键都缺（无哨兵/无策略）→ fail-closed 收紧，业务写为 0（Tom #5）', () => {
     const { out, it } = gasRunWith({});   // 无策略键、无哨兵
-    const pass = out.ok === true && it.wrote === true;
-    return { pass, detail: `ok=${out.ok} wrote=${it.wrote} reason=${it.reason || out.error || '-'}` };
+    const pass = out.ok === false && it.reason === 'PERIOD_LOCKED';
+    return { pass, detail: `ok=${out.ok} reason=${it.reason || out.error || '-'}（须 PERIOD_LOCKED：无可核策略即拒写）` };
   });
 
   // ---- 策略四态 2：JSON 损坏 → fail-closed（futureOpen=false）→ 未来日期被拒 ----

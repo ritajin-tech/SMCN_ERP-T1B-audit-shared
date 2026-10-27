@@ -269,12 +269,13 @@ function _plFailClosedPolicy(reason) {
 // ---- v5 B2（Tom 第 4 项）：真实策略读取 ----
 // 此前 GAS 侧 policy 固定调 _plPolicy()，返回 source:'unset'，**从未**读生产
 // PropertiesService 策略 —— 等于生产策略（损坏 / futureOpen=false / 关账调整）
-// 根本没有被执行入口遵守。此处按 PeriodLockGuard._plPolicy 逐字移植读取逻辑：
+// 根本没有被执行入口遵守。此处按 PeriodLockGuard._plPolicy 逐字移植判定逻辑，
+// 但 softdel 修复入口的**保守契约**比日常 PeriodLockGuard 更严（Tom #5）：
 //   · 读取异常 → fail-closed（'read-error'）
-//   · 哨兵三态：'1'=已初始化；确定值=未初始化；**读取异常=unknown → fail-closed**
-//     （不得与「确定未初始化」混淆，否则故障反而放宽未知状态）
-//   · 有哨兵而策略键丢失 → fail-closed（'policy-lost'）
-//   · 真首次态 → closed=true + futureOpen=true + source:'unset'
+//   · 哨兵三态：'1'=已初始化；确定值('0'/null/''/undefined)=未初始化；**读取异常=unknown → fail-closed**
+//   · 哨兵非 '1'（未初始化 / 非法哨兵）→ fail-closed（'no-policy-unset' / 'sentinel-illegal'）
+//     —— 不再沿用原实现的「首态开放默认」，没有运维显式初始化的策略即拒写，不自动初始化。
+//   · 哨兵='1' 而策略键丢失/空 → fail-closed（'policy-lost'，曾初始化过又丢失 ≠ 首次部署）
 //   · JSON 坏 / 结构非法（含 'false' 字符串、缺字段、cutoff 非法）→ fail-closed
 // 边界：本函数**只读**，不初始化、不改写生产策略。
 // propsGetter(key) 由调用方注入（GAS 侧注入 PropertiesService，Node 侧注入内存/测试替身）。
@@ -289,11 +290,19 @@ function _plPolicyFromProps(propsGetter) {
   catch (e2) { sentinelOk = false; }
   if (!sentinelOk) return _plFailClosedPolicy('sentinel-unknown');
 
-  var initialized = (sentinel === '1');
+  // softdel 修复入口契约（Tom #5）：比日常 PeriodLockGuard 更保守——
+  //   仅在 sentinel==='1'（运维已显式初始化）且 raw 合法时按策略放行；
+  //   其余（未初始化 / 非法哨兵 / 策略缺失 / 读取故障）一律 fail-closed 拒写，
+  //   不沿用原实现的「首态开放默认」，也不自动初始化策略。
+  if (sentinel !== '1') {
+    // 区分「确定未初始化」('0'/null/''/undefined) 与「非法哨兵值」：两者都收紧，
+    //   reason 不同便于审计（非法哨兵不应被误判为首次部署开放）。
+    var isLegalUnset = (sentinel === null || sentinel === undefined || sentinel === '' || sentinel === '0');
+    return _plFailClosedPolicy(isLegalUnset ? 'no-policy-unset' : 'sentinel-illegal');
+  }
   if (!raw) {
-    if (initialized) return _plFailClosedPolicy('policy-lost');
-    return { closed: true, cutoff: PL_CUTOFF, futureOpen: true,
-             updatedBy: 'initial-unset', updatedAt: '', source: 'unset' };
+    // 哨兵已初始化但策略键缺失/空 → 曾初始化过又丢失 ≠ 首次部署 → 拒写
+    return _plFailClosedPolicy('policy-lost');
   }
   try {
     var p = JSON.parse(raw);
