@@ -12,15 +12,22 @@ GAS 单源可复现校验器（回应 Tom #1「源码/生成物/输出错配」+
      杜绝 FINAL_FILE（实际部署入口）二次漂移。
   5) 【dispatch/entrypoint manifest】FINAL_FILE 前缀 dispatch 映射中，softDelGuarded 与 statusQuery
      必须各唯一存在且统一路由到 tsSoftDelGuarded，不得有其它键路由到该受控入口（防前缀漂移假通过）。
+  6) 【运行时语义 manifest】用 Node 真实执行 dispatch 区块（Recording Stub 沙箱：任何自由标识符
+     都解析为"会自报名字"的 Proxy 桩），取得【有效运行期映射】——成员集合 + 每个成员实际调用的
+     目标标识序列，并与冻结基线逐条比对。这是语义层校验：增键 / 重复键覆盖 / 计算属性键 /
+     对象展开 / getter / 别名等任何"改变有效映射"的注入都会被捕获，不再逐条补语法形态。
 
 输出逐件源码的 SHA-256 与 git blob 哈希，供固定提交比对；结论写入证据文件。
 """
 import hashlib
 import io
+import json
 import os
 import re
+import shutil
 import subprocess
 import sys
+import tempfile
 
 HERE = os.path.dirname(os.path.abspath(__file__))
 TOOLS = HERE
@@ -181,18 +188,54 @@ def main():
         'fixBDates','delBlankRows','sheetMeta','applyFormat','masterCondFormat','alert',
         'listTriggers','syncMaster','rebuildLive','viewsLive','malAll','ensureMalTriggers',
     }
+    # 冻结的【有效运行期路由指纹】：成员名 → 该成员被以探针调用时实际调用到的目标标识序列。
+    # 由 Node Recording Stub 沙箱执行规范区块测得（42 条）。任何改变有效映射的注入都会使其失配。
+    BASELINE_ROUTING = {
+        "alert": ["tsSendAlert"], "appendRows": ["tsAppendRows"], "applyFormat": ["tsApplyFormat"],
+        "archive": ["archiveCurrentSpreadsheet"], "checkLeaves": ["tsCheckLeaves"],
+        "cleanupLeaves": ["cleanupDuplicateLeavesInternal"], "createSheet": ["tsCreateSheet"],
+        "delBlankRows": ["tsDelBlankRows"], "driveList": ["tsDriveList"], "dupreport": ["tsDupReport"],
+        "ensureMalTriggers": ["ensureMasterSyncTriggers"],
+        "exception": ["Date", "Utilities.formatDate", "refreshMonthlyExceptions"],
+        "fixBDates": ["tsFixBDates"], "listTriggers": ["listTriggers"],
+        "malAll": ["_malOptFromE", "malRunAll"], "masterCondFormat": ["tsSetCondFormat"],
+        "masterCreate": ["masterCreate"],
+        "masterException": ["Date", "Utilities.formatDate", "refreshMasterException"],
+        "masterLeaves": ["masterLeaves"], "patchCells": ["tsPatchCells"], "plGuardTest": ["plGuardTest"],
+        "plVerifyHash": ["plVerifyHash"], "probeCalendar": ["tsProbeCalendar"], "pruneDead": ["tsPruneDead"],
+        "purgeRows": ["tsPurgeRows"], "purgeSoftLeaves": ["tsPurgeSoftLeaves"], "readRange": ["tsReadRange"],
+        "rebuildLive": ["_malOptFromE", "rebuildAttendanceLive"], "refreshqs": ["refreshQSBoard"],
+        "repairLegacyLeave": ["repairLegacyLeave"], "setup": ["setupAllTriggers"],
+        "setupAmy": ["setupAmyMonthlyReminder"], "setupPeriodLock": ["setupPeriodLock"],
+        "sheetMeta": ["tsSheetMeta"], "snapshot": ["tsSnapshot"], "softDelGuarded": ["tsSoftDelGuarded"],
+        "statusQuery": ["tsSoftDelGuarded"], "syncLeaves": ["syncLeavesFromCalendar"],
+        "syncMaster": ["_malOptFromE", "syncProdToMaster"], "testAmySelf": ["testSendAmySelf"],
+        "trimblank": ["tsTrimBlank"], "viewsLive": ["_malOptFromE", "refreshMasterViews"],
+    }
 
     def _parse_top_level_keys(b):
         """深度感知解析 REMOTE_ACTIONS 区块的顶层成员键（跳过注释/字符串/嵌套花括号）。
-        返回 (keys, computed_keys)：computed_keys 收录 depth==0 的计算属性键（形如 ['x']: …），
-        运行期绑定动态、无法静态确定，调用方必须 fail-closed（Tom 本轮 L3）。"""
+        返回 (keys, computed_keys, spreads, unsupported)：
+          computed_keys —— depth==0 的计算属性键（形如 ['x']: …），运行期绑定动态，调用方必须 fail-closed
+          spreads       —— depth==0 的对象展开（...{…} / ...expr），合法 JS 且运行期可覆盖既有成员
+          unsupported   —— depth==0 键位上出现的未支持语法字符（Tom 15:17Z 要求"对未支持语法 fail-closed"）"""
         keys = []
         computed_keys = []
+        spreads = []
+        unsupported = []
         depth = 0
+        expect_key = True     # 顶层：当前处于"键位"（True）还是"值位"（False）
         i = 0
         n = len(b)
         while i < n:
             c = b[i]
+            if depth == 0 and c == '.' and b[i:i+3] == '...':
+                # 顶层对象展开（Tom 2026-10-28 15:17Z 第四类绕过）：
+                # ...{ setup: function(e){ return otherAction(e); } } 是【合法 JS】，运行期展开
+                # 会用后面的同名键覆盖原映射；展开内容静态不可确定，一律 fail-closed（不尝试解析）。
+                spreads.append(b[i:i+3])
+                i += 3
+                continue
             if c == '/' and i + 1 < n and b[i+1] == '/':
                 j = b.find('\n', i);  i = (j + 1) if j != -1 else n;  continue
             if c == '/' and i + 1 < n and b[i+1] == '*':
@@ -213,6 +256,7 @@ def main():
                 if k < n and b[k] == ':':
                     keys.append(content)   # 归一化为去引号键，交由集合比对 fail-closed
                     i = k + 1
+                    expect_key = False     # 进入值位
                 continue
             if c == '"' or c == "'":
                 # 非顶层（depth>0）字符串字面量：照旧跳过
@@ -246,11 +290,15 @@ def main():
                 if k < n and b[k] == ':':
                     computed_keys.append(b[i:j+1])   # 计算属性键，运行期动态绑定，强制 fail-closed
                     i = k + 1
+                    expect_key = False     # 进入值位
                 else:
                     i = j   # 数组值（如 key: [1,2,3] 或 key: [{…}]），整体跳过
                 continue
             if c == '{': depth += 1; i += 1; continue
-            if c == '}': depth -= 1; i += 1; continue
+            if c == '}':
+                depth -= 1; i += 1
+                if depth == 0: expect_key = True   # 该成员函数体结束，回到键位
+                continue
             if depth == 0 and (c.isalpha() or c == '_' or c == '$'):
                 j = i
                 while j < n and (b[j].isalnum() or b[j] in '_$'):
@@ -259,17 +307,34 @@ def main():
                 while k < n and b[k] in ' \t':
                     k += 1
                 if k < n and b[k] == ':':
-                    keys.append(b[i:j]);  i = k + 1;  continue
+                    keys.append(b[i:j]);  i = k + 1;  expect_key = False;  continue
                 i = j;  continue
+            if depth == 0:
+                if c == ',':
+                    expect_key = True     # 顶层分隔符 → 回到键位
+                    i += 1;  continue
+                if expect_key and not (c.isalpha() or c in '_$"' or c == "'" or c == '[' or c in ' \t\n\r'):
+                    # 键位上出现既非键起始、也非分隔符的字符 = 未支持语法 → fail-closed（Tom 15:17Z）
+                    unsupported.append(c)
             i += 1
-        return keys, computed_keys
+        return keys, computed_keys, spreads, unsupported
 
     def _real_manifest_ok(b, baseline):
         """真实 dispatch 路径的完整校验（main() 与负例共用同一函数，杜绝 fixture 与真实路径不一致）。
         返回 (ok, rep_lines, top_keys)。"""
         lines = []
         ok = True
-        top, computed = _parse_top_level_keys(b)
+        top, computed, spreads, unsupported = _parse_top_level_keys(b)
+        # 防顶层对象展开绕过（Tom 2026-10-28 15:17Z 第四类）：...{ setup: … } 是【合法 JS】，
+        # 运行期展开会用后面的同名键覆盖原映射；既不是重复键也不是计算键，既有正则/计数全不命中。
+        # 展开内容静态不可确定 → 任何顶层展开一律 fail-closed（不尝试解析求值）。
+        if spreads:
+            ok = False
+            lines.append('  [FAIL] 存在顶层对象展开 ...（合法 JS，运行期可覆盖既有成员；静态无法确定展开内容，强制 fail-closed）：%d 处' % len(spreads))
+        # 防未支持语法绕过（Tom 15:17Z 要求）：键位上出现既非键起始、也非分隔符的字符 → fail-closed
+        if unsupported:
+            ok = False
+            lines.append('  [FAIL] 顶层键位存在未支持语法字符（强制 fail-closed）：%s' % sorted(set(unsupported)))
         # 防计算属性键绕过（Tom 本轮 L3）：['setup']: function… 是合法 JS，运行时会覆盖同名原键，
         # 但静态无法确知运行期绑定，故任何顶层计算键一律 fail-closed（不尝试解析求值）。
         if computed:
@@ -312,6 +377,111 @@ def main():
             lines.append('  [FAIL] return tsSoftDelGuarded( 出现 %d 次（须恰为 2）' % n_ts)
         return ok, lines, top
 
+    def _runtime_manifest(b, baseline_keys, baseline_routing):
+        """【运行时语义校验 · 断言6】用 Node 真实执行 dispatch 区块（Recording Stub 沙箱：
+        区块内任何自由标识符都预声明为"会自报名字"的 Proxy 桩，故执行零副作用、不会抛错），
+        逐成员以探针调用并记录其实际调用到的目标标识序列，得到【有效运行期映射】。
+
+        与冻结基线比对两件事：①有效成员集合 == 基线键集合；②每个成员的有效路由 == BASELINE_ROUTING。
+        这是语义层而非语法层校验：增键 / 重复键覆盖 / 计算属性键 / 对象展开 / getter / 别名等
+        任何"改变有效映射"的注入都会被捕获，不再逐条补语法形态（终结 Tom 连续四类语法绕过）。
+
+        返回 (ok, lines)。node 缺失或执行失败一律 fail-closed（不做静默跳过）。"""
+        lines = []
+        node = shutil.which('node')
+        if not node:
+            lines.append('  [FAIL] 运行时语义校验不可用：未找到 node 可执行文件（按 fail-closed 处理）')
+            return False, lines
+        RESERVED = set('''break case catch class const continue debugger default delete do else enum
+            export extends false finally for function if implements import in instanceof interface let
+            new null package private protected public return static super switch this throw true try
+            typeof var void while with yield await async of get set arguments undefined NaN Infinity'''.split())
+        idents = set()
+        for mm in re.finditer(r'[A-Za-z_$][A-Za-z0-9_$]*', b):
+            t = mm.group(0)
+            if t not in RESERVED:
+                idents.add(t)
+        for n in ('REMOTE_ACTIONS', '__rec', 'mk', 'keys', 'routing', 'i', 'k', 'r', 'v', 'err'):
+            idents.discard(n)
+        decls = ',\n  '.join('%s = mk(%r)' % (n, n) for n in sorted(idents))
+        node_tpl = r'''
+var __rec = [];
+function mk(name){
+  var f = function(){ __rec.push(name); return mk(name + '()'); };
+  return new Proxy(f, {
+    get: function(t, p){ if (typeof p === 'symbol') return t[p]; return mk(name + '.' + String(p)); },
+    apply: function(){ __rec.push(name); return mk(name + '()'); },
+    construct: function(){ __rec.push(name); return mk(name + '()'); }
+  });
+}
+var __DECLS__;
+var REMOTE_ACTIONS = {
+__BLOCK__
+};
+var keys = Object.keys(REMOTE_ACTIONS);
+var routing = {};
+for (var i = 0; i < keys.length; i++) {
+  var k = keys[i];
+  __rec.length = 0;
+  var r;
+  try {
+    var v = REMOTE_ACTIONS[k];
+    if (typeof v === 'function') { v({__probe: 1}); }
+    r = __rec.slice();
+  } catch (err) { r = ['THREW:' + String(err && err.message)]; }
+  routing[k] = r;
+}
+console.log(JSON.stringify({keys: keys, routing: routing}));
+'''
+        src = node_tpl.replace('__DECLS__', decls).replace('__BLOCK__', b)
+        fd, pth = tempfile.mkstemp(suffix='.js')
+        try:
+            with io.open(pth, 'w', encoding='utf-8') as fh:
+                fh.write(src)
+            p = subprocess.run([node, pth], capture_output=True, text=True, timeout=30)
+        except subprocess.TimeoutExpired:
+            lines.append('  [FAIL] 运行时语义校验超时（30s；可能含不可终止循环）→ fail-closed')
+            return False, lines
+        finally:
+            try:
+                os.unlink(pth)
+            except OSError:
+                pass
+        if p.returncode != 0:
+            lines.append('  [FAIL] 运行时语义校验执行失败（区块不是可执行的合法 JS）rc=%d：%s'
+                         % (p.returncode, (p.stderr or '').strip().splitlines()[-1:]))
+            return False, lines
+        try:
+            d = json.loads(p.stdout.strip())
+        except Exception as e:
+            lines.append('  [FAIL] 运行时语义校验输出不可解析：%s' % e)
+            return False, lines
+        keys = d.get('keys', [])
+        routing = d.get('routing', {})
+        ok = True
+        lines.append('  运行时有效成员数=%d（冻结基线=%d）' % (len(keys), len(baseline_keys)))
+        if set(keys) != set(baseline_keys):
+            ok = False
+            lines.append('  [FAIL] 运行时有效成员集合与基线不一致：额外=%s 缺失=%s'
+                         % (sorted(set(keys) - baseline_keys), sorted(baseline_keys - set(keys))))
+        if routing != baseline_routing:
+            ok = False
+            diffs = sorted([k for k in set(list(routing.keys()) + list(baseline_routing.keys()))
+                            if routing.get(k) != baseline_routing.get(k)])
+            lines.append('  [FAIL] 运行时有效路由与冻结基线不一致（成员=%d 处失配）：%s'
+                         % (len(diffs), diffs[:10]))
+            for k in diffs[:5]:
+                lines.append('      %s：基线=%s 实际=%s' % (k, baseline_routing.get(k), routing.get(k)))
+        else:
+            lines.append('  运行时有效路由逐条比对：%d/%d 一致' % (len(routing), len(baseline_routing)))
+        for k in ('softDelGuarded', 'statusQuery'):
+            tgt = routing.get(k)
+            lines.append('  %s 运行时路由=%s' % (k, tgt))
+            if tgt != ['tsSoftDelGuarded']:
+                ok = False
+                lines.append('    [FAIL] %s 运行时必须路由到 tsSoftDelGuarded' % k)
+        return ok, lines
+
     # 5d) 对真实区块跑真实路径校验
     real_ok, real_lines, real_top = _real_manifest_ok(block, BASELINE_KEYS)
     rep.extend(real_lines)
@@ -321,15 +491,22 @@ def main():
         ok = False
 
     # 5e) 负例自测：把各类绕过注入【真实区块】，真实路径必须 fail-closed（Tom 本轮 一/二 核心）
+    # 🔴 注入体必须是【合法 JS】才构成真实绕过：block 末行以 '//' 注释结尾，
+    #    若直接拼 ',…' 则逗号被注释吞掉 → 产物是语法错误而非合法注入（此前四类负例即此缺陷，
+    #    抓到的是"语法垃圾"而非"合法 JS 绕过"）。故统一以 '\n,\n' 起头，确保逗号落在注释之后。
+    INJ = '\n,\n  %s\n'
     tamper_cases = {
         '额外未引号成员 evil→otherAction':
-            block.rstrip() + ',\n  evil: function(e){ return otherAction(e); }\n',
+            block.rstrip() + INJ % 'evil: function(e){ return otherAction(e); }',
         '引号键 "evil"→otherAction（Tom 本轮 K1-a：原解析器跳过字符串字面量，引号键不进 top_keys 绕过集合比对）':
-            block.rstrip() + ',\n  "evil": function(e){ return otherAction(e); }\n',
+            block.rstrip() + INJ % '"evil": function(e){ return otherAction(e); }',
         '重复基线键 setup→otherAction（Tom 本轮 K1-b：set() 丢弃重复项，JS 后定义覆盖先定义绕过集合比对）':
-            block.rstrip() + ',\n  setup: function(e){ return otherAction(e); }\n',
+            block.rstrip() + INJ % 'setup: function(e){ return otherAction(e); }',
         '计算属性键 [\'setup\']→otherAction（Tom 本轮 L3：解析器未解析/拒绝方括号计算键，运行期覆盖原 setup 绕过集合比对）':
-            block.rstrip() + ',\n  [\'setup\']: function(e){ return otherAction(e); }\n',
+            block.rstrip() + INJ % '[\'setup\']: function(e){ return otherAction(e); }',
+        '对象展开 ...{setup:otherAction}（Tom 2026-10-28 15:17Z 第四类：合法 JS，运行期展开覆盖原 setup；'
+        '既非重复键亦非计算键，既有正则/计数全不命中）':
+            block.rstrip() + INJ % '...{ setup: function(e){ return otherAction(e); } }',
     }
     rep.append('--- 断言5 负例：真实区块注入各类绕过 → 真实路径必须 fail-closed ---')
     for label, tam in tamper_cases.items():
@@ -340,6 +517,23 @@ def main():
             rep.append('  [FAIL] 真实区块注入[%s] 未被识别（真实路径缺口仍在）' % label)
         else:
             rep.append('  真实区块注入[%s] → fail-closed=YES' % label)
+
+    # 6) 【运行时语义 manifest】Node 真实执行有效映射，与冻结基线逐条比对（终结语法形态打地鼠）
+    rep.append('--- 断言6：运行时语义 manifest（Node 真实执行 + Recording Stub 沙箱）---')
+    rt_ok, rt_lines = _runtime_manifest(block, BASELINE_KEYS, BASELINE_ROUTING)
+    rep.extend(rt_lines)
+    rep.append('  运行时语义 manifest 一致=%s' % ('YES' if rt_ok else 'NO'))
+    if not rt_ok:
+        ok = False
+    # 6b) 负例：五类注入经【运行时语义校验】必须全部 fail-closed（合法 JS 注入，非语法垃圾）
+    rep.append('--- 断言6 负例：合法 JS 注入 → 运行时语义校验必须 fail-closed ---')
+    for label, tam in tamper_cases.items():
+        t_ok, t_lines = _runtime_manifest(tam, BASELINE_KEYS, BASELINE_ROUTING)
+        if t_ok:
+            ok = False
+            rep.append('  [FAIL] 运行时语义校验未能识别注入[%s]' % label)
+        else:
+            rep.append('  运行时语义校验：注入[%s] → fail-closed=YES' % label)
 
     # 5c'') 顶层键扫描器（供后续 fixture 的 _ctrl_set_of 使用）
     MEMBER_KEY_RE = re.compile(r'([A-Za-z_$][\w$]*|\[[^\]]+\])\s*:')
