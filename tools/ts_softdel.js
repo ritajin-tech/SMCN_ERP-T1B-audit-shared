@@ -103,13 +103,33 @@ async function readAll(ssId, sheet, lastCol) {
     if (!ok) { if (got === 0) pageFail = true; else truncated = true; }
     (r && r.values ? r.values : []).forEach((cells, i) => rows.push({ row: s + i, cells: cells || [] }));
   }
-  // 条件 #7：读后 re-probe 检测"读期间漂移"——与读前 lastRow/revision 不一致即失败
+  // 条件 #7（Tom #2 v2）：读后 re-probe 检测"读期间漂移"——与读前 lastRow/revision 不一致即失败；
+  //   revision 缺失/切换（任一端 null 或异值）一律失败（服务端版本绑定不替代客户端快照完整性证明）。
   const probe2 = await get({ ssId, sheet, mode: 'values', a1: 'A1:' + lastCol + '2' });
-  if (probe2.lastRow !== last || (revision != null && probe2.revision != null && probe2.revision !== revision)) {
-    return { rows, lastRow: last, pages, ok: false, reason: 'DRIFT_DURING_READ', driftLast: probe2.lastRow };
+  const rev2 = probe2.revision != null ? probe2.revision : null;
+  if (probe2.lastRow !== last || revision == null || rev2 == null || revision !== rev2) {
+    return { rows, lastRow: last, pages, ok: false, reason: (revision == null || rev2 == null ? 'REVISION_MISSING' : 'DRIFT_DURING_READ'), driftLast: probe2.lastRow, rev1: revision, rev2 };
   }
   const data = rows.filter(x => x.cells.some(c => String(c ?? '').trim() !== ''));
   return { rows: data, lastRow: last, pages, ok: !pageFail && !truncated, revision };
+}
+
+// 单一运输契约解析（回应 Tom #1 v2）：从信封解析核心 message，envelope/core 分离，
+// 重复字段冲突即拒绝，核心 ok=false 不得被外层 ok=true 掩盖。返回核心对象或抛错（调用方 exit 1）。
+function unwrapEnvelope(env) {
+  if (!env || typeof env !== 'object') throw new Error('ENVELOPE_NOT_OBJECT');
+  if (env.version) return env;            // 新部署：核心已合并到顶层，直接以信封为权威
+  if (typeof env.message !== 'string') throw new Error('NO_CORE_MESSAGE');
+  let m;
+  try { m = JSON.parse(env.message); } catch (_e) { throw new Error('BAD_MESSAGE_JSON'); }
+  if (!m || typeof m !== 'object') throw new Error('BAD_MESSAGE_OBJECT');
+  const conflict = [];
+  for (const k of Object.keys(m)) {
+    if (Object.prototype.hasOwnProperty.call(env, k) && String(env[k]) !== String(m[k])) conflict.push(k);
+  }
+  if (conflict.length) throw new Error('FIELD_CONFLICT:' + conflict.join(','));
+  if (m.ok === false || m.ok === 'false') throw new Error('CORE_OK_FALSE');
+  return m;
 }
 
 function parseArgs() {
@@ -167,40 +187,49 @@ function loadJobId() { try { return JSON.parse(fs.readFileSync(jobIdFile(), 'utf
     let journalRows = [];
     try {
       const sq = execFileSync('python', [TS_POST_BIN, 'softDelGuarded', spf], { encoding: 'utf8', env: qenv });
-      let sj; try { sj = JSON.parse(sq); } catch (e) {}
-      // 单一运输契约兜底：若部署侧旧形态把核心结果塞在 message，解析一次再合并
-      if (sj && typeof sj === 'object' && !sj.rows && typeof sj.message === 'string') {
-        try { const m = JSON.parse(sj.message); if (m && typeof m === 'object') sj = Object.assign({}, m, sj); } catch (_e) {}
-      }
+      let sj;
+      try { sj = unwrapEnvelope(JSON.parse(sq)); }
+      catch (e) { sj = null; }   // 契约解析失败 → 全部登记 UNKNOWN，不盲判
       journalRows = (sj && sj.rows) || [];
     } catch (e) {
       process.stderr.write('[STATUS] 服务端 journal 查询失败（登记 UNKNOWN，不自动重试）：' + ((e.stderr || e.message || '').slice(0, 300)) + '\n');
     }
     const reread = await rereadO(o.status);
+    // v2（Tom #4）：拒绝服务端返回的【额外行】（不在本次请求内）—— 已忽略，不据其下结论
+    const reqSet = new Set(o.status.map(Number));
+    const extraRows = journalRows.filter(x => !reqSet.has(Number(x.itemId)));
+    if (extraRows.length) {
+      process.stderr.write('[STATUS] 服务端返回额外行（不在请求内）：' + extraRows.map(x => x.itemId).join(',') + ' —— 已忽略，不据其下结论\n');
+    }
+    const WHITELIST = ['COMMITTED', 'REJECTED', 'UNKNOWN', 'VOIDED'];
     const out = o.status.map(r => {
-      const jr = journalRows.find(x => x.itemId === r);
+      // v2（Tom #4）：要求【唯一一行】—— 同 itemId 多行（重复）或零行（缺失）均不得下判
+      const matches = journalRows.filter(x => Number(x.itemId) === Number(r));
       const oVal = reread[r];
       const oTrue = (oVal === true || String(oVal || '').toUpperCase() === 'TRUE');
+      const mf = idOf[r];
       // v5（Tom 第 1 项）：客户端自身也必须声明完整身份（四项缺一不可）
-      const bound = !!(idOf[r] && idOf[r].requestHash && idOf[r].subBatchId && idOf[r].uuid);
-      let state;
-      if (!bound) {
+      const bound = !!(mf && mf.requestHash && mf.subBatchId && mf.uuid);
+      let state, identity;
+      if (matches.length !== 1) {
+        state = 'UNKNOWN'; identity = matches.length === 0 ? 'NO_JOURNAL' : 'DUP_JOURNAL_ROW';
+      } else if (!bound) {
         // 无法绑身份 → 一律 UNKNOWN（绝不据服务端自称的 COMMITTED 下结论）
-        state = 'UNKNOWN';
-      } else if (!jr) {
-        // 无日志：O=TRUE 但来源不明（可能是历史软标/他请求），不能断言本请求完成
-        state = oTrue ? 'O_TRUE_SOURCE_UNKNOWN' : 'UNKNOWN';
-      } else if (jr.identity !== 'BOUND') {
-        // v5：服务端【缺失】identity 也必须判失败 —— 不再「缺失即放过」
-        state = 'UNKNOWN';
-      } else if (jr.state === 'COMMITTED') {
-        // Tom #5：独立 O 回读不符 → 不得返回 COMMITTED
-        state = oTrue ? 'COMMITTED' : 'UNKNOWN';
-      } else if (jr.state === 'REJECTED') state = 'REJECTED';
-      else if (jr.state === 'UNKNOWN') state = 'UNKNOWN';
-      else state = jr.state;
-      return { row: r, state, journalState: jr ? jr.state : null,
-        identity: jr ? jr.identity : (bound ? 'NO_JOURNAL' : 'MANIFEST_MISSING'), oValue: oVal };
+        state = 'UNKNOWN'; identity = 'MANIFEST_MISSING';
+      } else {
+        const jr = matches[0];
+        // v2（Tom #4）：客户端对 manifest 身份【逐项严格匹配】jobId/subBatchId/requestHash/uuid，要求唯一一行
+        const idOk = String(jr.jobId) === String(jobId) && String(jr.subBatchId) === String(mf.subBatchId)
+          && String(jr.requestHash) === String(mf.requestHash) && String(jr.uuid) === String(mf.uuid);
+        if (!idOk) { state = 'UNKNOWN'; identity = 'CLIENT_IDENTITY_MISMATCH'; }
+        else if (WHITELIST.indexOf(jr.state) < 0) { state = 'UNKNOWN'; identity = 'STATE_NOT_WHITELISTED'; }
+        // Tom #5：独立 O 回读不符 → 不得返回 COMMITTED；VOIDED/UNKNOWN/PREPARED 等一律 UNKNOWN（PREPARED 不得读作成功）
+        else if (jr.state === 'COMMITTED') { state = oTrue ? 'COMMITTED' : 'UNKNOWN'; }
+        else if (jr.state === 'REJECTED') { state = 'REJECTED'; }
+        else { state = 'UNKNOWN'; }
+        if (idOk && WHITELIST.indexOf(jr.state) >= 0) identity = 'BOUND';
+      }
+      return { row: r, state, journalState: matches.length === 1 ? matches[0].state : null, identity, oValue: oVal };
     });
     process.stdout.write(JSON.stringify({ action: 'statusQuery', jobId, rows: out }, null, 2));
     return;
@@ -395,17 +424,10 @@ function loadJobId() { try { return JSON.parse(fs.readFileSync(jobIdFile(), 'utf
     try {
       const r = execFileSync('python', [TS_POST_BIN, 'softDelGuarded', pfile], { encoding: 'utf8', env: process.env });
       let j;
-      try { j = JSON.parse(r); }
+      try { j = unwrapEnvelope(JSON.parse(r)); }
       catch (pe) {
-        process.stderr.write('[FAIL] 服务端响应非 JSON（登记不明、不盲重试）：' + r.slice(0, 300) + '\n');
+        process.stderr.write('[FAIL] 服务端响应非 JSON或契约不符（' + (pe.message || '坏 JSON') + '）：登记不明、不盲重试 —— ' + r.slice(0, 200) + '\n');
         process.exit(1);
-      }
-      // 单一运输契约（回应 Tom #1）：分发器把核心 JSON 合并到信封顶层（version/jobId/action/rows 等直接可见）。
-      // 兜底：若部署侧仍是旧形态（核心结果塞在 message 字段），客户端严格校验外层后解析 message 一次，
-      // 绝不把「外层 success 包络」当作内层成功。
-      if (j && typeof j === 'object' && !j.version && typeof j.message === 'string') {
-        try { const m = JSON.parse(j.message); if (m && typeof m === 'object') j = Object.assign({}, m, j); }
-        catch (_pe) { /* 保持 j 不变，交由后续契约校验拒绝 */ }
       }
       // 条件 #4/#5：严格响应契约（逐字闭合 Tom 复审条件 #5：version 精确 / jobId / batchId===subBatchId / dry===false / ok===true / 计数一致）
       if (typeof j !== 'object' || !j) { process.stderr.write('[FAIL] 响应非对象（登记不明、不盲重试）\n'); process.exit(1); }

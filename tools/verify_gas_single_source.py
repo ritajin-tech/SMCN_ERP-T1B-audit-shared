@@ -22,6 +22,8 @@ HERE = os.path.dirname(os.path.abspath(__file__))
 TOOLS = HERE
 EMB = os.path.join(HERE, 'v4_patches', 'full', 'ts_softdel_gas_embedded.js')
 GEN = os.path.join(HERE, 'gen_gas_softdel.py')
+FINAL = os.path.join(HERE, 'v4_patches', 'full', 'RemoteActions.A1d_v4_FINAL_entry_bound.js')
+ANCHOR = "var norm = (function() {"
 EVID = os.path.join(HERE, '..', '_tmp', 'evidence', 'gen_single_source_20261027.txt')
 
 SOURCES = [
@@ -90,17 +92,25 @@ def main():
     # 2) 生成可复现
     rep.append('--- 断言2：连跑两次生成器，产出 SHA-256 必须相同 ---')
     before = sha256_file(EMB)
+    before_f = sha256_file(FINAL)
     r1 = subprocess.run([sys.executable, GEN], capture_output=True, text=True, cwd=HERE)
     mid = sha256_file(EMB)
+    mid_f = sha256_file(FINAL)
     r2 = subprocess.run([sys.executable, GEN], capture_output=True, text=True, cwd=HERE)
     after = sha256_file(EMB)
+    after_f = sha256_file(FINAL)
     stable = (before == mid == after)
+    stable_f = (before_f == mid_f == after_f)
     rep.append('  生成器退出码：%s / %s' % (r1.returncode, r2.returncode))
-    rep.append('  第0次(现有)=%s' % before)
-    rep.append('  第1次       =%s' % mid)
-    rep.append('  第2次       =%s' % after)
-    rep.append('  三次一致=%s' % ('YES' if stable else 'NO'))
-    if not stable or r1.returncode != 0 or r2.returncode != 0:
+    rep.append('  [embedded] 第0次(现有)=%s' % before)
+    rep.append('  [embedded] 第1次       =%s' % mid)
+    rep.append('  [embedded] 第2次       =%s' % after)
+    rep.append('  [embedded] 三次一致=%s' % ('YES' if stable else 'NO'))
+    rep.append('  [FINAL_FILE] 第0次(现有)=%s' % before_f)
+    rep.append('  [FINAL_FILE] 第1次       =%s' % mid_f)
+    rep.append('  [FINAL_FILE] 第2次       =%s' % after_f)
+    rep.append('  [FINAL_FILE] 三次一致=%s' % ('YES' if stable_f else 'NO'))
+    if not stable or not stable_f or r1.returncode != 0 or r2.returncode != 0:
         ok = False
     rep.append('')
 
@@ -119,6 +129,31 @@ def main():
     if not same:
         ok = False
     rep.append('')
+    # 4) FINAL_FILE 内联核心区必须与 embedded 内联核心区【逐字一致】（杜绝 FINAL_FILE 二次漂移）
+    rep.append('--- 断言4：FINAL_FILE 内联核心区 必须与 embedded 内联核心区 逐字一致 ---')
+    emb_src3 = io.open(EMB, encoding='utf-8').read()
+    fin_src4 = io.open(FINAL, encoding='utf-8').read()
+    if ANCHOR not in emb_src3:
+        rep.append('  [FAIL] embedded 找不到锚点 %s' % ANCHOR); ok = False
+    elif ANCHOR not in fin_src4:
+        rep.append('  [FAIL] FINAL_FILE 找不到锚点 %s' % ANCHOR); ok = False
+    else:
+        emb_region = emb_src3[emb_src3.find(ANCHOR):]
+        fin_region = fin_src4[fin_src4.find(ANCHOR):]
+        region_ok = (emb_region == fin_region)
+        rep.append('  embedded 内联区长度=%d  FINAL_FILE 内联区长度=%d  逐字一致=%s'
+                   % (len(emb_region), len(fin_region), 'YES' if region_ok else 'NO'))
+        if not region_ok:
+            ok = False
+            n = min(len(emb_region), len(fin_region))
+            for k in range(0, n, 200):
+                if emb_region[k:k + 200] != fin_region[k:k + 200]:
+                    rep.append('    首个差异片段 @%d:' % k)
+                    rep.append('      embedded: %r' % emb_region[k:k + 200])
+                    rep.append('      FINAL   : %r' % fin_region[k:k + 200])
+                    break
+    rep.append('')
+
     rep.append('=== 结论：%s ===' % ('全部断言通过' if ok else '存在失败断言（见上）'))
 
     text = '\n'.join(rep) + '\n'

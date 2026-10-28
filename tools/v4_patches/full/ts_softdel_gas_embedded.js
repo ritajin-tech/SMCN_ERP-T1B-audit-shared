@@ -779,8 +779,11 @@ function tsSoftDelGuardedCore(e, deps) {
           wroteRows[w].state = 'UNKNOWN';
           wroteRows[w].reason = 'MASTER_VERSION_DRIFT_POST_WRITE';
           // 持久化失效：逐行追加 VOIDED，按 _findCommit 的 VOIDED > COMMITTED 优先级覆盖后续查询结论。
-          journal(deps, jobId, batchId, wroteRows[w].row, wroteRows[w].requestHash,
+          // v2（Tom #3）：必须检查 VOIDED 日志返回值 —— 若追加失败，显式保持 UNKNOWN（不得当已持久失效），
+          //   且状态查询不得恢复成 COMMITTED（见 tsSoftDelStatus 的 PREPARED→UNKNOWN 与 _findCommit）。
+          var _vOk = journal(deps, jobId, batchId, wroteRows[w].row, wroteRows[w].requestHash,
             'VOIDED', wroteRows[w].uuid, 'MASTER_VERSION_DRIFT_POST_WRITE', wroteRows[w].keeperRow);
+          if (!_vOk) wroteRows[w].reason = 'VOIDED_LOG_FAILED';
         }
         anyFail = true;
       } else {
@@ -814,11 +817,24 @@ function tsSoftDelGuardedCore(e, deps) {
 //   当前 keeper 行仍有效（未被软标/未被换），不能仅凭「原日志 + 当前 O=TRUE」就归属本请求。
 function journal(deps, jobId, subBatchId, itemId, requestHash, state, uuid, reason, keeperRow) {
   if (typeof deps.journalAppend !== 'function') return false;
+  // v2（Tom #4）：把 keeper 当前 UUID + 负载指纹绑定进日志 —— 供 status 实时比对 drift。
+  //   从 keeperRow 实时读取（与核心 it.keeperHash 同算法，timeOnly=false 全量指纹；status 侧同口径比对）。
+  var keeperUuid = null, keeperHash = null;
+  if (keeperRow != null && typeof deps.readProdRow === 'function') {
+    try {
+      var _kr = deps.readProdRow(Number(keeperRow));
+      if (_kr && Array.isArray(_kr)) {
+        keeperUuid = norm._sdNorm(_kr[8]);
+        keeperHash = (_sdRowHash ? _sdRowHash(_kr, false) : null);
+      }
+    } catch (_ke) {}
+  }
   try {
     deps.journalAppend({ jobId: jobId, subBatchId: subBatchId, itemId: itemId, requestHash: requestHash,
       state: state, uuid: uuid == null ? null : String(uuid),
       reason: reason == null ? null : String(reason),
       keeperRow: keeperRow == null ? null : Number(keeperRow),
+      keeperUuid: keeperUuid, keeperHash: keeperHash,
       ts: Date.now() });
     return true;
   } catch (e) {
@@ -960,6 +976,12 @@ function tsSoftDelStatus(e, deps) {
       try { _kRow = deps.readProdRow ? deps.readProdRow(Number(entry.keeperRow)) : null; } catch (ke2) { _kErr = String(ke2 && ke2.message || ke2); }
       if (_kErr || !_kRow || _sdSoftDel(_kRow[14])) {
         identityOk = false; identityWhy = 'KEEPER_DRIFT_ON_STATUS';
+      } else {
+        // v2（Tom #4）：当前 keeper UUID / 负载指纹与【日志绑定值】比对，任一漂移即失效（不可归属本请求）。
+        var _kUuid = norm._sdNorm(_kRow[8]);
+        var _kHash = (_sdRowHash ? _sdRowHash(_kRow, false) : null);
+        if (String(_kUuid) !== String(entry.keeperUuid)) { identityOk = false; identityWhy = 'KEEPER_UUID_DRIFT_ON_STATUS'; }
+        else if (entry.keeperHash != null && String(_kHash) !== String(entry.keeperHash)) { identityOk = false; identityWhy = 'KEEPER_HASH_DRIFT_ON_STATUS'; }
       }
     }
 
@@ -981,8 +1003,12 @@ function tsSoftDelStatus(e, deps) {
       state = 'UNKNOWN';
     } else if (entry.state === 'REJECTED') {
       state = 'REJECTED';
+    } else if (entry.state === 'PREPARED') {
+      // v2（Tom #3）：PREPARED 仅表示「计划写/已占位」，不可读作成功；未落 COMMITTED/VOIDED 必须 UNKNOWN，
+      //   杜绝「写发生但无凭证」被误判为最终成功（VOIDED 日志失败亦落此路径）。
+      state = 'UNKNOWN';
     } else {
-      state = entry.state;                     // PREPARED 等
+      state = entry.state;
     }
     out.push({ jobId: jobId, itemId: itemId, subBatchId: entry ? entry.subBatchId : null,
       requestHash: entry ? entry.requestHash : null, uuid: entry ? entry.uuid : null,

@@ -45,7 +45,9 @@ function makeStore() {
   };
 }
 function makeSheet(store, name) {
-  const grid = [HEADER.slice()];
+  // 动态创建的日志表（_TS_SOFTDEL_LOG）不注入数据表 HEADER 行 —— 否则日志表首行会是 PROD_TAB 表头，
+  // 令「日志行数 = _grid.length - 1」误多算一行（见 S42 观测）。仅真实数据表（生产/主库）保留 HEADER。
+  const grid = (name === '_TS_SOFTDEL_LOG') ? [] : [HEADER.slice()];
   const cell = (r, c) => (grid[r - 1] ? grid[r - 1][c - 1] : undefined);
   const setCell = (r, c, v) => {
     while (grid.length < r) grid.push(new Array(HEADER.length).fill(''));
@@ -1069,7 +1071,9 @@ function seedPair(store, row, keeperRow, opts) {
     return { pass, detail: `写 ok=${r.ok} wrote=${item.wrote} state=${item.state} reason=${item.reason || '-'}；status state=${stItem.state} identity=${stItem.identity}` };
   });
 
-  // ============ Tom #2 验收：主库版本快照必须【内容绑定】，任何主库改动都导致指纹变化→拒绝 ============
+  // ============ Tom #2 验收（Node core 直接核心验证，非 GAS 适配器）：主库版本快照必须【内容绑定】 ============
+  // 说明（回应 Tom #6）：下列 S36–S41 直接调用 CORE.tsSoftDelGuardedCore(... nodeDeps(store))，未经 makeDispatch/RemoteTrigger，
+  //   故属【Node core 直接核心验证】，不计入「GAS 适配器」计数；GAS 适配器端到端见 S30/S31/S42。
   // 指纹 fp = SHA256({rowCount, rows: canon(0..14 全列)})；下列场景分别改变 lastRow / 中间行 / 列值缺失 /
   // 异源同串 / 探测-候选错位，全部必须 MASTER_VERSION_MISMATCH 且零业务写入。
 
@@ -1187,6 +1191,48 @@ function seedPair(store, row, keeperRow, opts) {
 
     const pass = successCounts && failCounts;
     return { pass, detail: `成功: ok=${ok1.ok} 业务写=${bw1} 日志=${je1} 策略校验=${pc1}；失败: 错误=${ok2.error} 业务写=${bw2} 日志=${je2}` };
+  });
+
+  // ============ Tom #6 验收（GAS 适配器端到端，经 _rtMaybeHandlePost，真实非空内容 + 真实计数观测）============
+  check('S42', 'GAS 适配器端到端：_rtMaybeHandlePost → 核心写入，真实观测 1 业务写+2 日志(PREPARED+COMMITTED)+≥1 期锁校验；坏版本 0 写 0 日志（Tom #6）', () => {
+    // —— 成功路径（真实非空内容经适配器入口）——
+    const s1 = makeStore(); makeSheet(s1, PROD_TAB); makeSheet(s1, BASE_TAB);
+    const sand1 = makeDispatch(s1);
+    const p1 = seedPair(s1, 3, 2, { uuid: DISP_UUID });
+    const SB1 = TEST_JOB + '-1';
+    const payload1 = { action: 'softDelGuarded', jobId: TEST_JOB, batchId: SB1, dry: '0',
+      expectMasterVersion: masterVerOf(s1), rows: [dispCand(p1)] };
+    sand1._rtMaybeHandlePost({ postData: { contents: JSON.stringify(payload1) } });   // 无 token → 触发 token 初始化（门控拒绝，不写不日志）
+    const tok1 = (s1.props || {}).REMOTE_TOKEN;
+    // 观测期锁：GAS 包装器的 deps.guardCheck 内部委托 pl._plGuardCheck，故在此桩（pl._plGuardCheck 在调用时按属性解析，可桩）；
+    // 沙箱顶层 sand.guardCheck 不被包装器引用，桩它无效（S42 早期误桩导致 策略=0 假阴性）。
+    let pc1 = 0; const _g1 = sand1.pl._plGuardCheck; sand1.pl._plGuardCheck = (a, b, pp) => { pc1++; return _g1(a, b, pp); };
+    const r1 = JSON.parse(sand1._rtMaybeHandlePost({ postData: { contents: JSON.stringify(Object.assign({}, payload1, { token: tok1 })) } }).getContent());
+    const o1 = s1.sheets[PROD_TAB]._grid[3 - 1][14];
+    // 日志行数 = 日志表真实条目数：日志表首行为日志头（_sdGasJournalAppend 自建），故 _grid.length - 1。
+    const log1 = s1.sheets['_TS_SOFTDEL_LOG'] ? Math.max(0, s1.sheets['_TS_SOFTDEL_LOG']._grid.length - 1) : 0;
+    const bw1 = (String(o1).toUpperCase() === 'TRUE') ? 1 : 0;
+    const successCounts = r1.ok === true && String(r1.action).toLowerCase() === 'softdelguarded'
+      && bw1 === 1 && log1 === 2 && pc1 >= 1;
+
+    // —— 失败路径（坏版本，真实非空内容经适配器）——
+    const s2 = makeStore(); makeSheet(s2, PROD_TAB); makeSheet(s2, BASE_TAB);
+    const sand2 = makeDispatch(s2);
+    const p2 = seedPair(s2, 3, 2, { uuid: DISP_UUID });
+    const SB2 = TEST_JOB + '-1';
+    const payload2 = { action: 'softDelGuarded', jobId: TEST_JOB, batchId: SB2, dry: '0',
+      expectMasterVersion: 'sha256:WRONG', rows: [dispCand(p2)] };
+    sand2._rtMaybeHandlePost({ postData: { contents: JSON.stringify(payload2) } });
+    const tok2 = (s2.props || {}).REMOTE_TOKEN;
+    let pc2 = 0; const _g2 = sand2.pl._plGuardCheck; sand2.pl._plGuardCheck = (a, b, pp) => { pc2++; return _g2(a, b, pp); };
+    const r2 = JSON.parse(sand2._rtMaybeHandlePost({ postData: { contents: JSON.stringify(Object.assign({}, payload2, { token: tok2 })) } }).getContent());
+    const o2 = s2.sheets[PROD_TAB]._grid[3 - 1][14];
+    const log2 = s2.sheets['_TS_SOFTDEL_LOG'] ? Math.max(0, s2.sheets['_TS_SOFTDEL_LOG']._grid.length - 1) : 0;
+    const bw2 = (String(o2).toUpperCase() === 'TRUE') ? 1 : 0;
+    const failCounts = r2.ok === false && r2.error === 'MASTER_VERSION_MISMATCH' && bw2 === 0 && log2 === 0;
+
+    const pass = successCounts && failCounts;
+    return { pass, detail: `成功: ok=${r1.ok} action=${r1.action} 业务写=${bw1} 日志=${log1} 策略=${pc1}；失败: 错误=${r2.error} 业务写=${bw2} 日志=${log2}` };
   });
 
   const failed = RESULTS.filter(r => !r.pass);

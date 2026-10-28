@@ -28,6 +28,10 @@ NORM = os.path.join(HERE, 'ts_softdel_norm.js')
 PL = os.path.join(HERE, 'period_lock_port.js')
 OUT_DIR = os.path.join(HERE, 'v4_patches', 'full')
 MAP_PATH = os.path.join(HERE, 'gen_gas_softdel.map.md')
+# 实际部署入口绑定文件：其末尾内联的 norm/pl/core/wrapper 必须【逐字等同】embedded，
+# 否则 makeDispatch 加载的“真实部署入口”会偏离单源（此前即因此漂移：写了 3 条日志、未触发期锁）。
+FINAL_PATH = os.path.join(OUT_DIR, 'RemoteActions.A1d_v4_FINAL_entry_bound.js')
+FINAL_ANCHOR = "var norm = (function() {"
 
 
 def read(p):
@@ -272,13 +276,34 @@ def main():
     gas.append('')
     # 核心源码（已去 require / module.exports）；其内部对 norm./pl. 的引用由上面 IIFE 提供
     gas.append(core_clean.rstrip())
-    gas.append(build_gas_wrapper())
+    gas_wrapper = build_gas_wrapper()
+    gas.append(gas_wrapper)
 
     out = '\n'.join(gas) + '\n'
     os.makedirs(OUT_DIR, exist_ok=True)
     out_path = os.path.join(OUT_DIR, 'ts_softdel_gas_embedded.js')
     with open(out_path, 'w', encoding='utf-8', newline='\n') as f:
         f.write(out)
+
+    # 4.5) 同步 FINAL_FILE 的【内联核心区】到单源（回应 Tom #1 单源铁律的漏洞）：
+    #   此前 FINAL_FILE 末尾持有一份【独立】内联副本（旧 v4_genpatches.py 生成），
+    #   与 embedded 文本不一致 → makeDispatch 加载的“真实部署入口”行为偏离单源。
+    #   现改为：FINAL_FILE 的「var norm = (function() {」起至文件末尾，整体替换为
+    #   与 embedded 内联区【逐字一致】的 norm/pl/core/wrapper 块（同一套生成逻辑）。
+    #   前置 dispatch 区（含 softDelGuarded/statusQuery → tsSoftDelGuarded 的映射）保持不变。
+    fin_src = read(FINAL_PATH)
+    ai = fin_src.find(FINAL_ANCHOR)
+    if ai < 0:
+        raise SystemExit('[FATAL] 在 FINAL_FILE 找不到锚点 %s' % FINAL_ANCHOR)
+    fin_prefix = fin_src[:ai]                      # 保留前置 dispatch + 哨兵注释 + 其 'use strict'
+    # 直接复用 embedded 的内联区（从锚点到 EOF），保证 FINAL_FILE 与 embedded【逐字一致】，
+    # 杜绝任何重建拼接带来的空白差异（verifier 断言4 要求精确相等）。
+    emb_region = out[out.find(FINAL_ANCHOR):]
+    if not emb_region.startswith(FINAL_ANCHOR):
+        raise SystemExit('[FATAL] embedded 找不到锚点 %s' % FINAL_ANCHOR)
+    fin_out = fin_prefix + emb_region
+    with open(FINAL_PATH, 'w', encoding='utf-8', newline='\n') as f:
+        f.write(fin_out)
 
     # 4) 逐函数对照表
     map_lines = []
@@ -322,7 +347,9 @@ def main():
 
     print('[OK] 生成 GAS 文件：' + out_path)
     print('[OK] 生成对照表：' + MAP_PATH)
+    print('[OK] 同步 FINAL_FILE 内联核心区：' + FINAL_PATH)
     print('[INFO] GAS 文件行数：%d' % out.count('\n'))
+    print('[INFO] FINAL_FILE 行数：%d' % fin_out.count('\n'))
 
 
 if __name__ == '__main__':
