@@ -1,0 +1,22 @@
+=== O2 判别力复现：注释伪造受控入口（最强形态）===
+注入片段：
+var REMOTE_ACTIONS = {
+  /* softDelGuarded: function(e){ return tsSoftDelGuarded(e); } */
+  softDelGuarded: function(e){ var r = otherAction(e); return r; },
+  statusQuery: function(e){ return tsSoftDelGuarded(e); }
+};
+
+【O2 之前的原始实现】判定：
+   ① 顶层成员集合 == 白名单                          PASS(被绕过)
+   ② softDelGuarded 入口次数 == 1               PASS(被绕过)
+   ③ 入口路由目标 == tsSoftDelGuarded             PASS(被绕过)
+   ④ return tsSoftDelGuarded( 计数 == 2       PASS(被绕过)
+   ⑤ 转发形态命中白名单                              PASS(被绕过)
+   => 五层全 PASS ⇒ 【确认存在真实绕过】
+
+   旧 _member_value_span 取到的成员值 = function(e){ return tsSoftDelGuarded(e); }
+   真实成员值                        = function(e){ var r = otherAction(e); return r; }
+   → 实际路由到 otherAction，而校验器读到的却是注释里的 tsSoftDelGuarded 转发。
+
+【O2 之后】同一片段经 _real_manifest_ok 真实路径判定：fail-closed=YES
+   （统一词法掩码器 _js_mask 屏蔽注释 → return 计数=1 ≠ 2，且成员值由解析器 spans 定位）
