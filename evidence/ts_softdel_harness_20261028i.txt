@@ -35,7 +35,7 @@ mock listening on 60691
   [CHILD-ERR]   ✗ 行 2：目标行已被软标（幂等跳过）
   [CHILD-ERR]   [CHILD-ERR] [MANIFEST] 原请求清单已写入 D:\AI_DATA\WorkBuddy\SMCN_ERP\_tmp\ts_softdel_manifest_Jmvsjkf60ig1z9h.json
   [CHILD-ERR]   [CHILD-ERR] 
-  [CHILD-ERR] [EMIT] 载荷已写入 C:\Users\rita.jin\AppData\Local\Temp\ts_iso_payload.json
+  [CHILD-ERR] [EMIT] 载荷已写入 C:\Users\<user>\AppData\Local\Temp\ts_iso_payload.json
   [CHILD-ERR]   [CHILD-ERR] 
   [CHILD-ERR] [DRY-RUN] 未写入任何数据。真写请加 --apply（并先解除 TS_WRITE_FREEZE）。
   [CHILD-ERR]   [CHILD-OUT] {
