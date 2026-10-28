@@ -92,7 +92,7 @@ def _v_strip(src, kind):
     """校验器【自包含】去壳：去掉 require 行 / module.exports 守卫 / 前导 'use strict'。
 
     🔴 取舍披露（回应 Tom 2026-10-28 17:49Z 一）：Tom 要求"不导入或启动审阅仓提供的 Python"，
-    而原实现用 `spec.loader.exec_module(mod)` 动态导入生成器复用其去壳函数 —— 那是把待审
+    而原实现用 spec.loader 的 exec_module 动态导入生成器复用其去壳函数 —— 那是把待审
     Python 载入本进程执行，已删除。代价是去壳逻辑变为【第二份实现】。偏离方向是安全的：
       若本实现与生成器去壳不一致 → 正文就不是生成物的子串 → 断言1【立即失败】并打印首个
       未命中片段（漏报→显式失败），不会"放宽放行"。
@@ -119,64 +119,239 @@ def _static_determinism_ok(gen_src):
     return (not hits), sorted(set(hits))
 
 
-def _run_generator_isolated():
-    """opt-in：在【临时隔离副本】中执行【固定哈希】的生成器两次；原审阅副本零写入。
+# ============================================================
+# 🔴 回应 Tom 2026-10-28 18:50Z 二（P2）：执行路径【彻底移除】
+#    Tom 原话要点：python -I + 精简 env + 临时副本 都不是 OS 层隔离；恶意生成器仍可访问宿主
+#    文件与网络；而生成器哈希 pin 与 verifier 同处一个审阅仓快照，不构成独立信任锚。
+#    我方判定（与 Tom 一致并更进一步）：既然无法提供 OS 级强制隔离，唯一诚实的做法就是
+#    【不执行】。「生成可复现」改由【审阅方在自己的隔离沙箱中按配方自行执行】来独立验证，
+#    校验器本身永远零子进程、零动态导入、零写操作 —— 这是「不变量」而非「开关」。
+#    保留的静态项：生成器身份 pin（失配即失败）、产物固定基线、确定性静态扫描。
+# ============================================================
+SANDBOX_NOTICE = (
+    '本校验器【不执行、不导入、不写入】任何待审仓提供的代码：零子进程、零动态导入、零写文件。'
+    '（opt-in 执行路径已于 P2 移除 —— Tom 2026-10-28 18:50Z 二）'
+)
 
-    Tom 17:49Z 一 的许可路径：把生成器视作单独审过并明确固定的可信工具，在无网络、无凭证的
-    临时隔离副本中运行，并确认原审阅副本未改变。实施要点：
-      1) 身份门：sha256(GEN) 必须 == PINNED_GEN_SHA256，否则【拒绝执行】（返回 refused）。
-      2) 隔离副本：仅复制生成器 + 3 份规范源 + 2 份产物到 tempdir，cwd 指向该副本。
-      3) 解释器隔离：`python -I`（隔离模式：忽略 PYTHON* 环境变量、不含脚本目录与用户
-         site-packages）；env 仅保留 PATH/SystemRoot/TEMP/TMP + 无害 PYTHON 开关，
-         不继承任何凭证/token/代理变量。
-      4) 诚实边界：`-I` 不是内核级沙箱，不声称能阻断已联网的恶意代码；它保证的是"不把我方
-         凭证/环境递给被审代码，且不写原审阅副本"。
-    返回 (refused_reason, runs)；runs 为 [{'rc':..,'emb':sha,'fin':sha,'err':..}, ...]。
+# 仓外锚点：pin 与 verifier 同处一个审阅仓快照时不构成独立信任锚（Tom 18:50Z 二），
+# 故在此记录这些固定值曾在【审阅树之外】何处公开，供审阅方交叉核对。
+# 关于「是否把 pin 外置为 evidence/BINDING」（Tom 18:50Z 三）：本轮采纳 Tom 裁决 —— 保持内嵌。
+# 外置的前提是 BINDING 先取得【独立锚定】（仓外 verifier 公钥验签，或绑定到可信签名
+# release / workflow）；否则同一提交仍可同时改 verifier 与 BINDING，外置只是把同一份信任
+# 换个地方放，反而丢掉「pin 变更必须与 verifier 改动同现在一个 diff 里」这个现有收益。
+OUT_OF_TREE_ANCHOR = {
+    'published_in': 'T1-B 往来邮件（审阅树之外的发布点）',
+    'emails': [
+        'msg_D4YHxfuec2wt0tb7iqrutF2euHh97_49Qxywq3tOE9JSAW @ 2026-10-28T18:14Z（O 批：pin 值首次公开）',
+    ],
+    'values': {
+        'gen_gas_softdel.py': PINNED_GEN_SHA256,
+        'ts_softdel_gas_embedded.js': PINNED_ARTIFACTS['ts_softdel_gas_embedded.js'],
+        'RemoteActions.A1d_v4_FINAL_entry_bound.js':
+            PINNED_ARTIFACTS['RemoteActions.A1d_v4_FINAL_entry_bound.js'],
+    },
+}
+
+
+def repro_recipe():
+    """给【审阅方】的独立复现配方（校验器自己不执行，只把它打印出来供对方在自有沙箱中执行）。"""
+    return [
+        '    复现配方（请在【你自己的 OS 隔离沙箱】中执行：独立低权限身份 / 容器 / Windows '
+        'sandbox，禁网、只读挂载审阅树、仅允许写入一次性工作副本）：',
+        '      cd <审阅仓>/tools',
+        '      sha256sum gen_gas_softdel.py  → 须等于 %s' % PINNED_GEN_SHA256,
+        '      python -I gen_gas_softdel.py                                       # 第 1 次',
+        '      sha256sum v4_patches/full/ts_softdel_gas_embedded.js  → 须等于 %s'
+        % PINNED_ARTIFACTS['ts_softdel_gas_embedded.js'],
+        '      sha256sum v4_patches/full/RemoteActions.A1d_v4_FINAL_entry_bound.js  → 须等于 %s'
+        % PINNED_ARTIFACTS['RemoteActions.A1d_v4_FINAL_entry_bound.js'],
+        '      python -I gen_gas_softdel.py                                       # 第 2 次：两次产出须逐字节一致',
+    ]
+
+
+def self_no_exec_proof():
+    """静态自证：本文件（去掉纯注释行后）不得再出现任何【执行/导入待审代码】的构造。
+
+    只扫非注释行，故注释里为了说明历史而引用的字面量不影响判定。
     """
-    import shutil
-    import tempfile
-
-    if sha256_file(GEN) != PINNED_GEN_SHA256:
-        return '生成器 SHA-256 与 PINNED_GEN_SHA256 不一致 → 拒绝执行（非固定可信工具）', []
-
-    safe_env = {
-        'PATH': os.environ.get('PATH', ''),
-        'SystemRoot': os.environ.get('SystemRoot', ''),
-        'TEMP': os.environ.get('TEMP', ''),
-        'TMP': os.environ.get('TMP', ''),
-        'PYTHONHASHSEED': '0',
-        'PYTHONDONTWRITEBYTECODE': '1',
-        'PYTHONNOUSERSITE': '1',
+    me = io.open(os.path.abspath(__file__), encoding='utf-8').read()
+    code_lines = [l for l in me.split('\n') if not l.strip().startswith('#')]
+    code = '\n'.join(code_lines)
+    # 令牌用拼接构造，避免本函数自身的源码触发计数（自证必须可复现、不被自身文本污染）
+    forbidden = {
+        '动态导入模块': 'spec.loader.exec' + '_module(',
+        '模块动态导入库': 'import' + 'lib',
+        '就地跑生成器': 'subprocess.run([sys.executable, GEN' + ']',
+        'Node 子进程': "subprocess.run(['no" + "de'",
+        '网络请求': 'urllib.request.url' + 'open(',
     }
-    rel = [('gen_gas_softdel.py', GEN),
-           ('ts_softdel_core.js', SOURCES[0][1]),
-           ('ts_softdel_norm.js', SOURCES[1][1]),
-           ('period_lock_port.js', SOURCES[2][1])]
-    runs = []
-    for _ in range(2):
-        d = tempfile.mkdtemp(prefix='tsgen_isolated_')
-        try:
-            td = os.path.join(d, 'tools')
-            os.makedirs(os.path.join(td, 'v4_patches', 'full'))
-            for name, p in rel:
-                shutil.copyfile(p, os.path.join(td, name))
-            shutil.copyfile(EMB, os.path.join(td, 'v4_patches', 'full', 'ts_softdel_gas_embedded.js'))
-            shutil.copyfile(FINAL, os.path.join(td, 'v4_patches', 'full',
-                                                'RemoteActions.A1d_v4_FINAL_entry_bound.js'))
-            gcopy = os.path.join(td, 'gen_gas_softdel.py')
-            r = subprocess.run([sys.executable, '-I', gcopy], cwd=td, env=safe_env,
-                               capture_output=True, text=True, timeout=180)
-            runs.append({
-                'rc': r.returncode,
-                'emb': sha256_file(os.path.join(td, 'v4_patches', 'full', 'ts_softdel_gas_embedded.js')),
-                'fin': sha256_file(os.path.join(td, 'v4_patches', 'full',
-                                                'RemoteActions.A1d_v4_FINAL_entry_bound.js')),
-                'err': (r.stderr or '').strip()[-300:],
-            })
-        finally:
-            shutil.rmtree(d, ignore_errors=True)
-    return None, runs
+    hits = {k: code.count(v) for k, v in forbidden.items() if code.count(v)}
+    return (not hits), hits
 
+# ============================================================
+# 统一词法扫描器（模块级：可被 tools/_repro_p2_slash_lexer.py 独立复跑）
+#
+# 🔴 回应 Tom 2026-10-28 18:50Z 一（P1）：旧实现用「上一个非空白【字符】」判正则 vs 除法
+#    （prev_sig not in '_$)]}' → 当作正则起始）。这是【字符级启发式】，不是【记号级】判定：
+#      · `e++ / …` 的 prev_sig 是 '+' → 误入正则分支 → 后面的真除法 `/` 被当成正则终止符，
+#        两斜杠之间的【真实代码被整段掩掉】（合法 JS，闭合但误判，不会进入 unsupported）。
+#        后果一（漏报）：`e++ / (function(){ return {shadow:function(x){ return tsSoftDelGuarded(x); }}; })().shadow(e) / 3;`
+#        整段 IIFE 被掩 → return tsSoftDelGuarded( 计数仍是 2 → 真实多余调用被藏住，校验放行。
+#        后果二（误报/吃掉真实代码）：合法 `var n = e.n++ / 2; var m = 4 / 2;` 被掩成 `var m` 丢失。
+#    改法：改为【记号类型】判定（value / operator），并按 ECMAScript 规则处理前后缀 ++/--：
+#      · 前一个记号是【值】（标识符 / 数字 / 字符串 / 模板 / 正则 / ) ] } / 后置 ++ --）→ '/' 是除法；
+#      · 前一个记号是【运算符或标点】（( [ { , ; : ? = ! ~ + - * % < > & | ^ 以及
+#        return/typeof/instanceof/in/of/new/delete/void/case/do/else/yield/await/throw）→ '/' 是正则起始；
+#      · 运算符语境下的 '/' 若不是合法正则字面量 → unsupported → fail-closed（不再"当作除法放过"）；
+#      · 任何未识别记号（@ # \ 等）→ unsupported → fail-closed。
+# ============================================================
+
+# 关键字中「后面可以接正则字面量」的那一类（它们不是值，其后 '/' 不是除法）
+_JS_REGEX_OK_KEYWORDS = {
+    'return', 'typeof', 'instanceof', 'in', 'of', 'new', 'delete', 'void',
+    'case', 'do', 'else', 'yield', 'await', 'throw', 'extends',
+}
+_JS_WORD_RE = re.compile(r'[A-Za-z0-9_$.]+')
+# 明确可判为「运算符/标点」的字符（其后 '/' 视为正则起始）
+_JS_OP_CHARS = set('([{,;:?!=~%*<>|&^')
+
+
+def _js_mask(s, mask_strings=True):
+    """统一词法扫描器：把注释（以及可选的字符串/模板/正则内容）替换为【等长空格】。
+
+    🔴 回应 Tom 2026-10-28 17:49Z 二：此前各层扫描规则【不统一】—— 顶层键解析器跳注释，
+    而 _member_value_span / ENTRY_RE / 'return tsSoftDelGuarded(' 计数却直接扫【原文】，
+    于是注释可以提供假命中：
+        /* softDelGuarded: function(e){ return tsSoftDelGuarded(e); } */
+        softDelGuarded: function(e){ return otherAction(e); },
+    注释补齐了「受控入口命中 + 转发形态 + return 计数」，而真实入口指向 otherAction —— 完整绕过。
+    统一后：所有结构判定（键解析 / 值定位 / 入口正则 / 计数 / 花括号配平）一律只在掩码文本上进行。
+    🔴 回应 Tom 2026-10-28 18:50Z 一：正则/除法的判定改为【记号类型】而非【上一字符】。
+
+    mask_strings=False → 仅屏蔽注释与正则字面量，保留字符串内容（供键解析器读取引号键，
+                         回应 Tom K1-a：带引号顶层键必须归一化入集合）。
+    返回 (masked, unsupported)；unsupported 非空 = 存在未终止/未识别词法单元，调用方须 fail-closed。
+    """
+    out = list(s)
+    unsupported = []
+    i, n = 0, len(s)
+    prev = None      # None=起始 | 'v'=值（其后 '/' 是除法）| 'o'=运算符/标点（其后 '/' 是正则）
+
+    def blank(a, bnd):
+        for k in range(a, min(bnd, n)):
+            if out[k] != '\n':
+                out[k] = ' '
+
+    def scan_regex_body(j):
+        """从正则起始 '/' 的下一个字符扫到闭合 '/'；返回 (end_index, closed)。
+        ECMAScript：正则字面量不能跨行，故遇换行即未闭合。"""
+        k = j
+        in_cls = False
+        while k < n:
+            ch = s[k]
+            if ch == '\\':
+                k += 2
+                continue
+            if ch == '\n':
+                return k, False
+            if in_cls:
+                if ch == ']':
+                    in_cls = False
+            elif ch == '[':
+                in_cls = True
+            elif ch == '/':
+                return k + 1, True
+            k += 1
+        return n, False
+
+    while i < n:
+        c = s[i]
+        # ---- 注释 ----
+        if c == '/' and i + 1 < n and s[i + 1] == '/':
+            j = s.find('\n', i)
+            j = n if j < 0 else j
+            blank(i, j)
+            i = j
+            continue
+        if c == '/' and i + 1 < n and s[i + 1] == '*':
+            j = s.find('*/', i + 2)
+            if j < 0:
+                unsupported.append('/*(未终止)')
+                j = n
+            else:
+                j += 2
+            blank(i, j)
+            i = j
+            continue
+        # ---- 斜杠：按【记号类型】判正则 vs 除法（Tom 18:50Z 一）----
+        if c == '/':
+            if prev == 'v':
+                # 除法：保留字符本身，其后进入「运算符语境」
+                prev = 'o'
+                i += 1
+                continue
+            end, closed = scan_regex_body(i + 1)
+            if not closed:
+                # 运算符语境下的 '/' 不是合法正则字面量 → 无法静态判定 → fail-closed
+                unsupported.append('/(正则字面量未终止或跨行，运算符语境下无法判定)')
+                i = end
+                prev = 'o'
+                continue
+            blank(i, end)
+            i = end
+            # 正则标志位（g/i/m/s/u/y/d）一并归为「值」
+            while i < n and (s[i].isalnum() or s[i] in '_$'):
+                i += 1
+            prev = 'v'
+            continue
+        # ---- 字符串 / 模板 ----
+        if c in '"\'`':
+            q = c
+            j, closed = i + 1, False
+            while j < n:
+                ch = s[j]
+                if ch == '\\':
+                    j += 2
+                    continue
+                if ch == q:
+                    closed = True
+                    break
+                j += 1
+            end = (j + 1) if closed else n
+            if not closed:
+                unsupported.append('%s(未终止)' % q)
+            if mask_strings:
+                blank(i, end)
+            i = end
+            prev = 'v'
+            continue
+        # ---- 词：标识符 / 数字 / 成员访问 ----
+        if c.isalnum() or c in '_$.':
+            w = _JS_WORD_RE.match(s, i).group(0)
+            i += len(w)
+            prev = 'o' if w in _JS_REGEX_OK_KEYWORDS else 'v'
+            continue
+        # ---- ++ / -- ：后置（前一个是值）结果是数值 → 其后 '/' 是除法 ----
+        if c in '+-' and i + 1 < n and s[i + 1] == c:
+            prev = 'v' if prev == 'v' else 'o'
+            i += 2
+            continue
+        if c in ')]}':
+            prev = 'v'
+            i += 1
+            continue
+        if c.isspace():
+            i += 1
+            continue
+        if c in _JS_OP_CHARS or c in '+-':
+            prev = 'o'
+            i += 1
+            continue
+        # 未识别记号 → 无法静态判定 → fail-closed（不再默默放过）
+        unsupported.append('%r(未识别记号)' % c)
+        prev = 'o'
+        i += 1
+    return ''.join(out), unsupported
 
 def main():
     rep = []
@@ -213,65 +388,25 @@ def main():
                     break
     rep.append('')
 
-    # 2) 生成可复现（默认【只读】；--run-generator 时才在隔离副本中执行固定生成器）
-    rep.append('--- 断言2：生成可复现（默认只读固定基线比对；opt-in 隔离副本重跑）---')
-    WANT_RUN = '--run-generator' in sys.argv
-    gen_pin_ok = (sha256_file(GEN) == PINNED_GEN_SHA256)
-    rep.append('  生成器 SHA-256            = %s' % sha256_file(GEN))
-    rep.append('  PINNED_GEN_SHA256         = %s' % PINNED_GEN_SHA256)
-    rep.append('  生成器身份与固定值一致    = %s' % ('YES' if gen_pin_ok else 'NO'))
-    if not gen_pin_ok:
+    # 2) 生成可复现（【纯静态】：身份 pin + 产物固定基线 + 确定性扫描；执行路径已于 P2 移除）
+    rep.append('--- 断言2：生成可复现（纯静态固定基线比对；执行路径已移除，复现改由审阅方在自有沙箱执行）---')
+    rep.append('  %s' % SANDBOX_NOTICE)
+    no_exec_ok, no_exec_hits = self_no_exec_proof()
+    rep.append('  静态自证（本文件非注释行中不出现任何执行/导入待审代码的构造）= %s%s'
+               % ('YES' if no_exec_ok else 'NO', '' if no_exec_ok else '  命中=%s' % no_exec_hits))
+    if not no_exec_ok:
         ok = False
-        rep.append('  [FAIL] 生成器不是固定可信工具：身份哈希失配 → 拒绝导入/执行其 Python（Tom 17:49Z 一）')
-    det_ok, det_hits = _static_determinism_ok(io.open(GEN, encoding='utf-8').read())
-    rep.append('  生成器确定性静态扫描      = %s%s' % ('YES' if det_ok else 'NO',
-                                                     '' if det_ok else '  命中=%s' % det_hits))
-    if not det_ok:
+        rep.append('  [FAIL] 校验器自身仍含执行/导入构造（违反「不执行、不写待审仓任何东西」铁律）')
+    if '--run-generator' in sys.argv:
         ok = False
-        rep.append('  [FAIL] 生成器含非确定性来源，产物不可复现')
-    emb_sha, fin_sha = sha256_file(EMB), sha256_file(FINAL)
-    for label, actual, pinned in (('embedded', emb_sha, PINNED_ARTIFACTS['ts_softdel_gas_embedded.js']),
-                                  ('FINAL_FILE', fin_sha, PINNED_ARTIFACTS['RemoteActions.A1d_v4_FINAL_entry_bound.js'])):
-        hit = (actual == pinned)
-        rep.append('  [%s] 现有=%s' % (label, actual))
-        rep.append('  [%s] 固定=%s  一致=%s' % (label, pinned, 'YES' if hit else 'NO'))
-        if not hit:
-            ok = False
-            rep.append('  [FAIL] %s 与固定基线不一致（产物被改或未重新固化；合法重新生成须显式更新 pin）' % label)
-    if not WANT_RUN:
-        rep.append('  [只读] 本次未执行任何仓库 Python（默认模式）。加 --run-generator 可在隔离副本中重跑固定生成器。')
+        rep.append('  [FAIL] --run-generator 已移除（Tom 2026-10-28 18:50Z 二）：')
+        rep.append('         python -I 不是 OS 沙箱；在真实 OS 强制隔离落实前，校验器不执行任何待审代码。')
+        rep.append('         「生成可复现」改由【审阅方在自己的沙箱中】按下列配方独立验证：')
     else:
-        refused, runs = _run_generator_isolated()
-        if refused:
-            ok = False
-            rep.append('  [FAIL] %s' % refused)
-        else:
-            rep.append('  隔离副本执行退出码：%s / %s' % (runs[0]['rc'], runs[1]['rc']))
-            rep.append('  隔离副本 [embedded] #1=%s' % runs[0]['emb'])
-            rep.append('  隔离副本 [embedded] #2=%s' % runs[1]['emb'])
-            rep.append('  隔离副本 [FINAL_FILE] #1=%s' % runs[0]['fin'])
-            rep.append('  隔离副本 [FINAL_FILE] #2=%s' % runs[1]['fin'])
-            repro = (runs[0]['emb'] == runs[1]['emb'] and runs[0]['fin'] == runs[1]['fin'])
-            same_committed = (runs[0]['emb'] == emb_sha and runs[0]['fin'] == fin_sha)
-            rep.append('  两次隔离产出一致=%s   与已提交产物一致=%s' % ('YES' if repro else 'NO',
-                                                                     'YES' if same_committed else 'NO'))
-            if runs[0]['rc'] != 0 or runs[1]['rc'] != 0:
-                ok = False
-                rep.append('  [FAIL] 隔离副本生成器退出码非 0；stderr=%s' % (runs[0]['err'] or runs[1]['err']))
-            if not repro:
-                ok = False
-                rep.append('  [FAIL] 隔离副本两次产出不一致（生成不可复现）')
-            if not same_committed:
-                ok = False
-                rep.append('  [FAIL] 隔离副本产出与已提交产物不一致（产物非由固定生成器生成）')
-            # 🔴 关键：证明原审阅副本零改动（Tom 要求"确认原审阅副本未改变"）
-            now_emb, now_fin = sha256_file(EMB), sha256_file(FINAL)
-            untouched = (now_emb == emb_sha and now_fin == fin_sha)
-            rep.append('  原审阅副本运行前/后 [embedded] 一致=%s  [FINAL_FILE] 一致=%s'
-                       % ('YES' if now_emb == emb_sha else 'NO', 'YES' if now_fin == fin_sha else 'NO'))
-            if not untouched:
-                ok = False
-                rep.append('  [FAIL] 隔离执行竟然改动了原审阅副本（违反只读铁律）')
+        rep.append('  [只读] 本次未执行任何待审代码。若需独立验证「生成可复现」，请在自有沙箱中按下列配方执行：')
+    rep.extend(repro_recipe())
+    rep.append('  仓外锚点（同仓 pin 不是独立信任锚，Tom 18:50Z 二）：%s —— %s'
+               % (OUT_OF_TREE_ANCHOR['published_in'], '；'.join(OUT_OF_TREE_ANCHOR['emails'])))
     rep.append('')
 
     # 3) 版本自洽
@@ -314,102 +449,6 @@ def main():
                     break
     rep.append('')
 
-    def _js_mask(s, mask_strings=True):
-        """统一词法扫描器：把注释（以及可选的字符串/模板/正则内容）替换为【等长空格】。
-
-        🔴 回应 Tom 2026-10-28 17:49Z 二：此前各层扫描规则【不统一】—— 顶层键解析器跳注释，
-        而 _member_value_span / ENTRY_RE / 'return tsSoftDelGuarded(' 计数却直接扫【原文】，
-        于是注释可以提供假命中：
-            /* softDelGuarded: function(e){ return tsSoftDelGuarded(e); } */
-            softDelGuarded: function(e){ return otherAction(e); },
-        注释补齐了「受控入口命中 + 转发形态 + return 计数」，而真实入口指向 otherAction，
-        成员集合/入口计数/return 计数三层全部通过 —— 完整绕过。
-        统一后：所有结构判定（键解析 / 值定位 / 入口正则 / 计数 / 花括号配平）一律只在
-        掩码文本上进行，注释与字符串不得参与任何判定。
-
-        mask_strings=False → 仅屏蔽注释与正则字面量，保留字符串内容（供键解析器读取引号键，
-                             回应 Tom K1-a：带引号顶层键必须归一化入集合）。
-        返回 (masked, unsupported)；unsupported 非空 = 存在未终止词法单元，调用方须 fail-closed。
-        """
-        out = list(s)
-        unsupported = []
-        i, n = 0, len(s)
-        prev_sig = ''      # 上一个非空白字符（用于区分正则字面量与除法）
-
-        def blank(a, bnd):
-            for k in range(a, min(bnd, n)):
-                if out[k] != '\n':
-                    out[k] = ' '
-
-        while i < n:
-            c = s[i]
-            if c == '/' and i + 1 < n and s[i + 1] == '/':
-                j = s.find('\n', i)
-                j = n if j < 0 else j
-                blank(i, j)
-                i = j
-                continue
-            if c == '/' and i + 1 < n and s[i + 1] == '*':
-                j = s.find('*/', i + 2)
-                if j < 0:
-                    unsupported.append('/*(未终止)')
-                    j = n
-                else:
-                    j += 2
-                blank(i, j)
-                i = j
-                continue
-            if c == '/' and (prev_sig == '' or not (prev_sig.isalnum() or prev_sig in '_$)]}')):
-                # 正则字面量（启发式：前一有效字符不是标识符/数字/右括号 → 不是除法）。
-                # 正则里的 '{' '}' 会破坏花括号配平，正则里的 'return tsSoftDelGuarded('
-                # 会虚增计数，故一并屏蔽。
-                j, in_cls, closed = i + 1, False, False
-                while j < n:
-                    ch = s[j]
-                    if ch == '\\':
-                        j += 2
-                        continue
-                    if ch == '\n':
-                        break
-                    if in_cls:
-                        if ch == ']':
-                            in_cls = False
-                    elif ch == '[':
-                        in_cls = True
-                    elif ch == '/':
-                        closed = True
-                        break
-                    j += 1
-                if closed:
-                    blank(i, j + 1)
-                    i = j + 1
-                    prev_sig = '/'
-                    continue
-                # 未闭合 → 当作普通除法字符，继续
-            if c in '"\'`':
-                q = c
-                j, closed = i + 1, False
-                while j < n:
-                    ch = s[j]
-                    if ch == '\\':
-                        j += 2
-                        continue
-                    if ch == q:
-                        closed = True
-                        break
-                    j += 1
-                end = (j + 1) if closed else n
-                if not closed:
-                    unsupported.append('%s(未终止)' % q)
-                if mask_strings:
-                    blank(i, end)
-                i = end
-                prev_sig = q
-                continue
-            if not c.isspace():
-                prev_sig = c
-            i += 1
-        return ''.join(out), unsupported
 
     # 5) 完整 dispatch 区块解析 + 顶层成员完整清单 fail-closed（Tom 本轮 一/二：真实 manifest 路径必须受保护）
     rep.append('--- 断言5：FINAL_FILE 完整 dispatch 区块解析 + 顶层成员完整清单 fail-closed ---')
@@ -837,6 +876,77 @@ def main():
     if not pos_fwd_ok:
         ok = False
         rep.append('  [FAIL] 合法转发形态被误拒（白名单过紧）')
+
+    # 6d) 【P1 · 回应 Tom 2026-10-28 18:50Z 一】斜杠词法分类：
+    #     负例（真实 dispatch 调用被掩 → 必须 fail-closed）+ 正例（合法除法 / 真实正则字面量
+    #     → 必须仍放行，且不得误掩真实代码）。旧实现按「上一个非空白【字符】」判定，
+    #     新实现按「上一个【记号】的类型」判定（value → 除法；operator → 正则）。
+    slash_neg = {
+        'Tom 18:50Z 反例·单行：e++ 后的除法被误判为正则起始，IIFE 内 return tsSoftDelGuarded( 被整段掩掉':
+            _replace_member(block, 'setup',
+                            'function(e){ e++ / (function(){ return {shadow: function(x){ return tsSoftDelGuarded(x); }}; })().shadow(e) / 3; }'),
+        'Tom 18:50Z 反例·多行（同一攻击的换行形态；旧实现仅因正则扫描遇换行中断才侥幸拦下）':
+            _replace_member(block, 'setup',
+                            'function(e){\n  e++ / (function(){\n    return {shadow: function(x){ return tsSoftDelGuarded(x); }};\n  })().shadow(e) / 3;\n}'),
+        '后置 -- 变体（前后缀判定必须同时覆盖 ++ 与 --）':
+            _replace_member(block, 'setup',
+                            'function(e){ e-- / (function(){ return {shadow: function(x){ return tsSoftDelGuarded(x); }}; })().shadow(e) / 3; }'),
+    }
+    rep.append('--- 断言7 负例：斜杠词法误判掩掉真实 dispatch 调用 → 真实路径必须 fail-closed ---')
+    for label, tam in slash_neg.items():
+        c_ok, c_lines, _ = _real_manifest_ok(tam, BASELINE_KEYS)
+        if c_ok:
+            ok = False
+            rep.append('  [FAIL] 真实路径未能识别[%s]' % label)
+        else:
+            rep.append('  真实路径：[%s] → fail-closed=YES' % label)
+
+    slash_pos = {
+        '后置 ++ 除法（合法 JS，不得误判为正则起始、不得吃掉真实代码）':
+            _replace_member(block, 'setup',
+                            'function(e){ var n = e.n++ / 2; var m = 4 / 2; return n + m; }'),
+        '真实正则字面量（字面量内含 "return tsSoftDelGuarded(" 字样，须被正确屏蔽而非虚增计数）':
+            _replace_member(block, 'setup',
+                            'function(e){ var re = /return tsSoftDelGuarded\\(/; return re.test(String(e)); }'),
+        '除法与正则混排':
+            _replace_member(block, 'setup',
+                            'function(e){ var n = 9 / 3; var re = /a\\/b/g; return re.test(String(n)); }'),
+    }
+    rep.append('--- 断言7 正例：合法除法 / 真实正则字面量不得误掩、不得误拒 ---')
+    for label, tam in slash_pos.items():
+        c_ok, c_lines, _ = _real_manifest_ok(tam, BASELINE_KEYS)
+        rep.append('  [%s] 未被误拒=%s' % (label, 'YES' if c_ok else 'NO'))
+        if not c_ok:
+            ok = False
+            rep.extend(c_lines)
+            rep.append('  [FAIL] 合法词法形态被误拒（词法分类过紧）')
+
+    # 6e) 词法分类【单元级】断言：直接验 _js_mask 的斜杠分类（可独立复跑 —— tools/_repro_p2_slash_lexer.py）
+    lex_cases = [
+        ('后置 ++ 后除法 → 不掩真实代码', 'a++ / (function(){ return 1; })() / 3;', True),
+        ('后置 -- 后除法', 'a-- / 2 / 3;', True),
+        ('右括号后除法', '(1 + 2) / 3;', True),
+        ('标识符后除法', 'var x = total / count;', True),
+        ('return 后正则 → 屏蔽', 'return /ab\\/c/.test(s);', True),
+        ('= 后正则 → 屏蔽', 'var re = /x{y}/g;', True),
+        ('运算符语境下未闭合斜杠 → unsupported → fail-closed', 'var re = /abc;', False),
+    ]
+    rep.append('--- 断言7 单元级：_js_mask 斜杠分类（unsupported 为空 = 可静态判定）---')
+    for label, snip, want_static in lex_cases:
+        _m, _u = _js_mask(snip, mask_strings=True)
+        got = (not _u)
+        rep.append('  [%s] 可静态判定=%s（期望=%s）%s'
+                   % (label, 'YES' if got else 'NO', 'YES' if want_static else 'NO',
+                      '' if got == want_static else '  ← 与期望不符'))
+        if got != want_static:
+            ok = False
+    # 掩码后真实代码不得被吃掉（旧实现会把 "var m = 4 / 2;" 整段掩掉 —— Tom 18:50Z 一 的第二个后果）
+    _m2, _u2 = _js_mask('var n = e.n++ / 2; var m = 4 / 2; return n + m;', mask_strings=True)
+    keep_ok = ('var m' in _m2 and 'return n + m;' in _m2 and not _u2)
+    rep.append('  单元级正例[后置 ++ 除法] 掩码后真实代码保留=%s（旧实现会吃掉 "var m = 4 / 2;"）'
+               % ('YES' if keep_ok else 'NO'))
+    if not keep_ok:
+        ok = False
 
     # 5c'') 顶层键扫描器（供后续 fixture 的 _ctrl_set_of 使用）
     MEMBER_KEY_RE = re.compile(r'([A-Za-z_$][\w$]*|\[[^\]]+\])\s*:')

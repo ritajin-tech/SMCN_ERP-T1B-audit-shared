@@ -1,0 +1,23 @@
+一键复现：Tom 2026-10-28 18:50Z 一 · 斜杠词法分类（只读，零执行）
+
+===== A. 旧实现（字符级启发式 prev_sig） =====
+  Tom 18:50Z 反例 · 单行（e++ 后除法）        掩码后 return tsSoftDelGuarded( 出现 0 次   unsupported=[]
+      真实 IIFE 是否被掩掉（导致计数不增、校验放行）：YES ← 漏报
+  Tom 18:50Z 反例 · 多行（同一攻击的换行形态）      掩码后 return tsSoftDelGuarded( 出现 1 次   unsupported=[]
+      真实 IIFE 是否被掩掉（导致计数不增、校验放行）：NO
+  正例 · 后置 ++ 除法                      掩码后 return tsSoftDelGuarded( 出现 0 次   unsupported=[]
+      真实代码是否仍保留 "var m = 4 / 2;"：NO ← 真实代码被吃掉
+  正例 · 真实正则字面量                       掩码后 return tsSoftDelGuarded( 出现 0 次   unsupported=[]
+
+===== B. 新实现（记号级 prev = value / operator） =====
+  Tom 18:50Z 反例 · 单行（e++ 后除法）        掩码后 return tsSoftDelGuarded( 出现 1 次   unsupported=[]
+      真实 IIFE 是否被掩掉（导致计数不增、校验放行）：NO
+  Tom 18:50Z 反例 · 多行（同一攻击的换行形态）      掩码后 return tsSoftDelGuarded( 出现 1 次   unsupported=[]
+      真实 IIFE 是否被掩掉（导致计数不增、校验放行）：NO
+  正例 · 后置 ++ 除法                      掩码后 return tsSoftDelGuarded( 出现 0 次   unsupported=[]
+      真实代码是否仍保留 "var m = 4 / 2;"：YES
+  正例 · 真实正则字面量                       掩码后 return tsSoftDelGuarded( 出现 0 次   unsupported=[]
+
+===== C. 结论 =====
+  Tom 单行反例：旧实现掩掉真实调用=True → 计数 0（校验放行）；新实现=False → 计数 1（fail-closed）
+  合法 postfix 除法：旧实现吃掉真实代码=True；新实现保留真实代码=True
