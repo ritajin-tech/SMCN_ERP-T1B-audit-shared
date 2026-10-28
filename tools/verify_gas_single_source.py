@@ -12,10 +12,12 @@ GAS 单源可复现校验器（回应 Tom #1「源码/生成物/输出错配」+
      杜绝 FINAL_FILE（实际部署入口）二次漂移。
   5) 【dispatch/entrypoint manifest】FINAL_FILE 前缀 dispatch 映射中，softDelGuarded 与 statusQuery
      必须各唯一存在且统一路由到 tsSoftDelGuarded，不得有其它键路由到该受控入口（防前缀漂移假通过）。
-  6) 【运行时语义 manifest】用 Node 真实执行 dispatch 区块（Recording Stub 沙箱：任何自由标识符
-     都解析为"会自报名字"的 Proxy 桩），取得【有效运行期映射】——成员集合 + 每个成员实际调用的
-     目标标识序列，并与冻结基线逐条比对。这是语义层校验：增键 / 重复键覆盖 / 计算属性键 /
-     对象展开 / getter / 别名等任何"改变有效映射"的注入都会被捕获，不再逐条补语法形态。
+  6) 【受限静态转发形态】受控入口（softDelGuarded / statusQuery）的成员值必须【恰好】是
+     `function(x){ return tsSoftDelGuarded(x); }` 的白名单形态（形参原样转发）。
+     默认拒绝一切其它形态：三元 ?: / && / || / 额外调用 / 成员访问 / 多语句 / 动态属性 / 别名。
+     🔴 本校验【纯静态、零执行待审 JavaScript】。曾短暂采用「Node 子进程 + Recording Stub 执行」
+        方案，经 Tom 2026-10-28 16:21Z 二 判定为阻断项（Proxy 不是安全边界、子进程继承宿主
+        文件/环境/网络权限，且校验器处理的正是待审内容，审计方因此拒绝运行）→ 已彻底移除。
 
 输出逐件源码的 SHA-256 与 git blob 哈希，供固定提交比对；结论写入证据文件。
 """
@@ -24,10 +26,8 @@ import io
 import json
 import os
 import re
-import shutil
 import subprocess
 import sys
-import tempfile
 
 HERE = os.path.dirname(os.path.abspath(__file__))
 TOOLS = HERE
@@ -188,31 +188,6 @@ def main():
         'fixBDates','delBlankRows','sheetMeta','applyFormat','masterCondFormat','alert',
         'listTriggers','syncMaster','rebuildLive','viewsLive','malAll','ensureMalTriggers',
     }
-    # 冻结的【有效运行期路由指纹】：成员名 → 该成员被以探针调用时实际调用到的目标标识序列。
-    # 由 Node Recording Stub 沙箱执行规范区块测得（42 条）。任何改变有效映射的注入都会使其失配。
-    BASELINE_ROUTING = {
-        "alert": ["tsSendAlert"], "appendRows": ["tsAppendRows"], "applyFormat": ["tsApplyFormat"],
-        "archive": ["archiveCurrentSpreadsheet"], "checkLeaves": ["tsCheckLeaves"],
-        "cleanupLeaves": ["cleanupDuplicateLeavesInternal"], "createSheet": ["tsCreateSheet"],
-        "delBlankRows": ["tsDelBlankRows"], "driveList": ["tsDriveList"], "dupreport": ["tsDupReport"],
-        "ensureMalTriggers": ["ensureMasterSyncTriggers"],
-        "exception": ["Date", "Utilities.formatDate", "refreshMonthlyExceptions"],
-        "fixBDates": ["tsFixBDates"], "listTriggers": ["listTriggers"],
-        "malAll": ["_malOptFromE", "malRunAll"], "masterCondFormat": ["tsSetCondFormat"],
-        "masterCreate": ["masterCreate"],
-        "masterException": ["Date", "Utilities.formatDate", "refreshMasterException"],
-        "masterLeaves": ["masterLeaves"], "patchCells": ["tsPatchCells"], "plGuardTest": ["plGuardTest"],
-        "plVerifyHash": ["plVerifyHash"], "probeCalendar": ["tsProbeCalendar"], "pruneDead": ["tsPruneDead"],
-        "purgeRows": ["tsPurgeRows"], "purgeSoftLeaves": ["tsPurgeSoftLeaves"], "readRange": ["tsReadRange"],
-        "rebuildLive": ["_malOptFromE", "rebuildAttendanceLive"], "refreshqs": ["refreshQSBoard"],
-        "repairLegacyLeave": ["repairLegacyLeave"], "setup": ["setupAllTriggers"],
-        "setupAmy": ["setupAmyMonthlyReminder"], "setupPeriodLock": ["setupPeriodLock"],
-        "sheetMeta": ["tsSheetMeta"], "snapshot": ["tsSnapshot"], "softDelGuarded": ["tsSoftDelGuarded"],
-        "statusQuery": ["tsSoftDelGuarded"], "syncLeaves": ["syncLeavesFromCalendar"],
-        "syncMaster": ["_malOptFromE", "syncProdToMaster"], "testAmySelf": ["testSendAmySelf"],
-        "trimblank": ["tsTrimBlank"], "viewsLive": ["_malOptFromE", "refreshMasterViews"],
-    }
-
     def _parse_top_level_keys(b):
         """深度感知解析 REMOTE_ACTIONS 区块的顶层成员键（跳过注释/字符串/嵌套花括号）。
         返回 (keys, computed_keys, spreads, unsupported)：
@@ -319,6 +294,91 @@ def main():
             i += 1
         return keys, computed_keys, spreads, unsupported
 
+    def _strip_comments(s):
+        """剥离 // 与 /* */ 注释，仅用于白名单形态比对前的归一化（不改变其它字符）。"""
+        out = []
+        i, n = 0, len(s)
+        while i < n:
+            c = s[i]
+            if c == '/' and i + 1 < n and s[i+1] == '/':
+                while i < n and s[i] != '\n':
+                    i += 1
+                continue
+            if c == '/' and i + 1 < n and s[i+1] == '*':
+                i += 2
+                while i + 1 < n and not (s[i] == '*' and s[i+1] == '/'):
+                    i += 1
+                i += 2
+                continue
+            out.append(c)
+            i += 1
+        return ''.join(out)
+
+    def _member_value_span(b, key):
+        """定位顶层成员 key 的值区间 (start, end)，值为 function 表达式。失败返回 None。"""
+        m = re.search(r'(?:^|[\s,{])' + re.escape(key) + r'\s*:\s*', b)
+        if not m:
+            return None
+        i = m.end()
+        while i < len(b) and b[i] in ' \t\r\n':
+            i += 1
+        if not b[i:].startswith('function'):
+            return None
+        k = b.find('{', i)
+        if k < 0:
+            return None
+        depth, j = 0, k
+        while j < len(b):
+            if b[j] == '{':
+                depth += 1
+            elif b[j] == '}':
+                depth -= 1
+                if depth == 0:
+                    return (i, j + 1)
+            j += 1
+        return None
+
+    def _member_value_text(b, key):
+        sp = _member_value_span(b, key)
+        return None if sp is None else b[sp[0]:sp[1]]
+
+    # 白名单形态：只允许【无分支、无额外调用、形参原样转发】的唯一合法形式。
+    # 默认拒绝一切其它形态（三元 ?: / && || / 额外调用 / 成员访问 / 多条语句 / 动态属性 / 别名），
+    # 故不是"补一种语法挡一种绕过"的打地鼠（Tom 2026-10-28 16:21Z 三）。
+    FORWARD_RE = re.compile(
+        r'^function\s*\(\s*([A-Za-z_$][\w$]*)\s*\)\s*\{\s*'
+        r'return\s+tsSoftDelGuarded\s*\(\s*\1\s*\)\s*;?\s*\}$')
+
+    def _static_forward_ok(b, whitelist):
+        """【受限静态转发形态】对每个受控入口，要求其成员值【恰好】是
+        `function(x){ return tsSoftDelGuarded(x); }`（形参原样转发）。
+
+        纯静态、不执行任何待审 JavaScript（回应 Tom 2026-10-28 16:21Z 二：Recording-Stub /
+        Node 子进程不是安全边界，且会使审计方无法安全运行校验器）。任何偏离白名单的形态一律
+        fail-closed —— 包括 Tom 三给出的反例
+        `function(e){ return tsSoftDelGuarded(e.__probe === 1 ? e : otherAction(e)); }`。
+        返回 (ok, lines)。"""
+        lines = []
+        ok = True
+        for key in sorted(whitelist):
+            raw = _member_value_text(b, key)
+            if raw is None:
+                ok = False
+                lines.append('  [FAIL] 受控入口 %s 未找到，或值不是 function 表达式形态' % key)
+                continue
+            v = re.sub(r'\s+', ' ', _strip_comments(raw)).strip()
+            m = FORWARD_RE.match(v)
+            if not m:
+                ok = False
+                lines.append('  [FAIL] 受控入口 %s 不是受限静态转发形态'
+                             '（白名单仅允许 function(x){ return tsSoftDelGuarded(x); }，'
+                             '拒绝三元/&&/||/额外调用/成员访问/多语句）' % key)
+                lines.append('      实际值=%s' % v[:140])
+            else:
+                lines.append('  受控入口 %s = 受限静态转发形态（形参=%s；无分支、无额外调用、原样转发）'
+                             % (key, m.group(1)))
+        return ok, lines
+
     def _real_manifest_ok(b, baseline):
         """真实 dispatch 路径的完整校验（main() 与负例共用同一函数，杜绝 fixture 与真实路径不一致）。
         返回 (ok, rep_lines, top_keys)。"""
@@ -375,112 +435,16 @@ def main():
         if n_ts != 2:
             ok = False
             lines.append('  [FAIL] return tsSoftDelGuarded( 出现 %d 次（须恰为 2）' % n_ts)
+        # 【受限静态转发形态 · 回应 Tom 2026-10-28 16:21Z 三】
+        # 成员集合/受控入口计数/return 计数都拦不住"条件转发"：把成员值改成
+        #   function(e){ return tsSoftDelGuarded(e.__probe === 1 ? e : otherAction(e)); }
+        # 键仍唯一、仍路由 tsSoftDelGuarded、return 计数仍为 2 —— 但真实输入会先走 otherAction。
+        # 故在此强制：受控入口的成员值必须【恰好】是白名单的静态转发形态。
+        f_ok, f_lines = _static_forward_ok(b, WHITELIST)
+        lines.extend(f_lines)
+        if not f_ok:
+            ok = False
         return ok, lines, top
-
-    def _runtime_manifest(b, baseline_keys, baseline_routing):
-        """【运行时语义校验 · 断言6】用 Node 真实执行 dispatch 区块（Recording Stub 沙箱：
-        区块内任何自由标识符都预声明为"会自报名字"的 Proxy 桩，故执行零副作用、不会抛错），
-        逐成员以探针调用并记录其实际调用到的目标标识序列，得到【有效运行期映射】。
-
-        与冻结基线比对两件事：①有效成员集合 == 基线键集合；②每个成员的有效路由 == BASELINE_ROUTING。
-        这是语义层而非语法层校验：增键 / 重复键覆盖 / 计算属性键 / 对象展开 / getter / 别名等
-        任何"改变有效映射"的注入都会被捕获，不再逐条补语法形态（终结 Tom 连续四类语法绕过）。
-
-        返回 (ok, lines)。node 缺失或执行失败一律 fail-closed（不做静默跳过）。"""
-        lines = []
-        node = shutil.which('node')
-        if not node:
-            lines.append('  [FAIL] 运行时语义校验不可用：未找到 node 可执行文件（按 fail-closed 处理）')
-            return False, lines
-        RESERVED = set('''break case catch class const continue debugger default delete do else enum
-            export extends false finally for function if implements import in instanceof interface let
-            new null package private protected public return static super switch this throw true try
-            typeof var void while with yield await async of get set arguments undefined NaN Infinity'''.split())
-        idents = set()
-        for mm in re.finditer(r'[A-Za-z_$][A-Za-z0-9_$]*', b):
-            t = mm.group(0)
-            if t not in RESERVED:
-                idents.add(t)
-        for n in ('REMOTE_ACTIONS', '__rec', 'mk', 'keys', 'routing', 'i', 'k', 'r', 'v', 'err'):
-            idents.discard(n)
-        decls = ',\n  '.join('%s = mk(%r)' % (n, n) for n in sorted(idents))
-        node_tpl = r'''
-var __rec = [];
-function mk(name){
-  var f = function(){ __rec.push(name); return mk(name + '()'); };
-  return new Proxy(f, {
-    get: function(t, p){ if (typeof p === 'symbol') return t[p]; return mk(name + '.' + String(p)); },
-    apply: function(){ __rec.push(name); return mk(name + '()'); },
-    construct: function(){ __rec.push(name); return mk(name + '()'); }
-  });
-}
-var __DECLS__;
-var REMOTE_ACTIONS = {
-__BLOCK__
-};
-var keys = Object.keys(REMOTE_ACTIONS);
-var routing = {};
-for (var i = 0; i < keys.length; i++) {
-  var k = keys[i];
-  __rec.length = 0;
-  var r;
-  try {
-    var v = REMOTE_ACTIONS[k];
-    if (typeof v === 'function') { v({__probe: 1}); }
-    r = __rec.slice();
-  } catch (err) { r = ['THREW:' + String(err && err.message)]; }
-  routing[k] = r;
-}
-console.log(JSON.stringify({keys: keys, routing: routing}));
-'''
-        src = node_tpl.replace('__DECLS__', decls).replace('__BLOCK__', b)
-        fd, pth = tempfile.mkstemp(suffix='.js')
-        try:
-            with io.open(pth, 'w', encoding='utf-8') as fh:
-                fh.write(src)
-            p = subprocess.run([node, pth], capture_output=True, text=True, timeout=30)
-        except subprocess.TimeoutExpired:
-            lines.append('  [FAIL] 运行时语义校验超时（30s；可能含不可终止循环）→ fail-closed')
-            return False, lines
-        finally:
-            try:
-                os.unlink(pth)
-            except OSError:
-                pass
-        if p.returncode != 0:
-            lines.append('  [FAIL] 运行时语义校验执行失败（区块不是可执行的合法 JS）rc=%d：%s'
-                         % (p.returncode, (p.stderr or '').strip().splitlines()[-1:]))
-            return False, lines
-        try:
-            d = json.loads(p.stdout.strip())
-        except Exception as e:
-            lines.append('  [FAIL] 运行时语义校验输出不可解析：%s' % e)
-            return False, lines
-        keys = d.get('keys', [])
-        routing = d.get('routing', {})
-        ok = True
-        lines.append('  运行时有效成员数=%d（冻结基线=%d）' % (len(keys), len(baseline_keys)))
-        if set(keys) != set(baseline_keys):
-            ok = False
-            lines.append('  [FAIL] 运行时有效成员集合与基线不一致：额外=%s 缺失=%s'
-                         % (sorted(set(keys) - baseline_keys), sorted(baseline_keys - set(keys))))
-        if routing != baseline_routing:
-            ok = False
-            diffs = sorted([k for k in set(list(routing.keys()) + list(baseline_routing.keys()))
-                            if routing.get(k) != baseline_routing.get(k)])
-            lines.append('  [FAIL] 运行时有效路由与冻结基线不一致（成员=%d 处失配）：%s'
-                         % (len(diffs), diffs[:10]))
-            for k in diffs[:5]:
-                lines.append('      %s：基线=%s 实际=%s' % (k, baseline_routing.get(k), routing.get(k)))
-        else:
-            lines.append('  运行时有效路由逐条比对：%d/%d 一致' % (len(routing), len(baseline_routing)))
-        for k in ('softDelGuarded', 'statusQuery'):
-            tgt = routing.get(k)
-            lines.append('  %s 运行时路由=%s' % (k, tgt))
-            if tgt != ['tsSoftDelGuarded']:
-                ok = False
-                lines.append('    [FAIL] %s 运行时必须路由到 tsSoftDelGuarded' % k)
-        return ok, lines
 
     # 5d) 对真实区块跑真实路径校验
     real_ok, real_lines, real_top = _real_manifest_ok(block, BASELINE_KEYS)
@@ -518,22 +482,47 @@ console.log(JSON.stringify({keys: keys, routing: routing}));
         else:
             rep.append('  真实区块注入[%s] → fail-closed=YES' % label)
 
-    # 6) 【运行时语义 manifest】Node 真实执行有效映射，与冻结基线逐条比对（终结语法形态打地鼠）
-    rep.append('--- 断言6：运行时语义 manifest（Node 真实执行 + Recording Stub 沙箱）---')
-    rt_ok, rt_lines = _runtime_manifest(block, BASELINE_KEYS, BASELINE_ROUTING)
-    rep.extend(rt_lines)
-    rep.append('  运行时语义 manifest 一致=%s' % ('YES' if rt_ok else 'NO'))
-    if not rt_ok:
+    # 6) 【受限静态转发形态 · 断言6】纯静态、零执行：
+    #    原「运行时语义 manifest」用 Node 子进程真实执行 dispatch 区块（Recording Stub），
+    #    经 Tom 2026-10-28 16:21Z 二 判定为阻断项：Proxy 只替换正则扫出的自由标识符，挡不住
+    #    内建对象/原型链/构造器；子进程继承宿主的文件、环境与网络权限；30s timeout 不是权限沙箱。
+    #    更关键的是——校验器处理的正是【待审（可能被篡改）内容】，审计方因此拒绝运行该校验器，
+    #    整条校验链反而失去审计价值。故【彻底移除执行路径】，改为白名单受限静态形态：
+    #    默认拒绝，只放行显式允许的转发形式（不再是"补一种语法挡一种绕过"的打地鼠）。
+    rep.append('--- 断言6：受限静态转发形态（纯静态 · 零执行待审 JavaScript）---')
+    sf_ok, sf_lines = _static_forward_ok(block, WHITELIST)
+    rep.extend(sf_lines)
+    rep.append('  受限静态转发形态一致=%s' % ('YES' if sf_ok else 'NO'))
+    if not sf_ok:
         ok = False
-    # 6b) 负例：五类注入经【运行时语义校验】必须全部 fail-closed（合法 JS 注入，非语法垃圾）
-    rep.append('--- 断言6 负例：合法 JS 注入 → 运行时语义校验必须 fail-closed ---')
-    for label, tam in tamper_cases.items():
-        t_ok, t_lines = _runtime_manifest(tam, BASELINE_KEYS, BASELINE_ROUTING)
-        if t_ok:
+    # 6b) 负例（Tom 16:21Z 三）：成员集合 / 受控入口计数 / return 计数全都拦不住"条件转发"——
+    #     键仍唯一、仍路由 tsSoftDelGuarded、return 计数仍为 2，但真实输入会先走 otherAction。
+    def _replace_member(b, key, newval):
+        sp = _member_value_span(b, key)
+        return b if sp is None else b[:sp[0]] + newval + b[sp[1]:]
+
+    forward_cases = {
+        'Tom 16:21Z 三 原反例：softDelGuarded 改为条件转发 tsSoftDelGuarded(e.__probe===1 ? e : otherAction(e))':
+            _replace_member(block, 'softDelGuarded',
+                            'function(e){ return tsSoftDelGuarded(e.__probe === 1 ? e : otherAction(e)); }'),
+        '分支另一侧 + 额外副作用调用：先 otherAction(e) 再转发':
+            _replace_member(block, 'softDelGuarded',
+                            'function(e){ otherAction(e); return tsSoftDelGuarded(e); }'),
+        '逻辑短路分支：return e && tsSoftDelGuarded(e)':
+            _replace_member(block, 'softDelGuarded',
+                            'function(e){ return e && tsSoftDelGuarded(e); }'),
+        'statusQuery 同样改为条件转发（两个受控入口均覆盖）':
+            _replace_member(block, 'statusQuery',
+                            'function(e){ return tsSoftDelGuarded(e.ok ? e : otherAction(e)); }'),
+    }
+    rep.append('--- 断言6 负例：条件转发 / 额外调用 → 真实路径必须 fail-closed ---')
+    for label, tam in forward_cases.items():
+        c_ok, c_lines, _ = _real_manifest_ok(tam, BASELINE_KEYS)
+        if c_ok:
             ok = False
-            rep.append('  [FAIL] 运行时语义校验未能识别注入[%s]' % label)
+            rep.append('  [FAIL] 真实路径未能识别条件转发[%s]' % label)
         else:
-            rep.append('  运行时语义校验：注入[%s] → fail-closed=YES' % label)
+            rep.append('  真实路径：[%s] → fail-closed=YES' % label)
 
     # 5c'') 顶层键扫描器（供后续 fixture 的 _ctrl_set_of 使用）
     MEMBER_KEY_RE = re.compile(r'([A-Za-z_$][\w$]*|\[[^\]]+\])\s*:')
