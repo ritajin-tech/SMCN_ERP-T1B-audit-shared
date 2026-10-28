@@ -194,7 +194,25 @@ def main():
                 j = b.find('\n', i);  i = (j + 1) if j != -1 else n;  continue
             if c == '/' and i + 1 < n and b[i+1] == '*':
                 j = b.find('*/', i + 2);  i = (j + 2) if j != -1 else n;  continue
+            if (c == '"' or c == "'") and depth == 0:
+                # 顶层（depth==0）字符串字面量：若紧跟 ':' 则为【带引号顶层键】，须归一化
+                # （去引号）后入键集合，交由顶层清单比对 fail-closed。
+                # （Tom 本轮 K1-a：原代码整串跳过，引号键不进 top_keys，可绕过集合比对。）
+                q = c;  i += 1;  start = i
+                while i < n:
+                    if b[i] == '\\': i += 2; continue
+                    if b[i] == q: break
+                    i += 1
+                content = b[start:i]
+                i += 1  # 跳过闭合引号
+                k = i
+                while k < n and b[k] in ' \t\n\r': k += 1
+                if k < n and b[k] == ':':
+                    keys.append(content)   # 归一化为去引号键，交由集合比对 fail-closed
+                    i = k + 1
+                continue
             if c == '"' or c == "'":
+                # 非顶层（depth>0）字符串字面量：照旧跳过
                 q = c;  i += 1
                 while i < n:
                     if b[i] == '\\': i += 2; continue
@@ -222,6 +240,12 @@ def main():
         lines = []
         ok = True
         top = _parse_top_level_keys(b)
+        # 防重复顶层键绕过：JavaScript 同名后定义覆盖先定义，
+        # 故“集合相同”不能证明“有效映射相同”；必须显式拒绝任何重复顶层键。
+        if len(top) != len(set(top)):
+            ok = False
+            dup_keys = sorted(set(k for k in top if top.count(k) > 1))
+            lines.append('  [FAIL] 存在重复顶层键（JS 后定义覆盖先定义，可绕过集合比对）：%s' % dup_keys)
         top_set = set(top)
         if top_set != baseline:
             ok = False
@@ -261,16 +285,24 @@ def main():
     if not real_ok:
         ok = False
 
-    # 5e) 负例自测：把 evil→otherAction 注入【真实区块】，真实路径必须 fail-closed（Tom 本轮 一/二 核心）
-    tampered = block.rstrip() + ',\n  evil: function(e){ return otherAction(e); }\n'
-    tam_ok, tam_lines, _ = _real_manifest_ok(tampered, BASELINE_KEYS)
-    rep.append('--- 断言5 负例：真实区块注入 evil→otherAction（额外成员）→ 真实路径必须 fail-closed ---')
-    rep.extend(tam_lines)
-    if tam_ok:
-        ok = False
-        rep.append('  [FAIL] 真实区块注入 evil→otherAction 未被识别（真实路径缺口仍在）')
-    else:
-        rep.append('  真实区块注入 evil→otherAction → fail-closed=YES（真实路径已闭合）')
+    # 5e) 负例自测：把各类绕过注入【真实区块】，真实路径必须 fail-closed（Tom 本轮 一/二 核心）
+    tamper_cases = {
+        '额外未引号成员 evil→otherAction':
+            block.rstrip() + ',\n  evil: function(e){ return otherAction(e); }\n',
+        '引号键 "evil"→otherAction（Tom 本轮 K1-a：原解析器跳过字符串字面量，引号键不进 top_keys 绕过集合比对）':
+            block.rstrip() + ',\n  "evil": function(e){ return otherAction(e); }\n',
+        '重复基线键 setup→otherAction（Tom 本轮 K1-b：set() 丢弃重复项，JS 后定义覆盖先定义绕过集合比对）':
+            block.rstrip() + ',\n  setup: function(e){ return otherAction(e); }\n',
+    }
+    rep.append('--- 断言5 负例：真实区块注入各类绕过 → 真实路径必须 fail-closed ---')
+    for label, tam in tamper_cases.items():
+        tam_ok, tam_lines, _ = _real_manifest_ok(tam, BASELINE_KEYS)
+        rep.extend(tam_lines)
+        if tam_ok:
+            ok = False
+            rep.append('  [FAIL] 真实区块注入[%s] 未被识别（真实路径缺口仍在）' % label)
+        else:
+            rep.append('  真实区块注入[%s] → fail-closed=YES' % label)
 
     # 5c'') 顶层键扫描器（供后续 fixture 的 _ctrl_set_of 使用）
     MEMBER_KEY_RE = re.compile(r'([A-Za-z_$][\w$]*|\[[^\]]+\])\s*:')

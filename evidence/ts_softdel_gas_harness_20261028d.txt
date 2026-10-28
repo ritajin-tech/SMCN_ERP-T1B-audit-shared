@@ -1,0 +1,94 @@
+=== 隔离 GAS 适配器 harness（跨环境等价证明）===
+GAS 生成物：D:\AI_DATA\WorkBuddy\SMCN_ERP\tools\v4_patches\full\ts_softdel_gas_embedded.js
+
+GAS 生成物加载成功（已定义 tsSoftDelGuarded 等全局）
+
+[PASS] G0  norm 跨环境自检：GAS 与 Node 的 4 个固定 SHA-256 向量一致
+       4 向量全一致（含前导零 V2 / 业务日期 V3 / timeOnly V4）
+[PASS] S1  dry 有效 A 级对 → 双方 ok:true, wrote:false
+       一致（ok=true patched=0 results=1） ＋ 预期值断言通过
+[PASS] S2  真实写入 → 双方 patched:1, O 列= TRUE
+       一致（ok=true patched=1 results=1） ＋ 预期值断言通过
+[PASS] S3  目标已软标 → 双方 ALREADY_SOFTDEL
+       一致（ok=false patched=0 results=1） ＋ 预期值断言通过
+[PASS] S4  目标 UUID 被改 → 双方 UUID_DRIFT
+       一致（ok=false patched=0 results=1） ＋ 预期值断言通过
+[PASS] S5  负载列真实不同 → 双方 PAYLOAD_DIFF
+       一致（ok=false patched=0 results=1） ＋ 预期值断言通过
+[PASS] S6  前导零 "007" 一致 → 双方通过（类型保全）
+       一致（ok=true patched=0 results=1） ＋ 预期值断言通过
+[PASS] S7  timeOnly 对 → 双方通过
+       一致（ok=true patched=0 results=1） ＋ 预期值断言通过
+[PASS] S8  业务日期 < cut-off → 双方 PERIOD_LOCKED
+       一致（ok=false patched=0 results=1） ＋ 预期值断言通过
+[PASS] S9  底稿哈希不符 → 双方 BASE_DRIFT
+       一致（ok=false patched=0 results=1） ＋ 预期值断言通过
+[PASS] S10  业务日期 Date 类型（GAS 原生）→ 通过
+       一致（ok=true patched=0 results=1） ＋ 预期值断言通过
+[PASS] S11  锁被占用 → 双方 LOCK_BUSY（fail-closed，不写）
+       GAS ok=false error=MASTER_LOCK_BUSY；Node ok=false error=MASTER_LOCK_BUSY；锁占用期间 GAS 写入次数=0（须 0）
+[PASS] S12  锁释放后 → 同一请求成功（O=TRUE），证明锁确实被释放
+       ok=true patched=1 O[3]=TRUE（释放后写入成功）
+[PASS] S13  共享 store 双执行者交错：第一锁成功/第二锁失败 → 第一锁必须被释放（Tom #3）
+       ok=false error=LOCK_BUSY；第一锁释放=1（须 1）；第二锁释放=0（须 0，未取得）
+[PASS] S14  锁获取失败不留悬挂锁：GAS 侧 released≥acquired 且未持锁（Tom #3）
+       ok=false error=MASTER_LOCK_BUSY；acquired=0 released=0 lockHeld=false（须 released>=acquired）
+[PASS] S15  dry 不写业务恢复日志（Tom #4）：GAS 与 Node 的 journal 条数均为 0
+       Node ok=true 日志=0（须 0）；GAS ok=true 日志=0（须 0）
+[PASS] S16  幂等命中但实时 O 已非 TRUE → 不得声称 wrote:true（Tom #4）
+       首次 ok=true patched=1；二次 reason=IDEMPOTENT_O_DRIFT wrote=false（须 IDEMPOTENT_O_DRIFT 且 wrote≠true）
+[PASS] S17  同键不同 requestHash 的 REJECTED 不覆盖原 COMMITTED 凭据（Tom #4）
+       首次 ok=true；二次 reason=KEY_REUSE_CONFLICT；原 COMMITTED 凭据仍在=true（日志共 2 条）
+[PASS] S18  状态查询身份绑定：requestHash 不符 → UNKNOWN；相符且 O=TRUE → COMMITTED（Tom #5）
+       错 hash → UNKNOWN/REQUEST_HASH_MISMATCH；对 hash → COMMITTED/BOUND；缺 subBatchId → UNKNOWN/INCOMPLETE_QUERY_IDENTITY
+[PASS] S19  statusQuery 经同一受控入口抵达核心（Tom #2）：GAS tsSoftDelGuarded(action=statusQuery)
+       写入 ok=true；statusQuery action=statusQuery state=COMMITTED identity=BOUND
+[PASS] S20  负例：UUID 为空串 / null 一律拒绝，不得放行写入（Tom #1 验收）
+       空串 ok=false 拒因=row#0 missing/invalid uuid；null ok=false 拒因=row#0 missing/invalid uuid；O 均未置 TRUE
+[PASS] S21  负例：subBatchId 不符 → 状态查询 SUBBATCH_MISMATCH / UNKNOWN（Tom #1 验收）
+       错 subBatchId → state=UNKNOWN identity=SUBBATCH_MISMATCH
+[PASS] S22  日志读失败 ⇒ 拒绝新写并登记 JOURNAL_READ_ERROR（Tom #2 验收）
+       ok=false reason=JOURNAL_READ_ERROR state=UNKNOWN；O 未写=true
+[PASS] S23  恢复：写后漂移追加 VOIDED；重放被 PRIOR_VOIDED 拦下；status 不再报 COMMITTED（Tom #2）
+       写入 ok=false；VOIDED 记录=true(reason=MASTER_VERSION_DRIFT_POST_WRITE)；status=VOIDED；重放 reason=PRIOR_VOIDED
+[PASS] S24  dry 拒绝分支（UUID/TARGET 漂移等）不留 REJECTED 痕（Tom #2 验收）
+       dry 拒绝 reason=TARGET_DRIFT；日志条数=0（须 0）
+[PASS] S25  期锁策略四态 1/4：两键都缺（无哨兵/无策略）→ fail-closed 收紧，业务写为 0（Tom #5）
+       ok=false reason=PERIOD_LOCKED（须 PERIOD_LOCKED：无可核策略即拒写）
+[PASS] S26  期锁策略四态 2/4：策略 JSON 损坏 → fail-closed 收紧，未来日期被拒（Tom #4）
+       ok=false reason=PERIOD_LOCKED detail=PL_REJECT_FUTURE_CLOSED
+[PASS] S27  期锁策略四态 3/4：策略 futureOpen=false → 未来日期被拒（Tom #4）
+       ok=false reason=PERIOD_LOCKED detail=PL_REJECT_FUTURE_CLOSED
+[PASS] S28  期锁策略四态 4/4：关账 cutoff 调整后业务日落进锁定期 → 被拒（Tom #4）
+       ok=false reason=PERIOD_LOCKED detail=PL_REJECT_NEW_DATE_CLOSED
+[PASS] S29  真写缺 expectMasterVersion → 整批 MASTER_VERSION_REQUIRED；dry 探测可回显版本（Tom #3）
+       缺版本=MASTER_VERSION_REQUIRED；探测回显=true且与本地一致=true；正确版本 ok=true；错版本=MASTER_VERSION_MISMATCH
+[PASS] S30  同版本实际分发：_rtMaybeHandlePost → REMOTE_ACTIONS.softDelGuarded → 抵达核心并写入（Tom #5）
+       无 token ok=false；带 token ok=true action=softDelGuarded；核心 ok=true；O[3]=TRUE
+[PASS] S31  装配契约：postData.contents 与 parameter.payload 均能抵达；rows 置于 parameter 不可达（Tom #5）
+       postData=true；parameter.payload=true[]；rows 仅走 parameter=false（须 false，印证 rows 只走 postBody）[rows must be an array]
+[PASS] S32  statusQuery 经同一受控入口抵达核心（经 REMOTE_ACTIONS 分发，非直调）（Tom #5）
+       分发 ok=true action=statusQuery；state=COMMITTED identity=BOUND
+[PASS] S33  O 类型统一：回读为布尔 true / 'TRUE' / 'true' 均判成功（Tom #6）
+       true→ok=true；TRUE→ok=true；true→ok=true
+[PASS] S34  真实双执行者交错：A 持锁期间 B 并发被 LOCK_BUSY 拒；B 事后重试不得冒领成功；A 同身份重试真幂等（Tom #5）
+       A ok=true；并发 B ok=false error=MASTER_LOCK_BUSY；B 事后重试 ok=false reason=ALREADY_SOFTDEL（须 ALREADY_SOFTDEL，不得冒领）；A 同身份重试 ok=true idempotent=true wrote=true
+[PASS] S35  写后主库版本漂移→VOID：状态查询得 UNKNOWN（VOIDED>COMMITTED），不冒领成功（Tom #2/#3）
+       写 ok=false wrote=true state=UNKNOWN reason=MASTER_VERSION_DRIFT_POST_WRITE；status state=VOIDED identity=BOUND
+[PASS] S36  主库 lastRow 变化（新增一行）→ 指纹变化 → 真写 MASTER_VERSION_MISMATCH，零业务写入（Tom #2）
+       V1≠V2=true；错误=MASTER_VERSION_MISMATCH；业务写入=0；O[3]=
+[PASS] S37  主库中间行单元格漂移（非种子行）→ 指纹变化 → 真写 MASTER_VERSION_MISMATCH（Tom #2）
+       V1≠V2=true；错误=MASTER_VERSION_MISMATCH
+[PASS] S38  主库某列值被清空/消失（revision 类字段缺位）→ 指纹变化 → 真写 MASTER_VERSION_MISMATCH（Tom #2）
+       V1≠V2=true；错误=MASTER_VERSION_MISMATCH
+[PASS] S39  异源同串版本被拒：声明版本取自【另一份不同主库】的快照，与服务端实际指纹不等 → MISMATCH（Tom #2）
+       verA≠verB=true；声明异源版本=MASTER_VERSION_MISMATCH
+[PASS] S40  探测-候选错位：dry 探测得 V1，候选却按过期 V2 构建，apply 时主库已变 V3 → MISMATCH，不写（Tom #2）
+       错误=MASTER_VERSION_MISMATCH；业务写入=0
+[PASS] S41  harness 观测真实写入计数：成功行=1 业务写+2 日志(PREPARED+COMMITTED)+≥1 期锁校验；MISMATCH=0 写 0 日志（Tom #6）
+       成功: ok=true 业务写=1 日志=2 策略校验=1；失败: 错误=MASTER_VERSION_MISMATCH 业务写=0 日志=0
+[PASS] S42  GAS 适配器端到端：_rtMaybeHandlePost → 核心写入，真实观测 1 业务写+2 日志(PREPARED+COMMITTED)+≥1 期锁校验；坏版本 0 写 0 日志（Tom #6）
+       成功: ok=true action=softDelGuarded 业务写=1 日志=2 策略=1；失败: 错误=MASTER_VERSION_MISMATCH 业务写=0 日志=0
+
+=== 汇总 ===
+43/43 通过
