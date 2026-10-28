@@ -158,31 +158,64 @@ def main():
                     break
     rep.append('')
 
-    # 5) FINAL_FILE 前缀 dispatch/entrypoint manifest 断言（Tom ce058ba 一.3：杜绝前缀漂移假通过）
-    rep.append('--- 断言5：FINAL_FILE 前缀 dispatch manifest —— softDelGuarded/statusQuery 必须唯一存在且统一路由到 tsSoftDelGuarded ---')
+    # 5) FINAL_FILE 前缀 dispatch/entrypoint manifest 断言（Tom ce058ba 一.3 + 本轮收紧：完整区块校验 + 白名单语法 + fail-closed）
+    rep.append('--- 断言5：FINAL_FILE 前缀 dispatch manifest —— 白名单语法 + 完整区块 fail-closed ---')
     fin_src5 = io.open(FINAL, encoding='utf-8').read()
-    fin_prefix = fin_src5[:fin_src5.find(ANCHOR)] if ANCHOR in fin_src5 else fin_src5
-    entries = re.findall(r'^\s*([A-Za-z_][A-Za-z0-9_]*)\s*:\s*function\s*\([^)]*\)\s*\{\s*return\s+([A-Za-z_][A-Za-z0-9_]*)\s*\(', fin_prefix, re.M)
+    anchor_pos = fin_src5.find(ANCHOR)
+    fin_prefix = fin_src5[:anchor_pos] if anchor_pos >= 0 else fin_src5
+    # 5a) 仅认可白名单语法：`key: function(..){ return tsSoftDelGuarded(`
+    DISPATCH_RE = re.compile(r'^\s*([A-Za-z_][A-Za-z0-9_]*)\s*:\s*function\s*\([^)]*\)\s*\{\s*return\s+tsSoftDelGuarded\s*\(', re.M)
+    entries = DISPATCH_RE.findall(fin_prefix)
     entry_map = {}
-    for k, t in entries:
-        entry_map.setdefault(k, []).append(t)
-    req = ['softDelGuarded', 'statusQuery']
+    for k in entries:
+        entry_map[k] = entry_map.get(k, 0) + 1
+    # 5b) 任何 `return tsSoftDelGuarded(` 都必须落在白名单语法内；否则（computed key / 替代表达式 / 裸调用）→ fail-closed
+    return_calls = len(re.findall(r'return\s+tsSoftDelGuarded\s*\(', fin_prefix))
+    recognized = sum(entry_map.values())
     manifest_ok = True
+    if return_calls != recognized:
+        manifest_ok = False
+        rep.append('  [FAIL] 前缀内 %d 处 return tsSoftDelGuarded( 仅 %d 处符合白名单语法（computed key/替代表达式/裸调用须 fail-closed）' % (return_calls, recognized))
+    # 5c) 白名单入口唯一性 + 统一路由（白名单语法本身已限定路由目标为 tsSoftDelGuarded）
+    req = ['softDelGuarded', 'statusQuery']
     for key in req:
-        cnt = len(entry_map.get(key, []))
-        routes = set(entry_map.get(key, []))
-        rep.append('  %s 出现次数=%d 路由目标=%s' % (key, cnt, sorted(routes)))
-        if cnt != 1 or routes != {'tsSoftDelGuarded'}:
+        cnt = entry_map.get(key, 0)
+        rep.append('  %s 白名单入口次数=%d' % (key, cnt))
+        if cnt != 1:
             manifest_ok = False
-            rep.append('    [FAIL] %s 必须唯一且唯一路由到 tsSoftDelGuarded' % key)
-    # 反向：除这两个键外，不得有其它键路由到 tsSoftDelGuarded（防前缀漂移出第二入口）
-    rogue = [k for k, ts in entry_map.items() if 'tsSoftDelGuarded' in ts and k not in req]
+            rep.append('    [FAIL] %s 必须唯一出现' % key)
+    # 5d) 不得有白名单之外键路由到 tsSoftDelGuarded（防前缀漂移出第二入口）
+    rogue = [k for k in entry_map if k not in req]
     if rogue:
         manifest_ok = False
         rep.append('  [FAIL] 以下键非法路由到 tsSoftDelGuarded（应仅 softDelGuarded/statusQuery）：%s' % rogue)
     rep.append('  manifest 一致=%s' % ('YES' if manifest_ok else 'NO'))
     if not manifest_ok:
         ok = False
+
+    # 5e) 负例自测：同一解析逻辑须识别 rogue alias / computed key / 替代表达式（证明覆盖边界，非当前文件已错）
+    rep.append('--- 断言5 负例自测（解析器覆盖边界）---')
+    neg_cases = {
+        'rogue alias（白名单外键同语法）': "rogueAlias: function(e){ return tsSoftDelGuarded( e ); }",
+        'computed key（[k]: 语法）': "[someKey]: function(e){ return tsSoftDelGuarded( e ); }",
+        '替代表达式（无 return/function）': "softDelGuarded: tsSoftGuarded,",
+    }
+    neg_ok = True
+    for label, snippet in neg_cases.items():
+        em = {}
+        for k in DISPATCH_RE.findall(snippet):
+            em[k] = em.get(k, 0) + 1
+        rc = len(re.findall(r'return\s+tsSoftDelGuarded\s*\(', snippet))
+        rec = sum(em.values())
+        rogue2 = [k for k in em if k not in req]
+        detected = (rc != rec) or any(em.get(k, 0) != 1 for k in req) or bool(rogue2)
+        rep.append('  负例[%s] 识别为非法=%s' % (label, 'YES' if detected else 'NO'))
+        if not detected:
+            neg_ok = False
+            rep.append('    [FAIL] 负例未被识别')
+    if not neg_ok:
+        ok = False
+        rep.append('  [FAIL] 断言5 负例自测未通过（解析器覆盖不足）')
     rep.append('')
 
     rep.append('=== 结论：%s ===' % ('全部断言通过' if ok else '存在失败断言（见上）'))

@@ -123,23 +123,40 @@ async function readAll(ssId, sheet, lastCol) {
 function unwrapEnvelope(env) {
   if (!env || typeof env !== 'object') throw new Error('ENVELOPE_NOT_OBJECT');
   const hasVersion = !!env.version;
-  const hasMessage = (typeof env.message === 'string');
-  // 唯一响应形态约定（Tom #1 v3）：核心对象(含 version) 与 信封(message 字符串) 二选一，不得混用。
-  if (hasVersion && !hasMessage) {
+  // 合同（Tom #1 v4，回应本轮 Tom 指出的分支缺口）：形态由 message【属性存在性】决定，而非仅 typeof string。
+  // 纯核心形态 = 有 version 且【无 message 属性】；若 message 属性存在则【必须是可解析字符串】，
+  // 否则（message 为 null / object / array 等非字符串）→ 违反合同，fail-closed。
+  const messageExists = Object.prototype.hasOwnProperty.call(env, 'message');
+  const hasMessage = messageExists && (typeof env.message === 'string');
+  // 唯一响应形态约定：核心对象(含 version) 与 信封(message 字符串) 二选一，不得混用。
+  if (hasVersion && !messageExists) {
     return env;                          // 纯核心形态（新部署）：顶层即权威核心对象
   }
-  if (!hasMessage) throw new Error('NO_CORE_MESSAGE');
+  if (!hasMessage) {
+    // message 属性存在但非字符串（version+message:null/object/array）→ 违反合同
+    if (hasVersion && messageExists) throw new Error('MESSAGE_NOT_STRING');
+    throw new Error('NO_CORE_MESSAGE');
+  }
   let m;
   try { m = JSON.parse(env.message); } catch (_e) { throw new Error('BAD_MESSAGE_JSON'); }
   if (!m || typeof m !== 'object') throw new Error('BAD_MESSAGE_OBJECT');
-  // 双形态共存（顶层 version 与 message 同时出现）：合同歧义，须做类型敏感结构化交叉校验，任一冲突拒绝；
+  // 双形态共存（顶层 version 与 message 同时出现）：合同歧义，须做【双向、类型敏感、字段集完整一致】比较。
+  // 既往仅遍历内层字段并比较重叠项；本轮收紧：两侧任一多/缺字段即冲突（外层多字段 / 内层缺字段均拒绝），
   // 内层 ok:false 即使外层 ok:true 也不得被掩盖（外层成功包络不得掩盖内层失败）。
   if (hasVersion) {
     const conflict = [];
-    for (const k of Object.keys(m)) {
-      if (Object.prototype.hasOwnProperty.call(env, k) && JSON.stringify(env[k]) !== JSON.stringify(m[k])) conflict.push(k);
+    const ek = Object.keys(env), mk = Object.keys(m);
+    const all = new Set(ek.concat(mk));
+    for (const k of all) {
+      if (k === 'version' || k === 'message') continue;   // 信封字段不参与核心内容比较
+      const inE = ek.indexOf(k) >= 0, inM = mk.indexOf(k) >= 0;
+      if (inE && inM) {
+        if (JSON.stringify(env[k]) !== JSON.stringify(m[k])) conflict.push(k);
+      } else {
+        conflict.push(k);   // 一侧有另一侧无 → 字段集不完整一致
+      }
     }
-    if (conflict.length) throw new Error('FIELD_CONFLICT:' + conflict.join(','));
+    if (conflict.length) throw new Error('FIELD_CONFLICT:' + conflict.sort().join(','));
   }
   if (m.ok === false || m.ok === 'false') throw new Error('CORE_OK_FALSE');
   return m;
@@ -211,6 +228,10 @@ function loadJobId() { try { return JSON.parse(fs.readFileSync(jobIdFile(), 'utf
     const WHITELIST = ['COMMITTED', 'REJECTED', 'UNKNOWN', 'VOIDED'];
     // 严格一一校验（Tom #4 v3）：任何额外/缺失/重复/身份异常 → 整批协议失败（全部 UNKNOWN），不得据任一匹配行下判
     const reqSet = new Set(o.status.map(Number));
+    // Tom 本轮#4（G3 收紧）：请求侧 --status 也必须唯一；重复请求行（如 26,26）属畸形输入，
+    //   与响应侧 DUP_JOURNAL_ROW 一致 → 该请求行 UNKNOWN(DUP_REQUEST_ROW)，不盲判。
+    const _seen = new Set(), dupReq = new Set();
+    for (const r of o.status.map(Number)) { if (_seen.has(r)) dupReq.add(r); else _seen.add(r); }
     const extraRows = journalRows.filter(x => !reqSet.has(Number(x.itemId)));
     let protocolOk = (extraRows.length === 0);
     for (const r of o.status) {
@@ -227,6 +248,10 @@ function loadJobId() { try { return JSON.parse(fs.readFileSync(jobIdFile(), 'utf
       process.stderr.write('[STATUS] 响应集合结构异常（额外/缺失/重复/身份异常）→ 整批登记 UNKNOWN，不盲判\n');
     }
     const out = o.status.map(r => {
+      // Tom 本轮#4：重复请求行 → 该请求行 UNKNOWN（与响应侧 DUP_JOURNAL_ROW 唯一性规则一致）
+      if (dupReq.has(r)) {
+        return { row: r, state: 'UNKNOWN', journalState: null, identity: 'DUP_REQUEST_ROW', oValue: reread[r] };
+      }
       if (!protocolOk) {
         // 整批协议失败：任何结构性异常都令本次查询所有行 UNKNOWN，绝不据任一匹配行下结论
         return { row: r, state: 'UNKNOWN', journalState: null, identity: 'PROTOCOL_ANOMALY', oValue: reread[r] };

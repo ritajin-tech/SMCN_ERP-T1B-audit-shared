@@ -65,7 +65,7 @@ const mockCfg = {
   failRanges: [], failMasterRanges: [], truncateLast: false, drift: false, driftDuringRead: false,
   dropWriteResponse: false, lockAll: false, masterIncomplete: false, masterVersion: null,
   noPeriodDep: false, forceDryResponse: false, stripBatchId: false, journalReadFails: false,
-  overCountLast: false, dualFormResponse: false, extraJournalRow: false,
+  overCountLast: false, dualFormResponse: false, extraJournalRow: false, badEnvelope: false,
   _probes: 0
 };
 
@@ -75,7 +75,7 @@ function makeCoreDeps(model) {
   return {
     PL_DB_SHEET, PROD_TAB, BASE_TAB, MASTER_ID, TS_ID, VERSION: core.VERSION,
     readProdRow: (row) => (model.prodRows[row] ? model.prodRows[row].slice() : null),
-    writeProdO: (row, v) => { if (!model.prodRows[row]) return false; model.prodRows[row][14] = v; return true; },
+    writeProdO: (row, v) => { if (!model.prodRows[row]) return false; model.prodRows[row][14] = v; try { server._writeCounts[row] = (server._writeCounts[row] || 0) + 1; } catch (e) {} return true; },
     readProdO: (row) => (model.prodRows[row] ? model.prodRows[row][14] : null),
     readAllMaster: () => {
       if (mockCfg.masterIncomplete) return { map: {}, complete: false, error: 'MASTER_PROBE_FAIL', version: null };
@@ -159,6 +159,19 @@ const server = http.createServer((req, res) => {
       fs.appendFileSync(path.join(os.tmpdir(),'hb.log'), 'GAS-PRE rows=' + JSON.stringify(_rowsDbg.map(x=>({r:x.row,k:x.keeperRow,u:x.uuid,l:x.level}))).slice(0,200) + '\n');
       try { out = tsSoftDelGuardedCore(e2, d); }
       catch (err) { out = JSON.stringify({ ok: false, version: core.VERSION, error: 'CORE_EXCEPTION: ' + (err && err.message || err) }); }
+      // Tom 本轮#1 G1 收紧：badEnvelope 注入 —— 制造 message 非字符串 / 双形态字段集不完整的响应，验证 unwrapEnvelope 分支缺口
+      if (mockCfg.badEnvelope) {
+        // 基于真实 core 输出 o0 克隆，仅最小篡改 message（或追加字段 a），保留 masterVersion/batchId/jobId 等全部正常字段，
+        // 确保执行器版本探测阶段不被 fail-closed 误伤，能真正走到 unwrapEnvelope 触发目标分支。
+        let o0 = {}; try { o0 = JSON.parse(out); } catch (e) {}
+        const inner = JSON.stringify({ ok: true, b: 2 });
+        let mutated;
+        if (mockCfg.badEnvelope === 'null') mutated = Object.assign({}, o0, { message: null });
+        else if (mockCfg.badEnvelope === 'object') mutated = Object.assign({}, o0, { message: { notString: 1 } });
+        else if (mockCfg.badEnvelope === 'outerExtra') mutated = Object.assign({}, o0, { a: 1, message: inner });
+        else if (mockCfg.badEnvelope === 'innerMissing') mutated = Object.assign({}, o0, { message: inner });
+        out = JSON.stringify(mutated);
+      }
       // Tom ce058ba 二.1：双形态响应（顶层 version + message 内层 ok:false）→ 客户端必须拒绝，不得计成功
       if (mockCfg.dualFormResponse) {
         try { const o = JSON.parse(out); out = JSON.stringify({ version: o.version || core.VERSION, ok: true, action: o.action, jobId: o.jobId, masterVersion: o.masterVersion, message: JSON.stringify({ ok: false, error: 'TAMPER_INNER_FAIL' }) }); } catch (e) {}
@@ -188,6 +201,7 @@ const server = http.createServer((req, res) => {
   });
 });
 server._journalStore = {};
+server._writeCounts = {};
 
 // ---- 硬看门狗：若事件循环仍存活但整跑超时，强制退出并报告活跃句柄数（用于诊断卡点）----
 const HARNESS_HARD_MS = (process.env.HARNESS_HARD_MS ? parseInt(process.env.HARNESS_HARD_MS, 10) : 90000);
@@ -503,13 +517,19 @@ server.listen(0, '127.0.0.1', async () => {
   check('Q APPLY 退出 0 且响应含 version=ts_softdel_core/4 且模式 APPLY', r.code === 0 && /ts_softdel_core\/4/.test(r.stdout + r.stderr) && /"mode": "APPLY"/.test(r.stdout), { code: r.code, out: r.stdout.slice(-300) });
   check('Q APPLY 后行22 O=TRUE', _sdNorm(prodRows[22][14]) === 'TRUE', prodRows[22][14]);
 
-  console.log('=== 场景R（Tom ce058ba 二.1）：解包双形态冲突 —— 响应同时含 version 与 message(内层 ok:false) 必须被拒、不得计成功/继续批次 ===');
+  console.log('=== 场景R（Tom 本轮#2 收窄 + ce058ba 二.1）：解包双形态冲突 —— 响应含 version 与 message(内层 ok:false) 必须被拒、调用结果不确定（不声称 no-write）、无自动重放 ===');
   prodRows[24][14] = false;
+  server._writeCounts[24] = 0;
   mockCfg.dualFormResponse = true;
-  r = await runExecutor(['--rows', '24', '--apply']);   // 核心真实写入后返回「外层ok:true+内层ok:false」篡改响应
+  r = await runExecutor(['--rows', '24', '--apply']);   // 真实写入 row24 后返回「外层ok:true+内层ok:false」被篡改响应
   mockCfg.dualFormResponse = false;
-  // 核心确会真实写入（篡改在响应层），但客户端必须拒绝该响应、不得计成功/继续批次
-  check('R 双形态(外层ok:true+内层ok:false)→执行器拒绝(退出1)不继续批次', r.code === 1 && /FAIL|FIELD_CONFLICT|CORE_OK_FALSE/.test(r.stdout + r.stderr), { code: r.code, out: (r.stdout + r.stderr).slice(-200) });
+  // 透明说明：核心（mock 服务端）确会真实写入 row24（篡改仅在响应层），故【不声称 no-write】；
+  // 客户端必须拒绝该响应并停止批次逻辑（退出1），且此调用未重放/未二次写入（写计数=1）。
+  check('R 双形态(外层ok:true+内层ok:false)→执行器拒绝(退出1)、调用结果不确定(不声称no-write)', r.code === 1 && /FAIL|FIELD_CONFLICT|CORE_OK_FALSE/.test(r.stdout + r.stderr), { code: r.code, out: (r.stdout + r.stderr).slice(-200) });
+  check('R 写入计数=1（服务端确发生一次写入；客户端未自动重放/未二次写入）', server._writeCounts[24] === 1, { wc: server._writeCounts[24] });
+  // 客户端拒绝后，以完整身份 statusQuery 核验 row24：不产生崩溃/死循环，给出确定态（不自动重放写入）
+  const srR = await runExecutor(['--status', '24']);
+  check('R 拒绝后 statusQuery 仍确定产出（无崩溃/无自动重放）', srR.code === 0 && /"state":\s*"(COMMITTED|UNKNOWN|REJECTED|VOIDED)"/.test(srR.stdout + srR.stderr), (srR.stdout + srR.stderr).slice(-300));
 
   console.log('=== 场景T（Tom ce058ba 二.2）：readAll 末页严格计数 —— 末页超量返回必须整批拒绝，超界项不进候选 ===');
   mockCfg.overCountLast = true;
@@ -525,6 +545,30 @@ server.listen(0, '127.0.0.1', async () => {
   const srU = await runExecutor(['--status', '26']);
   mockCfg.extraJournalRow = false;
   check('U 响应含额外行(row999)→ row26 不得判 COMMITTED，必须 UNKNOWN/PROTOCOL_ANOMALY', /"state":\s*"UNKNOWN"/.test(srU.stdout + srU.stderr) && !/"state":\s*"COMMITTED"/.test(srU.stdout + srU.stderr), (srU.stdout + srU.stderr).slice(-400));
+
+  console.log('=== 场景V/W/X/Y（Tom 本轮#1 G1 收紧）：unwrapEnvelope 分支缺口 —— version+message 非字符串 / 双形态字段集不完整 ===');
+  // V: version + message:null → MESSAGE_NOT_STRING
+  prodRows[28][14] = false; mockCfg.badEnvelope = 'null';
+  r = await runExecutor(['--rows', '28', '--apply']); mockCfg.badEnvelope = null;
+  check('V version+message:null → 拒绝(退出1) MESSAGE_NOT_STRING', r.code === 1 && /MESSAGE_NOT_STRING/.test(r.stdout + r.stderr), { code: r.code, out: (r.stdout + r.stderr).slice(-200) });
+  // W: version + message:{object} → MESSAGE_NOT_STRING
+  prodRows[30][14] = false; mockCfg.badEnvelope = 'object';
+  r = await runExecutor(['--rows', '30', '--apply']); mockCfg.badEnvelope = null;
+  check('W version+message:object → 拒绝(退出1) MESSAGE_NOT_STRING', r.code === 1 && /MESSAGE_NOT_STRING/.test(r.stdout + r.stderr), { code: r.code, out: (r.stdout + r.stderr).slice(-200) });
+  // X: 双形态 + 外层多字段(a) → FIELD_CONFLICT
+  prodRows[32][14] = false; mockCfg.badEnvelope = 'outerExtra';
+  r = await runExecutor(['--rows', '32', '--apply']); mockCfg.badEnvelope = null;
+  check('X 双形态外层多字段(a)→拒绝(退出1) FIELD_CONFLICT', r.code === 1 && /FIELD_CONFLICT/.test(r.stdout + r.stderr), { code: r.code, out: (r.stdout + r.stderr).slice(-200) });
+  // Y: 双形态 + 内层多字段(b 不在外层) → FIELD_CONFLICT
+  prodRows[34][14] = false; mockCfg.badEnvelope = 'innerMissing';
+  r = await runExecutor(['--rows', '34', '--apply']); mockCfg.badEnvelope = null;
+  check('Y 双形态内层多字段(b 不在外层)→拒绝(退出1) FIELD_CONFLICT', r.code === 1 && /FIELD_CONFLICT/.test(r.stdout + r.stderr), { code: r.code, out: (r.stdout + r.stderr).slice(-200) });
+
+  console.log('=== 场景Z（Tom 本轮#4 G3 收紧）：--status 重复请求行(36,36) → 该请求行 UNKNOWN(DUP_REQUEST_ROW) ===');
+  prodRows[36][14] = false;
+  await runExecutor(['--rows', '36', '--apply']);   // 先真实写入 row36（manifest）
+  const srZ = await runExecutor(['--status', '36,36']);
+  check('Z 重复请求行(36,36) → 全部 UNKNOWN，不得判 COMMITTED', /"state":\s*"UNKNOWN"/.test(srZ.stdout + srZ.stderr) && !/"state":\s*"COMMITTED"/.test(srZ.stdout + srZ.stderr), (srZ.stdout + srZ.stderr).slice(-400));
 
   if (process.env.HARNESS_STOP_AFTER === 'Q') { console.log('[STOP_AFTER=Q] 提前退出'); server.close(); process.exit(fail ? 1 : 0); }
 
