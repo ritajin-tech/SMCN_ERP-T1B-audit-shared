@@ -118,6 +118,29 @@ async function readAll(ssId, sheet, lastCol) {
   return { rows: data, lastRow: last, pages, ok: !pageFail && !truncated, revision };
 }
 
+// Tom 本轮#1a：递归、类型敏感、键顺序无关的深层比较（替代 JSON.stringify，避免同值异序误报 FIELD_CONFLICT）
+function deepEqual(a, b) {
+  if (a === b) return true;
+  if (a !== a && b !== b) return true;                       // 两者均为 NaN
+  if (a === null || b === null || a === undefined || b === undefined) return a === b;
+  if (typeof a !== typeof b) return false;
+  if (typeof a !== 'object') return false;                   // 原始值已由上 a===b 覆盖
+  const isArrA = Array.isArray(a), isArrB = Array.isArray(b);
+  if (isArrA !== isArrB) return false;
+  if (isArrA) {
+    if (a.length !== b.length) return false;
+    for (let i = 0; i < a.length; i++) if (!deepEqual(a[i], b[i])) return false;
+    return true;
+  }
+  const ka = Object.keys(a), kb = Object.keys(b);
+  if (ka.length !== kb.length) return false;
+  for (const k of ka) {
+    if (!Object.prototype.hasOwnProperty.call(b, k)) return false;
+    if (!deepEqual(a[k], b[k])) return false;
+  }
+  return true;
+}
+
 // 单一运输契约解析（回应 Tom #1 v2）：从信封解析核心 message，envelope/core 分离，
 // 重复字段冲突即拒绝，核心 ok=false 不得被外层 ok=true 掩盖。返回核心对象或抛错（调用方 exit 1）。
 function unwrapEnvelope(env) {
@@ -148,10 +171,10 @@ function unwrapEnvelope(env) {
     const ek = Object.keys(env), mk = Object.keys(m);
     const all = new Set(ek.concat(mk));
     for (const k of all) {
-      if (k === 'version' || k === 'message') continue;   // 信封字段不参与核心内容比较
+      if (k === 'version' || k === 'message' || k === '_env') continue;   // 信封/传输层字段不参与核心内容比较（_env 是 ts_post.py 传输标记，GAS 真实响应不含，须排除以免误报 FIELD_CONFLICT）
       const inE = ek.indexOf(k) >= 0, inM = mk.indexOf(k) >= 0;
       if (inE && inM) {
-        if (JSON.stringify(env[k]) !== JSON.stringify(m[k])) conflict.push(k);
+        if (!deepEqual(env[k], m[k])) conflict.push(k);   // Tom 本轮#1a：键顺序无关、类型敏感、递归深层比较
       } else {
         conflict.push(k);   // 一侧有另一侧无 → 字段集不完整一致
       }
@@ -233,7 +256,8 @@ function loadJobId() { try { return JSON.parse(fs.readFileSync(jobIdFile(), 'utf
     const _seen = new Set(), dupReq = new Set();
     for (const r of o.status.map(Number)) { if (_seen.has(r)) dupReq.add(r); else _seen.add(r); }
     const extraRows = journalRows.filter(x => !reqSet.has(Number(x.itemId)));
-    let protocolOk = (extraRows.length === 0);
+    // Tom 本轮#4a：请求侧重复行（dupReq）同样令整批协议失败 —— 与"整批不因匹配行下判"合同一致
+    let protocolOk = (extraRows.length === 0) && (dupReq.size === 0);
     for (const r of o.status) {
       const matches = journalRows.filter(x => Number(x.itemId) === Number(r));
       if (matches.length !== 1) { protocolOk = false; continue; }

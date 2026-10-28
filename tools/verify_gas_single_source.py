@@ -158,61 +158,74 @@ def main():
                     break
     rep.append('')
 
-    # 5) FINAL_FILE 前缀 dispatch/entrypoint manifest 断言（Tom ce058ba 一.3 + 本轮收紧：完整区块校验 + 白名单语法 + fail-closed）
-    rep.append('--- 断言5：FINAL_FILE 前缀 dispatch manifest —— 白名单语法 + 完整区块 fail-closed ---')
+    # 5) 完整 dispatch 区块解析 + 受控入口白名单 + 任何未识别/未授权成员 fail-closed（Tom 本轮#5a）
+    rep.append('--- 断言5：FINAL_FILE 完整 dispatch 区块解析 + 受控入口白名单 + 任何未识别成员 fail-closed ---')
     fin_src5 = io.open(FINAL, encoding='utf-8').read()
     anchor_pos = fin_src5.find(ANCHOR)
     fin_prefix = fin_src5[:anchor_pos] if anchor_pos >= 0 else fin_src5
-    # 5a) 仅认可白名单语法：`key: function(..){ return tsSoftDelGuarded(`
-    DISPATCH_RE = re.compile(r'^\s*([A-Za-z_][A-Za-z0-9_]*)\s*:\s*function\s*\([^)]*\)\s*\{\s*return\s+tsSoftDelGuarded\s*\(', re.M)
-    entries = DISPATCH_RE.findall(fin_prefix)
+    # 5a) 平衡花括号截取整个 dispatch 区块（REMOTE_ACTIONS = { ... };）
+    m_block = re.search(r'var\s+REMOTE_ACTIONS\s*=\s*\{(.*?)\n\};', fin_prefix, re.S)
+    block = m_block.group(1) if m_block else ''
+    # 5b) 枚举所有顶层 `key: function(...) { return TARGET(` 成员 → key→target 列表（解析整个区块，而非仅 grep 受控入口）
+    ENTRY_RE = re.compile(r'([A-Za-z_][A-Za-z0-9_]*)\s*:\s*function\s*\([^)]*\)\s*\{\s*return\s+([A-Za-z_][A-Za-z0-9_]*)\s*\(', re.M)
     entry_map = {}
-    for k in entries:
-        entry_map[k] = entry_map.get(k, 0) + 1
-    # 5b) 任何 `return tsSoftDelGuarded(` 都必须落在白名单语法内；否则（computed key / 替代表达式 / 裸调用）→ fail-closed
-    return_calls = len(re.findall(r'return\s+tsSoftDelGuarded\s*\(', fin_prefix))
-    recognized = sum(entry_map.values())
+    for k, t in ENTRY_RE.findall(block):
+        entry_map.setdefault(k, []).append(t)
+    # 5c) 受控入口（路由到 tsSoftDelGuarded）必须恰好为 softDelGuarded/statusQuery，各唯一一次
+    WHITELIST = {'softDelGuarded', 'statusQuery'}
+    controlled = {k: ts[0] for k, ts in entry_map.items() if ts == ['tsSoftDelGuarded']}
     manifest_ok = True
-    if return_calls != recognized:
+    if set(controlled.keys()) != WHITELIST:
         manifest_ok = False
-        rep.append('  [FAIL] 前缀内 %d 处 return tsSoftDelGuarded( 仅 %d 处符合白名单语法（computed key/替代表达式/裸调用须 fail-closed）' % (return_calls, recognized))
-    # 5c) 白名单入口唯一性 + 统一路由（白名单语法本身已限定路由目标为 tsSoftDelGuarded）
-    req = ['softDelGuarded', 'statusQuery']
-    for key in req:
-        cnt = entry_map.get(key, 0)
-        rep.append('  %s 白名单入口次数=%d' % (key, cnt))
-        if cnt != 1:
+        rep.append('  [FAIL] 路由到 tsSoftDelGuarded 的入口必须为且仅为 %s，实际=%s' % (sorted(WHITELIST), sorted(controlled.keys())))
+    for k in ('softDelGuarded', 'statusQuery'):
+        cnt = len(entry_map.get(k, []))
+        tgt = entry_map.get(k, [None])[0]
+        rep.append('  %s 入口次数=%d 路由目标=%s' % (k, cnt, tgt))
+        if cnt != 1 or tgt != 'tsSoftDelGuarded':
             manifest_ok = False
-            rep.append('    [FAIL] %s 必须唯一出现' % key)
-    # 5d) 不得有白名单之外键路由到 tsSoftDelGuarded（防前缀漂移出第二入口）
-    rogue = [k for k in entry_map if k not in req]
+            rep.append('    [FAIL] %s 必须唯一且路由 tsSoftDelGuarded' % k)
+    # 5d) 任何【非白名单键】却路由到 tsSoftDelGuarded → rogue（fail-closed，防前缀漂移出第二入口）
+    rogue = [k for k in controlled if k not in WHITELIST]
     if rogue:
         manifest_ok = False
         rep.append('  [FAIL] 以下键非法路由到 tsSoftDelGuarded（应仅 softDelGuarded/statusQuery）：%s' % rogue)
+    # 5e) 透明上报整个 dispatch 区块成员，证明“解析并核验整个区块”而非仅 grep 受控入口
+    rep.append('  dispatch 区块成员总数=%d，受控入口=%s' % (len(entry_map), sorted(controlled.keys())))
     rep.append('  manifest 一致=%s' % ('YES' if manifest_ok else 'NO'))
     if not manifest_ok:
         ok = False
 
-    # 5e) 负例自测：同一解析逻辑须识别 rogue alias / computed key / 替代表达式（证明覆盖边界，非当前文件已错）
-    rep.append('--- 断言5 负例自测（解析器覆盖边界）---')
+    # 5f) 负例自测：解析器必须识别各类未授权/未识别成员并 fail-closed（Tom 本轮#5a）
+    rep.append('--- 断言5 负例自测（完整区块解析覆盖边界）---')
+    def _ctrl_set_of(src):
+        mb = re.search(r'var\s+REMOTE_ACTIONS\s*=\s*\{(.*?)\n\};', src, re.S)
+        blk = mb.group(1) if mb else ''
+        em = {}
+        for k, t in ENTRY_RE.findall(blk):
+            em.setdefault(k, []).append(t)
+        ctrl = {k for k, t in em.items() if t == 'tsSoftDelGuarded'}
+        return ctrl == WHITELIST and all(em.get(k) == ['tsSoftDelGuarded'] for k in WHITELIST)
     neg_cases = {
-        'rogue alias（白名单外键同语法）': "rogueAlias: function(e){ return tsSoftDelGuarded( e ); }",
-        'computed key（[k]: 语法）': "[someKey]: function(e){ return tsSoftDelGuarded( e ); }",
-        '替代表达式（无 return/function）': "softDelGuarded: tsSoftGuarded,",
+        'rogue alias 路由到受控入口': "var REMOTE_ACTIONS = { softDelGuarded: function(e){ return tsSoftDelGuarded(e); }, statusQuery: function(e){ return tsSoftDelGuarded(e); }, evil: function(e){ return tsSoftDelGuarded(e); } };",
+        'computed key 路由到受控入口': "var REMOTE_ACTIONS = { softDelGuarded: function(e){ return tsSoftDelGuarded(e); }, statusQuery: function(e){ return tsSoftDelGuarded(e); }, [someKey]: function(e){ return tsSoftDelGuarded(e); } };",
+        '替代表达式（无 return/function）': "var REMOTE_ACTIONS = { softDelGuarded: tsSoftGuarded, statusQuery: function(e){ return tsSoftGuarded(e); } };",
+        '白名单外键路由到受控入口（Tom #5a 未识别成员）': "var REMOTE_ACTIONS = { softDelGuarded: function(e){ return tsSoftDelGuarded(e); }, statusQuery: function(e){ return tsSoftDelGuarded(e); }, evil: function(e){ return tsSoftDelGuarded(e); } };",
     }
     neg_ok = True
     for label, snippet in neg_cases.items():
-        em = {}
-        for k in DISPATCH_RE.findall(snippet):
-            em[k] = em.get(k, 0) + 1
-        rc = len(re.findall(r'return\s+tsSoftDelGuarded\s*\(', snippet))
-        rec = sum(em.values())
-        rogue2 = [k for k in em if k not in req]
-        detected = (rc != rec) or any(em.get(k, 0) != 1 for k in req) or bool(rogue2)
-        rep.append('  负例[%s] 识别为非法=%s' % (label, 'YES' if detected else 'NO'))
+        detected = not _ctrl_set_of(snippet)
+        rep.append('  负例[%s] 识别为非法=fail-closed=%s' % (label, 'YES' if detected else 'NO'))
         if not detected:
             neg_ok = False
             rep.append('    [FAIL] 负例未被识别')
+    # 5g) 真实区块插入未识别成员（evil 路由到受控入口）→ 必须 fail-closed
+    tampered = fin_prefix + "\nvar REMOTE_ACTIONS = { softDelGuarded: function(e){ return tsSoftDelGuarded(e); }, statusQuery: function(e){ return tsSoftDelGuarded(e); }, evil: function(e){ return tsSoftDelGuarded(e); } };\n"
+    real_detected = not _ctrl_set_of(tampered)
+    rep.append('  真实区块插入 evil→受控入口 负例 fail-closed=%s' % ('YES' if real_detected else 'NO'))
+    if not real_detected:
+        neg_ok = False
+        rep.append('    [FAIL] 真实区块插入未识别成员未 fail-closed')
     if not neg_ok:
         ok = False
         rep.append('  [FAIL] 断言5 负例自测未通过（解析器覆盖不足）')

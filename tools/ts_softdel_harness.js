@@ -170,6 +170,16 @@ const server = http.createServer((req, res) => {
         else if (mockCfg.badEnvelope === 'object') mutated = Object.assign({}, o0, { message: { notString: 1 } });
         else if (mockCfg.badEnvelope === 'outerExtra') mutated = Object.assign({}, o0, { a: 1, message: inner });
         else if (mockCfg.badEnvelope === 'innerMissing') mutated = Object.assign({}, o0, { message: inner });
+        // Tom 本轮#1a 负例：双形态嵌套对象键顺序置换（同值异序）—— 旧 JSON.stringify 比较会误报 FIELD_CONFLICT；深层比较不应误报
+        else if (mockCfg.badEnvelope === 'keyOrder') {
+          // 受控最小双形态：env 与 message(内层) 含同一嵌套对象，键顺序不同但值相同；排除 o0 的任意字段噪声，精准隔离顺序无关比较
+          const o = (function(){try{return JSON.parse(out)}catch(e){return {}}}());
+          const mv = (o && o.masterVersion) || 'v1';
+          const base = { ok: true, version: core.VERSION, action: 'softDelGuarded', jobId: 'JX2', masterVersion: mv, batchId: 'JX2-1', dry: false, wrote: true };
+          const innerNested = { z: { b: 2, a: 1 }, y: 2, x: 1 };
+          const outerNested = { x: 1, y: 2, z: { a: 1, b: 2 } };
+          mutated = Object.assign({}, base, { nested: outerNested, message: JSON.stringify(Object.assign({}, base, { nested: innerNested })) });
+        }
         out = JSON.stringify(mutated);
       }
       // Tom ce058ba 二.1：双形态响应（顶层 version + message 内层 ok:false）→ 客户端必须拒绝，不得计成功
@@ -563,12 +573,41 @@ server.listen(0, '127.0.0.1', async () => {
   prodRows[34][14] = false; mockCfg.badEnvelope = 'innerMissing';
   r = await runExecutor(['--rows', '34', '--apply']); mockCfg.badEnvelope = null;
   check('Y 双形态内层多字段(b 不在外层)→拒绝(退出1) FIELD_CONFLICT', r.code === 1 && /FIELD_CONFLICT/.test(r.stdout + r.stderr), { code: r.code, out: (r.stdout + r.stderr).slice(-200) });
+  // X2: 双形态 + 嵌套对象键顺序置换（同值异序）→ 不误报 FIELD_CONFLICT（Tom 本轮#1a 顺序无关比较）
+  prodRows[38][14] = false; mockCfg.badEnvelope = 'keyOrder';
+  r = await runExecutor(['--rows', '38', '--apply']); mockCfg.badEnvelope = null;
+  check('X2 双形态嵌套键顺序置换(同值异序)→不误报 FIELD_CONFLICT（顺序无关深层比较）', !/FIELD_CONFLICT/.test(r.stdout + r.stderr), { code: r.code, out: (r.stdout + r.stderr).slice(-200) });
 
-  console.log('=== 场景Z（Tom 本轮#4 G3 收紧）：--status 重复请求行(36,36) → 该请求行 UNKNOWN(DUP_REQUEST_ROW) ===');
+  console.log('=== 场景Z（Tom 本轮#4 G3 收紧 + #4a）：--status 混合(36,36,37) 重复请求行 → 整批 protocolOk=false，全部 UNKNOWN(DUP_REQUEST_ROW/PROTOCOL_ANOMALY)，不对任何匹配行下判 ===');
   prodRows[36][14] = false;
   await runExecutor(['--rows', '36', '--apply']);   // 先真实写入 row36（manifest）
-  const srZ = await runExecutor(['--status', '36,36']);
-  check('Z 重复请求行(36,36) → 全部 UNKNOWN，不得判 COMMITTED', /"state":\s*"UNKNOWN"/.test(srZ.stdout + srZ.stderr) && !/"state":\s*"COMMITTED"/.test(srZ.stdout + srZ.stderr), (srZ.stdout + srZ.stderr).slice(-400));
+  const srZ = await runExecutor(['--status', '36,36,37']);
+  check('Z 混合(36,36,37)→全部 UNKNOWN，dupReq 令整批 protocolOk=false，不对任何匹配行下判 COMMITTED', /"state":\s*"UNKNOWN"/.test(srZ.stdout + srZ.stderr) && !/"state":\s*"COMMITTED"/.test(srZ.stdout + srZ.stderr) && /DUP_REQUEST_ROW|PROTOCOL_ANOMALY/.test(srZ.stdout + srZ.stderr), (srZ.stdout + srZ.stderr).slice(-400));
+
+  console.log('=== 场景R2/R3（Tom 本轮#2a 多行批次负例）：同批含后续行，响应不确定/写后丢响应 → 整批拒绝、无批内重放、精确状态断言；UNKNOWN 保持待核不重放 ===');
+  // R2：多行批次(40,44,48) 响应双形态篡改（内层ok:false）→ 整批拒绝、各仅写一次（无批内重放）、statusQuery 精确断言 COMMITTED（独立回读）
+  prodRows[40][14] = false; prodRows[44][14] = false; prodRows[48][14] = false;
+  server._writeCounts[40] = 0; server._writeCounts[44] = 0; server._writeCounts[48] = 0;
+  mockCfg.dualFormResponse = true;
+  r = await runExecutor(['--rows', '40,44,48', '--apply']);   // 真实写入整批后响应被篡改
+  mockCfg.dualFormResponse = false;
+  check('R2 多行批次(40,44,48)响应不确定→整批拒绝(退出1)', r.code === 1 && /CORE_OK_FALSE|FIELD_CONFLICT|FAIL/.test(r.stdout + r.stderr), { code: r.code, out: (r.stdout + r.stderr).slice(-200) });
+  check('R2 多行批次无批内重放：40/44/48 各仅写入一次', server._writeCounts[40] === 1 && server._writeCounts[44] === 1 && server._writeCounts[48] === 1, { w40: server._writeCounts[40], w44: server._writeCounts[44], w48: server._writeCounts[48] });
+  const srR2 = await runExecutor(['--status', '40,44,48']);
+  check('R2 多行批次 statusQuery 精确断言：每行 state=COMMITTED（独立回读，非任意四态）', (function(){ const s = srR2.stdout + srR2.stderr; const m = s.match(/"state":\s*"([A-Z]+)"/g) || []; return m.length === 3 && m.every(x => /"COMMITTED"/.test(x)); })(), (srR2.stdout + srR2.stderr).slice(-400));
+  // R3：多行批次(42,46) 写后响应丢失 + journal 读失败 → 全 UNKNOWN、保持待核、不盲重放
+  prodRows[42][14] = false; prodRows[46][14] = false;
+  server._writeCounts[42] = 0; server._writeCounts[46] = 0;
+  mockCfg.dropWriteResponse = true;          // 仅 apply 阶段丢响应（写已发生）；journalReadFails 不用于 apply，否则核心写路径读 journal 抛错会直接阻断写入
+  r = await runExecutor(['--rows', '42,46', '--apply']);   // 真实写入整批后响应丢失
+  mockCfg.dropWriteResponse = false;
+  check('R3 多行批次(42,46)写后响应丢失→执行器不崩溃、登记不明(退出1)', r.code === 1 || /UNKNOWN|不明|不确定|契约不符/.test(r.stdout + r.stderr), { code: r.code, out: (r.stdout + r.stderr).slice(-200) });
+  check('R3 多行批次无重放：42/46 各仅写入一次（响应丢失≠未写，但绝不二次写）', server._writeCounts[42] === 1 && server._writeCounts[46] === 1, { w42: server._writeCounts[42], w46: server._writeCounts[46] });
+  // statusQuery：journal 读通道失败 → 状态不可判定，必须登记 UNKNOWN 而非盲判 COMMITTED；且不得触发任何重放写
+  mockCfg.journalReadFails = true;
+  const srR3 = await runExecutor(['--status', '42,46']);
+  mockCfg.journalReadFails = false;
+  check('R3 statusQuery UNKNOWN 保持待核、不盲重放（无 COMMITTED、无二次写）', /"state":\s*"UNKNOWN"/.test(srR3.stdout + srR3.stderr) && !/"state":\s*"COMMITTED"/.test(srR3.stdout + srR3.stderr) && server._writeCounts[42] === 1 && server._writeCounts[46] === 1, (srR3.stdout + srR3.stderr).slice(-400));
 
   if (process.env.HARNESS_STOP_AFTER === 'Q') { console.log('[STOP_AFTER=Q] 提前退出'); server.close(); process.exit(fail ? 1 : 0); }
 
