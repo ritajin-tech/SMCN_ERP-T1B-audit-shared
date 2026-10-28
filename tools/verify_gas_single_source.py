@@ -183,8 +183,11 @@ def main():
     }
 
     def _parse_top_level_keys(b):
-        """深度感知解析 REMOTE_ACTIONS 区块的顶层成员键（跳过注释/字符串/嵌套花括号）。"""
+        """深度感知解析 REMOTE_ACTIONS 区块的顶层成员键（跳过注释/字符串/嵌套花括号）。
+        返回 (keys, computed_keys)：computed_keys 收录 depth==0 的计算属性键（形如 ['x']: …），
+        运行期绑定动态、无法静态确定，调用方必须 fail-closed（Tom 本轮 L3）。"""
         keys = []
+        computed_keys = []
         depth = 0
         i = 0
         n = len(b)
@@ -219,6 +222,33 @@ def main():
                     if b[i] == q: i += 1; break
                     i += 1
                 continue
+            if c == '[' and depth == 0:
+                # 顶层计算属性键（['x']: …）或数组值。先用括号匹配扫到匹配 ']'，
+                # 再判其后是 ':'（键）还是 ','/'}'（值）。仅当后是 ':' 才算计算键 → 记入并 fail-closed。
+                j = i + 1
+                bal = 1
+                while j < n and bal > 0:
+                    ch = b[j]
+                    if ch == '\\' and j + 1 < n and b[j+1] in '"\'':
+                        j += 2; continue
+                    if ch == '"' or ch == "'":
+                        q = ch; j += 1
+                        while j < n:
+                            if b[j] == '\\': j += 2; continue
+                            if b[j] == q: j += 1; break
+                            j += 1
+                        continue
+                    if ch == '[': bal += 1
+                    elif ch == ']': bal -= 1
+                    j += 1
+                k = j
+                while k < n and b[k] in ' \t\n\r': k += 1
+                if k < n and b[k] == ':':
+                    computed_keys.append(b[i:j+1])   # 计算属性键，运行期动态绑定，强制 fail-closed
+                    i = k + 1
+                else:
+                    i = j   # 数组值（如 key: [1,2,3] 或 key: [{…}]），整体跳过
+                continue
             if c == '{': depth += 1; i += 1; continue
             if c == '}': depth -= 1; i += 1; continue
             if depth == 0 and (c.isalpha() or c == '_' or c == '$'):
@@ -232,14 +262,19 @@ def main():
                     keys.append(b[i:j]);  i = k + 1;  continue
                 i = j;  continue
             i += 1
-        return keys
+        return keys, computed_keys
 
     def _real_manifest_ok(b, baseline):
         """真实 dispatch 路径的完整校验（main() 与负例共用同一函数，杜绝 fixture 与真实路径不一致）。
         返回 (ok, rep_lines, top_keys)。"""
         lines = []
         ok = True
-        top = _parse_top_level_keys(b)
+        top, computed = _parse_top_level_keys(b)
+        # 防计算属性键绕过（Tom 本轮 L3）：['setup']: function… 是合法 JS，运行时会覆盖同名原键，
+        # 但静态无法确知运行期绑定，故任何顶层计算键一律 fail-closed（不尝试解析求值）。
+        if computed:
+            ok = False
+            lines.append('  [FAIL] 存在计算属性键（动态键，无法静态确定运行期绑定，强制 fail-closed）：%s' % computed)
         # 防重复顶层键绕过：JavaScript 同名后定义覆盖先定义，
         # 故“集合相同”不能证明“有效映射相同”；必须显式拒绝任何重复顶层键。
         if len(top) != len(set(top)):
@@ -293,6 +328,8 @@ def main():
             block.rstrip() + ',\n  "evil": function(e){ return otherAction(e); }\n',
         '重复基线键 setup→otherAction（Tom 本轮 K1-b：set() 丢弃重复项，JS 后定义覆盖先定义绕过集合比对）':
             block.rstrip() + ',\n  setup: function(e){ return otherAction(e); }\n',
+        '计算属性键 [\'setup\']→otherAction（Tom 本轮 L3：解析器未解析/拒绝方括号计算键，运行期覆盖原 setup 绕过集合比对）':
+            block.rstrip() + ',\n  [\'setup\']: function(e){ return otherAction(e); }\n',
     }
     rep.append('--- 断言5 负例：真实区块注入各类绕过 → 真实路径必须 fail-closed ---')
     for label, tam in tamper_cases.items():
