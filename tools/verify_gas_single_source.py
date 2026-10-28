@@ -158,48 +158,123 @@ def main():
                     break
     rep.append('')
 
-    # 5) 完整 dispatch 区块解析 + 受控入口白名单 + 任何未识别/未授权成员 fail-closed（Tom 本轮#5a）
-    rep.append('--- 断言5：FINAL_FILE 完整 dispatch 区块解析 + 受控入口白名单 + 任何未识别成员 fail-closed ---')
+    # 5) 完整 dispatch 区块解析 + 顶层成员完整清单 fail-closed（Tom 本轮 一/二：真实 manifest 路径必须受保护）
+    rep.append('--- 断言5：FINAL_FILE 完整 dispatch 区块解析 + 顶层成员完整清单 fail-closed ---')
     fin_src5 = io.open(FINAL, encoding='utf-8').read()
     anchor_pos = fin_src5.find(ANCHOR)
     fin_prefix = fin_src5[:anchor_pos] if anchor_pos >= 0 else fin_src5
     # 5a) 平衡花括号截取整个 dispatch 区块（REMOTE_ACTIONS = { ... };）
     m_block = re.search(r'var\s+REMOTE_ACTIONS\s*=\s*\{(.*?)\n?\};', fin_prefix, re.S)
     block = m_block.group(1) if m_block else ''
-    # 5b) 枚举所有顶层 `key: function(...) { return TARGET(` 成员 → key→target 列表（解析整个区块，而非仅 grep 受控入口）
+    # 5b) 受控入口（路由到 tsSoftDelGuarded）仍按 ENTRY_RE 解析（仅作受控集合核对）
     ENTRY_RE = re.compile(r'([A-Za-z_][A-Za-z0-9_]*)\s*:\s*function\s*\([^)]*\)\s*\{\s*return\s+([A-Za-z_][A-Za-z0-9_]*)\s*\(', re.M)
-    entry_map = {}
-    for k, t in ENTRY_RE.findall(block):
-        entry_map.setdefault(k, []).append(t)
-    # 5c) 受控入口（路由到 tsSoftDelGuarded）必须恰好为 softDelGuarded/statusQuery，各唯一一次
     WHITELIST = {'softDelGuarded', 'statusQuery'}
-    controlled = {k: ts[0] for k, ts in entry_map.items() if ts == ['tsSoftDelGuarded']}
-    manifest_ok = True
-    if set(controlled.keys()) != WHITELIST:
-        manifest_ok = False
-        rep.append('  [FAIL] 路由到 tsSoftDelGuarded 的入口必须为且仅为 %s，实际=%s' % (sorted(WHITELIST), sorted(controlled.keys())))
-    for k in ('softDelGuarded', 'statusQuery'):
-        cnt = len(entry_map.get(k, []))
-        tgt = entry_map.get(k, [None])[0]
-        rep.append('  %s 入口次数=%d 路由目标=%s' % (k, cnt, tgt))
-        if cnt != 1 or tgt != 'tsSoftDelGuarded':
-            manifest_ok = False
-            rep.append('    [FAIL] %s 必须唯一且路由 tsSoftDelGuarded' % k)
-    # 5d) 任何【非白名单键】却路由到 tsSoftDelGuarded → rogue（fail-closed，防前缀漂移出第二入口）
-    rogue = [k for k in controlled if k not in WHITELIST]
-    if rogue:
-        manifest_ok = False
-        rep.append('  [FAIL] 以下键非法路由到 tsSoftDelGuarded（应仅 softDelGuarded/statusQuery）：%s' % rogue)
-    # 5c'') 完整解析辅助（Tom 本轮-J1）：顶层键扫描器，仅供 5f 负例 _ctrl_set_of 使用。
-    #       真实 REMOTE_ACTIONS 是完整 RemoteActions 派发表（成员含前置语句的复杂函数体，ENTRY_RE
-    #       仅匹配“function(){ return TARGET(}”紧返回形态，故真实文件不要求逐成员可解析）；
-    #       真实文件钉死的不变量是 5c/5d：受控入口恰好为 WHITELIST（无 rogue）+ 各自唯一。
-    MEMBER_KEY_RE = re.compile(r'([A-Za-z_$][\w$]*|\[[^\]]+\])\s*:')
-    # 5e) 透明上报整个 dispatch 区块成员，证明“解析并核验整个区块”而非仅 grep 受控入口
-    rep.append('  dispatch 区块受控入口解析：成员总数=%d，受控入口(路由 tsSoftDelGuarded)=%s，rogue=%s' % (len(entry_map), sorted(controlled.keys()), rogue))
-    rep.append('  manifest 一致=%s' % ('YES' if manifest_ok else 'NO'))
-    if not manifest_ok:
+    # 5c) 顶层成员完整清单：深度感知解析（覆盖含前置语句/字符串返回/复杂函数体的 42 个既有成员）
+    #     真实 REMOTE_ACTIONS 共 42 个顶层成员；ENTRY_RE 仅命中 36（只匹配“function(){ return TARGET(}”紧返回形态，
+    #     其余 6 个含 var 前置语句或字符串返回不命中）。报告的“成员总数”必须是完整顶层解析(42)，而非 ENTRY_RE 命中(36)。
+    BASELINE_KEYS = {
+        'repairLegacyLeave','setupPeriodLock','plVerifyHash','plGuardTest','masterException',
+        'refreshqs','exception','archive','setup','setupAmy','testAmySelf','cleanupLeaves',
+        'syncLeaves','checkLeaves','readRange','appendRows','patchCells','softDelGuarded',
+        'statusQuery','createSheet','snapshot','trimblank','dupreport','driveList',
+        'purgeSoftLeaves','purgeRows','probeCalendar','masterCreate','masterLeaves','pruneDead',
+        'fixBDates','delBlankRows','sheetMeta','applyFormat','masterCondFormat','alert',
+        'listTriggers','syncMaster','rebuildLive','viewsLive','malAll','ensureMalTriggers',
+    }
+
+    def _parse_top_level_keys(b):
+        """深度感知解析 REMOTE_ACTIONS 区块的顶层成员键（跳过注释/字符串/嵌套花括号）。"""
+        keys = []
+        depth = 0
+        i = 0
+        n = len(b)
+        while i < n:
+            c = b[i]
+            if c == '/' and i + 1 < n and b[i+1] == '/':
+                j = b.find('\n', i);  i = (j + 1) if j != -1 else n;  continue
+            if c == '/' and i + 1 < n and b[i+1] == '*':
+                j = b.find('*/', i + 2);  i = (j + 2) if j != -1 else n;  continue
+            if c == '"' or c == "'":
+                q = c;  i += 1
+                while i < n:
+                    if b[i] == '\\': i += 2; continue
+                    if b[i] == q: i += 1; break
+                    i += 1
+                continue
+            if c == '{': depth += 1; i += 1; continue
+            if c == '}': depth -= 1; i += 1; continue
+            if depth == 0 and (c.isalpha() or c == '_' or c == '$'):
+                j = i
+                while j < n and (b[j].isalnum() or b[j] in '_$'):
+                    j += 1
+                k = j
+                while k < n and b[k] in ' \t':
+                    k += 1
+                if k < n and b[k] == ':':
+                    keys.append(b[i:j]);  i = k + 1;  continue
+                i = j;  continue
+            i += 1
+        return keys
+
+    def _real_manifest_ok(b, baseline):
+        """真实 dispatch 路径的完整校验（main() 与负例共用同一函数，杜绝 fixture 与真实路径不一致）。
+        返回 (ok, rep_lines, top_keys)。"""
+        lines = []
+        ok = True
+        top = _parse_top_level_keys(b)
+        top_set = set(top)
+        if top_set != baseline:
+            ok = False
+            extra = sorted(top_set - baseline)
+            missing = sorted(baseline - top_set)
+            lines.append('  [FAIL] 顶层成员清单与基线不一致：额外=%s 缺失=%s（任何注入/删改即 fail-closed）' % (extra, missing))
+        # 受控入口（路由到 tsSoftDelGuarded）必须恰好为 WHITELIST 且各唯一一次
+        em = {}
+        for k, t in ENTRY_RE.findall(b):
+            em.setdefault(k, []).append(t)
+        controlled = {k: ts[0] for k, ts in em.items() if ts == ['tsSoftDelGuarded']}
+        if set(controlled.keys()) != WHITELIST:
+            ok = False
+            lines.append('  [FAIL] 路由到 tsSoftDelGuarded 的入口必须为且仅为 %s，实际=%s' % (sorted(WHITELIST), sorted(controlled.keys())))
+        for k in ('softDelGuarded', 'statusQuery'):
+            cnt = len(em.get(k, [])); tgt = em.get(k, [None])[0]
+            lines.append('  %s 入口次数=%d 路由目标=%s' % (k, cnt, tgt))
+            if cnt != 1 or tgt != 'tsSoftDelGuarded':
+                ok = False
+                lines.append('    [FAIL] %s 必须唯一且路由 tsSoftDelGuarded' % k)
+        rogue = [k for k in controlled if k not in WHITELIST]
+        if rogue:
+            ok = False
+            lines.append('  [FAIL] 以下键非法路由到 tsSoftDelGuarded：%s' % rogue)
+        # 后援：return tsSoftDelGuarded( 出现次数必须恰为 2（防非简单形态 rogue）
+        n_ts = b.count('return tsSoftDelGuarded(')
+        if n_ts != 2:
+            ok = False
+            lines.append('  [FAIL] return tsSoftDelGuarded( 出现 %d 次（须恰为 2）' % n_ts)
+        return ok, lines, top
+
+    # 5d) 对真实区块跑真实路径校验
+    real_ok, real_lines, real_top = _real_manifest_ok(block, BASELINE_KEYS)
+    rep.extend(real_lines)
+    rep.append('  dispatch 顶层成员总数（完整解析，深度感知）= %d；ENTRY_RE 命中（简单 return 形态）= %d' % (len(real_top), len(ENTRY_RE.findall(block))))
+    rep.append('  manifest 一致=%s' % ('YES' if real_ok else 'NO'))
+    if not real_ok:
         ok = False
+
+    # 5e) 负例自测：把 evil→otherAction 注入【真实区块】，真实路径必须 fail-closed（Tom 本轮 一/二 核心）
+    tampered = block.rstrip() + ',\n  evil: function(e){ return otherAction(e); }\n'
+    tam_ok, tam_lines, _ = _real_manifest_ok(tampered, BASELINE_KEYS)
+    rep.append('--- 断言5 负例：真实区块注入 evil→otherAction（额外成员）→ 真实路径必须 fail-closed ---')
+    rep.extend(tam_lines)
+    if tam_ok:
+        ok = False
+        rep.append('  [FAIL] 真实区块注入 evil→otherAction 未被识别（真实路径缺口仍在）')
+    else:
+        rep.append('  真实区块注入 evil→otherAction → fail-closed=YES（真实路径已闭合）')
+
+    # 5c'') 顶层键扫描器（供后续 fixture 的 _ctrl_set_of 使用）
+    MEMBER_KEY_RE = re.compile(r'([A-Za-z_$][\w$]*|\[[^\]]+\])\s*:')
+    rep.append('')
 
     # 5f) 负例自测：解析器必须识别各类未授权/未识别成员并 fail-closed（Tom 本轮#5a）
     rep.append('--- 断言5 负例自测（完整区块解析覆盖边界）---')

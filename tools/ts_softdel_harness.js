@@ -601,24 +601,31 @@ server.listen(0, '127.0.0.1', async () => {
   mockCfg.dropWriteResponse = true;          // 仅 apply 阶段丢响应（写已发生）；journalReadFails 不用于 apply，否则核心写路径读 journal 抛错会直接阻断写入
   r = await runExecutor(['--rows', '42,46', '--apply']);   // 真实写入整批后响应丢失
   mockCfg.dropWriteResponse = false;
-  // apply：写后响应丢失 → 执行器不得视为成功（必须退出1并登记 UNKNOWN）；意外退出0=失败
+  // apply：写后响应丢失 → 执行器不得视为成功（必须退出1并登记 UNKNOWN/不明）；意外退出0=失败
   check('R3 多行批次(42,46)写后响应丢失→执行器不视为成功(退出1)', r.code === 1, { code: r.code, out: (r.stdout + r.stderr).slice(-200) });
+  // K3（Tom 本轮三）：apply 失败输出必须明确登记“不确定/UNKNOWN”，而非任意 exit1 蒙混
+  check('R3 apply 失败输出明确登记不确定/UNKNOWN（非任意 exit1）', /不明|不盲重试|UNKNOWN|未确认|不确定/.test(r.stdout + r.stderr), { out: (r.stdout + r.stderr).slice(-200) });
   check('R3 多行批次无重放：42/46 各仅写入一次（响应丢失≠未写，但绝不二次写）', server._writeCounts[42] === 1 && server._writeCounts[46] === 1, { w42: server._writeCounts[42], w46: server._writeCounts[46] });
-  // statusQuery：journal 读通道失败 → 状态不可判定，必须【逐行】登记 UNKNOWN 而非盲判 COMMITTED；解析两行结果核 row/state/数量，且不触发任何重放写
+  // statusQuery：journal 读通道失败 → 状态不可判定，必须【逐行】登记 UNKNOWN(PROTOCOL_ANOMALY) 而非盲判 COMMITTED；
+  // 解析全部条目核数量/去重/身份/状态，且不触发任何重放写。注：真实 journal 读失败 → 零 journal 行 → 严格“唯一一行”契约破 → 整批 PROTOCOL_ANOMALY
+  // （代码无 JOURNAL_READ_ERROR 字面量；这是 journal 读失败的忠实表现，下面按真实值断言）。
   mockCfg.journalReadFails = true;
   const srR3 = await runExecutor(['--status', '42,46']);
   mockCfg.journalReadFails = false;
   const _rs3 = srR3.stdout + srR3.stderr;
-  const _rowState = {};
-  const _rsRe = /"row":\s*(\d+)\s*,\s*"state":\s*"([A-Z]+)"/g;
+  const _entries = [];
+  const _re = /"row":\s*(\d+)\s*,\s*"state":\s*"([A-Z]+)"\s*,\s*"journalState":\s*(null|\w+)\s*,\s*"identity":\s*"([A-Z_]+)"/g;
   let _mm;
-  while ((_mm = _rsRe.exec(_rs3))) { _rowState[_mm[1]] = _mm[2]; }
-  const _r3rows = Object.keys(_rowState);
-  check('R3 statusQuery 逐行精确断言：恰好2行(42,46)、各自 state=UNKNOWN、无 COMMITTED、无二次写',
-        _r3rows.length === 2 && _rowState['42'] === 'UNKNOWN' && _rowState['46'] === 'UNKNOWN'
-        && !/"state":\s*"COMMITTED"/.test(_rs3)
-        && server._writeCounts[42] === 1 && server._writeCounts[46] === 1,
-        { rowState: _rowState, hasCommitted: /"state":\s*"COMMITTED"/.test(_rs3), w42: server._writeCounts[42], w46: server._writeCounts[46] });
+  while ((_mm = _re.exec(_rs3))) { _entries.push({ row: _mm[1], state: _mm[2], journalState: _mm[3], identity: _mm[4] }); }
+  const _rowSet = _entries.map(e => e.row);
+  const _uniq = new Set(_rowSet);
+  check('R3 statusQuery 解析条目数恰好=2（无重复/无缺失）', _entries.length === 2, { entries: _entries });
+  check('R3 statusQuery 行集合恰好为{42,46}且无重复', _uniq.size === 2 && _uniq.has('42') && _uniq.has('46'), { rowSet: _rowSet });
+  check('R3 statusQuery 逐行精确：42/46 各 state=UNKNOWN、identity=PROTOCOL_ANOMALY、journalState=null',
+        _entries.every(e => e.state === 'UNKNOWN' && e.identity === 'PROTOCOL_ANOMALY' && (e.journalState === 'null' || e.journalState === null)),
+        { entries: _entries });
+  check('R3 statusQuery 无 COMMITTED、无二次写', !/"state":\s*"COMMITTED"/.test(_rs3) && server._writeCounts[42] === 1 && server._writeCounts[46] === 1,
+        { hasCommitted: /"state":\s*"COMMITTED"/.test(_rs3), w42: server._writeCounts[42], w46: server._writeCounts[46] });
 
   if (process.env.HARNESS_STOP_AFTER === 'Q') { console.log('[STOP_AFTER=Q] 提前退出'); server.close(); process.exit(fail ? 1 : 0); }
 
