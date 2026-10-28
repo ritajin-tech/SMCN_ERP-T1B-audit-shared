@@ -164,7 +164,7 @@ def main():
     anchor_pos = fin_src5.find(ANCHOR)
     fin_prefix = fin_src5[:anchor_pos] if anchor_pos >= 0 else fin_src5
     # 5a) 平衡花括号截取整个 dispatch 区块（REMOTE_ACTIONS = { ... };）
-    m_block = re.search(r'var\s+REMOTE_ACTIONS\s*=\s*\{(.*?)\n\};', fin_prefix, re.S)
+    m_block = re.search(r'var\s+REMOTE_ACTIONS\s*=\s*\{(.*?)\n?\};', fin_prefix, re.S)
     block = m_block.group(1) if m_block else ''
     # 5b) 枚举所有顶层 `key: function(...) { return TARGET(` 成员 → key→target 列表（解析整个区块，而非仅 grep 受控入口）
     ENTRY_RE = re.compile(r'([A-Za-z_][A-Za-z0-9_]*)\s*:\s*function\s*\([^)]*\)\s*\{\s*return\s+([A-Za-z_][A-Za-z0-9_]*)\s*\(', re.M)
@@ -190,8 +190,13 @@ def main():
     if rogue:
         manifest_ok = False
         rep.append('  [FAIL] 以下键非法路由到 tsSoftDelGuarded（应仅 softDelGuarded/statusQuery）：%s' % rogue)
+    # 5c'') 完整解析辅助（Tom 本轮-J1）：顶层键扫描器，仅供 5f 负例 _ctrl_set_of 使用。
+    #       真实 REMOTE_ACTIONS 是完整 RemoteActions 派发表（成员含前置语句的复杂函数体，ENTRY_RE
+    #       仅匹配“function(){ return TARGET(}”紧返回形态，故真实文件不要求逐成员可解析）；
+    #       真实文件钉死的不变量是 5c/5d：受控入口恰好为 WHITELIST（无 rogue）+ 各自唯一。
+    MEMBER_KEY_RE = re.compile(r'([A-Za-z_$][\w$]*|\[[^\]]+\])\s*:')
     # 5e) 透明上报整个 dispatch 区块成员，证明“解析并核验整个区块”而非仅 grep 受控入口
-    rep.append('  dispatch 区块成员总数=%d，受控入口=%s' % (len(entry_map), sorted(controlled.keys())))
+    rep.append('  dispatch 区块受控入口解析：成员总数=%d，受控入口(路由 tsSoftDelGuarded)=%s，rogue=%s' % (len(entry_map), sorted(controlled.keys()), rogue))
     rep.append('  manifest 一致=%s' % ('YES' if manifest_ok else 'NO'))
     if not manifest_ok:
         ok = False
@@ -199,20 +204,35 @@ def main():
     # 5f) 负例自测：解析器必须识别各类未授权/未识别成员并 fail-closed（Tom 本轮#5a）
     rep.append('--- 断言5 负例自测（完整区块解析覆盖边界）---')
     def _ctrl_set_of(src):
-        mb = re.search(r'var\s+REMOTE_ACTIONS\s*=\s*\{(.*?)\n\};', src, re.S)
+        mb = re.search(r'var\s+REMOTE_ACTIONS\s*=\s*\{(.*?)\n?\};', src, re.S)
         blk = mb.group(1) if mb else ''
         em = {}
         for k, t in ENTRY_RE.findall(blk):
             em.setdefault(k, []).append(t)
-        ctrl = {k for k, t in em.items() if t == 'tsSoftDelGuarded'}
-        return ctrl == WHITELIST and all(em.get(k) == ['tsSoftDelGuarded'] for k in WHITELIST)
+        # 修正（Tom 本轮-J2）：t 是列表，须与 ['tsSoftDelGuarded'] 比较（原 `t == 'tsSoftDelGuarded'`
+        # 列表≠字符串 恒为 False → ctrl 恒为空 → 负例只因 helper 恒 false 而“通过”，rogue 分支空转）。
+        # 同时须校验成员集合恰好为 WHITELIST 且无任何无法解析的顶层成员（覆盖 evil→otherAction 等额外成员原例）。
+        ctrl = {k for k, t in em.items() if t == ['tsSoftDelGuarded']}
+        declared_keys = MEMBER_KEY_RE.findall(blk)
+        unparsed = [k for k in declared_keys if k not in em]
+        return (ctrl == WHITELIST
+                and set(em.keys()) == WHITELIST
+                and not unparsed)
+    # 正向夹具（Tom 本轮-J2：补合法 manifest，确认不被误杀）+ 负例自测（覆盖 evil→otherAction 原例）
+    neg_ok = True
+    POSITIVE = "var REMOTE_ACTIONS = { softDelGuarded: function(e){ return tsSoftDelGuarded(e); }, statusQuery: function(e){ return tsSoftDelGuarded(e); } };"
+    pos_ok = _ctrl_set_of(POSITIVE)
+    rep.append('  正向夹具[合法manifest] 判为受控(不被误杀)=%s' % ('YES' if pos_ok else 'NO'))
+    if not pos_ok:
+        neg_ok = False
+        rep.append('    [FAIL] 合法 manifest 被误判为非法（helper 过紧）')
     neg_cases = {
         'rogue alias 路由到受控入口': "var REMOTE_ACTIONS = { softDelGuarded: function(e){ return tsSoftDelGuarded(e); }, statusQuery: function(e){ return tsSoftDelGuarded(e); }, evil: function(e){ return tsSoftDelGuarded(e); } };",
+        '额外成员路由到 otherAction（Tom 本轮未覆盖原例）': "var REMOTE_ACTIONS = { softDelGuarded: function(e){ return tsSoftDelGuarded(e); }, statusQuery: function(e){ return tsSoftDelGuarded(e); }, evil: function(e){ return otherAction(e); } };",
         'computed key 路由到受控入口': "var REMOTE_ACTIONS = { softDelGuarded: function(e){ return tsSoftDelGuarded(e); }, statusQuery: function(e){ return tsSoftDelGuarded(e); }, [someKey]: function(e){ return tsSoftDelGuarded(e); } };",
-        '替代表达式（无 return/function）': "var REMOTE_ACTIONS = { softDelGuarded: tsSoftGuarded, statusQuery: function(e){ return tsSoftGuarded(e); } };",
+        '替代表达式（无 return/function）': "var REMOTE_ACTIONS = { softDelGuarded: tsSoftGuarded, statusQuery: function(e){ return tsSoftDelGuarded(e); } };",
         '白名单外键路由到受控入口（Tom #5a 未识别成员）': "var REMOTE_ACTIONS = { softDelGuarded: function(e){ return tsSoftDelGuarded(e); }, statusQuery: function(e){ return tsSoftDelGuarded(e); }, evil: function(e){ return tsSoftDelGuarded(e); } };",
     }
-    neg_ok = True
     for label, snippet in neg_cases.items():
         detected = not _ctrl_set_of(snippet)
         rep.append('  负例[%s] 识别为非法=fail-closed=%s' % (label, 'YES' if detected else 'NO'))
