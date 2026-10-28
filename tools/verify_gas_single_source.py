@@ -1,13 +1,17 @@
 # -*- coding: utf-8 -*-
 """
-GAS 单源可复现校验器（回应 Tom #1「源码/生成物/输出错配」）
+GAS 单源可复现校验器（回应 Tom #1「源码/生成物/输出错配」+ ce058ba 一.3 dispatch manifest）
 
-断言三件事，任一件不成立即以非 0 退出：
+断言五件事，任一件不成立即以非 0 退出：
   1) 【逐字内联】三个规范源文件（core / norm / period_lock）去掉 'use strict' 与
      module.exports 包装后的正文，必须是生成物 ts_softdel_gas_embedded.js 的【连续子串】。
      —— 这条直接证伪/证实"GAS 副本是另一份手抄逻辑"的怀疑。
-  2) 【生成可复现】连跑两次生成器，产出文件 SHA-256 必须完全相同。
+  2) 【生成可复现】连跑两次生成器，产出文件（embedded + FINAL_FILE）SHA-256 必须完全相同。
   3) 【版本自洽】生成物里的 VERSION 常量必须与规范源 ts_softdel_core.js 的 VERSION 相同。
+  4) 【FINAL_FILE 内联核心区逐字一致】FINAL_FILE 内联核心区必须与 embedded 内联核心区逐字一致，
+     杜绝 FINAL_FILE（实际部署入口）二次漂移。
+  5) 【dispatch/entrypoint manifest】FINAL_FILE 前缀 dispatch 映射中，softDelGuarded 与 statusQuery
+     必须各唯一存在且统一路由到 tsSoftDelGuarded，不得有其它键路由到该受控入口（防前缀漂移假通过）。
 
 输出逐件源码的 SHA-256 与 git blob 哈希，供固定提交比对；结论写入证据文件。
 """
@@ -152,6 +156,33 @@ def main():
                     rep.append('      embedded: %r' % emb_region[k:k + 200])
                     rep.append('      FINAL   : %r' % fin_region[k:k + 200])
                     break
+    rep.append('')
+
+    # 5) FINAL_FILE 前缀 dispatch/entrypoint manifest 断言（Tom ce058ba 一.3：杜绝前缀漂移假通过）
+    rep.append('--- 断言5：FINAL_FILE 前缀 dispatch manifest —— softDelGuarded/statusQuery 必须唯一存在且统一路由到 tsSoftDelGuarded ---')
+    fin_src5 = io.open(FINAL, encoding='utf-8').read()
+    fin_prefix = fin_src5[:fin_src5.find(ANCHOR)] if ANCHOR in fin_src5 else fin_src5
+    entries = re.findall(r'^\s*([A-Za-z_][A-Za-z0-9_]*)\s*:\s*function\s*\([^)]*\)\s*\{\s*return\s+([A-Za-z_][A-Za-z0-9_]*)\s*\(', fin_prefix, re.M)
+    entry_map = {}
+    for k, t in entries:
+        entry_map.setdefault(k, []).append(t)
+    req = ['softDelGuarded', 'statusQuery']
+    manifest_ok = True
+    for key in req:
+        cnt = len(entry_map.get(key, []))
+        routes = set(entry_map.get(key, []))
+        rep.append('  %s 出现次数=%d 路由目标=%s' % (key, cnt, sorted(routes)))
+        if cnt != 1 or routes != {'tsSoftDelGuarded'}:
+            manifest_ok = False
+            rep.append('    [FAIL] %s 必须唯一且唯一路由到 tsSoftDelGuarded' % key)
+    # 反向：除这两个键外，不得有其它键路由到 tsSoftDelGuarded（防前缀漂移出第二入口）
+    rogue = [k for k, ts in entry_map.items() if 'tsSoftDelGuarded' in ts and k not in req]
+    if rogue:
+        manifest_ok = False
+        rep.append('  [FAIL] 以下键非法路由到 tsSoftDelGuarded（应仅 softDelGuarded/statusQuery）：%s' % rogue)
+    rep.append('  manifest 一致=%s' % ('YES' if manifest_ok else 'NO'))
+    if not manifest_ok:
+        ok = False
     rep.append('')
 
     rep.append('=== 结论：%s ===' % ('全部断言通过' if ok else '存在失败断言（见上）'))

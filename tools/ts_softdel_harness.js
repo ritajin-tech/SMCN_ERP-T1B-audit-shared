@@ -65,6 +65,7 @@ const mockCfg = {
   failRanges: [], failMasterRanges: [], truncateLast: false, drift: false, driftDuringRead: false,
   dropWriteResponse: false, lockAll: false, masterIncomplete: false, masterVersion: null,
   noPeriodDep: false, forceDryResponse: false, stripBatchId: false, journalReadFails: false,
+  overCountLast: false, dualFormResponse: false, extraJournalRow: false,
   _probes: 0
 };
 
@@ -128,6 +129,8 @@ function hkRead(ssId, sheet, a1) {
     if (store[r]) { vals.push(store[r].slice(scIdx, ecIdx + 1)); got++; }
   }
   if (mockCfg.truncateLast && cr.er >= last) vals.length = Math.floor(vals.length / 2) || 1;
+  // Tom ce058ba 二.2：末页超量返回（服务器多返一行）→ 客户端 readAll 必须整批拒绝，超界项不得进候选
+  if (mockCfg.overCountLast && ssId === TS_ID && cr.er >= last) vals.push(vals.length ? vals[vals.length - 1].slice() : []);
   return { lastRow: last, revision: 'rev1', values: vals };
 }
 const server = http.createServer((req, res) => {
@@ -156,6 +159,14 @@ const server = http.createServer((req, res) => {
       fs.appendFileSync(path.join(os.tmpdir(),'hb.log'), 'GAS-PRE rows=' + JSON.stringify(_rowsDbg.map(x=>({r:x.row,k:x.keeperRow,u:x.uuid,l:x.level}))).slice(0,200) + '\n');
       try { out = tsSoftDelGuardedCore(e2, d); }
       catch (err) { out = JSON.stringify({ ok: false, version: core.VERSION, error: 'CORE_EXCEPTION: ' + (err && err.message || err) }); }
+      // Tom ce058ba 二.1：双形态响应（顶层 version + message 内层 ok:false）→ 客户端必须拒绝，不得计成功
+      if (mockCfg.dualFormResponse) {
+        try { const o = JSON.parse(out); out = JSON.stringify({ version: o.version || core.VERSION, ok: true, action: o.action, jobId: o.jobId, masterVersion: o.masterVersion, message: JSON.stringify({ ok: false, error: 'TAMPER_INNER_FAIL' }) }); } catch (e) {}
+      }
+      // Tom ce058ba 二.3：statusQuery 响应夹带额外行（itemId 不在请求内）→ 客户端必须整批 UNKNOWN
+      if (mockCfg.extraJournalRow) {
+        try { const o = JSON.parse(out); if (o.action === 'statusQuery') { o.rows = (o.rows || []).concat([{ itemId: 999, jobId: o.jobId, subBatchId: '', requestHash: '', uuid: '', state: 'COMMITTED' }]); out = JSON.stringify(o); } } catch (e) {}
+      }
       fs.appendFileSync(path.join(os.tmpdir(),'hb.log'), 'GAS-POST ok=' + (function(){try{return JSON.parse(out).ok}catch(e){return 'parsefail'}}()) + '\n');
       if (mockCfg.forceDryResponse) { try { const o = JSON.parse(out); o.dry = true; out = JSON.stringify(o); } catch (e) {} }
       if (mockCfg.stripBatchId) { try { const o = JSON.parse(out); delete o.batchId; out = JSON.stringify(o); } catch (e) {} }
@@ -491,6 +502,29 @@ server.listen(0, '127.0.0.1', async () => {
   try { fs.appendFileSync(path.join(os.tmpdir(),'hb.log'), 'SCEN-Q-resolve code=' + r.code + '\n'); } catch (e) {}
   check('Q APPLY 退出 0 且响应含 version=ts_softdel_core/4 且模式 APPLY', r.code === 0 && /ts_softdel_core\/4/.test(r.stdout + r.stderr) && /"mode": "APPLY"/.test(r.stdout), { code: r.code, out: r.stdout.slice(-300) });
   check('Q APPLY 后行22 O=TRUE', _sdNorm(prodRows[22][14]) === 'TRUE', prodRows[22][14]);
+
+  console.log('=== 场景R（Tom ce058ba 二.1）：解包双形态冲突 —— 响应同时含 version 与 message(内层 ok:false) 必须被拒、不得计成功/继续批次 ===');
+  prodRows[24][14] = false;
+  mockCfg.dualFormResponse = true;
+  r = await runExecutor(['--rows', '24', '--apply']);   // 核心真实写入后返回「外层ok:true+内层ok:false」篡改响应
+  mockCfg.dualFormResponse = false;
+  // 核心确会真实写入（篡改在响应层），但客户端必须拒绝该响应、不得计成功/继续批次
+  check('R 双形态(外层ok:true+内层ok:false)→执行器拒绝(退出1)不继续批次', r.code === 1 && /FAIL|FIELD_CONFLICT|CORE_OK_FALSE/.test(r.stdout + r.stderr), { code: r.code, out: (r.stdout + r.stderr).slice(-200) });
+
+  console.log('=== 场景T（Tom ce058ba 二.2）：readAll 末页严格计数 —— 末页超量返回必须整批拒绝，超界项不进候选 ===');
+  mockCfg.overCountLast = true;
+  r = await runExecutor(['--audit-safe']);
+  mockCfg.overCountLast = false;
+  check('T 末页超量→执行器整批拒绝(退出1)', r.code === 1 && /ABORT|TRUNCATED|超量|OVER|DRIFT/.test(r.stdout + r.stderr), { code: r.code, out: (r.stdout + r.stderr).slice(-200) });
+  check('T 末页超量 → 特定候选行26 未被写入（整批被拒）', _sdNorm(prodRows[26][14]) !== 'TRUE', prodRows[26][14]);
+
+  console.log('=== 场景U（Tom ce058ba 二.3）：statusQuery 整批严格一一校验 —— 响应含额外行必须令所有行 UNKNOWN，不得据匹配行判 COMMITTED ===');
+  prodRows[26][14] = false;
+  await runExecutor(['--rows', '26', '--apply']);   // 先真实写入 row26（COMMITTED + manifest）
+  mockCfg.extraJournalRow = true;
+  const srU = await runExecutor(['--status', '26']);
+  mockCfg.extraJournalRow = false;
+  check('U 响应含额外行(row999)→ row26 不得判 COMMITTED，必须 UNKNOWN/PROTOCOL_ANOMALY', /"state":\s*"UNKNOWN"/.test(srU.stdout + srU.stderr) && !/"state":\s*"COMMITTED"/.test(srU.stdout + srU.stderr), (srU.stdout + srU.stderr).slice(-400));
 
   if (process.env.HARNESS_STOP_AFTER === 'Q') { console.log('[STOP_AFTER=Q] 提前退出'); server.close(); process.exit(fail ? 1 : 0); }
 

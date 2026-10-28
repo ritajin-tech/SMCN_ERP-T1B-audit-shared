@@ -97,11 +97,15 @@ async function readAll(ssId, sheet, lastCol) {
     const r = await get({ ssId, sheet, mode: 'values', a1: `A${s}:${lastCol}${e}` });
     const got = (r && r.values) ? r.values.length : 0;
     const expected = (e - s + 1);
-    const isLast = (e >= last);
-    const ok = got > 0 && (got === expected || (isLast && s + got - 1 >= last));
+    // 每页严格（Tom #2 v3）：返回数必须 == 请求数；不足(0行)或超量(含末页)均令整份快照失败，不盲写
+    const ok = got > 0 && got === expected;
     pages.push({ reqStart: s, reqEnd: e, got, expected, ok });
     if (!ok) { if (got === 0) pageFail = true; else truncated = true; }
-    (r && r.values ? r.values : []).forEach((cells, i) => rows.push({ row: s + i, cells: cells || [] }));
+    // 仅纳入 ≤ last 的行，超界项（服务器多返）不进候选
+    (r && r.values ? r.values : []).forEach((cells, i) => {
+      const rr = s + i;
+      if (rr <= last) rows.push({ row: rr, cells: cells || [] });
+    });
   }
   // 条件 #7（Tom #2 v2）：读后 re-probe 检测"读期间漂移"——与读前 lastRow/revision 不一致即失败；
   //   revision 缺失/切换（任一端 null 或异值）一律失败（服务端版本绑定不替代客户端快照完整性证明）。
@@ -118,16 +122,25 @@ async function readAll(ssId, sheet, lastCol) {
 // 重复字段冲突即拒绝，核心 ok=false 不得被外层 ok=true 掩盖。返回核心对象或抛错（调用方 exit 1）。
 function unwrapEnvelope(env) {
   if (!env || typeof env !== 'object') throw new Error('ENVELOPE_NOT_OBJECT');
-  if (env.version) return env;            // 新部署：核心已合并到顶层，直接以信封为权威
-  if (typeof env.message !== 'string') throw new Error('NO_CORE_MESSAGE');
+  const hasVersion = !!env.version;
+  const hasMessage = (typeof env.message === 'string');
+  // 唯一响应形态约定（Tom #1 v3）：核心对象(含 version) 与 信封(message 字符串) 二选一，不得混用。
+  if (hasVersion && !hasMessage) {
+    return env;                          // 纯核心形态（新部署）：顶层即权威核心对象
+  }
+  if (!hasMessage) throw new Error('NO_CORE_MESSAGE');
   let m;
   try { m = JSON.parse(env.message); } catch (_e) { throw new Error('BAD_MESSAGE_JSON'); }
   if (!m || typeof m !== 'object') throw new Error('BAD_MESSAGE_OBJECT');
-  const conflict = [];
-  for (const k of Object.keys(m)) {
-    if (Object.prototype.hasOwnProperty.call(env, k) && String(env[k]) !== String(m[k])) conflict.push(k);
+  // 双形态共存（顶层 version 与 message 同时出现）：合同歧义，须做类型敏感结构化交叉校验，任一冲突拒绝；
+  // 内层 ok:false 即使外层 ok:true 也不得被掩盖（外层成功包络不得掩盖内层失败）。
+  if (hasVersion) {
+    const conflict = [];
+    for (const k of Object.keys(m)) {
+      if (Object.prototype.hasOwnProperty.call(env, k) && JSON.stringify(env[k]) !== JSON.stringify(m[k])) conflict.push(k);
+    }
+    if (conflict.length) throw new Error('FIELD_CONFLICT:' + conflict.join(','));
   }
-  if (conflict.length) throw new Error('FIELD_CONFLICT:' + conflict.join(','));
   if (m.ok === false || m.ok === 'false') throw new Error('CORE_OK_FALSE');
   return m;
 }
@@ -195,14 +208,29 @@ function loadJobId() { try { return JSON.parse(fs.readFileSync(jobIdFile(), 'utf
       process.stderr.write('[STATUS] 服务端 journal 查询失败（登记 UNKNOWN，不自动重试）：' + ((e.stderr || e.message || '').slice(0, 300)) + '\n');
     }
     const reread = await rereadO(o.status);
-    // v2（Tom #4）：拒绝服务端返回的【额外行】（不在本次请求内）—— 已忽略，不据其下结论
+    const WHITELIST = ['COMMITTED', 'REJECTED', 'UNKNOWN', 'VOIDED'];
+    // 严格一一校验（Tom #4 v3）：任何额外/缺失/重复/身份异常 → 整批协议失败（全部 UNKNOWN），不得据任一匹配行下判
     const reqSet = new Set(o.status.map(Number));
     const extraRows = journalRows.filter(x => !reqSet.has(Number(x.itemId)));
-    if (extraRows.length) {
-      process.stderr.write('[STATUS] 服务端返回额外行（不在请求内）：' + extraRows.map(x => x.itemId).join(',') + ' —— 已忽略，不据其下结论\n');
+    let protocolOk = (extraRows.length === 0);
+    for (const r of o.status) {
+      const matches = journalRows.filter(x => Number(x.itemId) === Number(r));
+      if (matches.length !== 1) { protocolOk = false; continue; }
+      const jr = matches[0];
+      const mf = idOf[r];
+      const bound = !!(mf && mf.requestHash && mf.subBatchId && mf.uuid);
+      const idOk = bound && String(jr.jobId) === String(jobId) && String(jr.subBatchId) === String(mf.subBatchId)
+        && String(jr.requestHash) === String(mf.requestHash) && String(jr.uuid) === String(mf.uuid);
+      if (!idOk || WHITELIST.indexOf(jr.state) < 0) protocolOk = false;
     }
-    const WHITELIST = ['COMMITTED', 'REJECTED', 'UNKNOWN', 'VOIDED'];
+    if (!protocolOk) {
+      process.stderr.write('[STATUS] 响应集合结构异常（额外/缺失/重复/身份异常）→ 整批登记 UNKNOWN，不盲判\n');
+    }
     const out = o.status.map(r => {
+      if (!protocolOk) {
+        // 整批协议失败：任何结构性异常都令本次查询所有行 UNKNOWN，绝不据任一匹配行下结论
+        return { row: r, state: 'UNKNOWN', journalState: null, identity: 'PROTOCOL_ANOMALY', oValue: reread[r] };
+      }
       // v2（Tom #4）：要求【唯一一行】—— 同 itemId 多行（重复）或零行（缺失）均不得下判
       const matches = journalRows.filter(x => Number(x.itemId) === Number(r));
       const oVal = reread[r];
