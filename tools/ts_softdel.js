@@ -25,11 +25,11 @@ const { URL: NU } = require('url');
 const norm = require('./ts_softdel_norm.js');
 
 // 🔧 测试 seam（默认=生产值；仅离线 harness 用 env 覆盖，不影响生产行为）
-const WEBAPP = process.env.TS_WEBAPP_OVERRIDE || 'https://script.google.com/macros/s/AKfycbyq9RYrH1n7DKkoYBVi2cBmsgQLT51i3yaqVP_xF7twQYW0--r39ryu7rJfj1Wn4dTHVA/exec';
+const WEBAPP = process.env.TS_WEBAPP_OVERRIDE || '<HKTOOL_WEBAPP_URL: 见本地 .hktool_remote.json（公开仓不内嵌端点）>';
 const TS_POST_BIN = process.env.TS_POST_BIN || path.join(__dirname, 'ts_post.py');
 const AUDIT = process.env.TS_AUDIT_OVERRIDE || path.join(__dirname, '..', '_tmp', 'evidence', 'base_uuid_audit_20261027.json');
 let KEY = null;
-try { KEY = require('./.hktool_remote.json').key; } catch (e) { KEY = null; }
+let KEY = process.env.TS_HKTOOL_KEY || null; // 公开仓不内嵌密钥
 const TS_ID = '1Pi5u9fEawgp7yICWPMMyQCT_LbwTZthQDW-H05xYdVI';
 const PROD_TAB = 'DB_工时流水';
 const MASTER_ID = '1oxPj0mzN8poP2vQ7Bm-YKXuU49p9b0c1asyrZn4Py44';

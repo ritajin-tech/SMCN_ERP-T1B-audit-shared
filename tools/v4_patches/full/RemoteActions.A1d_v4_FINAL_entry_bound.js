@@ -2,7 +2,7 @@
 // 配套 RemoteTrigger.gs 使用。本文件【不含 doGet】（Code.js 已有 doGet，返回填报网页），
 // 请在 Code.js 的 doGet 首行加：var r = _rtMaybeHandle(e); if (r) return r;
 // 👇 部署后的真实 Web App URL（菜单显示用；可随时用 ?action=_seturl&url= 热更新）
-var REMOTE_WEBAPP_URL = "https://script.google.com/a/macros/spacematrix.com/s/AKfycbwlxB2z9IDDo7pBv4sr0pu6-1ywvYBuRyqTwfjgl_o/exec";
+var REMOTE_WEBAPP_URL = "<PROD_WEBAPP_URL: 见部署配置（公开仓不内嵌端点）>";
 var REMOTE_ACTIONS = {
   repairLegacyLeave: function(e) { return repairLegacyLeave(e); }, // V4.3.83 软删指定行「遗留活跃请假」标记（GET 可触发，O/P/Q，零物理删，幂等）
   setupPeriodLock: function(e) { return setupPeriodLock(e); }, // V4.3.84 初始化 period-lock 策略态 + 建 _TS_WRITE_LOG 审计页（GET 可触发，幂等，零业务写）

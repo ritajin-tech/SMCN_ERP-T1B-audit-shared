@@ -21,7 +21,9 @@
 ## 3. 规范化与分组规则（单一可信源 `ts_softdel_norm`）
 - `_sdNorm(cells)`：单元格规范化（空值/trim/日期 ISO 等）。
 - `_sdRowHash(cells, timeOnly)`：每行列 0..13 的 SHA-256，**与服务端 `ts_softdel_core` 一致**；
-  `baseHash` 恒按 `timeOnly=false`，`target`/`keeper` 哈希按本组 `timeOnly` 标志。
+  `baseHash` 仅当底稿恰 1 行（**hasBase=true**）时按 `timeOnly=false` 计算；
+  **bc==0 时显式 `hasBase=false` + `baseHash='NO_BASE'`，绝不伪造**（回应 Tom A点①：不得用 keeper 指纹冒充底稿哈希，
+  交由服务端按"底稿须 0 行"核验）；`target`/`keeper` 哈希按本组 `timeOnly` 标志。
 - 分组（按 UUID 聚组后）：组内副本 col0..13 全同 → **exact**；仅 col0(录入时间) 差 → **timeonly**；
   col1..13 任一差 → **mixed**（UNSAFE）。
 
@@ -61,3 +63,15 @@
 live reader（`ts_controlled_audit.js`）的 `revision` 缺失退化问题已由 `ts_controlled_readguard`（内容指纹
 SHA-256 + `revision` 缺失时 fail-closed）修复，见 `ts_controlled_readguard_test.js` 的"同 lastRow 内容变化"
 负例证据。
+
+## 8. 本轮（U 批）对 A点①② 的再加固（回应 Tom 2026-10-29 08:27Z 代码级复核）
+- **A点② 拼接碰撞已消除**：`contentFingerprint` 由 `行号:单元格|单元格\n` 拼接改为 **JSON 结构化编码**
+  （`JSON.stringify([row, [cells]])`），`['a|b','c']` 与 `['a','b|c']` 不再产生同一串；并新增拼接碰撞回归测试。
+  同时 `verifyReadGuard` 对 **revision 单侧缺失** 改为 `REVISION_INCONSISTENT` fail-closed（不再放行），测试覆盖。
+- **A点① 不再伪造 baseHash**：`classifyGroup` 在 `bc==0` 时显式 `hasBase=false` + `baseHash='NO_BASE'`；
+  新增单测断言（15/15）。
+- **S2 零执行彻底化**：`_repro_r_static_scan.py` 已**移除**任何 `--exec`/exec() 执行仓库函数路径；
+  AST 白名单收紧——直接调用剔除 `getattr`/`hasattr`，并拒绝一切 `(f())()` 动态调用形式与危险基准名属性调用
+  （验证器对 `getattr(os,'system')`、`os.system`、`(f())()` 均报违规，对合法目标通过）。
+- **S3 后置快照全覆盖**：`ts_repro_isolation_runner.py` 移除绕过开关，后置原树 SHA-256 快照在**所有退出路径**
+  （含生成器非零返回）执行，杜绝"非零 return 跳过后置快照"。

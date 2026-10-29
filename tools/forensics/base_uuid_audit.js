@@ -4,8 +4,8 @@
 // 用法：node tools/forensics/base_uuid_audit.js
 const https = require('https');
 const { URL: NU } = require('url');
-const WEBAPP = 'https://script.google.com/macros/s/AKfycbyq9RYrH1n7DKkoYBVi2cBmsgQLT51i3yaqVP_xF7twQYW0--r39ryu7rJfj1Wn4dTHVA/exec';
-const KEY = require('../.hktool_remote.json').key;
+const WEBAPP = '<HKTOOL_WEBAPP_URL: 见本地 .hktool_remote.json（公开仓不内嵌端点）>';
+const KEY = process.env.TS_HKTOOL_KEY || '<HKTOOL_KEY: 见本地 .hktool_remote.json（公开仓不内嵌）>';
 
 const MASTER_ID = '1oxPj0mzN8poP2vQ7Bm-YKXuU49p9b0c1asyrZn4Py44';
 const BASE_TAB = '工时_候选0824';

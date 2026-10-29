@@ -124,8 +124,8 @@ node --check PeriodLockGuard.js && node --check RemoteActions.js && node --check
 
 | 部署 ID | 版本 |
 |---|---|
-| `AKfycbwlxB2z9IDDo7pBv4sr0pu6-1ywvYBuRyqTwfjgl_o` | @HEAD（生产在用，推码即生效） |
-| `AKfycbwYXV3VS3I59bVpUi9XBMClGsFkJ6l_NxPdQcysiXYe47-iONNMk6FIoI8VEXwYl-_2` | @189 |
-| `AKfycbzUyhyK-tqL7pp2H2jZXNCMciEr2PJwhkZIg0bwV1OwV3C6D9RKJZhA4HpiUi6F5eF` | @192 |
+| `<deployment-id: 见部署配置>` | @HEAD（生产在用，推码即生效） |
+| `<deployment-id: 见部署配置>` | @189 |
+| `<deployment-id: 见部署配置>` | @192 |
 
 - 推码前先离线验证；生产 NO-GO 期间不推送。

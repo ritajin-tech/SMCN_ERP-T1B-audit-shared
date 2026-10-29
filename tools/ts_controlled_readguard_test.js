@@ -67,6 +67,25 @@ console.log('=== verifyReadGuard 读取期间版本/内容守卫 ===');
   check('lastRow 漂移 → DRIFT_DURING_READ', !g.ok && g.reason === 'DRIFT_DURING_READ', JSON.stringify(g));
 }
 
+// 拼接碰撞回归（回应 Tom 08:27Z A点②）：['a|b','c'] 与 ['a','b|c'] 必须产生【不同】指纹
+{
+  const p = snap([mk(1, ['a|b', 'c'])]);
+  const q = snap([mk(1, ['a', 'b|c'])]);
+  check('拼接碰撞已消除（JSON 结构编码消歧）', contentFingerprint(p) !== contentFingerprint(q),
+        contentFingerprint(p) + ' vs ' + contentFingerprint(q));
+}
+
+// revision 单侧缺失 → REVISION_INCONSISTENT（fail-closed，回应 Tom 08:27Z A点②"单侧缺失仍放行"）
+{
+  const a = snap([mk(1, ['x', 'a'])]);
+  const g = verifyReadGuard({
+    startFp: contentFingerprint(a), endFp: contentFingerprint(a),
+    startLast: 1, endLast: 1, startRev: 'rev-1', endRev: null
+  });
+  check('revision 单侧缺失 → REVISION_INCONSISTENT（fail-closed）',
+        !g.ok && g.reason === 'REVISION_INCONSISTENT', JSON.stringify(g));
+}
+
 // 内容指纹确定性 + 敏感性
 {
   const a = snap([mk(1, ['x', 'a']), mk(2, ['y', 'b'])]);

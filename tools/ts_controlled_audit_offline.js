@@ -12,7 +12,8 @@
 //
 // 哈希（单一可信源 ts_softdel_norm._sdRowHash）：
 //  - targetHash / keeperHash 按该组 timeOnly 标志
-//  - baseHash 恒按 timeOnly=false（服务端 mHash 恒 false）
+//  - baseHash 仅当底稿恰 1 行（hasBase=true）时计算（恒 timeOnly=false）；
+//    bc===0 时显式标 hasBase=false + baseHash='NO_BASE'（绝不伪造，交由服务端按"底稿须 0 行"核验）
 //
 // 用法：
 //   node tools/ts_controlled_audit_offline.js \
@@ -116,13 +117,17 @@ function classifyGroup(uuid, entries, baseArr) {
 
   const buildTarget = (t) => {
     const tCells = normCells(t.cells);
-    const baseCells = (bc === 1) ? normCells(baseArr[0]) : kCells;
+    // 🔴 Tom A点①修正：bc===0 时绝不伪造 baseHash（不得用 keeper 指纹冒充底稿哈希）；
+    //   显式标记 hasBase:false + baseHash:'NO_BASE'，交由服务端按"底稿须 0 行"核验。
+    const hasBase = (bc === 1);
+    const baseCells = hasBase ? normCells(baseArr[0]) : null;
     return {
       row: t.row,
       keeperRow: keeper.row,
       targetHash: _sdRowHash(tCells, timeOnly),
       keeperHash: _sdRowHash(kCells, timeOnly),
-      baseHash: _sdRowHash(baseCells, false)
+      hasBase,
+      baseHash: hasBase ? _sdRowHash(baseCells, false) : 'NO_BASE'
     };
   };
   const rec = { uuid, baseCount: bc, targets: targets.map(buildTarget) };

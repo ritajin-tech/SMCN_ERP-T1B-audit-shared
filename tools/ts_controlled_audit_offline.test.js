@@ -43,6 +43,9 @@ console.log('=== classifyGroup 分类边界与失败关闭条件负例 ===');
   const entries = [E(10, cells), E(20, cells)];
   const c = classifyGroup('TS-NOTINBASE', entries, []);
   check('底稿0行 exact → notInBase', c && c.bucket === 'notInBase', JSON.stringify(c && c.bucket));
+  check('底稿0行 · hasBase=false', c && c.rec && c.rec.targets[0].hasBase === false, JSON.stringify(c && c.rec && c.rec.targets[0]));
+  check('底稿0行 · baseHash=NO_BASE（绝不伪造，回应 Tom A点①）',
+        c && c.rec && c.rec.targets[0].baseHash === 'NO_BASE', JSON.stringify(c && c.rec && c.rec.targets[0]));
 }
 
 // 4) timeonly B 级（仅 col0 不同，底稿 0 行）→ timeonlyB（需另行授权）
