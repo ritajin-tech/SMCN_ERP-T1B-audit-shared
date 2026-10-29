@@ -12,8 +12,9 @@ GAS 单源可复现校验器（回应 Tom #1「源码/生成物/输出错配」+
      module.exports 包装后的正文，必须是生成物 ts_softdel_gas_embedded.js 的【连续子串】。
      —— 这条直接证伪/证实"GAS 副本是另一份手抄逻辑"的怀疑。
      去壳由校验器自包含实现（见 _v_strip 取舍披露），不再 exec_module 仓库 Python。
-  2) 【生成可复现】只读固定基线比对（产物 SHA-256 == PINNED_ARTIFACTS）；
-     加 --run-generator 时另跑隔离副本两次并比对，且证明原审阅副本零改动。
+  2) 【生成可复现】固定基线只读比对（产物 SHA-256 == PINNED_ARTIFACTS）；
+     --run-generator 参数【已移除】：携带该参数仅以非零退出并打印隔离复现配方，绝不执行生成器；
+     可复现性保持 UNVERIFIED（待独立审阅者在 OS 强制隔离沙箱按配方复现）。
   3) 【版本自洽】生成物里的 VERSION 常量必须与规范源 ts_softdel_core.js 的 VERSION 相同。
   4) 【FINAL_FILE 内联核心区逐字一致】FINAL_FILE 内联核心区必须与 embedded 内联核心区逐字一致，
      杜绝 FINAL_FILE（实际部署入口）二次漂移。
@@ -155,11 +156,24 @@ OUT_OF_TREE_ANCHOR = {
 
 
 def repro_recipe():
-    """给【审阅方】的独立复现配方（校验器自己不执行，只把它打印出来供对方在自有沙箱中执行）。"""
+    """给【审阅方】的独立复现配方（校验器自己不执行，只把它打印出来供对方在自有沙箱中执行）。
+
+    🔴 回应 Tom 本轮三：原配方要求「只读挂载审阅树」却又在审阅树内运行会写文件的生成器，自相矛盾
+    （生成器 main() 会建目录并以写模式覆盖 embedded / FINAL_FILE / map 文件）。
+    修正：把整个 tools 目录【复制】到一次性临时目录，仅在副本中运行（生成器按 __file__ 解析同目录
+    输入/输出，故副本内的写全部落在副本，不触及原树）；原固定快照始终保持只读，并对原树做
+    运行前后哈希核对，证明原树未被改动。
+    """
     return [
         '    复现配方（请在【你自己的 OS 隔离沙箱】中执行：独立低权限身份 / 容器 / Windows '
-        'sandbox，禁网、只读挂载审阅树、仅允许写入一次性工作副本）：',
-        '      cd <审阅仓>/tools',
+        'sandbox，禁网；原审阅树只读，仅一次性临时副本可写）：',
+        '      # 0) 记录原只读快照的前后清单哈希（须不变，证明原树未被动）',
+        '      (cd <审阅仓> && find tools -type f | sort | xargs sha256sum) > before.txt',
+        '      # 1) 复制整个 tools 目录到一次性临时副本（生成器按 __file__ 解析同目录输入/输出，'
+        '副本内写全部落在副本）',
+        '      rm -rf /tmp/gas_repro && cp -r <审阅仓>/tools /tmp/gas_repro',
+        '      # 2) 仅在该副本中运行两次（绝不在原审阅树路径运行；副本可写）',
+        '      cd /tmp/gas_repro',
         '      sha256sum gen_gas_softdel.py  → 须等于 %s' % PINNED_GEN_SHA256,
         '      python -I gen_gas_softdel.py                                       # 第 1 次',
         '      sha256sum v4_patches/full/ts_softdel_gas_embedded.js  → 须等于 %s'
@@ -167,23 +181,22 @@ def repro_recipe():
         '      sha256sum v4_patches/full/RemoteActions.A1d_v4_FINAL_entry_bound.js  → 须等于 %s'
         % PINNED_ARTIFACTS['RemoteActions.A1d_v4_FINAL_entry_bound.js'],
         '      python -I gen_gas_softdel.py                                       # 第 2 次：两次产出须逐字节一致',
+        '      # 3) 复核原只读快照前后哈希不变（副本内的 embedded/FINAL_FILE/map 改动不计入原树）',
+        '      (cd <审阅仓> && find tools -type f | sort | xargs sha256sum) > after.txt',
+        '      diff before.txt after.txt  → 必须为空（原树未改）',
     ]
 
 
-def self_no_exec_proof():
-    """静态自证：除本函数自身外，本文件（去掉纯注释行后）不得出现任何【执行/导入/写入待审代码】的构造。
+def scan_code_for_exec_write(code):
+    """有限 denylist 静态扫描（【非】证明）：在给定源码中查找【已知】的执行/导入/写入待审代码构造。
 
-    扫描时跳过本函数体（否则 forbidden 字典自身的字面量会自触发）；
-    故注释里为说明历史而引用的字面量不影响判定。覆盖：动态导入 / 子进程 / 系统 shell /
-    Popen / 树内建目录 / 写文件 API（回应 Tom 本轮三/四）。
+    🔴 收窄声明（回应 Tom 本轮一）：本函数【绝不】声称「零写 / 零执行」的机器证明。
+    它只列出现有【已知】模式；未命中只说明"当前未出现所列模式"，不能保证不存在别名调用、
+    反射、或未来新增的写入 API。真正的"不变量"由校验器实现本身保证（确实不 import /
+    不 subprocess / 不写文件）；本扫描只是【辅助哨兵】，漏检路径由下方负例与人工复核兜底。
+    覆盖：动态导入 / 子进程 / 系统 shell / Popen / 树内建目录 /
+         写文件 API（io.open/open 写模式、pathlib.Path.write_bytes/write_text、os.write、文件对象 .write）。
     """
-    me = io.open(os.path.abspath(__file__), encoding='utf-8').read().split('\n')
-    start = next(i for i, l in enumerate(me) if l.rstrip() == 'def self_no_exec_proof():')
-    end = next((i for i, l in enumerate(me) if i > start
-                and l.rstrip().startswith('def ')
-                and l.rstrip() != 'def self_no_exec_proof():'), None)
-    body = me[:start] + (me[end:] if end is not None else [])
-    code = '\n'.join(l for l in body if not l.strip().startswith('#'))
     # 令牌用拼接构造，避免本函数自身的源码触发计数（自证必须可复现、不被自身文本污染）
     forbidden = {
         '动态导入模块': 'spec.loader.exec' + '_module(',
@@ -194,12 +207,49 @@ def self_no_exec_proof():
         '系统 shell': 'os.sys' + 'tem(',
         'Popen': 'Pop' + 'en(',
         '树内建目录': 'os.make' + 'dirs(',
-        '写模式打开文件': "io.open(" + "..., 'w'",
-        'open 写模式': "open(" + "..., 'w'",
+        '写模式打开文件(io)': "io.open(" + "..., 'w'",
+        '写模式打开文件(open)': "open(" + "..., 'w'",
         '路径写文本': '.write' + '_text(',
     }
+    # 🔴 模式感知写 API 扫描（denylist 增强，仍非完整证明）：覆盖 open/io.open 写模式、
+    # pathlib.Path 写 API、os.write、文件对象 .write（含潜在别名调用形态）。
+    WRITE_API_RE = re.compile(
+        r"(?:"
+        r"os\.write"
+        r"|Path\s*\([^)]*\)\.(?:write_bytes|write_text|open)"
+        r"|\.(?:write_bytes|write_text|writelines|write)\s*\("
+        r"|(?:open|io\.open)\s*\([^)]*[\x22\x27](?:w|a|r\+|w\+|a\+|wb|ab|x)"
+        r")")
+    regex_hits = sorted(set(WRITE_API_RE.findall(code)))
     hits = {k: code.count(v) for k, v in forbidden.items() if code.count(v)}
+    for h in regex_hits:
+        hits.setdefault('写API(模式扫描):%s' % h, 1)
     return (not hits), hits
+
+
+def static_exec_write_scan():
+    """🔴 收窄声明（回应 Tom 本轮一）：本函数【不是】零写/零执行的机器证明，只是【有限 denylist 扫描】。
+
+    把本文件（去掉纯注释行、跳过本函数与 scan_code_for_exec_write 两个函数体自身——
+    它们内部含模式字面量会自触发）中出现的【已知】执行/导入/写入构造列出来；
+    未命中只说明"当前未出现所列模式"，不能保证不存在别名调用/反射/未来新增写入 API。
+    实现本身确实不 import / 不 subprocess / 不写文件，本扫描仅作辅助哨兵，其输出绝不声称 proof。
+    """
+    me = io.open(os.path.abspath(__file__), encoding='utf-8').read().split('\n')
+    # 跳过两个扫描相关函数体（它们自身含模式字面量，会自触发），只扫其余源码
+    skip = {i for i, l in enumerate(me)
+            if l.rstrip().startswith('def ')
+            and l.rstrip() in ('def scan_code_for_exec_write(code):',
+                                'def static_exec_write_scan():')}
+    if skip:
+        start = min(skip)
+        end = next((i for i, l in enumerate(me) if i > start
+                    and l.rstrip().startswith('def ')), None)
+        body = me[:start] + (me[end:] if end is not None else [])
+    else:
+        body = me
+    code = '\n'.join(l for l in body if not l.strip().startswith('#'))
+    return scan_code_for_exec_write(code)
 
 # ============================================================
 # 统一词法扫描器（模块级：可被 tools/_repro_p2_slash_lexer.py 独立复跑）
@@ -444,8 +494,9 @@ def main():
     # 2) 生成可复现（只读固定基线 + 静态扫描；执行路径已于 P2 移除）
     rep.append('--- 断言2：生成可复现（纯静态固定基线比对；执行路径已移除，复现改由审阅方在自有沙箱执行）---')
     rep.append('  %s' % SANDBOX_NOTICE)
-    no_exec_ok, no_exec_hits = self_no_exec_proof()
-    rep.append('  静态自证（本文件非注释行中不出现任何执行/导入/写入待审代码的构造）= %s%s'
+    no_exec_ok, no_exec_hits = static_exec_write_scan()
+    rep.append('  列出的执行/写入模式扫描未命中（有限 denylist 扫描，【非】零写/零执行证明；'
+               '真实不变量由实现本身保证）= %s%s'
                % ('YES' if no_exec_ok else 'NO', '' if no_exec_ok else '  命中=%s' % no_exec_hits))
     if not no_exec_ok:
         ok = False
