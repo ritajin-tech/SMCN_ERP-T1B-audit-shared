@@ -158,41 +158,45 @@ OUT_OF_TREE_ANCHOR = {
 def repro_recipe():
     """给【审阅方】的独立复现配方（校验器自己不执行，只把它打印出来供对方在自有沙箱中执行）。
 
-    🔴 修正（回应 Tom 本轮二·S3）：原配方用固定 /tmp/gas_repro + rm -rf（可能误删无关目录）、
-    before.txt/after.txt 写到未指定的当前目录（可能覆盖已有文件）、且 cp -r 不适用于 Windows。
-    现改为：唯一新建临时目录（tempfile.mkdtemp，跨平台，不硬编码任意路径）；清单 / 副本 / 前后哈希
-    【全部】放在该临时目录内，绝不写或覆盖当前目录或原树；仅清理【本次创建且确认归属】的临时目录
-    （shutil.rmtree(tmp)），绝不 rm -rf 任意固定路径；原固定快照始终保持【只读】，副本内写全部落在
-    副本，不触及原树。下方 Python 块可直接保存为 repro.py 运行。
+    🔴 修正（回应 Tom 本轮二·S3 最终版）：上一轮仅把"禁网 / 原树只读 / 仅临时目录可写"写在
+    注释里，并未由代码强制（-I 也不是沙箱）。本轮改为【代码强制】的隔离运行器
+    tools/ts_repro_isolation_runner.py：它对【原树】做运行前后 SHA-256 快照并断言一致（原树只读的
+    代码级证据，非注释）、只复制 tools/ 到一次性临时副本（仅副本可写）、扫描生成器源码的网络/
+    子进程导入并 fail-closed、以 python -I 最小环境 + try/finally 清理。下方给出运行方式与该运行器
+    等价的【原始原语】（供审阅方核对运行器确实严格落实了这些边界）。
     """
     return [
-        '    复现配方（请在【你自己的 OS 隔离沙箱】中将下方 Python 保存为 repro.py 并运行：'
-        '独立低权限身份 / 容器 / Windows sandbox，禁网；原审阅树只读，仅一次性临时副本可写）：',
+        '    复现配方（隔离已由代码强制，见 tools/ts_repro_isolation_runner.py）：',
         '',
-        'import tempfile, os, hashlib, shutil, subprocess, sys',
-        'REPO = r"<审阅仓>"                       # 替换为你的审阅仓本地路径（原固定快照，只读）',
-        'tmp = tempfile.mkdtemp(prefix="gas_repro_")   # 唯一临时目录，跨平台，不硬编码任意路径',
-        'def _snap(repo):',
-        '    d = {}',
-        '    for root, _, files in os.walk(os.path.join(repo, "tools")):',
-        '        for f in files:',
-        '            p = os.path.join(root, f)',
-        '            d[os.path.relpath(p, repo)] = hashlib.sha256(open(p, "rb").read()).hexdigest()',
-        '    return d',
-        'before = _snap(REPO)                      # 0) 原只读快照前后清单哈希（须不变，证明原树未被动）',
-        'copy_dir = os.path.join(tmp, "tools")',
-        'shutil.copytree(os.path.join(REPO, "tools"), copy_dir)   # 1) 复制整个 tools 到一次性临时副本',
-        'assert hashlib.sha256(open(os.path.join(copy_dir, "gen_gas_softdel.py"), "rb").read()).hexdigest() == "%s"' % PINNED_GEN_SHA256,
-        'subprocess.check_call([sys.executable, "-I", os.path.join(copy_dir, "gen_gas_softdel.py")])   # 2) 第 1 次（仅副本内写）',
-        'assert hashlib.sha256(open(os.path.join(copy_dir, "v4_patches/full/ts_softdel_gas_embedded.js"), "rb").read()).hexdigest() == "%s"'
+        '    # 推荐：直接运行隔离运行器（自动落实 原树只读断言 / 仅副本可写 / 网络导入 fail-closed / try-finally）',
+        '    python tools/ts_repro_isolation_runner.py <审阅仓本地路径>    # 原生 Windows 默认拒绝，需 WSL/容器',
+        '    #   → 退出 0 即证明：原树前后 SHA-256 一致（原树只读）+ 仅临时副本被写 + 生成器无网络导入',
+        '',
+        '    # 等价原语（供核对运行器确实严格落实以下边界；运行器即把这些代码化）：',
+        '    import tempfile, os, hashlib, shutil, subprocess, sys',
+        '    REPO = r"<审阅仓>"                       # 替换为你的审阅仓本地路径（原固定快照）',
+        '    def _snap(repo):                         # 原树完整 SHA-256 快照（before/after 须一致）',
+        '        d = {}',
+        '        for root, _, files in os.walk(os.path.join(repo, "tools")):',
+        '            for f in files:',
+        '                p = os.path.join(root, f)',
+        '                d[os.path.relpath(p, repo)] = hashlib.sha256(open(p, "rb").read()).hexdigest()',
+        '        return d',
+        '    before = _snap(REPO)                      # 0) before：原树只读的代码级证据',
+        '    tmp = tempfile.mkdtemp(prefix="gas_repro_")   # 唯一临时目录，跨平台，不硬编码任意路径',
+        '    copy_dir = os.path.join(tmp, "tools")',
+        '    shutil.copytree(os.path.join(REPO, "tools"), copy_dir)   # 1) 复制整个 tools 到一次性临时副本（仅副本可写）',
+        '    assert hashlib.sha256(open(os.path.join(copy_dir, "gen_gas_softdel.py"), "rb").read()).hexdigest() == "%s"' % PINNED_GEN_SHA256,
+        '    subprocess.check_call([sys.executable, "-I", os.path.join(copy_dir, "gen_gas_softdel.py")])   # 2) 第 1 次（仅副本内写）',
+        '    assert hashlib.sha256(open(os.path.join(copy_dir, "v4_patches/full/ts_softdel_gas_embedded.js"), "rb").read()).hexdigest() == "%s"'
         % PINNED_ARTIFACTS['ts_softdel_gas_embedded.js'],
-        'assert hashlib.sha256(open(os.path.join(copy_dir, "v4_patches/full/RemoteActions.A1d_v4_FINAL_entry_bound.js"), "rb").read()).hexdigest() == "%s"'
+        '    assert hashlib.sha256(open(os.path.join(copy_dir, "v4_patches/full/RemoteActions.A1d_v4_FINAL_entry_bound.js"), "rb").read()).hexdigest() == "%s"'
         % PINNED_ARTIFACTS['RemoteActions.A1d_v4_FINAL_entry_bound.js'],
-        'subprocess.check_call([sys.executable, "-I", os.path.join(copy_dir, "gen_gas_softdel.py")])   # 2) 第 2 次：两次产出须逐字节一致',
-        'after = _snap(REPO)                       # 3) 复核原只读快照哈希不变（副本改动不计入原树）',
-        'assert before == after, "原树被改动！"',
-        'print("OK: 原树未改，两次副本产出一致")',
-        'shutil.rmtree(tmp)                        # 4) 仅清理本次创建的临时目录（绝不 rm -rf 任意固定路径）',
+        '    subprocess.check_call([sys.executable, "-I", os.path.join(copy_dir, "gen_gas_softdel.py")])   # 2) 第 2 次：两次产出须逐字节一致',
+        '    after = _snap(REPO)                       # 3) after：复核原树哈希不变（副本改动不计入原树）',
+        '    assert before == after, "原树被改动！"     # 原树只读由代码断言，非注释',
+        '    print("OK: 原树未改，两次副本产出一致")',
+        '    shutil.rmtree(tmp)                        # 4) 仅清理本次创建的临时目录（try/finally 包裹）',
     ]
 
 
