@@ -1,0 +1,9 @@
+=== Q 批复现：dispatch 区域词法（slash_fail_closed + reject_template）===
+  [普通字符串含斜线 → 不 fail-closed] fail-closed=NO (期望=NO) 
+  [行注释含斜线 → 不 fail-closed] fail-closed=NO (期望=NO) 
+  [裸除法 → fail-closed] fail-closed=YES (期望=YES) 
+  [裸正则 → fail-closed] fail-closed=YES (期望=YES) 
+  [后置 ++ 裸除法 → fail-closed] fail-closed=YES (期望=YES) 
+  [模板插值含调用 → fail-closed] fail-closed=YES (期望=YES) 
+  [空模板 → fail-closed] fail-closed=YES (期望=YES) 
+=== PASS ===

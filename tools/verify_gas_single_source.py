@@ -2,12 +2,10 @@
 """
 GAS 单源可复现校验器（回应 Tom #1「源码/生成物/输出错配」+ ce058ba 一.3 dispatch manifest）
 
-🔴 只读铁律（Tom 2026-10-28 17:49Z 一）：本校验器【默认不导入、不启动、不执行】审阅仓供应的
-   Python/JS，且【不写入原审阅副本】。生成可复现性改由两层承担：
-     · 默认（只读）：生成器身份哈希固定 + 产物哈希固定 + 生成器确定性静态扫描；
-     · opt-in（--run-generator）：仅当生成器 SHA-256 == PINNED_GEN_SHA256 时，在【临时隔离
-       副本】以 `python -I`（隔离模式）+ 剥离环境变量（无凭证/无 token）执行两次，并证明
-       原审阅副本运行前后逐字节未变。身份不符 → 拒绝执行并 FAIL。
+🔴 只读铁律（Tom 2026-10-28 17:49Z 一 / 18:50Z 二 / 本轮）：本校验器【默认不导入、不启动、不执行、不写入】
+   任何审阅仓供应的 Python/JS 与产物文件；零子进程、零动态导入、零写文件（stdout 输出除外）。
+   生成可复现性改由【审阅方在自己的 OS 隔离沙箱】按打印的配方独立执行验证；本校验器【永远】不执行生成器。
+   若命令行带 --run-generator，该校验器仅以非零退出并打印隔离复现配方（不执行任何待审代码）。
 
 断言六件事，任一件不成立即以非 0 退出：
   1) 【逐字内联】三个规范源文件（core / norm / period_lock）去掉 'use strict' 与
@@ -28,14 +26,13 @@ GAS 单源可复现校验器（回应 Tom #1「源码/生成物/输出错配」+
         方案，经 Tom 2026-10-28 16:21Z 二 判定为阻断项（Proxy 不是安全边界、子进程继承宿主
         文件/环境/网络权限，且校验器处理的正是待审内容，审计方因此拒绝运行）→ 已彻底移除。
 
-输出逐件源码的 SHA-256 与 git blob 哈希，供固定提交比对；结论写入证据文件。
+输出逐件源码的 SHA-256 与（进程内计算的）git blob 哈希，供固定提交比对；结论仅打印到 stdout（零写审阅树）。
 """
 import hashlib
 import io
 import json
 import os
 import re
-import subprocess
 import sys
 
 HERE = os.path.dirname(os.path.abspath(__file__))
@@ -44,7 +41,6 @@ EMB = os.path.join(HERE, 'v4_patches', 'full', 'ts_softdel_gas_embedded.js')
 GEN = os.path.join(HERE, 'gen_gas_softdel.py')
 FINAL = os.path.join(HERE, 'v4_patches', 'full', 'RemoteActions.A1d_v4_FINAL_entry_bound.js')
 ANCHOR = "var norm = (function() {"
-EVID = os.path.join(HERE, '..', '_tmp', 'evidence', 'gen_single_source_20261027.txt')
 
 SOURCES = [
     ('ts_softdel_core.js', os.path.join(TOOLS, 'ts_softdel_core.js')),
@@ -81,11 +77,16 @@ def sha256_file(p):
 
 
 def git_blob(p):
+    """进程内计算 Git blob 对象的 SHA-1（无需调用 git 子进程 / 不生成任何子进程）。
+
+    格式：'blob <len>\\0<content>' —— 与 `git hash-object` 完全一致。
+    这样「任何模式零子进程」的保证才成立（回应 Tom 本轮四）。
+    """
     try:
-        out = subprocess.run(['git', 'hash-object', p], capture_output=True, text=True, cwd=HERE)
-        return out.stdout.strip() or '(n/a)'
+        data = io.open(p, 'rb').read()
     except Exception:
         return '(n/a)'
+    return hashlib.sha1(('blob %d\0' % len(data)).encode() + data).hexdigest()
 
 
 def _v_strip(src, kind):
@@ -133,12 +134,12 @@ SANDBOX_NOTICE = (
     '（opt-in 执行路径已于 P2 移除 —— Tom 2026-10-28 18:50Z 二）'
 )
 
-# 仓外锚点：pin 与 verifier 同处一个审阅仓快照时不构成独立信任锚（Tom 18:50Z 二），
-# 故在此记录这些固定值曾在【审阅树之外】何处公开，供审阅方交叉核对。
-# 关于「是否把 pin 外置为 evidence/BINDING」（Tom 18:50Z 三）：本轮采纳 Tom 裁决 —— 保持内嵌。
-# 外置的前提是 BINDING 先取得【独立锚定】（仓外 verifier 公钥验签，或绑定到可信签名
-# release / workflow）；否则同一提交仍可同时改 verifier 与 BINDING，外置只是把同一份信任
-# 换个地方放，反而丢掉「pin 变更必须与 verifier 改动同现在一个 diff 里」这个现有收益。
+# 仓外发布点指针（provenance pointer，【NOT】 a machine-verified trust anchor —— Tom 本轮七）：
+# pin 与 verifier 同处一个审阅仓快照，故同一提交仍可同时改 verifier 与 pin，不构成独立信任锚。
+# 此处仅记录这些固定值曾在【审阅树之外】何处公开，供审阅方交叉核对发布链；不声称机器验证。
+# 真正的外部锚须绑定【预先可信】的外部签名密钥 / 签名发布流程（Tom 18:50Z 三 / 本轮七），
+# 不另建同仓 BINDING（同仓 BINDING 同样可被一次提交同时改，不增加信任）。
+# 关于「是否把 pin 外置为 evidence/BINDING」（Tom 18:50Z 三 / P3）：沿用 Tom 裁决 —— 保持内嵌。
 OUT_OF_TREE_ANCHOR = {
     'published_in': 'T1-B 往来邮件（审阅树之外的发布点）',
     'emails': [
@@ -170,20 +171,32 @@ def repro_recipe():
 
 
 def self_no_exec_proof():
-    """静态自证：本文件（去掉纯注释行后）不得再出现任何【执行/导入待审代码】的构造。
+    """静态自证：除本函数自身外，本文件（去掉纯注释行后）不得出现任何【执行/导入/写入待审代码】的构造。
 
-    只扫非注释行，故注释里为了说明历史而引用的字面量不影响判定。
+    扫描时跳过本函数体（否则 forbidden 字典自身的字面量会自触发）；
+    故注释里为说明历史而引用的字面量不影响判定。覆盖：动态导入 / 子进程 / 系统 shell /
+    Popen / 树内建目录 / 写文件 API（回应 Tom 本轮三/四）。
     """
-    me = io.open(os.path.abspath(__file__), encoding='utf-8').read()
-    code_lines = [l for l in me.split('\n') if not l.strip().startswith('#')]
-    code = '\n'.join(code_lines)
+    me = io.open(os.path.abspath(__file__), encoding='utf-8').read().split('\n')
+    start = next(i for i, l in enumerate(me) if l.rstrip() == 'def self_no_exec_proof():')
+    end = next((i for i, l in enumerate(me) if i > start
+                and l.rstrip().startswith('def ')
+                and l.rstrip() != 'def self_no_exec_proof():'), None)
+    body = me[:start] + (me[end:] if end is not None else [])
+    code = '\n'.join(l for l in body if not l.strip().startswith('#'))
     # 令牌用拼接构造，避免本函数自身的源码触发计数（自证必须可复现、不被自身文本污染）
     forbidden = {
         '动态导入模块': 'spec.loader.exec' + '_module(',
         '模块动态导入库': 'import' + 'lib',
-        '就地跑生成器': 'subprocess.run([sys.executable, GEN' + ']',
-        'Node 子进程': "subprocess.run(['no" + "de'",
-        '网络请求': 'urllib.request.url' + 'open(',
+        '就地跑生成器': 'sub' + 'process.run([sys.executable, GEN' + ']',
+        'Node 子进程': "sub" + "process.run(['no" + "de'",
+        '任何子进程': 'sub' + 'process.run(',
+        '系统 shell': 'os.sys' + 'tem(',
+        'Popen': 'Pop' + 'en(',
+        '树内建目录': 'os.make' + 'dirs(',
+        '写模式打开文件': "io.open(" + "..., 'w'",
+        'open 写模式': "open(" + "..., 'w'",
+        '路径写文本': '.write' + '_text(',
     }
     hits = {k: code.count(v) for k, v in forbidden.items() if code.count(v)}
     return (not hits), hits
@@ -216,22 +229,17 @@ _JS_WORD_RE = re.compile(r'[A-Za-z0-9_$.]+')
 _JS_OP_CHARS = set('([{,;:?!=~%*<>|&^')
 
 
-def _js_mask(s, mask_strings=True):
+def _js_mask(s, mask_strings=True, slash_fail_closed=False, reject_template=False):
     """统一词法扫描器：把注释（以及可选的字符串/模板/正则内容）替换为【等长空格】。
 
-    🔴 回应 Tom 2026-10-28 17:49Z 二：此前各层扫描规则【不统一】—— 顶层键解析器跳注释，
-    而 _member_value_span / ENTRY_RE / 'return tsSoftDelGuarded(' 计数却直接扫【原文】，
-    于是注释可以提供假命中：
-        /* softDelGuarded: function(e){ return tsSoftDelGuarded(e); } */
-        softDelGuarded: function(e){ return otherAction(e); },
-    注释补齐了「受控入口命中 + 转发形态 + return 计数」，而真实入口指向 otherAction —— 完整绕过。
-    统一后：所有结构判定（键解析 / 值定位 / 入口正则 / 计数 / 花括号配平）一律只在掩码文本上进行。
-    🔴 回应 Tom 2026-10-28 18:50Z 一：正则/除法的判定改为【记号类型】而非【上一字符】。
-
-    mask_strings=False → 仅屏蔽注释与正则字面量，保留字符串内容（供键解析器读取引号键，
-                         回应 Tom K1-a：带引号顶层键必须归一化入集合）。
-    返回 (masked, unsupported)；unsupported 非空 = 存在未终止/未识别词法单元，调用方须 fail-closed。
+    新增两个【窄区域】开关（仅 dispatch 区域启用，绝不扩展到 fin_prefix 等无关代码）：
+      slash_fail_closed —— 任何裸斜线（非注释/非字符串）一律 fail-closed，不做除法/正则分类
+                            （Tom 本轮二，方案 iii）。
+      reject_template   —— 模板字面量（反引号）一律 fail-closed；插值 ${...} 可含任意代码
+                            （含额外 tsSoftDelGuarded 调用），不尝试递归词法化（Tom 本轮一）。
+    返回 (masked, unsupported)；unsupported 非空 = 存在未终止/未识别/被拒词法单元，调用方须 fail-closed。
     """
+
     out = list(s)
     unsupported = []
     i, n = 0, len(s)
@@ -284,7 +292,14 @@ def _js_mask(s, mask_strings=True):
             i = j
             continue
         # ---- 斜杠：按【记号类型】判正则 vs 除法（Tom 18:50Z 一）----
+        # 🔴 Q · 回应 Tom 本轮二（方案 iii）：dispatch 区域（slash_fail_closed=True）任何裸斜线一律
+        #    fail-closed，不做除法/正则分类（代价：未来合法除法/正则亦拒绝；当前 pinned block 无裸斜线）。
         if c == '/':
+            if slash_fail_closed:
+                unsupported.append('/(dispatch 区域裸斜线，按(iii) fail-closed)')
+                i += 1
+                prev = 'o'
+                continue
             if prev == 'v':
                 # 除法：保留字符本身，其后进入「运算符语境」
                 prev = 'o'
@@ -304,8 +319,46 @@ def _js_mask(s, mask_strings=True):
                 i += 1
             prev = 'v'
             continue
-        # ---- 字符串 / 模板 ----
-        if c in '"\'`':
+        # ---- 模板字面量（dispatch 区域按 Tom 本轮一 reject）----
+        if c == '`':
+            if reject_template:
+                # 插值 ${...} 可含任意代码（含额外 tsSoftDelGuarded 调用），故 dispatch 区域直接
+                # fail-closed；不尝试递归词法化插值（不号称完整 ECMAScript parser）。
+                unsupported.append('`(模板字面量：插值可含任意代码，dispatch 区域 fail-closed)')
+                j = i + 1
+                while j < n:
+                    ch = s[j]
+                    if ch == '\\':
+                        j += 2
+                        continue
+                    if ch == '`':
+                        j += 1
+                        break
+                    j += 1
+                i = j
+                prev = 'o'
+                continue
+            q = '`'
+            j, closed = i + 1, False
+            while j < n:
+                ch = s[j]
+                if ch == '\\':
+                    j += 2
+                    continue
+                if ch == '`':
+                    closed = True
+                    break
+                j += 1
+            end = (j + 1) if closed else n
+            if not closed:
+                unsupported.append('`(未终止)')
+            if mask_strings:
+                blank(i, end)
+            i = end
+            prev = 'v'
+            continue
+        # ---- 普通字符串 ----
+        if c in '"\'':
             q = c
             j, closed = i + 1, False
             while j < n:
@@ -388,24 +441,52 @@ def main():
                     break
     rep.append('')
 
-    # 2) 生成可复现（【纯静态】：身份 pin + 产物固定基线 + 确定性扫描；执行路径已于 P2 移除）
+    # 2) 生成可复现（只读固定基线 + 静态扫描；执行路径已于 P2 移除）
     rep.append('--- 断言2：生成可复现（纯静态固定基线比对；执行路径已移除，复现改由审阅方在自有沙箱执行）---')
     rep.append('  %s' % SANDBOX_NOTICE)
     no_exec_ok, no_exec_hits = self_no_exec_proof()
-    rep.append('  静态自证（本文件非注释行中不出现任何执行/导入待审代码的构造）= %s%s'
+    rep.append('  静态自证（本文件非注释行中不出现任何执行/导入/写入待审代码的构造）= %s%s'
                % ('YES' if no_exec_ok else 'NO', '' if no_exec_ok else '  命中=%s' % no_exec_hits))
     if not no_exec_ok:
         ok = False
-        rep.append('  [FAIL] 校验器自身仍含执行/导入构造（违反「不执行、不写待审仓任何东西」铁律）')
+        rep.append('  [FAIL] 校验器自身仍含执行/导入/写入构造（违反「不执行、不导入、不写入待审仓任何东西」铁律）')
+    # 2a) artifact identity：已提交产物 == 内嵌 PINNED_ARTIFACTS（仅快照内 pin 一致；非外部验证）
+    rep.append('--- 断言2a：artifact identity（产物哈希 == 内嵌 PINNED_ARTIFACTS；仅快照内 pin 一致）---')
+    artifact_ok = True
+    for _name, _pinned in PINNED_ARTIFACTS.items():
+        _actual = sha256_file(os.path.join(HERE, 'v4_patches', 'full', _name))
+        _match = _actual == _pinned
+        artifact_ok = artifact_ok and _match
+        rep.append('  %-48s match=%s' % (_name, 'YES' if _match else 'NO'))
+        if not _match:
+            ok = False
+            rep.append('    [FAIL] 产物哈希与内嵌 pin 不一致（须由人显式更新 pin 或重新生成）')
+    # 2b) generator identity：生成器自身 == 固定基线（pin 失配即拒绝执行）
+    gen_actual = sha256_file(GEN)
+    gen_match = gen_actual == PINNED_GEN_SHA256
+    rep.append('  生成器 identity（pin 失配即拒绝执行）：match=%s%s'
+               % ('YES' if gen_match else 'NO', '' if gen_match else '  [FAIL] 生成器哈希与 pin 不一致'))
+    if not gen_match:
+        ok = False
+        rep.append('    [FAIL] 生成器哈希与 pin 不一致（任何改动都使校验器拒绝执行）')
+    # 2c) 确定性静态扫描（denylist 仅证明「未命中列出的模式」，NOT a proof of determinism）
+    gen_src = io.open(GEN, encoding='utf-8').read()
+    det_ok, det_hits = _static_determinism_ok(gen_src)
+    rep.append('  生成器确定性静态扫描（NONDET_RE denylist；注意：仅证明未命中列出的模式，NOT a proof of determinism）= %s%s'
+               % ('未命中任何列出的非确定性来源' if det_ok else '命中', '' if det_ok else ' %s' % det_hits))
+    if not det_ok:
+        ok = False
+        rep.append('  [FAIL] 生成器含 NONDET_RE 列出的非确定性来源')
+    # 2d) generator reproducibility：独立复现前保持 UNVERIFIED
+    rep.append('  ⚠️ 生成器可复现性（generator reproducibility）= UNVERIFIED —— 提交方未运行生成器；'
+               '待独立审阅者在 OS 强制隔离环境按下列配方复现后才可改为 VERIFIED（提交方报告非独立验证）。')
     if '--run-generator' in sys.argv:
         ok = False
-        rep.append('  [FAIL] --run-generator 已移除（Tom 2026-10-28 18:50Z 二）：')
-        rep.append('         python -I 不是 OS 沙箱；在真实 OS 强制隔离落实前，校验器不执行任何待审代码。')
-        rep.append('         「生成可复现」改由【审阅方在自己的沙箱中】按下列配方独立验证：')
+        rep.append('  [FAIL] --run-generator 已移除（Tom 2026-10-28 18:50Z 二 / 本轮五）：该参数仅以非零退出并给出隔离复现配方，不执行。')
     else:
         rep.append('  [只读] 本次未执行任何待审代码。若需独立验证「生成可复现」，请在自有沙箱中按下列配方执行：')
     rep.extend(repro_recipe())
-    rep.append('  仓外锚点（同仓 pin 不是独立信任锚，Tom 18:50Z 二）：%s —— %s'
+    rep.append('  仓外发布点指针（同仓 pin 不是独立机器验证锚，Tom 18:50Z 二 / 本轮七）：%s —— %s'
                % (OUT_OF_TREE_ANCHOR['published_in'], '；'.join(OUT_OF_TREE_ANCHOR['emails'])))
     rep.append('')
 
@@ -636,8 +717,8 @@ def main():
         返回 (ok, lines)。"""
         lines = []
         ok = True
-        cm, u1 = _js_mask(raw, mask_strings=False)
-        fm, u2 = _js_mask(raw, mask_strings=True)
+        cm, u1 = _js_mask(raw, mask_strings=False, slash_fail_closed=True, reject_template=True)
+        fm, u2 = _js_mask(raw, mask_strings=True, slash_fail_closed=True, reject_template=True)
         if u1 or u2:
             return False, ['  [FAIL] 词法扫描发现未终止/未支持单元（强制 fail-closed）：%s' % (u1 + u2)]
         _, _, _, _, spans = _parse_top_level_keys(cm)
@@ -668,8 +749,8 @@ def main():
         （Tom 2026-10-28 17:49Z 二：注释与字符串不得参与任何判定）。
         返回 (ok, rep_lines, top_keys)。"""
         lines = []
-        cm, u1 = _js_mask(raw, mask_strings=False)
-        fm, u2 = _js_mask(raw, mask_strings=True)
+        cm, u1 = _js_mask(raw, mask_strings=False, slash_fail_closed=True, reject_template=True)
+        fm, u2 = _js_mask(raw, mask_strings=True, slash_fail_closed=True, reject_template=True)
         if u1 or u2:
             return False, ['  [FAIL] 词法扫描发现未终止/未支持单元（强制 fail-closed）：%s' % (u1 + u2)], []
         top, computed, spreads, unsupported, spans = _parse_top_level_keys(cm)
@@ -742,7 +823,7 @@ def main():
     real_ok, real_lines, real_top = _real_manifest_ok(block, BASELINE_KEYS)
     rep.extend(real_lines)
     # ENTRY_RE 命中数也只在掩码文本上统计（与真实路径同一口径）
-    _fm_blk, _u_blk = _js_mask(block, mask_strings=True)
+    _fm_blk, _u_blk = _js_mask(block, mask_strings=True, slash_fail_closed=True, reject_template=True)
     rep.append('  dispatch 顶层成员总数（完整解析，深度感知）= %d；ENTRY_RE 命中（简单 return 形态，仅计真实代码）= %d' % (len(real_top), len(ENTRY_RE.findall(_fm_blk))))
     rep.append('  manifest 一致=%s' % ('YES' if real_ok else 'NO'))
     if not real_ok:
@@ -793,7 +874,7 @@ def main():
     #     键仍唯一、仍路由 tsSoftDelGuarded、return 计数仍为 2，但真实输入会先走 otherAction。
     def _member_spans(b, key):
         """取某顶层键的 [(key_start, value_start, value_end)]（解析器驱动，非正则搜索）。"""
-        cm, _ = _js_mask(b, mask_strings=False)
+        cm, _ = _js_mask(b, mask_strings=False, slash_fail_closed=True, reject_template=True)
         _, _, _, _, spans = _parse_top_level_keys(cm)
         return spans.get(key, [])
 
@@ -882,7 +963,7 @@ def main():
     #     → 必须仍放行，且不得误掩真实代码）。旧实现按「上一个非空白【字符】」判定，
     #     新实现按「上一个【记号】的类型」判定（value → 除法；operator → 正则）。
     slash_neg = {
-        'Tom 18:50Z 反例·单行：e++ 后的除法被误判为正则起始，IIFE 内 return tsSoftDelGuarded( 被整段掩掉':
+        'Tom 18:50Z 反例·单行：e++ 后裸除法（按(iii) fail-closed）':
             _replace_member(block, 'setup',
                             'function(e){ e++ / (function(){ return {shadow: function(x){ return tsSoftDelGuarded(x); }}; })().shadow(e) / 3; }'),
         'Tom 18:50Z 反例·多行（同一攻击的换行形态；旧实现仅因正则扫描遇换行中断才侥幸拦下）':
@@ -891,6 +972,15 @@ def main():
         '后置 -- 变体（前后缀判定必须同时覆盖 ++ 与 --）':
             _replace_member(block, 'setup',
                             'function(e){ e-- / (function(){ return {shadow: function(x){ return tsSoftDelGuarded(x); }}; })().shadow(e) / 3; }'),
+        '后置 ++ 裸除法（按(iii) 同样 fail-closed，即便旧实现曾当合法除法放行）':
+            _replace_member(block, 'setup',
+                            'function(e){ var n = e.n++ / 2; var m = 4 / 2; return n + m; }'),
+        '右括号后裸除法（按(iii) fail-closed）':
+            _replace_member(block, 'setup',
+                            'function(e){ var n = (1 + 2) / 3; return n; }'),
+        '真实正则字面量（按(iii) 同样 fail-closed，即使字面量内不含 dispatch 调用）':
+            _replace_member(block, 'setup',
+                            'function(e){ var re = /return tsSoftDelGuarded\\(/; return re.test(String(e)); }'),
     }
     rep.append('--- 断言7 负例：斜杠词法误判掩掉真实 dispatch 调用 → 真实路径必须 fail-closed ---')
     for label, tam in slash_neg.items():
@@ -901,52 +991,43 @@ def main():
         else:
             rep.append('  真实路径：[%s] → fail-closed=YES' % label)
 
-    slash_pos = {
-        '后置 ++ 除法（合法 JS，不得误判为正则起始、不得吃掉真实代码）':
-            _replace_member(block, 'setup',
-                            'function(e){ var n = e.n++ / 2; var m = 4 / 2; return n + m; }'),
-        '真实正则字面量（字面量内含 "return tsSoftDelGuarded(" 字样，须被正确屏蔽而非虚增计数）':
-            _replace_member(block, 'setup',
-                            'function(e){ var re = /return tsSoftDelGuarded\\(/; return re.test(String(e)); }'),
-        '除法与正则混排':
-            _replace_member(block, 'setup',
-                            'function(e){ var n = 9 / 3; var re = /a\\/b/g; return re.test(String(n)); }'),
+    template_neg = {
+        'softDelGuarded 值含模板插值并藏调用（Tom 本轮一：插值可藏额外 tsSoftDelGuarded 调用）':
+            _replace_member(block, 'softDelGuarded',
+                            'function(e){ var x = `${tsSoftDelGuarded(e)}`; return x; }'),
+        '空模板字面量（无插值仍按 dispatch 区域拒绝）':
+            _replace_member(block, 'softDelGuarded',
+                            'function(e){ var x = ``; return tsSoftDelGuarded(e); }'),
     }
-    rep.append('--- 断言7 正例：合法除法 / 真实正则字面量不得误掩、不得误拒 ---')
-    for label, tam in slash_pos.items():
+    rep.append('--- 断言7 负例（Tom 本轮一）：dispatch 区域模板字面量一律 fail-closed ---')
+    for label, tam in template_neg.items():
         c_ok, c_lines, _ = _real_manifest_ok(tam, BASELINE_KEYS)
-        rep.append('  [%s] 未被误拒=%s' % (label, 'YES' if c_ok else 'NO'))
-        if not c_ok:
+        if c_ok:
             ok = False
-            rep.extend(c_lines)
-            rep.append('  [FAIL] 合法词法形态被误拒（词法分类过紧）')
+            rep.append('  [FAIL] 真实路径未能识别[%s]' % label)
+        else:
+            rep.append('  真实路径：[%s] → fail-closed=YES' % label)
 
-    # 6e) 词法分类【单元级】断言：直接验 _js_mask 的斜杠分类（可独立复跑 —— tools/_repro_p2_slash_lexer.py）
+    # 7b) 单元级：_js_mask 在 dispatch 配置下，注释/字符串内斜线不触发 fail-closed（不误伤合法代码）；
+    #      裸斜线/模板一律 fail-closed（可独立复跑 —— tools/_repro_q_lexer.py）。
     lex_cases = [
-        ('后置 ++ 后除法 → 不掩真实代码', 'a++ / (function(){ return 1; })() / 3;', True),
-        ('后置 -- 后除法', 'a-- / 2 / 3;', True),
-        ('右括号后除法', '(1 + 2) / 3;', True),
-        ('标识符后除法', 'var x = total / count;', True),
-        ('return 后正则 → 屏蔽', 'return /ab\\/c/.test(s);', True),
-        ('= 后正则 → 屏蔽', 'var re = /x{y}/g;', True),
-        ('运算符语境下未闭合斜杠 → unsupported → fail-closed', 'var re = /abc;', False),
+        ('普通字符串含斜线 → 不 fail-closed', 'function(e){ return "a/b"; }', False),
+        ('行注释含斜线 → 不 fail-closed', 'function(e){ /* a/b */ return 1; }', False),
+        ('裸除法 → fail-closed', 'var n = a / b;', True),
+        ('裸正则 → fail-closed', 'var re = /a/;', True),
+        ('后置 ++ 裸除法 → fail-closed', 'a++ / 2;', True),
+        ('模板插值含调用 → fail-closed（reject_template）', 'var x = `${f()}`;', True),
+        ('空模板 → fail-closed（reject_template）', 'var x = ``;', True),
     ]
-    rep.append('--- 断言7 单元级：_js_mask 斜杠分类（unsupported 为空 = 可静态判定）---')
-    for label, snip, want_static in lex_cases:
-        _m, _u = _js_mask(snip, mask_strings=True)
-        got = (not _u)
-        rep.append('  [%s] 可静态判定=%s（期望=%s）%s'
-                   % (label, 'YES' if got else 'NO', 'YES' if want_static else 'NO',
-                      '' if got == want_static else '  ← 与期望不符'))
-        if got != want_static:
+    rep.append('--- 断言7 单元级：dispatch 词法（注释/字符串内斜线不 fail-closed；裸斜线/模板一律 fail-closed）---')
+    for label, snip, want_unsup in lex_cases:
+        _m, _u = _js_mask(snip, mask_strings=True, slash_fail_closed=True, reject_template=True)
+        got = bool(_u)
+        rep.append('  [%s] 裸斜线/模板 fail-closed=%s（期望=%s）%s'
+                   % (label, 'YES' if got else 'NO', 'YES' if want_unsup else 'NO',
+                      '' if got == want_unsup else '  ← 与期望不符'))
+        if got != want_unsup:
             ok = False
-    # 掩码后真实代码不得被吃掉（旧实现会把 "var m = 4 / 2;" 整段掩掉 —— Tom 18:50Z 一 的第二个后果）
-    _m2, _u2 = _js_mask('var n = e.n++ / 2; var m = 4 / 2; return n + m;', mask_strings=True)
-    keep_ok = ('var m' in _m2 and 'return n + m;' in _m2 and not _u2)
-    rep.append('  单元级正例[后置 ++ 除法] 掩码后真实代码保留=%s（旧实现会吃掉 "var m = 4 / 2;"）'
-               % ('YES' if keep_ok else 'NO'))
-    if not keep_ok:
-        ok = False
 
     # 5c'') 顶层键扫描器（供后续 fixture 的 _ctrl_set_of 使用）
     MEMBER_KEY_RE = re.compile(r'([A-Za-z_$][\w$]*|\[[^\]]+\])\s*:')
@@ -1008,9 +1089,7 @@ def main():
     rep.append('=== 结论：%s ===' % ('全部断言通过' if ok else '存在失败断言（见上）'))
 
     text = '\n'.join(rep) + '\n'
-    os.makedirs(os.path.dirname(EVID), exist_ok=True)
-    io.open(EVID, 'w', encoding='utf-8', newline='\n').write(text)
-    print(text)
+    print(text)   # 仅输出 stdout（Tom 本轮三：校验器零写审阅树；文件输出须由审阅方在审阅树外自行重定向）
     return 0 if ok else 1
 
 
