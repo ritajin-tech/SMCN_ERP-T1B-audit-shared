@@ -158,32 +158,41 @@ OUT_OF_TREE_ANCHOR = {
 def repro_recipe():
     """给【审阅方】的独立复现配方（校验器自己不执行，只把它打印出来供对方在自有沙箱中执行）。
 
-    🔴 回应 Tom 本轮三：原配方要求「只读挂载审阅树」却又在审阅树内运行会写文件的生成器，自相矛盾
-    （生成器 main() 会建目录并以写模式覆盖 embedded / FINAL_FILE / map 文件）。
-    修正：把整个 tools 目录【复制】到一次性临时目录，仅在副本中运行（生成器按 __file__ 解析同目录
-    输入/输出，故副本内的写全部落在副本，不触及原树）；原固定快照始终保持只读，并对原树做
-    运行前后哈希核对，证明原树未被改动。
+    🔴 修正（回应 Tom 本轮二·S3）：原配方用固定 /tmp/gas_repro + rm -rf（可能误删无关目录）、
+    before.txt/after.txt 写到未指定的当前目录（可能覆盖已有文件）、且 cp -r 不适用于 Windows。
+    现改为：唯一新建临时目录（tempfile.mkdtemp，跨平台，不硬编码任意路径）；清单 / 副本 / 前后哈希
+    【全部】放在该临时目录内，绝不写或覆盖当前目录或原树；仅清理【本次创建且确认归属】的临时目录
+    （shutil.rmtree(tmp)），绝不 rm -rf 任意固定路径；原固定快照始终保持【只读】，副本内写全部落在
+    副本，不触及原树。下方 Python 块可直接保存为 repro.py 运行。
     """
     return [
-        '    复现配方（请在【你自己的 OS 隔离沙箱】中执行：独立低权限身份 / 容器 / Windows '
-        'sandbox，禁网；原审阅树只读，仅一次性临时副本可写）：',
-        '      # 0) 记录原只读快照的前后清单哈希（须不变，证明原树未被动）',
-        '      (cd <审阅仓> && find tools -type f | sort | xargs sha256sum) > before.txt',
-        '      # 1) 复制整个 tools 目录到一次性临时副本（生成器按 __file__ 解析同目录输入/输出，'
-        '副本内写全部落在副本）',
-        '      rm -rf /tmp/gas_repro && cp -r <审阅仓>/tools /tmp/gas_repro',
-        '      # 2) 仅在该副本中运行两次（绝不在原审阅树路径运行；副本可写）',
-        '      cd /tmp/gas_repro',
-        '      sha256sum gen_gas_softdel.py  → 须等于 %s' % PINNED_GEN_SHA256,
-        '      python -I gen_gas_softdel.py                                       # 第 1 次',
-        '      sha256sum v4_patches/full/ts_softdel_gas_embedded.js  → 须等于 %s'
+        '    复现配方（请在【你自己的 OS 隔离沙箱】中将下方 Python 保存为 repro.py 并运行：'
+        '独立低权限身份 / 容器 / Windows sandbox，禁网；原审阅树只读，仅一次性临时副本可写）：',
+        '',
+        'import tempfile, os, hashlib, shutil, subprocess, sys',
+        'REPO = r"<审阅仓>"                       # 替换为你的审阅仓本地路径（原固定快照，只读）',
+        'tmp = tempfile.mkdtemp(prefix="gas_repro_")   # 唯一临时目录，跨平台，不硬编码任意路径',
+        'def _snap(repo):',
+        '    d = {}',
+        '    for root, _, files in os.walk(os.path.join(repo, "tools")):',
+        '        for f in files:',
+        '            p = os.path.join(root, f)',
+        '            d[os.path.relpath(p, repo)] = hashlib.sha256(open(p, "rb").read()).hexdigest()',
+        '    return d',
+        'before = _snap(REPO)                      # 0) 原只读快照前后清单哈希（须不变，证明原树未被动）',
+        'copy_dir = os.path.join(tmp, "tools")',
+        'shutil.copytree(os.path.join(REPO, "tools"), copy_dir)   # 1) 复制整个 tools 到一次性临时副本',
+        'assert hashlib.sha256(open(os.path.join(copy_dir, "gen_gas_softdel.py"), "rb").read()).hexdigest() == "%s"' % PINNED_GEN_SHA256,
+        'subprocess.check_call([sys.executable, "-I", os.path.join(copy_dir, "gen_gas_softdel.py")])   # 2) 第 1 次（仅副本内写）',
+        'assert hashlib.sha256(open(os.path.join(copy_dir, "v4_patches/full/ts_softdel_gas_embedded.js"), "rb").read()).hexdigest() == "%s"'
         % PINNED_ARTIFACTS['ts_softdel_gas_embedded.js'],
-        '      sha256sum v4_patches/full/RemoteActions.A1d_v4_FINAL_entry_bound.js  → 须等于 %s'
+        'assert hashlib.sha256(open(os.path.join(copy_dir, "v4_patches/full/RemoteActions.A1d_v4_FINAL_entry_bound.js"), "rb").read()).hexdigest() == "%s"'
         % PINNED_ARTIFACTS['RemoteActions.A1d_v4_FINAL_entry_bound.js'],
-        '      python -I gen_gas_softdel.py                                       # 第 2 次：两次产出须逐字节一致',
-        '      # 3) 复核原只读快照前后哈希不变（副本内的 embedded/FINAL_FILE/map 改动不计入原树）',
-        '      (cd <审阅仓> && find tools -type f | sort | xargs sha256sum) > after.txt',
-        '      diff before.txt after.txt  → 必须为空（原树未改）',
+        'subprocess.check_call([sys.executable, "-I", os.path.join(copy_dir, "gen_gas_softdel.py")])   # 2) 第 2 次：两次产出须逐字节一致',
+        'after = _snap(REPO)                       # 3) 复核原只读快照哈希不变（副本改动不计入原树）',
+        'assert before == after, "原树被改动！"',
+        'print("OK: 原树未改，两次副本产出一致")',
+        'shutil.rmtree(tmp)                        # 4) 仅清理本次创建的临时目录（绝不 rm -rf 任意固定路径）',
     ]
 
 
@@ -230,25 +239,30 @@ def scan_code_for_exec_write(code):
 def static_exec_write_scan():
     """🔴 收窄声明（回应 Tom 本轮一）：本函数【不是】零写/零执行的机器证明，只是【有限 denylist 扫描】。
 
-    把本文件（去掉纯注释行、跳过本函数与 scan_code_for_exec_write 两个函数体自身——
-    它们内部含模式字面量会自触发）中出现的【已知】执行/导入/写入构造列出来；
+    把本文件（去掉纯注释行、跳过 scan_code_for_exec_write 与 static_exec_write_scan
+    两个函数体自身——它们内部含模式字面量会自触发）中出现的【已知】执行/导入/写入构造列出来；
     未命中只说明"当前未出现所列模式"，不能保证不存在别名调用/反射/未来新增写入 API。
     实现本身确实不 import / 不 subprocess / 不写文件，本扫描仅作辅助哨兵，其输出绝不声称 proof。
     """
     me = io.open(os.path.abspath(__file__), encoding='utf-8').read().split('\n')
-    # 跳过两个扫描相关函数体（它们自身含模式字面量，会自触发），只扫其余源码
-    skip = {i for i, l in enumerate(me)
-            if l.rstrip().startswith('def ')
-            and l.rstrip() in ('def scan_code_for_exec_write(code):',
-                                'def static_exec_write_scan():')}
-    if skip:
-        start = min(skip)
-        end = next((i for i, l in enumerate(me) if i > start
-                    and l.rstrip().startswith('def ')), None)
-        body = me[:start] + (me[end:] if end is not None else [])
-    else:
-        body = me
+    # 🔴 修正（回应 Tom 本轮二·S1）：原逻辑从较早定义（scan_code_for_exec_write）截到下一个 def
+    # （即 static_exec_write_scan 的 def 行），因此 body = me[:start] + me[end:] 把【第二个函数体
+    # 仍扫进范围】，与其"跳过两个函数体"的说明不符，扫描范围无法按原说明确认。
+    # 现改为：两个扫描函数各自从 def 行到其下一个 def（或文件尾）区间整体排除，组合后得到
+    # 真正的扫描范围；并显式打印被排除的行数，便于静态核对实际扫描范围。
+    skip_names = ('def scan_code_for_exec_write(code):', 'def static_exec_write_scan():')
+    n = len(me)
+    def_lines = [i for i, l in enumerate(me)
+                 if l.rstrip().startswith('def ') and l.rstrip() in skip_names]
+    excluded = set()
+    for d in def_lines:
+        nxt = next((i for i in range(d + 1, n) if me[i].rstrip().startswith('def ')), n)
+        excluded.update(range(d, nxt))
+    body = [l for i, l in enumerate(me) if i not in excluded]
     code = '\n'.join(l for l in body if not l.strip().startswith('#'))
+    # 透明化：报告被排除的扫描函数数与实际扫描行数，供审阅方静态核对范围
+    sys.stderr.write('[scan-scope] 排除扫描函数 %d 个（定义行 %s），实际扫描 %d 行（去注释）\n'
+                     % (len(def_lines), def_lines, len(code.split('\n'))))
     return scan_code_for_exec_write(code)
 
 # ============================================================

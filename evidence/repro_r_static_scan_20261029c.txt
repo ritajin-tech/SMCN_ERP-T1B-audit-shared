@@ -1,0 +1,10 @@
+  [负例命中] pathlib.Path.write_bytes     hits=['写API(模式扫描):.write_bytes(']
+  [负例命中] pathlib.Path.write_text      hits=['路径写文本', "写API(模式扫描):Path('/tmp/x').write_text"]
+  [负例命中] open 写模式 w                   hits=['写API(模式扫描):.write(', "写API(模式扫描):open('/tmp/x', 'w"]
+  [负例命中] open 写模式 wb                  hits=['写API(模式扫描):.write(', "写API(模式扫描):open('/tmp/x','w"]
+  [负例命中] io.open 写模式                  hits=['写API(模式扫描):.write(', "写API(模式扫描):io.open('/tmp/x', 'w"]
+  [负例命中] os.write                     hits=['写API(模式扫描):os.write']
+  [负例命中] 文件对象 .write                  hits=['写API(模式扫描):.write(']
+  [良性通过] 只读 open/读 API 不误报（hits 为空）
+  [已知盲点·符合预期] 别名写调用 w = io.open; w(path,'w') 未被 denylist 捕获（证明扫描非完整证明，漏检由人工复核兜底）
+PASS: 写 API 覆盖 7 种形态 + 只读不误报 + 别名盲点已显式演示（有限 denylist 扫描，非零写证明）

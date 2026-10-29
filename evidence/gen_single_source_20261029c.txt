@@ -1,0 +1,134 @@
+=== GAS 单源可复现校验（回应 Tom #1）===
+生成物：v4_patches\full\ts_softdel_gas_embedded.js  SHA-256=5bcb0bf5c8cecc44d084c3493983f953bc39e5eedae55ae6641fb11683a940df
+
+--- 断言1：规范源正文必须是生成物的连续子串（逐字内联）---
+  ts_softdel_core.js   正文长度= 36204(占原文98.62%)  连续子串命中=YES  SHA-256=fbbeef30ec9ec4a7…  git-blob=4c30b69eafd3
+  ts_softdel_norm.js   正文长度=  6112(占原文94.42%)  连续子串命中=YES  SHA-256=6909d2a97218ff44…  git-blob=543754ec77ad
+  period_lock_port.js  正文长度=  6479(占原文93.33%)  连续子串命中=YES  SHA-256=9b093bf8ce2e4b59…  git-blob=ac0838c31572
+
+--- 断言2：生成可复现（纯静态固定基线比对；执行路径已移除，复现改由审阅方在自有沙箱执行）---
+  本校验器【不执行、不导入、不写入】任何待审仓提供的代码：零子进程、零动态导入、零写文件。（opt-in 执行路径已于 P2 移除 —— Tom 2026-10-28 18:50Z 二）
+  列出的执行/写入模式扫描未命中（有限 denylist 扫描，【非】零写/零执行证明；真实不变量由实现本身保证）= YES
+--- 断言2a：artifact identity（产物哈希 == 内嵌 PINNED_ARTIFACTS；仅快照内 pin 一致）---
+  ts_softdel_gas_embedded.js                       match=YES
+  RemoteActions.A1d_v4_FINAL_entry_bound.js        match=YES
+  生成器 identity（pin 失配即拒绝执行）：match=YES
+  生成器确定性静态扫描（NONDET_RE denylist；注意：仅证明未命中列出的模式，NOT a proof of determinism）= 未命中任何列出的非确定性来源
+  ⚠️ 生成器可复现性（generator reproducibility）= UNVERIFIED —— 提交方未运行生成器；待独立审阅者在 OS 强制隔离环境按下列配方复现后才可改为 VERIFIED（提交方报告非独立验证）。
+  [只读] 本次未执行任何待审代码。若需独立验证「生成可复现」，请在自有沙箱中按下列配方执行：
+    复现配方（请在【你自己的 OS 隔离沙箱】中将下方 Python 保存为 repro.py 并运行：独立低权限身份 / 容器 / Windows sandbox，禁网；原审阅树只读，仅一次性临时副本可写）：
+
+import tempfile, os, hashlib, shutil, subprocess, sys
+REPO = r"<审阅仓>"                       # 替换为你的审阅仓本地路径（原固定快照，只读）
+tmp = tempfile.mkdtemp(prefix="gas_repro_")   # 唯一临时目录，跨平台，不硬编码任意路径
+def _snap(repo):
+    d = {}
+    for root, _, files in os.walk(os.path.join(repo, "tools")):
+        for f in files:
+            p = os.path.join(root, f)
+            d[os.path.relpath(p, repo)] = hashlib.sha256(open(p, "rb").read()).hexdigest()
+    return d
+before = _snap(REPO)                      # 0) 原只读快照前后清单哈希（须不变，证明原树未被动）
+copy_dir = os.path.join(tmp, "tools")
+shutil.copytree(os.path.join(REPO, "tools"), copy_dir)   # 1) 复制整个 tools 到一次性临时副本
+assert hashlib.sha256(open(os.path.join(copy_dir, "gen_gas_softdel.py"), "rb").read()).hexdigest() == "d733c3370ed3df65df42a1c2ebabba67954e4ecbc80cde026950d6318594f3a2"
+subprocess.check_call([sys.executable, "-I", os.path.join(copy_dir, "gen_gas_softdel.py")])   # 2) 第 1 次（仅副本内写）
+assert hashlib.sha256(open(os.path.join(copy_dir, "v4_patches/full/ts_softdel_gas_embedded.js"), "rb").read()).hexdigest() == "5bcb0bf5c8cecc44d084c3493983f953bc39e5eedae55ae6641fb11683a940df"
+assert hashlib.sha256(open(os.path.join(copy_dir, "v4_patches/full/RemoteActions.A1d_v4_FINAL_entry_bound.js"), "rb").read()).hexdigest() == "4a03d04b9bf021445e7546f11d04e724e451e9292224af7702522b02b9db2bbf"
+subprocess.check_call([sys.executable, "-I", os.path.join(copy_dir, "gen_gas_softdel.py")])   # 2) 第 2 次：两次产出须逐字节一致
+after = _snap(REPO)                       # 3) 复核原只读快照哈希不变（副本改动不计入原树）
+assert before == after, "原树被改动！"
+print("OK: 原树未改，两次副本产出一致")
+shutil.rmtree(tmp)                        # 4) 仅清理本次创建的临时目录（绝不 rm -rf 任意固定路径）
+  仓外发布点指针（同仓 pin 不是独立机器验证锚，Tom 18:50Z 二 / 本轮七）：T1-B 往来邮件（审阅树之外的发布点） —— msg_D4YHxfuec2wt0tb7iqrutF2euHh97_49Qxywq3tOE9JSAW @ 2026-10-28T18:14Z（O 批：pin 值首次公开）
+
+--- 断言3：生成物 VERSION 必须与规范源 ts_softdel_core.js 一致 ---
+  规范源 VERSION = ts_softdel_core/4
+  生成物 VERSION = ts_softdel_core/4
+  一致=YES
+
+--- 断言4：FINAL_FILE 内联核心区 必须与 embedded 内联核心区 逐字一致 ---
+  embedded 内联区长度=55973  FINAL_FILE 内联区长度=55973  逐字一致=YES
+
+--- 断言5：FINAL_FILE 完整 dispatch 区块解析 + 顶层成员完整清单 fail-closed ---
+  softDelGuarded 入口次数=1 路由目标=tsSoftDelGuarded
+  statusQuery 入口次数=1 路由目标=tsSoftDelGuarded
+  受控入口 softDelGuarded = 受限静态转发形态（形参=e；无分支、无额外调用、原样转发）
+  受控入口 statusQuery = 受限静态转发形态（形参=e；无分支、无额外调用、原样转发）
+  dispatch 顶层成员总数（完整解析，深度感知）= 42；ENTRY_RE 命中（简单 return 形态，仅计真实代码）= 36
+  manifest 一致=YES
+--- 断言5 负例：真实区块注入各类绕过 → 真实路径必须 fail-closed ---
+  [FAIL] 顶层成员清单与基线不一致：额外=['evil'] 缺失=[]（任何注入/删改即 fail-closed）
+  softDelGuarded 入口次数=1 路由目标=tsSoftDelGuarded
+  statusQuery 入口次数=1 路由目标=tsSoftDelGuarded
+  受控入口 softDelGuarded = 受限静态转发形态（形参=e；无分支、无额外调用、原样转发）
+  受控入口 statusQuery = 受限静态转发形态（形参=e；无分支、无额外调用、原样转发）
+  真实区块注入[额外未引号成员 evil→otherAction] → fail-closed=YES
+  [FAIL] 顶层成员清单与基线不一致：额外=['evil'] 缺失=[]（任何注入/删改即 fail-closed）
+  softDelGuarded 入口次数=1 路由目标=tsSoftDelGuarded
+  statusQuery 入口次数=1 路由目标=tsSoftDelGuarded
+  受控入口 softDelGuarded = 受限静态转发形态（形参=e；无分支、无额外调用、原样转发）
+  受控入口 statusQuery = 受限静态转发形态（形参=e；无分支、无额外调用、原样转发）
+  真实区块注入[引号键 "evil"→otherAction（Tom 本轮 K1-a：原解析器跳过字符串字面量，引号键不进 top_keys 绕过集合比对）] → fail-closed=YES
+  [FAIL] 存在重复顶层键（JS 后定义覆盖先定义，可绕过集合比对）：['setup']
+  softDelGuarded 入口次数=1 路由目标=tsSoftDelGuarded
+  statusQuery 入口次数=1 路由目标=tsSoftDelGuarded
+  受控入口 softDelGuarded = 受限静态转发形态（形参=e；无分支、无额外调用、原样转发）
+  受控入口 statusQuery = 受限静态转发形态（形参=e；无分支、无额外调用、原样转发）
+  真实区块注入[重复基线键 setup→otherAction（Tom 本轮 K1-b：set() 丢弃重复项，JS 后定义覆盖先定义绕过集合比对）] → fail-closed=YES
+  [FAIL] 存在计算属性键（动态键，无法静态确定运行期绑定，强制 fail-closed）：["['setup']:"]
+  softDelGuarded 入口次数=1 路由目标=tsSoftDelGuarded
+  statusQuery 入口次数=1 路由目标=tsSoftDelGuarded
+  受控入口 softDelGuarded = 受限静态转发形态（形参=e；无分支、无额外调用、原样转发）
+  受控入口 statusQuery = 受限静态转发形态（形参=e；无分支、无额外调用、原样转发）
+  真实区块注入[计算属性键 ['setup']→otherAction（Tom 本轮 L3：解析器未解析/拒绝方括号计算键，运行期覆盖原 setup 绕过集合比对）] → fail-closed=YES
+  [FAIL] 存在顶层对象展开 ...（合法 JS，运行期可覆盖既有成员；静态无法确定展开内容，强制 fail-closed）：1 处
+  softDelGuarded 入口次数=1 路由目标=tsSoftDelGuarded
+  statusQuery 入口次数=1 路由目标=tsSoftDelGuarded
+  受控入口 softDelGuarded = 受限静态转发形态（形参=e；无分支、无额外调用、原样转发）
+  受控入口 statusQuery = 受限静态转发形态（形参=e；无分支、无额外调用、原样转发）
+  真实区块注入[对象展开 ...{setup:otherAction}（Tom 2026-10-28 15:17Z 第四类：合法 JS，运行期展开覆盖原 setup；既非重复键亦非计算键，既有正则/计数全不命中）] → fail-closed=YES
+--- 断言6：受限静态转发形态（纯静态 · 零执行待审 JavaScript）---
+  受控入口 softDelGuarded = 受限静态转发形态（形参=e；无分支、无额外调用、原样转发）
+  受控入口 statusQuery = 受限静态转发形态（形参=e；无分支、无额外调用、原样转发）
+  受限静态转发形态一致=YES
+--- 断言6 负例：条件转发 / 额外调用 / 注释伪造 → 真实路径必须 fail-closed ---
+  真实路径：[Tom 16:21Z 三 原反例：softDelGuarded 改为条件转发 tsSoftDelGuarded(e.__probe===1 ? e : otherAction(e))] → fail-closed=YES
+  真实路径：[分支另一侧 + 额外副作用调用：先 otherAction(e) 再转发] → fail-closed=YES
+  真实路径：[逻辑短路分支：return e && tsSoftDelGuarded(e)] → fail-closed=YES
+  真实路径：[statusQuery 同样改为条件转发（两个受控入口均覆盖）] → fail-closed=YES
+  真实路径：[Tom 17:49Z 二 原反例：注释伪造 softDelGuarded 受控入口，真实值改向 otherAction] → fail-closed=YES
+  真实路径：[注释伪造第二个受控入口 statusQuery（两个受控入口均覆盖）] → fail-closed=YES
+  真实路径：[注释同时补齐 ENTRY 命中与 return 计数（真实 statusQuery→otherAction）] → fail-closed=YES
+  真实路径：[注释伪造·最强形态：真实值改为非 return 开头（旧实现下集合/入口计数/return计数/形态四层全漏）] → fail-closed=YES
+  正例[转发函数体内含带 } 的注释] 未被误拒=YES（Tom 17:49Z 二 误拒反例）
+--- 断言7 负例：斜杠词法误判掩掉真实 dispatch 调用 → 真实路径必须 fail-closed ---
+  真实路径：[Tom 18:50Z 反例·单行：e++ 后裸除法（按(iii) fail-closed）] → fail-closed=YES
+  真实路径：[Tom 18:50Z 反例·多行（同一攻击的换行形态；旧实现仅因正则扫描遇换行中断才侥幸拦下）] → fail-closed=YES
+  真实路径：[后置 -- 变体（前后缀判定必须同时覆盖 ++ 与 --）] → fail-closed=YES
+  真实路径：[后置 ++ 裸除法（按(iii) 同样 fail-closed，即便旧实现曾当合法除法放行）] → fail-closed=YES
+  真实路径：[右括号后裸除法（按(iii) fail-closed）] → fail-closed=YES
+  真实路径：[真实正则字面量（按(iii) 同样 fail-closed，即使字面量内不含 dispatch 调用）] → fail-closed=YES
+--- 断言7 负例（Tom 本轮一）：dispatch 区域模板字面量一律 fail-closed ---
+  真实路径：[softDelGuarded 值含模板插值并藏调用（Tom 本轮一：插值可藏额外 tsSoftDelGuarded 调用）] → fail-closed=YES
+  真实路径：[空模板字面量（无插值仍按 dispatch 区域拒绝）] → fail-closed=YES
+--- 断言7 单元级：dispatch 词法（注释/字符串内斜线不 fail-closed；裸斜线/模板一律 fail-closed）---
+  [普通字符串含斜线 → 不 fail-closed] 裸斜线/模板 fail-closed=NO（期望=NO）
+  [行注释含斜线 → 不 fail-closed] 裸斜线/模板 fail-closed=NO（期望=NO）
+  [裸除法 → fail-closed] 裸斜线/模板 fail-closed=YES（期望=YES）
+  [裸正则 → fail-closed] 裸斜线/模板 fail-closed=YES（期望=YES）
+  [后置 ++ 裸除法 → fail-closed] 裸斜线/模板 fail-closed=YES（期望=YES）
+  [模板插值含调用 → fail-closed（reject_template）] 裸斜线/模板 fail-closed=YES（期望=YES）
+  [空模板 → fail-closed（reject_template）] 裸斜线/模板 fail-closed=YES（期望=YES）
+
+--- 断言5 负例自测（完整区块解析覆盖边界）---
+  正向夹具[合法manifest] 判为受控(不被误杀)=YES
+  负例[rogue alias 路由到受控入口] 识别为非法=fail-closed=YES
+  负例[额外成员路由到 otherAction（Tom 本轮未覆盖原例）] 识别为非法=fail-closed=YES
+  负例[computed key 路由到受控入口] 识别为非法=fail-closed=YES
+  负例[替代表达式（无 return/function）] 识别为非法=fail-closed=YES
+  负例[白名单外键路由到受控入口（Tom #5a 未识别成员）] 识别为非法=fail-closed=YES
+  真实区块插入 evil→受控入口 负例 fail-closed=YES
+
+=== 结论：全部断言通过 ===
+
