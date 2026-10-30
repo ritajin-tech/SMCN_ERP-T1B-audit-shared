@@ -1,0 +1,307 @@
+{
+  "meta": {
+    "stage": "A",
+    "probe": "stage_a_live_probe",
+    "probe_version": "v2",
+    "responds_to": "Tom 2026-10-30 16:21:38Z 第十一轮",
+    "start_utc": "2026-10-30T16:59:02Z",
+    "zero_write": true,
+    "freeze_flipped": false,
+    "clearance_released": false,
+    "link_changed": false,
+    "channel": "hktool inspectWorkbook (read-only)",
+    "static_scan": {
+      "scanned_file": "stage_a_live_probe.py",
+      "scanned_bytes": 21398,
+      "scanned_sha256": "bd0948b5ce8b83c5f5b7751e73e0ccb301a178682e75e1108c8766e6bea83b10",
+      "blacklist_module": "_stage_a_write_verbs.py (与本文件分离，故清单不自命中)",
+      "verbs_count": 13,
+      "verbs": [
+        "patchCellsCAS",
+        "patchCells",
+        "setValue",
+        "setValues",
+        "deleteRows",
+        "insertRows",
+        "tsAppendRows",
+        "deleteTsRowByCRowAndUuid",
+        "hydrateRowValues",
+        "archiveVisibleRow",
+        "writeDeliverables",
+        "clearContent",
+        "clear"
+      ],
+      "hits": {},
+      "total_hits": 0,
+      "call_sites": [
+        {
+          "line": 127,
+          "fn": [
+            "inspectWorkbook"
+          ],
+          "mode": [
+            "values"
+          ]
+        },
+        {
+          "line": 151,
+          "fn": [
+            "inspectWorkbook"
+          ],
+          "mode": [
+            "sheets"
+          ]
+        }
+      ],
+      "scope_note": "Tom #4：静态无写动词只证明本文件未写这些动词，不证明远端 inspectWorkbook 实现无副作用 —— 后者须对实际部署的服务端实现与调用身份作独立只读核证。"
+    },
+    "note": "提交方 live 读取报告，非独立复核方验证",
+    "end_utc": "2026-10-30T17:01:13Z"
+  },
+  "L1_sheets": {
+    "tables": [
+      "🟥 SpaceMatrix",
+      "_TS_SNAPSHOT",
+      "_TS_WRITE_LOG",
+      "🔍 时段诊断",
+      "Sheet1",
+      "Log",
+      "_SYS_LOG",
+      "CONFIG",
+      "DB_工时流水",
+      "FY26折算后工时",
+      "FY26工时",
+      "Sheet3",
+      "CAL_INSPECT_LOG",
+      "PM看板",
+      "QS看板",
+      "QS看板按项目"
+    ],
+    "ms": 2870,
+    "error": null,
+    "tab_present": true
+  },
+  "L2_schema": {
+    "header": [
+      [
+        "⚙ 录入时间 (Timestamp)",
+        "日期 (Date)",
+        "姓名 (Name)",
+        "⚙ 类型 (Type)",
+        "阶段 (Stage)",
+        "项目编号 (Project ID)",
+        "工时 (Hours)",
+        "备注 (Notes)",
+        "⚙ 唯一码 (UUID)",
+        "⚙ 项目名称（自动）",
+        "⚙ 项目PM（自动）",
+        "⚙ 直属主管（自动）",
+        "项目情况",
+        "",
+        "",
+        "",
+        ""
+      ]
+    ],
+    "header_width": 17,
+    "lastRow_t0": 11380,
+    "header_err": null,
+    "lastRow_err": null,
+    "sample_rows": 6,
+    "sample_row_widths": [
+      17
+    ],
+    "ms_head": 2652,
+    "ms_last": 3712,
+    "ms_sample": 3934
+  },
+  "L3_full_snapshot": {
+    "a1": "A2:Q11380",
+    "ms": 7954,
+    "integrity": {
+      "requested_rows": 11379,
+      "returned_rows": 11379,
+      "row_count_match": true,
+      "expected_width": 17,
+      "width_histogram": {
+        "17": 11379
+      },
+      "width_match": true
+    },
+    "sha256_full": "ad62bf541acc8d42e5a69adb7ff0ba17eceedc3cc0a142177779d8ae7ce0871e",
+    "sha256_B": "c3e5edf76acf47e27b7833abd266ceb2989a90aa39d6bce8c6322a1c66c447a1",
+    "sha256_G": "d59fa99253868f40018901b416503c0c5a988a3535117f6eb969fcce3236ec41",
+    "sha256_O": "069e4136c503f845877b626cb92d064b44885ca891939d786a59f5d521b052b5",
+    "atomicity_note": "B/G/O 与全表指纹均由同一次读取派生，不存在跨列/跨时刻非原子",
+    "data_rows": 11379,
+    "rows_bizdate_lt_2026_10_01": 10733,
+    "rows_bizdate_ge_2026_10_01": 625,
+    "date_parse_fail": 0,
+    "date_parse_fail_rows_sample": [],
+    "blank_date": 21,
+    "hours_non_numeric": 0,
+    "hours_non_numeric_rows_sample": [],
+    "hours_blank": 14,
+    "hours_sum_parsed_only": 44687.0,
+    "hours_scope_caveat": "sum 仅统计可解析为数值的行；不计入 0 行非数值、14 行空值",
+    "soft_deleted_flagged": 268,
+    "read_utc": "2026-10-30T16:59:23Z"
+  },
+  "L4_writer_samples": {
+    "samples": [
+      {
+        "seq": 0,
+        "utc": "2026-10-30T16:59:23Z",
+        "lastRow": 11380,
+        "sha256_full": "ad62bf541acc8d42e5a69adb7ff0ba17eceedc3cc0a142177779d8ae7ce0871e"
+      },
+      {
+        "seq": 1,
+        "utc": "2026-10-30T17:00:08Z",
+        "lastRow": 11380,
+        "sha256_full": "ad62bf541acc8d42e5a69adb7ff0ba17eceedc3cc0a142177779d8ae7ce0871e"
+      },
+      {
+        "seq": 2,
+        "utc": "2026-10-30T17:00:56Z",
+        "lastRow": 11380,
+        "sha256_full": "ad62bf541acc8d42e5a69adb7ff0ba17eceedc3cc0a142177779d8ae7ce0871e"
+      }
+    ],
+    "distinct_snapshot_count": 1,
+    "observed_no_change_across_samples": true,
+    "claim": "NONE",
+    "not_proven": [
+      "不证明窗口内没有写（other columns/other sheets/已读稍即被改写入都可能）",
+      "单次抽样不证明其它列未变化；v2 已扩为全字段，但仍不覆盖读取之间的瞬时写",
+      "不证明全体写者或触发器已停止 —— 须由被授权管理员完整盘点并协调全部写者/触发器",
+      "不证明实际冻结覆盖“采集→授权决策”整个窗口 —— 冻结核证见 L5",
+      "不存在“通用最小等待秒数即可证明稳定”的阈值；本探针的 SAMPLES/INTERVAL_SEC 仅为采样密度，非证明手段",
+      "两次/多次采集均非独立控制通道，全部经由同一 hktool 只读端点"
+    ],
+    "required_by_admin": [
+      "完整盘点全部写者/触发器/GAS 工程/其它脚本",
+      "协调并保持实际冻结覆盖整个采集→授权决策窗口",
+      "绑定全字段规范快照 + 版本/范围 + 时间 + 异常记录",
+      "任何漂移或采集不完整 → 立即停止"
+    ]
+  },
+  "L5_freeze": {
+    "config_read": {
+      "a1": "A1:C40",
+      "ok": true,
+      "error": null,
+      "rows_returned": 40,
+      "ms": 4056
+    },
+    "config_rowcount_match_requested": true,
+    "config_mentions_freeze": false,
+    "config_flat_snippet": "   | ↑ 如需只从某个月开始同步，请在 A1 填 yyyy-MM（如 2026-07），留空则自动同步过去120天~未来90天   |    |    |    |    |    |    |    |    |    |    |    |    |    |    |    |    |    |    |    |    |    |    |    |    |    |    |    |    |    |    |    |    |    |    |    |    |    |   ",
+    "TS_WRITE_FREEZE_value": "UNKNOWN",
+    "freeze_status": "UNKNOWN",
+    "inference_prohibition": "Tom #3：CONFIG 未出现 FREEZE 字样不得据以推断冻结现状；该表可能并非 freeze 的配置来源。",
+    "required_from_deployment_admin": [
+      "实际执行部署的身份（scriptId/版本/部署号）",
+      "freeze 值的配置来源（Script Properties / 其它表 / 环境变量）",
+      "值的含义（含“0/1/null/缺失”各代表什么）",
+      "读取时间 + 读取主体身份",
+      "由独立复核人核验；不公开凭证"
+    ],
+    "fallback": "无授权只读管理通道 → 维持 UNKNOWN，不作任何越级推断"
+  },
+  "L6_write_log": {
+    "lastRow": 1367,
+    "scanned_from": 1327,
+    "scanned_rows": 41,
+    "read_error": null,
+    "categories": {
+      "master_activity": {
+        "count": 18,
+        "last_seen_token": "2026-10-30T00:12:04.000Z master_views_live 实时重算「月度视图」：241 行；备份=[OK] 月度视图_重算前_20261030     ",
+        "sample": [
+          "2026-10-25T14:20:25.000Z",
+          "leave_sync_master",
+          "追加 15 行到主库「请假」分页；跳过已存在 567 行；窗口 2026-04-01~2026-12-31；事件 249 个；无姓名 0 个",
+          "",
+          "",
+          "",
+          "",
+          ""
+        ]
+      },
+      "target_DB_工时流水": {
+        "count": 8,
+        "last_seen_token": "2026-10-25T17:18:07.000Z repairLegacyLeave:repair ss=1Pi5u9fEawgp7yICWPMMyQCT_LbwTZthQDW-H05xYdVI sheet=DB_工时流水 rows=113 done=113 skipped=0     ",
+        "sample": [
+          "2026-10-25T15:50:14.000Z",
+          "repairLegacyLeave:repair(dry)",
+          "ss=1Pi5u9fEawgp7yICWPMMyQCT_LbwTZthQDW-H05xYdVI sheet=DB_工时流水 rows=153 done=153 skipped=0",
+          "",
+          "",
+          "",
+          "",
+          ""
+        ]
+      },
+      "other_sheets_or_unknown": {
+        "count": 9,
+        "last_seen_token": "2026-10-30T00:11:55.000Z attendance_rebuild_live 实时重算「按月考勤」：552×32，月=12，人=44，备份=[OK] 按月考勤_重算前_20261030     ",
+        "sample": [
+          "2026-10-25T16:07:39.000Z",
+          "setup",
+          "period-lock initialized (closed=true, futureOpen=true, cutoff=2026-10-01) by rita-deploy",
+          "",
+          "",
+          "",
+          "",
+          ""
+        ]
+      },
+      "reminder_disabled": {
+        "count": 6,
+        "last_seen_token": "2026-10-30T09:18:01.000Z friday_reminder_disabled Rita 2026-10-15 指示停用；触发器保留，改 true 后自动恢复     ",
+        "sample": [
+          "2026-10-26T09:18:04.000Z",
+          "friday_reminder_disabled",
+          "Rita 2026-10-15 指示停用；触发器保留，改 true 后自动恢复",
+          "",
+          "",
+          "",
+          "",
+          ""
+        ]
+      }
+    },
+    "classification_note": "Tom #4：写日志末尾含停用提醒与其它页面/主库活动，不能全部称为生产目标表写入；此处按动作/目标/时间逐类拆分。",
+    "evidence_limit": "分类依据为日志文本关键词匹配，属提交方启发式归类；每条原始证据已存本 JSON 的 sample 字段，供逐条独立复核。"
+  },
+  "L7_master": {
+    "sheets": [
+      "Sheet1",
+      "_FontBackup",
+      "_LayoutBackup",
+      "工时_候选0824",
+      "月度异常",
+      "按月考勤",
+      "工时",
+      "请假",
+      "月度视图",
+      "说明",
+      "按月考勤_重建前_20261015",
+      "按月考勤_重算前_20261026",
+      "月度视图_重算前_20261026",
+      "按月考勤_重算前_20261027",
+      "月度视图_重算前_20261027",
+      "按月考勤_重算前_20261028",
+      "月度视图_重算前_20261028",
+      "按月考勤_重算前_20261029",
+      "月度视图_重算前_20261029",
+      "按月考勤_重算前_20261030",
+      "月度视图_重算前_20261030"
+    ],
+    "sheets_error": null,
+    "工时_lastRow": 11682,
+    "error": null,
+    "ms": 2788
+  }
+}
