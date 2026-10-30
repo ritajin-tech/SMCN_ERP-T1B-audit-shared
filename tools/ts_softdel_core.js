@@ -180,7 +180,7 @@ function tsSoftDelGuardedCore(e, deps) {
   var rows = v.rows;
 
   var clearanceToken = body.clearance || p.clearance || null;
-  var clearanceOk = clearanceToken ? !!deps.isClearance(clearanceToken, rows) : false;
+  // S1-8（Tom 第八轮·实现方待办）：clearance 校验原在取锁前（锁外授权窗口，TOCTOU），已下移至取锁后锁区间内（见本函数 ~212 行后）。
 
   // 条件 #3：真实期锁依赖缺失 → 整批拒绝（不静默放行）
   if (typeof deps.guardCheck !== 'function') {
@@ -210,6 +210,12 @@ function tsSoftDelGuardedCore(e, deps) {
     return _res(false, { error: 'LOCK_BUSY', detail: String(le1 && le1.message || le1), batchId: batchId, jobId: jobId });
   }
   var results = [], patched = 0, anyFail = false, wroteRows = [], masterVersionAfter = null;
+  // S1-8（Tom 第八轮·实现方待办）：消除 TOCTOU——clearance 校验须在取锁后与 guardCheck 同一锁区间内完成。
+  //   deps.isClearance 真实实现（tools/ts_clearance.consumeClearance）在 ctx.lock 保护下做 nonce 读-校验-标记消费原子操作；
+  //   旧桩 (tok, rows)=>false / ()=>false 仍兼容（多余参数被忽略，返回 false 即 PERIOD_LOCKED 仍生效）。
+  var clearanceOk = clearanceToken
+    ? !!deps.isClearance(clearanceToken, rows, { jobId: jobId, lock: _lock, rows: rows })
+    : false;
   try {
     // 条件 #1/#7：主库全量读取必须在锁内（消除 build-masterMap-before-lock 的 TOCTOU）；
     //         读依赖缺失/读不完整/版本缺失 → 整批拒绝，B 级不会再被"误判底稿0行"放行。
