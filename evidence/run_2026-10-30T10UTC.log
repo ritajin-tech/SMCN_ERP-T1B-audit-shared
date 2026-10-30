@@ -66,7 +66,14 @@
 - 输出：`43/43 通过`
 
 ## 8. S0-7 生成器幂等（固定输入 + 逐文件 SHA-256）
-- FIXED_INPUT：`tools/gen_gas_softdel.py` + `tools/v4_patches/full/*.template`（commit 99c4ce0）
+
+> **本轮实跑 commit：`1a1f0506`**（= 99c4ce0 全部代码 + 第五轮 bug 修复；同 §1/§13）。S0-7 实跑时间：**2026-10-30T13:39:43Z**（gen_exit1=0 / gen_exit2=0）。以下为在 **1a1f0506** checkout 上的实跑记录；旧 99c4ce0 记录见 §8.1，不覆盖。
+
+- **FIXED_INPUT（实际被生成的源文件，非 `*.template`；生成器 `gen_gas_softdel.py` 读取并逐字内联为产物）**：其 blob 哈希在 `99c4ce0` 与 `1a1f0506` **完全一致**（第五轮修复仅触及 `ts_repro_isolation_runner.py` 及其测试，未触达生成器与源文件），故两 commit 下固定输入内容一致、产物哈希应当相同：
+  - `tools/gen_gas_softdel.py` = `792171a201b93f4c1be125d55ae22c92edfda0f8`
+  - `tools/ts_softdel_core.js` = `b056c98ea84f45aecf2091129518ce6540b457be`
+  - `tools/ts_softdel_norm.js` = `543754ec77ad5c25029adafabe0ff0a4f2d9317a`
+  - `tools/period_lock_port.js` = `ac0838c31572a1bbf1e2b52a7e74fb3bc215305f`
 - 命令：`python tools/gen_gas_softdel.py`（连跑两次，每次后取产物 SHA-256）
 - 退出码：gen_exit1=0 / gen_exit2=0
 - 产物哈希（tools/v4_patches/full/ts_softdel_gas_embedded.js）：
@@ -77,7 +84,11 @@
   - before = 8d8745f7a5d0d9d2306b398dfd3c6b4a40d7d0a01f34d93249051ec4d5fcbe46
   - run1   = 8d8745f7a5d0d9d2306b398dfd3c6b4a40d7d0a01f34d93249051ec4d5fcbe46
   - run2   = 8d8745f7a5d0d9d2306b398dfd3c6b4a40d7d0a01f34d93249051ec4d5fcbe46
-- 结论：**IDEMPOTENT=YES**（三观测哈希全同；固定输入 + 固定产物哈希已记录，可独立复算核对）。
+- 结论：**IDEMPOTENT=YES**（三观测哈希全同；固定输入 blob 哈希 + 固定产物 SHA-256 已绑定记录，可独立复算核对）。
+
+### 8.1 旧运行记录保留（99c4ce0 历史，不覆盖）
+- 历史运行：`99c4ce0` 时代 S0-7 已连跑两次。其输入文件 blob 哈希与本轮回测**完全相同**（上表四文件在 99c4ce0 的 blob 哈希与本轮回测逐字一致），故产物哈希（before/run1/run2）与本轮 1a1f0506 记录**逐字节相同**；旧日志文本（含 `*.template` 旧称、旧混合 commit 标注）保留于 commit `99c4ce0`/`d75ca28` 的历史 `evidence/run_2026-10-30T10UTC.log`，**此处不覆盖、不重写**。
+- 说明：本轮（1a1f0506）记录为权威当前记录；旧 99c4ce0 记录仅作为历史证据保留，二者输入/产物哈希一致，不产生矛盾。此条专为回应 Tom 2026-10-30 14:08:53Z 第七轮点②「分别保留旧运行记录和新运行记录、绑定输入/产物哈希、标清命令与时间、不覆盖旧证据」。
 
 ## 9. S0-8 JS 语法（逐文件 node --check + 各自 EXIT）
 - 命令：`node --check <file>`（每个 .js 独立执行，记录 EXIT）
