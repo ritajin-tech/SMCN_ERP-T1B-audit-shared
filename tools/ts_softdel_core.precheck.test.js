@@ -134,5 +134,52 @@ console.log('=== 测试4：PERIOD_LOCKED 命中 => 整批零写 ===');
   assert(!anyWrote, '无任何目标被写入（无 wrote:true）— 预检期锁失败整批零写');
 }
 
-console.log('\n' + (fails ? ('FAIL: ' + fails + ' 项') : 'PASS: 双阶段预检不变量全部成立（全体通过才写 / 任一失败整批零写）'));
+console.log('=== 测试5：第二目标 PREPARED_LOG_FAILED => 首目标写成功、第二 UNKNOWN、第三 NOT_ATTEMPTED（Tom W 批·点③ 停止闸门）===');
+{
+  // 3 目标；仅第二目标(itemId=4)的 PREPARED 日志写失败 -> 触发 writeStopped
+  const deps = makeDeps();
+  deps.journalAppend = (rec) => { if (rec.state === 'PREPARED' && rec.itemId === 4) throw new Error('simulated log write failure'); return true; };
+  WRITE_COUNT = 0;
+  const rows = buildBatch([
+    { row: 2, keeperRow: 3, uuid: 'U-AAA', level: 'A' },
+    { row: 4, keeperRow: 5, uuid: 'U-BBB', level: 'A' },
+    { row: 6, keeperRow: 7, uuid: 'U-CCC', level: 'A' },
+  ]);
+  const e = { postBody: { action: 'softDelGuarded', sheet: 'DB_工时流水', dry: false,
+    expectMasterVersion: 'V1', jobId: 'JTEST_T5', batchId: 'BTEST', rows } };
+  const res = JSON.parse(core.tsSoftDelGuardedCore(e, deps));
+  assert(res.ok === false, '批次 ok=false');
+  assert(WRITE_COUNT === 1, '仅首目标实际写入 1 次 (got ' + WRITE_COUNT + ')');
+  const r2 = res.results.find(r => r.row === 2);
+  const r4 = res.results.find(r => r.row === 4);
+  const r6 = res.results.find(r => r.row === 6);
+  assert(r2 && r2.wrote === true && (r2.state === 'CONFIRMED_SUCCESS' || r2.state === 'COMMITTED'), '首目标已确认成功(CONFIRMED_SUCCESS/COMMITTED)');
+  assert(r4 && r4.reason === 'PREPARED_LOG_FAILED' && r4.state === 'UNCONFIRMED', '第二目标 PREPARED_LOG_FAILED/UNCONFIRMED');
+  assert(r6 && r6.reason === 'BATCH_STOPPED_NOT_ATTEMPTED' && r6.state === 'NOT_ATTEMPTED', '第三目标停止未尝试(NOT_ATTEMPTED)');
+}
+
+console.log('=== 测试6：首目标写入异常(WRITE_FLUSH_EXCEPTION) => 首 UNKNOWN、后续 NOT_ATTEMPTED（Tom W 批·点③ 停止闸门）===');
+{
+  const deps = makeDeps();
+  deps.writeProdO = (row, val) => { if (row === 2) throw new Error('simulated flush failure'); WRITE_COUNT++; PROD_O[row] = val; return true; };
+  WRITE_COUNT = 0;
+  const rows = buildBatch([
+    { row: 2, keeperRow: 3, uuid: 'U-AAA', level: 'A' },
+    { row: 4, keeperRow: 5, uuid: 'U-BBB', level: 'A' },
+    { row: 6, keeperRow: 7, uuid: 'U-CCC', level: 'A' },
+  ]);
+  const e = { postBody: { action: 'softDelGuarded', sheet: 'DB_工时流水', dry: false,
+    expectMasterVersion: 'V1', jobId: 'JTEST_T6', batchId: 'BTEST', rows } };
+  const res = JSON.parse(core.tsSoftDelGuardedCore(e, deps));
+  assert(res.ok === false, '批次 ok=false');
+  assert(WRITE_COUNT === 0, '首目标写抛异常、零成功写入 (got ' + WRITE_COUNT + ')');
+  const r2 = res.results.find(r => r.row === 2);
+  const r4 = res.results.find(r => r.row === 4);
+  const r6 = res.results.find(r => r.row === 6);
+  assert(r2 && r2.reason === 'WRITE_FLUSH_EXCEPTION' && r2.state === 'UNKNOWN', '首目标写入异常/UNKNOWN（不谎称成功）');
+  assert(r4 && r4.state === 'NOT_ATTEMPTED', '第二目标未尝试(NOT_ATTEMPTED)');
+  assert(r6 && r6.state === 'NOT_ATTEMPTED', '第三目标未尝试(NOT_ATTEMPTED)');
+}
+
+console.log('\n' + (fails ? ('FAIL: ' + fails + ' 项') : 'PASS: 双阶段预检 + 写停止闸门不变量全部成立（全体通过才写 / 任一失败整批零写 / 首失败即停后续 NOT_ATTEMPTED）'));
 process.exit(fails ? 1 : 0);

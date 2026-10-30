@@ -243,15 +243,17 @@ function tsSoftDelGuardedCore(e, deps) {
       return _res(false, { error: 'MASTER_VERSION_MISMATCH', expect: String(expectMasterVersion), actual: String(master.version), batchId: batchId, jobId: jobId });
     }
 
-    // ===== Tom V 批·A点①：独立预检阶段（全体目标 + 底稿完整性 + 版本守卫），任一失败在首笔业务写前拒绝整批 =====
-    // 批次语义（明确失败/中断/恢复）：
-    //   · Phase A 预检：对【每个】目标运行全部校验（不含任何生产写）；失败目标登记 REJECTED/UNKNOWN，
-    //     整批标记 preFail；通过目标仅标记"待写"，不落任何日志、不写生产。
+    // ===== Tom V→W 批·A点① + 点③：独立预检阶段（全体目标 + 底稿完整性 + 版本守卫）=====
+    // 批次语义（逐条对齐 Tom 2026-10-30 03:46Z 点③）：
+    //   · Phase A 预检【纯函数、零写、零日志】：对【每个】目标运行全部校验，【不落任何 journal、不写生产】；
+    //     失败目标登记 PRECHECK_REJECTED（仅写入响应 results，不写 journal，不写生产），整批标记 preFail；
+    //     通过目标仅标记"待写"。—— 回应 Tom"Phase A 仍有日志写入/非所有副作用为零"：本批 Phase A 已无任何 journal 写。
     //   · Phase B 裁决：仅当 preFail=false（全体预检通过）才进入生产写；否则整批拒绝、零生产写
     //     （通过目标记 BATCH_REJECTED_PRECHECK，未写、无日志）。
-    //   · 写阶段若发生写异常（WRITE_FLUSH_EXCEPTION / WRITE_FAILED_UNCONFIRMED / WRITE_UNCONFIRMED）：
-    //     已写行按 UNKNOWN 登记（绝不谎称 REJECTED），本批次 ok=false；不自动重放/重写（防串批）。
-    //   · 崩溃窗口（写后/主库版本复核前进程终止）：恢复为 UNKNOWN（无 COMMITTED 日志），禁止自动重写。
+    //   · 写阶段首次失败/UNKNOWN 即停止后续业务写入（writeStopped 闸门）：保留已确认成功(CONFIRMED_SUCCESS)、
+    //     未确认(UNKNOWN)、未尝试(NOT_ATTEMPTED)的逐项状态；不得回滚式猜测或盲目重试。
+    //   · 已写行若结果不明，按 UNKNOWN 登记（绝不谎称 REJECTED/COMMITTED）；崩溃窗口恢复为 UNKNOWN，
+    //     禁止自动重写；必须先按原 job/目标身份（jobId+itemId+requestHash+keeperRow）查证、对账，再裁定恢复。
     var preRecs = [];     // 每个目标的预检结论 {row,uuid,keeperRow,level,timeOnly,itemId,requestHash,ok,wrote,idempotent}
     var preFail = false;
     for (var i = 0; i < rows.length; i++) {
@@ -267,27 +269,23 @@ function tsSoftDelGuardedCore(e, deps) {
         // 同身份复用检测（Tom #4）：按【请求身份】检索完成凭据，不再只看「最后一条」。
         var _recs = _journalRecords(deps, jobId, itemId);
         if (_isReadError(_recs)) {
-          _jrn(deps, jobId, batchId, itemId, requestHash, uuid, dry, 'REJECTED', keeperRow);
-          results.push({ row: row, ok: false, wrote: false, reason: 'JOURNAL_READ_ERROR', state: 'UNKNOWN', detail: _recs.detail });
+          results.push({ row: row, ok: false, wrote: false, reason: 'JOURNAL_READ_ERROR', state: 'PRECHECK_REJECTED', detail: _recs.detail });
           anyFail = true; preFail = true; preRecs.push(pr); continue;
         }
         var _commit = _findCommit(_recs, requestHash, batchId, uuid);
         if (_commit && _commit.__voided) {
-          _jrn(deps, jobId, batchId, itemId, requestHash, uuid, dry, 'REJECTED', keeperRow);
-          results.push({ row: row, ok: false, wrote: false, reason: 'PRIOR_VOIDED', state: 'VOIDED', priorState: _commit.record.state, priorReason: _commit.record.reason || null });
+          results.push({ row: row, ok: false, wrote: false, reason: 'PRIOR_VOIDED', state: 'PRECHECK_REJECTED', priorState: _commit.record.state, priorReason: _commit.record.reason || null });
           anyFail = true; preFail = true; preRecs.push(pr); continue;
         }
         if (_commit) {
           var oNow = null, oErr = null;
           try { oNow = deps.readProdO ? deps.readProdO(row) : null; } catch (oe) { oErr = String(oe && oe.message || oe); }
           if (oErr || oNow === null || oNow === undefined) {
-            _jrn(deps, jobId, batchId, itemId, requestHash, uuid, dry, 'REJECTED', keeperRow);
-            results.push({ row: row, ok: false, wrote: false, reason: 'IDEMPOTENT_RECHECK_UNAVAILABLE', state: 'UNKNOWN', error: oErr || '' });
+            results.push({ row: row, ok: false, wrote: false, reason: 'IDEMPOTENT_RECHECK_UNAVAILABLE', state: 'PRECHECK_REJECTED', error: oErr || '' });
             anyFail = true; preFail = true; preRecs.push(pr); continue;
           }
           if (!_sdSoftDel(oNow)) {
-            _jrn(deps, jobId, batchId, itemId, requestHash, uuid, dry, 'REJECTED', keeperRow);
-            results.push({ row: row, ok: false, wrote: false, reason: 'IDEMPOTENT_O_DRIFT', expect: 'TRUE', actual: String(oNow) });
+            results.push({ row: row, ok: false, wrote: false, reason: 'IDEMPOTENT_O_DRIFT', state: 'PRECHECK_REJECTED', expect: 'TRUE', actual: String(oNow) });
             anyFail = true; preFail = true; preRecs.push(pr); continue;
           }
           var idRow = null, idErr = null;
@@ -295,17 +293,15 @@ function tsSoftDelGuardedCore(e, deps) {
           var idKeeper = null;
           try { idKeeper = deps.readProdRow ? deps.readProdRow(keeperRow) : null; } catch (ke) { idKeeper = null; }
           if (idErr || !idRow || !idKeeper) {
-            _jrn(deps, jobId, batchId, itemId, requestHash, uuid, dry, 'REJECTED', keeperRow);
-            results.push({ row: row, ok: false, wrote: false, reason: 'IDEMPOTENT_IDENTITY_UNAVAILABLE', state: 'UNKNOWN', error: idErr || '' });
+            results.push({ row: row, ok: false, wrote: false, reason: 'IDEMPOTENT_IDENTITY_UNAVAILABLE', state: 'PRECHECK_REJECTED', error: idErr || '' });
             anyFail = true; preFail = true; preRecs.push(pr); continue;
           }
           var liveKHashIdem = _sdRowHash(idKeeper, timeOnly);
           if (norm._sdNorm(idRow[8]) !== uuid || _sdSoftDel(idKeeper[14]) || liveKHashIdem !== it.keeperHash) {
-            _jrn(deps, jobId, batchId, itemId, requestHash, uuid, dry, 'REJECTED', keeperRow);
-            results.push({ row: row, ok: false, wrote: false, reason: 'IDEMPOTENT_IDENTITY_DRIFT', state: 'UNKNOWN', uuidActual: norm._sdNorm(idRow[8]), keeperO: String(idKeeper[14]), keeperHashActual: liveKHashIdem, keeperHashExpect: it.keeperHash });
+            results.push({ row: row, ok: false, wrote: false, reason: 'IDEMPOTENT_IDENTITY_DRIFT', state: 'PRECHECK_REJECTED', uuidActual: norm._sdNorm(idRow[8]), keeperO: String(idKeeper[14]), keeperHashActual: liveKHashIdem, keeperHashExpect: it.keeperHash });
             anyFail = true; preFail = true; preRecs.push(pr); continue;
           }
-          // 幂等成功：已在前次作业写入；预检通过、不写、不阻塞整批
+          // 幂等成功：已在前次作业写入；预检通过、不写、不阻塞整批（仅读取判定，零写、零日志）
           results.push({ row: row, ok: true, wrote: true, level: level, idempotent: true });
           patched++;
           pr.ok = true; pr.wrote = true; pr.idempotent = true;
@@ -313,24 +309,23 @@ function tsSoftDelGuardedCore(e, deps) {
         }
         var _anyCommit = _findAnyCommit(_recs);
         if (_anyCommit) {
-          _jrn(deps, jobId, batchId, itemId, requestHash, uuid, dry, 'REJECTED', keeperRow);
-          results.push({ row: row, ok: false, reason: 'KEY_REUSE_CONFLICT', priorHash: _anyCommit.requestHash });
+          results.push({ row: row, ok: false, reason: 'KEY_REUSE_CONFLICT', state: 'PRECHECK_REJECTED', priorHash: _anyCommit.requestHash });
           anyFail = true; preFail = true; preRecs.push(pr); continue;
         }
         var vals = deps.readProdRow(row);
-        if (!vals) { _jrn(deps, jobId, batchId, itemId, requestHash, uuid, dry, 'REJECTED', keeperRow); results.push({ row: row, ok: false, reason: 'ROW_NOT_FOUND' }); anyFail = true; preFail = true; preRecs.push(pr); continue; }
+        if (!vals) { results.push({ row: row, ok: false, reason: 'ROW_NOT_FOUND', state: 'PRECHECK_REJECTED' }); anyFail = true; preFail = true; preRecs.push(pr); continue; }
         var kVals = deps.readProdRow(keeperRow);
-        if (norm._sdNorm(vals[8]) !== uuid) { _jrn(deps, jobId, batchId, itemId, requestHash, uuid, dry, 'REJECTED', keeperRow); results.push({ row: row, ok: false, reason: 'UUID_DRIFT', actual: norm._sdNorm(vals[8]) }); anyFail = true; preFail = true; preRecs.push(pr); continue; }
-        if (_sdSoftDel(vals[14])) { _jrn(deps, jobId, batchId, itemId, requestHash, uuid, dry, 'REJECTED', keeperRow); results.push({ row: row, ok: false, wrote: false, reason: 'ALREADY_SOFTDEL' }); anyFail = true; preFail = true; preRecs.push(pr); continue; }
-        if (!kVals || _sdSoftDel(kVals[14])) { _jrn(deps, jobId, batchId, itemId, requestHash, uuid, dry, 'REJECTED', keeperRow); results.push({ row: row, ok: false, reason: 'KEEPER_INVALID' }); anyFail = true; preFail = true; preRecs.push(pr); continue; }
+        if (norm._sdNorm(vals[8]) !== uuid) { results.push({ row: row, ok: false, reason: 'UUID_DRIFT', state: 'PRECHECK_REJECTED', actual: norm._sdNorm(vals[8]) }); anyFail = true; preFail = true; preRecs.push(pr); continue; }
+        if (_sdSoftDel(vals[14])) { results.push({ row: row, ok: false, wrote: false, reason: 'ALREADY_SOFTDEL', state: 'PRECHECK_REJECTED' }); anyFail = true; preFail = true; preRecs.push(pr); continue; }
+        if (!kVals || _sdSoftDel(kVals[14])) { results.push({ row: row, ok: false, reason: 'KEEPER_INVALID', state: 'PRECHECK_REJECTED' }); anyFail = true; preFail = true; preRecs.push(pr); continue; }
         var liveHash = _sdRowHash(vals, timeOnly);
         var liveKHash = _sdRowHash(kVals, timeOnly);
-        if (liveHash !== it.expectHash) { _jrn(deps, jobId, batchId, itemId, requestHash, uuid, dry, 'REJECTED', keeperRow); results.push({ row: row, ok: false, reason: 'TARGET_DRIFT', expect: it.expectHash, actual: liveHash }); anyFail = true; preFail = true; preRecs.push(pr); continue; }
-        if (liveKHash !== it.keeperHash) { _jrn(deps, jobId, batchId, itemId, requestHash, uuid, dry, 'REJECTED', keeperRow); results.push({ row: row, ok: false, reason: 'KEEPER_DRIFT', expect: it.keeperHash, actual: liveKHash }); anyFail = true; preFail = true; preRecs.push(pr); continue; }
+        if (liveHash !== it.expectHash) { results.push({ row: row, ok: false, reason: 'TARGET_DRIFT', state: 'PRECHECK_REJECTED', expect: it.expectHash, actual: liveHash }); anyFail = true; preFail = true; preRecs.push(pr); continue; }
+        if (liveKHash !== it.keeperHash) { results.push({ row: row, ok: false, reason: 'KEEPER_DRIFT', state: 'PRECHECK_REJECTED', expect: it.keeperHash, actual: liveKHash }); anyFail = true; preFail = true; preRecs.push(pr); continue; }
         if (timeOnly) {
           var liveEntry = _sdCellHash(vals[0]);
           var liveKEntry = _sdCellHash(kVals[0]);
-          if (liveEntry !== it.expectEntryTime || liveKEntry !== it.keeperEntryTime) { _jrn(deps, jobId, batchId, itemId, requestHash, uuid, dry, 'REJECTED', keeperRow); results.push({ row: row, ok: false, reason: 'ENTRY_TIME_DRIFT' }); anyFail = true; preFail = true; preRecs.push(pr); continue; }
+          if (liveEntry !== it.expectEntryTime || liveKEntry !== it.keeperEntryTime) { results.push({ row: row, ok: false, reason: 'ENTRY_TIME_DRIFT', state: 'PRECHECK_REJECTED' }); anyFail = true; preFail = true; preRecs.push(pr); continue; }
         }
         var diffs = [];
         for (var c = 0; c <= 13; c++) {
@@ -339,77 +334,85 @@ function tsSoftDelGuardedCore(e, deps) {
           if (tA !== tB) diffs.push(c);
         }
         var allowed = timeOnly && diffs.length > 0 && diffs.every(function (x) { return x === 0; });
-        if (diffs.length > 0 && !allowed) { _jrn(deps, jobId, batchId, itemId, requestHash, uuid, dry, 'REJECTED', keeperRow); results.push({ row: row, ok: false, reason: 'PAYLOAD_DIFF', cols: diffs }); anyFail = true; preFail = true; preRecs.push(pr); continue; }
+        if (diffs.length > 0 && !allowed) { results.push({ row: row, ok: false, reason: 'PAYLOAD_DIFF', state: 'PRECHECK_REJECTED', cols: diffs }); anyFail = true; preFail = true; preRecs.push(pr); continue; }
         var bizDate = vals[1];
         var g = deps.guardCheck(bizDate, null, policy);
-        if (!g.ok && !clearanceOk) { _jrn(deps, jobId, batchId, itemId, requestHash, uuid, dry, 'REJECTED', keeperRow); results.push({ row: row, ok: false, reason: 'PERIOD_LOCKED', date: norm._sdNorm(bizDate), detail: g.reason || '' }); anyFail = true; preFail = true; preRecs.push(pr); continue; }
+        if (!g.ok && !clearanceOk) { results.push({ row: row, ok: false, reason: 'PERIOD_LOCKED', state: 'PRECHECK_REJECTED', date: norm._sdNorm(bizDate), detail: g.reason || '' }); anyFail = true; preFail = true; preRecs.push(pr); continue; }
         if (level === 'A') {
           var mMatches = masterMap[uuid] || [];
-          if (mMatches.length !== 1) { _jrn(deps, jobId, batchId, itemId, requestHash, uuid, dry, 'REJECTED', keeperRow); results.push({ row: row, ok: false, reason: (mMatches.length === 0 ? 'BASE_NOT_FOUND' : 'BASE_NOT_UNIQUE'), count: mMatches.length }); anyFail = true; preFail = true; preRecs.push(pr); continue; }
+          if (mMatches.length !== 1) { results.push({ row: row, ok: false, reason: (mMatches.length === 0 ? 'BASE_NOT_FOUND' : 'BASE_NOT_UNIQUE'), state: 'PRECHECK_REJECTED', count: mMatches.length }); anyFail = true; preFail = true; preRecs.push(pr); continue; }
           var mHash = _sdRowHash(mMatches[0].cells, false);
-          if (mHash !== it.expectBaseHash) { _jrn(deps, jobId, batchId, itemId, requestHash, uuid, dry, 'REJECTED', keeperRow); results.push({ row: row, ok: false, reason: 'BASE_DRIFT', expect: it.expectBaseHash, actual: mHash }); anyFail = true; preFail = true; preRecs.push(pr); continue; }
+          if (mHash !== it.expectBaseHash) { results.push({ row: row, ok: false, reason: 'BASE_DRIFT', state: 'PRECHECK_REJECTED', expect: it.expectBaseHash, actual: mHash }); anyFail = true; preFail = true; preRecs.push(pr); continue; }
         } else {
           var mB = masterMap[uuid] || [];
-          if (mB.length !== 0) { _jrn(deps, jobId, batchId, itemId, requestHash, uuid, dry, 'REJECTED', keeperRow); results.push({ row: row, ok: false, reason: 'BASE_HAS_MATCH', count: mB.length }); anyFail = true; preFail = true; preRecs.push(pr); continue; }
+          if (mB.length !== 0) { results.push({ row: row, ok: false, reason: 'BASE_HAS_MATCH', state: 'PRECHECK_REJECTED', count: mB.length }); anyFail = true; preFail = true; preRecs.push(pr); continue; }
         }
-        // 预检通过（不含写）：标记待写，不落日志
+        // 预检通过（不含任何写、不含任何日志）：标记待写
         pr.ok = true; preRecs.push(pr);
       } catch (rerr) {
-        _jrn(deps, jobId, batchId, itemId, requestHash, uuid, dry, 'REJECTED', keeperRow);
-        results.push({ row: row, ok: false, reason: 'ROW_READ_FAIL', error: String(rerr && rerr.message || rerr) });
+        results.push({ row: row, ok: false, reason: 'ROW_READ_FAIL', state: 'PRECHECK_REJECTED', error: String(rerr && rerr.message || rerr) });
         anyFail = true; preFail = true; preRecs.push(pr);
       }
     }
 
-    // ===== Phase B：整批裁决 + 写阶段 =====
+    // ===== Phase B：整批裁决 + 写阶段（Tom W 批·点③：首次失败/UNKNOWN 即停，保留逐项状态）=====
     if (preFail) {
       // 整批拒绝：零生产写。通过目标记 BATCH_REJECTED_PRECHECK（未写、无日志）。
       for (var bi = 0; bi < preRecs.length; bi++) {
         var bpr = preRecs[bi];
         if (bpr.ok && !bpr.idempotent) {
-          results.push({ row: bpr.row, ok: false, wrote: false, reason: 'BATCH_REJECTED_PRECHECK',
+          results.push({ row: bpr.row, ok: false, wrote: false, reason: 'BATCH_REJECTED_PRECHECK', state: 'NOT_ATTEMPTED',
             detail: '整批预检存在失败项，本目标未写（零副作用）' });
         }
       }
     } else {
-      // 全体预检通过 -> 进入生产写（与现有写逻辑一致：PREPARED + writeProdO + 回读）
+      // 全体预检通过 -> 进入生产写（PREPARED + writeProdO + 回读）。
+      // writeStopped 闸门（Tom W 批·点③）：一旦任一目标发生写入失败/结果不明，后续未尝试目标一律 NOT_ATTEMPTED，
+      // 不得继续写、不得回滚式猜测或盲目重试；须按原 job/目标身份查证对账后再裁定恢复。
+      var writeStopped = false;
       for (var bi2 = 0; bi2 < preRecs.length; bi2++) {
         var wpr = preRecs[bi2];
-        if (wpr.idempotent) continue;   // 已在 Phase A 计入
+        if (wpr.idempotent) continue;   // 已在 Phase A 计入（幂等成功）
         var wRow = wpr.row, wUuid = wpr.uuid, wKeeper = wpr.keeperRow, wLevel = wpr.level,
             wTimeOnly = wpr.timeOnly, wItemId = wpr.itemId, wReqHash = wpr.requestHash;
+        if (writeStopped) {
+          // 前序目标写失败/UNKNOWN -> 本目标未尝试，保留 NOT_ATTEMPTED（不写、不重试）
+          results.push({ row: wRow, ok: false, wrote: false, reason: 'BATCH_STOPPED_NOT_ATTEMPTED', state: 'NOT_ATTEMPTED',
+            detail: '前序目标写失败/结果不明，已停止后续业务写入；须按 job/目标身份对账裁定恢复（禁止盲目重试）' });
+          continue;
+        }
         var prepOk = _jrn(deps, jobId, batchId, wItemId, wReqHash, wUuid, dry, 'PREPARED', wKeeper);
-        if (!prepOk) { results.push({ row: wRow, ok: false, wrote: false, reason: 'PREPARED_LOG_FAILED' }); anyFail = true; continue; }
+        if (!prepOk) { results.push({ row: wRow, ok: false, wrote: false, reason: 'PREPARED_LOG_FAILED', state: 'UNCONFIRMED' }); anyFail = true; writeStopped = true; continue; }
         if (!dry) {
           var wroteOk = false;
           try {
             wroteOk = deps.writeProdO(wRow, 'TRUE');
           } catch (we) {
             _jrn(deps, jobId, batchId, wItemId, wReqHash, wUuid, dry, 'UNKNOWN', null, wKeeper);
-            results.push({ row: wRow, ok: false, wrote: false, reason: 'WRITE_FLUSH_EXCEPTION', error: String(we && we.message || we) });
-            anyFail = true; continue;
+            results.push({ row: wRow, ok: false, wrote: false, reason: 'WRITE_FLUSH_EXCEPTION', state: 'UNKNOWN', error: String(we && we.message || we) });
+            anyFail = true; writeStopped = true; continue;
           }
           if (!wroteOk) {
             _jrn(deps, jobId, batchId, wItemId, wReqHash, wUuid, dry, 'UNKNOWN', null, wKeeper);
             results.push({ row: wRow, ok: false, wrote: false, reason: 'WRITE_FAILED_UNCONFIRMED', state: 'UNKNOWN' });
-            anyFail = true; continue;
+            anyFail = true; writeStopped = true; continue;
           }
           var wrAfter = null;
           try { wrAfter = deps.readProdO(wRow); } catch (re) {
             _jrn(deps, jobId, batchId, wItemId, wReqHash, wUuid, dry, 'UNKNOWN', null, wKeeper);
-            results.push({ row: wRow, ok: false, wrote: true, reason: 'WRITE_UNCONFIRMED', error: String(re && re.message || re) });
-            anyFail = true; continue;
+            results.push({ row: wRow, ok: false, wrote: true, reason: 'WRITE_UNCONFIRMED', state: 'UNKNOWN', error: String(re && re.message || re) });
+            anyFail = true; writeStopped = true; continue;
           }
           if (norm._sdNormO(wrAfter) !== 'TRUE') {
             _jrn(deps, jobId, batchId, wItemId, wReqHash, wUuid, dry, 'UNKNOWN', 'WRITE_NOT_CONFIRMED', wKeeper);
             results.push({ row: wRow, ok: false, wrote: true, reason: 'WRITE_NOT_CONFIRMED', state: 'UNKNOWN', actual: String(wrAfter) });
-            anyFail = true; continue;
+            anyFail = true; writeStopped = true; continue;
           }
-          var _rr = { row: wRow, ok: true, wrote: true, level: wLevel, requestHash: wReqHash, uuid: wUuid, keeperRow: wKeeper };
+          var _rr = { row: wRow, ok: true, wrote: true, level: wLevel, requestHash: wReqHash, uuid: wUuid, keeperRow: wKeeper, state: 'CONFIRMED_SUCCESS' };
           results.push(_rr);
           patched++; wroteRows.push(_rr);
         } else {
-          results.push({ row: wRow, ok: true, wrote: false, level: wLevel });
+          results.push({ row: wRow, ok: true, wrote: false, level: wLevel, state: 'CONFIRMED_SUCCESS' });
         }
       }
     }

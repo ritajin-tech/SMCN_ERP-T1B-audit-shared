@@ -11,6 +11,12 @@ assert(g.validateRows([{ row: 2, cells: [] }, { row: 2, cells: [] }]).length ===
 assert(g.validateRows([{ row: 'x', cells: [] }]).length === 1, '非数字行号被拒');
 assert(g.validateRows([{ row: 2, cells: 'no' }]).length === 1, 'cells 非数组被拒');
 assert(g.validateRows('nope').length === 1, '非数组整体被拒');
+// Tom W 批·点② 收紧：安全整数 + 明确列宽
+assert(g.validateRows([{ row: 1.5, cells: [1] }]).length === 1, '1.5 非安全整数行号被拒');
+assert(g.validateRows([{ row: 0, cells: [1] }]).length === 1, '行号 <1 被拒');
+assert(g.validateRows([{ row: 2, cells: [1, 2] }, { row: 5, cells: [1] }], { expectedWidth: 2 }).length === 1, 'expectedWidth 不符被拒(缺列)');
+assert(g.validateRows([{ row: 2, cells: [1, 2] }, { row: 5, cells: [1, 2] }], { expectedWidth: 2 }).length === 0, 'expectedWidth 相符通过');
+assert(g.validateRows([{ row: 2, cells: [1, 2] }, { row: 5, cells: [1] }]).length === 1, '未给宽度时列宽不一致被拒');
 
 console.log('=== contentFingerprint 结构化无碰撞 ===');
 const fp1 = g.contentFingerprint([{ row: 1, cells: ['a|b', 'c'] }]);
@@ -25,6 +31,6 @@ assert(g.verifyReadGuard({ startLast: 1, endLast: 1, startRev: 'R1', endRev: 'R1
 assert(g.verifyReadGuard({ startLast: 2, endLast: 1, startRev: 'R1', endRev: 'R1', startFp: 'F', endFp: 'F' }).ok === false, 'lastRow 漂移 → 拒绝');
 assert(g.verifyReadGuard({ startLast: 1, endLast: 1, startRev: null, endRev: null, startFp: 'F', endFp: 'F' }).ok === true, '双侧均无 revision + 指纹一致 → 放行(CONTENT_FINGERPRINT)');
 
-const total = 15;
-console.log('\n' + (fails ? ('FAIL: ' + fails + ' 项') : ('PASS: ts_read_guard ' + total + '/15 全绿（含 A点② validateRows 新增 4 例）')));
+const total = 17;
+console.log('\n' + (fails ? ('FAIL: ' + fails + ' 项') : ('PASS: ts_read_guard ' + total + '/' + total + ' 全绿（含 W 批 validateRows 收紧：安全整数+明确列宽）')));
 process.exit(fails ? 1 : 0);

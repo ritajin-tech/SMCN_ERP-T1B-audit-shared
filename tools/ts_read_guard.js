@@ -36,19 +36,41 @@ function verifyReadGuard(g) {
   return { ok: true, guard };
 }
 
-// Tom V 批·A点② 补强：读取守卫输入健全性校验 —— row 为唯一、稳定的数字行号；cells 为完整数组。
-// 返回违规列表（空 == 通过）；guard 调用方应在计算指纹前先跑本校验，失败即 fail-closed。
-function validateRows(rows) {
+// Tom V 批·A点② 补强 + W 批收紧：读取守卫输入健全性校验。
+// 规则（fail-closed，任何一项违规即返回违规列表，调用方须在指纹计算前校验并在失败时拒绝）：
+//   · rows 必须是数组；
+//   · 每个 row 必须是【安全整数】(Number.isSafeInteger) 且 >=1（拒绝 1.5 / '2' / NaN / Infinity）；
+//   · 行号唯一（重复即违规）；
+//   · cells 必须是数组（拒绝非数组）；
+//   · 列宽规则：opts.expectedWidth 给出时，每个【非空】行 cells.length 必须 == expectedWidth；
+//     未给出时，所有【非空】行 cells.length 必须彼此相等（明确列宽，杜绝缺列/结构异常）。
+function validateRows(rows, opts) {
+  opts = opts || {};
+  const expectedWidth = (typeof opts.expectedWidth === 'number') ? opts.expectedWidth : null;
   if (!Array.isArray(rows)) return ['rows 不是数组'];
   const seen = {};
+  let implicitWidth = null;
   for (let i = 0; i < rows.length; i++) {
     const r = rows[i] || {};
-    if (typeof r.row !== 'number' || !isFinite(r.row) || r.row < 1) {
-      return ['rows[' + i + '].row 非稳定数字行号: ' + JSON.stringify(r.row)];
+    if (typeof r.row !== 'number' || !Number.isSafeInteger(r.row) || r.row < 1) {
+      return ['rows[' + i + '].row 非安全整数行号(>=1): ' + JSON.stringify(r.row)];
     }
     if (seen[r.row]) return ['rows[' + i + '].row 行号重复: ' + r.row];
     seen[r.row] = true;
     if (!Array.isArray(r.cells)) return ['rows[' + i + '].cells 非数组'];
+    // 仅对【非空】行（cells 实际含内容）施加列宽规则；全空行（已被筛除前）不强制宽度。
+    const hasContent = r.cells.some(c => c !== null && c !== undefined && String(c).trim() !== '');
+    if (!hasContent) continue;
+    if (expectedWidth !== null) {
+      if (r.cells.length !== expectedWidth) {
+        return ['rows[' + i + '].cells 列宽不符: 期望 ' + expectedWidth + ' 实际 ' + r.cells.length];
+      }
+    } else {
+      if (implicitWidth === null) implicitWidth = r.cells.length;
+      else if (r.cells.length !== implicitWidth) {
+        return ['rows[' + i + '].cells 列宽不一致: 前 ' + implicitWidth + ' 实际 ' + r.cells.length];
+      }
+    }
   }
   return [];
 }

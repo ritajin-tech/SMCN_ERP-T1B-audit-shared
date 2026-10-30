@@ -10,9 +10,9 @@ T1-B 复现隔离运行器（回应 Tom 08:27Z 对 S3 的复核 + 2026-10-29 20:
       (file/dir/symlink/other) + (file:sha256 | symlink:target)，类型变更即视为原树被改。
   (c) 清理用 ignore_errors=True 且未确认成功 -> 改为确认清理结果，失败即 fail-closed 报告。
   (d) 外部 OS 沙箱仅以"WSL/容器名称"判断 -> 事后哈希对比不是权限边界；
-      改为【必须先显式验证】的运行前置：须带 --sandbox-verified 显式声明（操作员在
-      WSL/容器/macOS sandbox-exec 内包裹运行），并叠加实测探针（尝试写系统保护路径必须被拒），
-      二者缺一即拒绝运行。
+      改为：本运行器【不凭自声明创建或证明】OS 隔离——隔离必须由操作员自有 OS 施加，
+      并经【--sandbox-manifest(带外佐证) + 非破坏性运行时证据(家目录/系统目录只读 + Linux 容器/cgroup)】
+      证实；任一适用探针缺失即 fail-closed，边界未证实前绝不启动生成器（Tom W 批·点①）。
 
 🔴 强制边界（均可验证，失败即 fail-closed）：
 1) 原树只读：运行前对【原始审阅仓】tools/ 做完整快照（kind+hash/target）；运行后【无论生成器成功/失败】
@@ -23,7 +23,7 @@ T1-B 复现隔离运行器（回应 Tom 08:27Z 对 S3 的复核 + 2026-10-29 20:
 5) 低权限/挂载只读（OS 级）：若未提供显式且经探针验证的 OS 沙箱，【默认拒绝】运行。
 
 用法：
-    python tools/ts_repro_isolation_runner.py <审阅仓本地路径> --sandbox-verified
+    python tools/ts_repro_isolation_runner.py <审阅仓本地路径> --sandbox-verified --sandbox-manifest <隔离策略描述文件>
 
 🔴 说明：本运行器不把"运行待审仓生成器"当作零写/零执行证明；它只是把复现配方放进一个
 由代码强制的隔离边界，供审阅方在自有 OS 上复现。复现结果仍记为【提交方报告】，除非另有
@@ -46,14 +46,6 @@ NETWORK_IMPORT_RE = re.compile(
     r'^\s*(import\s+(socket|urllib|requests|http|ftplib|smtplib|paramiko|subprocess|ctypes)\b|'
     r'from\s+(socket|urllib|requests|http|ftplib|smtplib|paramiko|subprocess|ctypes)\s+import)',
     re.M)
-
-# 运行期禁止写入的"系统保护路径"探针目标（跨平台）：若这些路径可写，说明沙箱未隔离 -> 拒绝。
-SANDBOX_PROBE_PATHS = [
-    '/etc/ts_iso_probe_deny',                 # POSIX 系统目录
-    '/System/Library/ts_iso_probe_deny',      # macOS
-    'C:\\Windows\\ts_iso_probe_deny',         # Windows（原生 Windows 本就拒绝）
-    'C:\\Program Files\\ts_iso_probe_deny',
-]
 
 
 def sha256_file(p):
@@ -131,37 +123,97 @@ def scan_generator(path):
     return suspects
 
 
-def verify_os_sandbox(sandbox_verified_flag):
-    """Tom V 批：外部 OS 沙箱必须先显式验证，不得仅凭"WSL/容器"名称。
-    返回 (ok, detail)：ok=False 即 fail-closed 拒绝运行。"""
-    if not sandbox_verified_flag:
-        return (False, '未提供 --sandbox-verified：本运行器要求操作员在 WSL/容器/macOS sandbox-exec '
-                       '内包裹运行并显式声明；不提供任何绕过开关。事后哈希对比不是权限边界，'
-                       'WSL/容器名称本身也不是证明。')
-    # 探针：尝试写系统保护路径，必须被拒（说明低权限/只读挂载有效）。
-    writable_system = []
-    for pp in SANDBOX_PROBE_PATHS:
-        parent = os.path.dirname(pp)
-        if not os.path.isdir(parent):
-            continue
+def _linux_container_evidence():
+    """返回非空字符串 = 检出 Linux 容器/cgroup 或能力集缩减（真正的 OS 级隔离证据）；否则 None。
+    仅做只读读取，不写任何文件。"""
+    if platform.system() != 'Linux':
+        return None
+    try:
+        with open('/proc/self/cgroup', 'r', encoding='utf-8', errors='replace') as f:
+            cg = f.read()
+        if any(k in cg for k in ('docker', 'kubepods', 'containerd', 'cri-o', 'lxc', 'podman')):
+            return 'cgroup 含容器运行时证据'
+    except OSError:
+        pass
+    try:
+        with open('/proc/self/status', 'r', encoding='utf-8', errors='replace') as f:
+            st = f.read()
+        m = re.search(r'CapEff:\s*([0-9a-fA-F]+)', st)
+        if m:
+            cap = int(m.group(1), 16)
+            if 0 < cap < 0x3FFFFFFFFF:   # 全量能力通常 >= 0x3FFFFFFFFF；显著缩减暗示受限
+                return '进程能力集(CapEff)已缩减'
+    except OSError:
+        pass
+    return None
+
+
+def _probe_network_blocked():
+    """非破坏性辅助探针：尝试连接可达公共地址，短时超时；均不可达 => 网络被隔离（辅助证据）。
+    仅做连接尝试，不发送任何数据；不做为唯一判据（Tom W 批·点①：网络探测不足为凭）。"""
+    import socket
+    blocked = 0
+    for host, port in (('8.8.8.8', 443), ('1.1.1.1', 443)):
         try:
-            with open(pp, 'w') as f:
-                f.write('probe')
-            writable_system.append(pp)
-            try:
-                os.remove(pp)
-            except OSError:
-                pass
-        except (OSError, IOError):
-            pass  # 被拒 = 好现象
-    if writable_system:
-        return (False, '沙箱探针失败：系统保护路径可写 %s，说明 OS 层未隔离（低权限/只读挂载无效），拒绝运行。'
-                       % writable_system)
-    # 原生 Windows 仍直接拒绝（无强 OS 沙箱）
-    is_windows_native = platform.system() == 'Windows' and 'microsoft' not in platform.release().lower()
-    if is_windows_native:
-        return (False, '原生 Windows 无法提供强 OS 沙箱，拒绝运行；请在 WSL/容器内运行。')
-    return (True, '沙箱前置已验证：显式声明 + 系统路径写探针被拒。')
+            s = socket.create_connection((host, port), timeout=1.0)
+            s.close()
+        except OSError:
+            blocked += 1
+    return blocked == 2
+
+
+def verify_os_boundary(sandbox_verified_flag, manifest_path):
+    """Tom V→W 批·点①：OS 隔离边界必须由【独立生效的 OS 策略 + 可核验配置】证明，
+    自声明开关 / Python -I / 导入黑名单 / 事后 tools 快照【不能替代】权限边界。
+
+    本函数不凭自声明放过；它要求操作员提供 --sandbox-manifest（描述实际 OS 策略的带外佐证），
+    并叠加【非破坏性运行时证据】：家目录/系统目录只读（os.access，不实际写）+ Linux 容器/cgroup 证据。
+    网络探测仅作辅助，绝不作为唯一判据。任一适用探针缺失时【不静默通过】—— 边界未证实即 fail-closed。
+
+    返回 (ok, detail)：ok=False 即拒绝运行生成器（直到边界在自有 OS 上被证实）。
+    """
+    if not sandbox_verified_flag:
+        return (False, '未提供 --sandbox-verified：本运行器要求操作员在已证实隔离的 OS（容器/WSL/'
+                       'macOS sandbox-exec）内包裹运行并显式声明；不提供任何绕过开关。')
+    if not manifest_path or not os.path.isfile(manifest_path):
+        return (False, '未提供 --sandbox-manifest：无法对 OS 边界做带外核验；本运行器不凭自声明开关放行'
+                       '（Tom W 批·点①：自声明开关不能替代权限边界）。')
+    try:
+        with open(manifest_path, 'r', encoding='utf-8', errors='replace') as f:
+            manifest_text = f.read()
+    except OSError as e:
+        return (False, 'sandbox-manifest 读取失败：%s' % e)
+    if not manifest_text.strip():
+        return (False, 'sandbox-manifest 为空，无法证明 OS 边界。')
+    evidence = ['manifest 已载入(%d 字节，带外佐证)' % len(manifest_text)]
+
+    # 运行时证据①：文件访问边界（非破坏性 os.access，不实际写）—— 家目录/系统目录应为只读
+    file_boundary = False
+    home = os.path.expanduser('~')
+    if home and os.path.isdir(home) and not os.access(home, os.W_OK):
+        file_boundary = True
+        evidence.append('家目录只读(os.access W_OK=False)')
+    sysdir = '/etc' if platform.system() != 'Windows' else 'C:\\Windows'
+    if os.path.isdir(sysdir) and not os.access(sysdir, os.W_OK):
+        file_boundary = True
+        evidence.append('系统目录只读(os.access W_OK=False)')
+
+    # 运行时证据②：Linux 容器/cgroup 或能力集缩减（真正的 OS 级隔离）
+    cg_ev = _linux_container_evidence()
+    if cg_ev:
+        evidence.append(cg_ev)
+
+    # 网络边界（辅助，不作唯一判据）
+    if _probe_network_blocked():
+        evidence.append('网络不可达(连接探测被拒，辅助证据)')
+
+    # 判定：必须有至少一项【运行时】边界证据（文件只读 或 容器/cgroup）；
+    # manifest 仅作带外佐证，绝不能单独放行。无适用探针时绝不静默通过。
+    if file_boundary or cg_ev:
+        return (True, 'OS 边界运行时证据成立：' + '；'.join(evidence) + '。生成器仅可在已证实隔离的'
+                       '环境中运行；manifest 真实性由审阅方带外核验。')
+    return (False, '未检出 OS 级隔离运行时证据（家目录可写且无非容器/cgroup 证据）：' + '；'.join(evidence)
+                   + '。边界未证实，拒绝运行生成器（Tom W 批·点①）。')
 
 
 def _remove_tree_confirm(path):
@@ -182,13 +234,21 @@ def main():
     args = sys.argv[1:]
     repo = None
     sandbox_verified = False
-    for a in args:
+    manifest_path = None
+    i = 0
+    while i < len(args):
+        a = args[i]
         if a == '--sandbox-verified':
             sandbox_verified = True
+        elif a == '--sandbox-manifest':
+            i += 1
+            manifest_path = args[i] if i < len(args) else None
         elif not a.startswith('-'):
             repo = a
+        i += 1
     if not repo:
-        print('usage: python tools/ts_repro_isolation_runner.py <审阅仓本地路径> --sandbox-verified')
+        print('usage: python tools/ts_repro_isolation_runner.py <审阅仓本地路径> '
+              '--sandbox-verified --sandbox-manifest <隔离策略描述文件>')
         return 2
 
     tools_dir = os.path.join(repo, 'tools')
@@ -200,10 +260,10 @@ def main():
         print('[ABORT] 找不到生成器 %s' % gen_path)
         return 3
 
-    # 0) OS 沙箱前置（显式声明 + 探针，缺一即拒绝）—— Tom V 批
-    ok_sb, detail_sb = verify_os_sandbox(sandbox_verified)
+    # 0) OS 隔离边界前置（显式声明 + manifest 带外佐证 + 运行时证据，缺一即拒绝）—— Tom V→W 批·点①
+    ok_sb, detail_sb = verify_os_boundary(sandbox_verified, manifest_path)
     if not ok_sb:
-        print('[ABORT] OS 沙箱前置未通过：%s' % detail_sb)
+        print('[ABORT] OS 隔离边界前置未通过：%s' % detail_sb)
         return 8
 
     # 1) 原树快照（before）—— 完整 kind+hash/target

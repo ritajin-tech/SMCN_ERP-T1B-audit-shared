@@ -62,13 +62,21 @@ async function get(args) {
   }
   return {};
 }
+// 列字母 -> 1-based 宽度（单字母足矣：Q=17, O=15）。用于读取链"明确列宽"fail-closed 校验。
+function colIndex(col) {
+  let n = 0;
+  for (let i = 0; i < col.length; i++) n = n * 26 + (col.charCodeAt(i) - 64);
+  return n;
+}
+
 async function readAll(ssId, sheet, lastCol) {
   const probe = await get({ ssId, sheet, mode: 'values', a1: 'A1:' + lastCol + '2' });
   const last = probe.lastRow || 0;
   const revision = probe.revision != null ? probe.revision : null;
   if (!last || last < 2) return { rows: [], lastRow: last, ok: false, reason: 'EMPTY_PROBE' };
+  const expectedWidth = colIndex(lastCol);   // 读取范围宽度 = 列宽规则基准
   const pages = [], rows = []; let pageFail = false, truncated = false;
-  for (let s = 1; s <= last; s += 400) {
+  for (let s =1; s <= last; s += 400) {
     const e = Math.min(s + 399, last);
     const r = await get({ ssId, sheet, mode: 'values', a1: `A${s}:${lastCol}${e}` });
     const got = (r && r.values) ? r.values.length : 0;
@@ -78,6 +86,12 @@ async function readAll(ssId, sheet, lastCol) {
     if (!ok) { if (got === 0) pageFail = true; else truncated = true; }
     (r && r.values ? r.values : []).forEach((cells, i) => { const rr = s + i; if (rr <= last) rows.push({ row: rr, cells: cells || [] }); });
   }
+
+  // 🔴 Tom W 批·点②：读取链接入 validateRows（安全整数行号 + 唯一 + 明确列宽），
+  // 在计算内容指纹【及】筛除空行【之前】执行；任何结构异常（非整数行号/重复/缺列/列宽不一致）即 fail-closed。
+  const v1 = rg.validateRows(rows, { expectedWidth });
+  if (v1.length) return { rows, lastRow: last, pages, ok: false, reason: 'VALIDATE_ROWS_FAILED', detail: v1 };
+
   const probe2 = await get({ ssId, sheet, mode: 'values', a1: 'A1:' + lastCol + '2' });
   const rev2 = probe2.revision != null ? probe2.revision : null;
 
@@ -85,11 +99,21 @@ async function readAll(ssId, sheet, lastCol) {
   // 故对【完整规范化快照】做 SHA-256 指纹，并重读全量做一次指纹交叉校验（fail-closed）。
   const startFp = rg.contentFingerprint(rows);
   const rows2 = [];
+  const pages2 = [];   // 第二遍同样逐页校验期望行数（Tom W 批·点②）
   for (let s = 1; s <= last; s += 400) {
     const e = Math.min(s + 399, last);
     const r = await get({ ssId, sheet, mode: 'values', a1: `A${s}:${lastCol}${e}` });
+    const got = (r && r.values) ? r.values.length : 0;
+    const expected = (e - s + 1);
+    const ok = got > 0 && got === expected;
+    pages2.push({ reqStart: s, reqEnd: e, got, expected, ok });
+    if (!ok) { if (got === 0) pageFail = true; else truncated = true; }
     (r && r.values ? r.values : []).forEach((cells, i) => { const rr = s + i; if (rr <= last) rows2.push({ row: rr, cells: cells || [] }); });
   }
+  // 第二遍同样接入 validateRows（两次取得同样的不完整数据指纹相同也不能证明完整）
+  const v2 = rg.validateRows(rows2, { expectedWidth });
+  if (v2.length) return { rows, lastRow: last, pages, ok: false, reason: 'VALIDATE_ROWS_FAILED', detail: v2 };
+
   const endFp = rg.contentFingerprint(rows2);
   const guard = rg.verifyReadGuard({
     startFp, endFp, startLast: last, endLast: probe2.lastRow || 0,

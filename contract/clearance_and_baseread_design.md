@@ -37,6 +37,27 @@
 - 是否须经 Tom 代码复核后再部署；
 - 是否同意原地更新（不换链接）。
 
+### 1.5 落地位置、验签/作用域校验、锁内原子消费与异常恢复状态机（Tom W 批·点④）
+
+> 本节仍为【设计草案，未部署、未授权、未落地】；仅供 Tom 复核代码前的设计确认，不构成任何部署或写表许可。
+
+**实现位置**（须 Tom 代码复核通过 + 红线#10 原地更新不换链接后才部署）：
+- 令牌校验入口：`gen_gas_softdel.py:189` 与部署物 `ts_softdel_gas_embedded.js:1101` 当前 `return false` 的 `--clearance` 分支，改为调用 `verifyClearance(token, reqScope)`；
+- 签发/消费/台账：新增服务端函数 `issueClearance()` / `consumeClearance()`，状态存于 `PropertiesService.getScriptProperties()`（不与公开代码同 diff 内嵌令牌值）；
+- 锁内消费：复用期锁守卫同一把 `LockService.getScriptLock()`（即 `guardCheck` 使用的脚本级互斥），在 `acquireLock` 区间内完成 nonce 原子消费——同 nonce/jobId 二次请求即 `REPLAY_REJECTED`，杜绝并发重放。
+
+**验签 / 作用域校验**（服务端，全满足才放行）：
+- 验签：令牌经独立身份密钥签名，服务端用签发者公钥验签；`Script Properties` 的常驻共享 bearer 仅作传输通道，**不**作为身份核验本身（Tom V 批已明确指出）；
+- 作用域：校验 `token.jobId === req.jobId`，且 `token.rowSetDigest === sha256(规范排序的目标行集)`，且 `token.snapshotFingerprint === 本次读取守卫指纹`，任一不符即 `CLEARANCE_REJECTED`；
+- 过期：服务端校验 `issuedAt + ttl`（≤15min）未过期；过期即 `CLEARANCE_EXPIRED`。
+
+**异常恢复状态机**（Tom W 批·点④：nonce 消费后失败须先对账，不得仅换 nonce 重放）：
+- 每 job/item 状态：`PENDING → PREPARED → COMMITTED | UNKNOWN → RECONCILED_OK | RECONCILED_VOID | REPLAY_REJECTED`；
+- 进入 `UNKNOWN`（nonce 已消费但写未完成/结果不明）后，**禁止**直接换 nonce 重放——必须先按 `jobId+itemId+requestHash+keeperRow` 检索原 job 日志判定最终状态：
+  · 若已 `COMMITTED` → `RECONCILED_OK`（不重执行）；
+  · 若确未提交 → 重新签发新 nonce（新令牌），重新验签/作用域，再执行；
+- 全程不得盲重试、不得回滚式猜测；对账结论写入撤销/重放台账（`issued/consumed/revoked` 三态 + 消费时间戳 + 消费者身份 + 对账结论）。
+
 ---
 
 ## 2. base 读取：批次级 fail-closed（回应 Tom 技术阻塞②）
@@ -59,6 +80,16 @@ base 读取须是**批次级 fail-closed**：预检阶段发现"批次内存在�
 - 服务端是否需同步 base 兜底（与客户端一致用 override）；
 - 未修复前是否同意禁止 live 写、仅走受控 override；
 - 批次级 fail-closed 的拒绝码与回滚语义。
+
+### 2.5 474 行根因证据计划（Tom W 批·点④：仅凭"hktool 读不到 / CSV 全量"推断"仅 hktool 故障"证据不足）
+> 设计草案，未部署、未授权。要证明是 hktool 降级而非数据丢失/客户端/服务端路径差异，须分别举证三条独立路径，并提供受控 override 的单独审批：
+
+1. **客户端路径**：在本机用 `clasp` 拉取 `ts-manager` 当前 HEAD，确认 `inspectWorkbook` 读主库底稿的实现；用相同 `ssId`/范围在本机复现 474 缺失，记录请求与响应（证明客户端侧读取行为）；
+2. **SpreadsheetApp 服务端路径**：在独立 GAS 环境用 `SpreadsheetApp.openById(主库).getSheetByName('工时_候选0824').getValues()` 直接读全量，验证服务端 API 是否能取全 1225 个 UUID；若服务端亦缺失 → 非 hktool 问题，须查源表/版本绑定；
+3. **源表/版本绑定**：核对 `工时_候选0824` 是否为主库当前绑定的底稿表（存在同名/迁移/副本），以及 13:50 本地快照对应的版本是否为生产当前版本；版本不一致则"CSV 全量"不代表 live 全量；
+4. **受控 override**：`TS_BASE_OVERRIDE` 本地快照路径尚未获授权；在①③根因未清前，override 仅作为"已知 hktool 降级时的显式、受控、可审计"路径，且必须与本次 apply 的 `rowSetDigest` 绑定、单独审批，**不作为默认 fallback**。
+
+以上四条任一未证实时，仍禁止任何 live 写；仅允许受控 override 路径（已验证零误拒）。
 
 ---
 
