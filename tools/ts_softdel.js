@@ -28,7 +28,6 @@ const norm = require('./ts_softdel_norm.js');
 const WEBAPP = process.env.TS_WEBAPP_OVERRIDE || '<HKTOOL_WEBAPP_URL: 见本地 .hktool_remote.json（公开仓不内嵌端点）>';
 const TS_POST_BIN = process.env.TS_POST_BIN || path.join(__dirname, 'ts_post.py');
 const AUDIT = process.env.TS_AUDIT_OVERRIDE || path.join(__dirname, '..', '_tmp', 'evidence', 'base_uuid_audit_20261027.json');
-let KEY = null;
 let KEY = process.env.TS_HKTOOL_KEY || null; // 公开仓不内嵌密钥
 const TS_ID = '1Pi5u9fEawgp7yICWPMMyQCT_LbwTZthQDW-H05xYdVI';
 const PROD_TAB = 'DB_工时流水';
