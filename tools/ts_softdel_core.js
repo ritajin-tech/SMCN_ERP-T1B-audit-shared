@@ -76,6 +76,28 @@ function _requestHashOf(it) {
   }));
 }
 
+// ---- S1-8 clearance 严格判定契约（Tom 第十轮缺陷 #1）----
+// deps.isClearance 的实现（tools/ts_clearance.consumeClearance）返回【结构化对象】
+//   {ok:false, reason:'REVOKED'} —— 该对象在 JS 中仍是 truthy；
+//   若用 !! 强转，拒绝结果会被当成「授权通过」，直接绕过期锁守卫。
+// 因此定义唯一判定口径：**仅 true 或 {ok:true} 视为通过**，其余一律 false（fail-closed）。
+//   旧桩 (tok, rows)=>false / ()=>false 返回 false → 仍 false（PERIOD_LOCKED 维持）。
+function _clearanceStrictOk(raw) {
+  if (raw === true) return true;
+  if (raw && typeof raw === 'object' && raw.ok === true) return true;
+  return false;
+}
+
+// Tom 第十轮缺陷 #3：rowSetDigest 必须由【本次受保护的真实批次】计算，不接受客户端自报。
+//   规范形态：逐 target 取 (row:uuid:keeperRow) 后字典序排序，再 SHA-256 —— 与行顺序无关、可独立复算。
+function _rowSetDigestOf(rows) {
+  var ids = rows.map(function (it) {
+    return String(Number(it && it.row)) + ':' + String((it && it.uuid) || '') + ':' + String(Number(it && it.keeperRow));
+  });
+  ids.sort();
+  return _sdSha256(JSON.stringify(ids));
+}
+
 // 结构化校验（输入形态 + 逐行 + keeper 图）；返回 {error} 或 {rows}
 function _validateInput(e, deps) {
   var p = e.parameter || {};
@@ -210,12 +232,12 @@ function tsSoftDelGuardedCore(e, deps) {
     return _res(false, { error: 'LOCK_BUSY', detail: String(le1 && le1.message || le1), batchId: batchId, jobId: jobId });
   }
   var results = [], patched = 0, anyFail = false, wroteRows = [], masterVersionAfter = null;
-  // S1-8（Tom 第八轮·实现方待办）：消除 TOCTOU——clearance 校验须在取锁后与 guardCheck 同一锁区间内完成。
-  //   deps.isClearance 真实实现（tools/ts_clearance.consumeClearance）在 ctx.lock 保护下做 nonce 读-校验-标记消费原子操作；
-  //   旧桩 (tok, rows)=>false / ()=>false 仍兼容（多余参数被忽略，返回 false 即 PERIOD_LOCKED 仍生效）。
-  var clearanceOk = clearanceToken
-    ? !!deps.isClearance(clearanceToken, rows, { jobId: jobId, lock: _lock, rows: rows })
-    : false;
+  // S1-8 clearance 判定（Tom 第八轮·实现方待办 + Tom 第十轮缺陷 #2 修正）：
+  //   · #2：本判定原先写在下面的 try 之外 —— 一旦 isClearance 抛错即绕过 468 行的 finally 释放路径，
+  //     留下永不释放的悬挂锁。现整个判定移入 try/finally 受保护区，并对异常 fail-closed（异常 ≠ 放行）。
+  //   · #3：rowSetDigest / snapshotFingerprint 在锁内由真实批次与真实主库版本计算，不接受客户端自报。
+  var clearanceOk = false;
+  var _clearanceReason = null;
   try {
     // 条件 #1/#7：主库全量读取必须在锁内（消除 build-masterMap-before-lock 的 TOCTOU）；
     //         读依赖缺失/读不完整/版本缺失 → 整批拒绝，B 级不会再被"误判底稿0行"放行。
@@ -247,6 +269,32 @@ function tsSoftDelGuardedCore(e, deps) {
       }
     } else if (String(expectMasterVersion) !== String(master.version)) {
       return _res(false, { error: 'MASTER_VERSION_MISMATCH', expect: String(expectMasterVersion), actual: String(master.version), batchId: batchId, jobId: jobId });
+    }
+
+    // ===== S1-8 clearance 判定（Tom 第十轮 #1/#2/#3 修正后：锁内、严格布尔、服务端派生作用域）=====
+    if (clearanceToken) {
+      if (typeof deps.isClearance !== 'function') {
+        // 缺失依赖 → 整批拒绝（不静默放行）
+        return _res(false, { error: 'CLEARANCE_DEP_MISSING', batchId: batchId, jobId: jobId });
+      }
+      // #3：作用域在锁内由真实对象派生 —— 行集取自本次受保护批次（含 keeperRow），
+      //     快照指纹取自锁内真实读到的主库版本（readAllMaster 的结果），均非客户端自报。
+      var _rsDigest = _rowSetDigestOf(rows);
+      var _fp = _sdSha256(JSON.stringify({ v: String(master.version || '') }));
+      try {
+        var _raw = deps.isClearance(clearanceToken, rows, {
+          jobId: jobId, rows: rows, rowSetDigest: _rsDigest, snapshotFingerprint: _fp, lock: _lock,
+        });
+        // #1：严格布尔契约 —— {ok:false, reason:...} 对象不得被判为通过。
+        clearanceOk = _clearanceStrictOk(_raw);
+        if (!clearanceOk) {
+          _clearanceReason = (typeof _raw === 'object' && _raw && _raw.reason) ? String(_raw.reason) : 'REJECTED';
+        }
+      } catch (cErr) {
+        // #2：异常 fail-closed —— 判定异常视同未授权，且仍在 finally 保护区内（锁必被释放）。
+        clearanceOk = false;
+        _clearanceReason = 'CLEARANCE_CHECK_THREW';
+      }
     }
 
     // ===== Tom V→W 批·A点① + 点③：独立预检阶段（全体目标 + 底稿完整性 + 版本守卫）=====
@@ -343,7 +391,7 @@ function tsSoftDelGuardedCore(e, deps) {
         if (diffs.length > 0 && !allowed) { results.push({ row: row, ok: false, reason: 'PAYLOAD_DIFF', state: 'PRECHECK_REJECTED', cols: diffs }); anyFail = true; preFail = true; preRecs.push(pr); continue; }
         var bizDate = vals[1];
         var g = deps.guardCheck(bizDate, null, policy);
-        if (!g.ok && !clearanceOk) { results.push({ row: row, ok: false, reason: 'PERIOD_LOCKED', state: 'PRECHECK_REJECTED', date: norm._sdNorm(bizDate), detail: g.reason || '' }); anyFail = true; preFail = true; preRecs.push(pr); continue; }
+        if (!g.ok && !clearanceOk) { results.push({ row: row, ok: false, reason: 'PERIOD_LOCKED', state: 'PRECHECK_REJECTED', date: norm._sdNorm(bizDate), detail: g.reason || '', clearanceReason: (clearanceToken ? (_clearanceReason || 'NOT_GRANTED') : null) }); anyFail = true; preFail = true; preRecs.push(pr); continue; }
         if (level === 'A') {
           var mMatches = masterMap[uuid] || [];
           if (mMatches.length !== 1) { results.push({ row: row, ok: false, reason: (mMatches.length === 0 ? 'BASE_NOT_FOUND' : 'BASE_NOT_UNIQUE'), state: 'PRECHECK_REJECTED', count: mMatches.length }); anyFail = true; preFail = true; preRecs.push(pr); continue; }
@@ -696,6 +744,9 @@ module.exports = {
   _journalRecords: _journalRecords, _isReadError: _isReadError, _findCommit: _findCommit,
   _jrn: _jrn,
   _findAnyCommit: _findAnyCommit, _lastRecord: _lastRecord,
+  // 导出供测试直接断言【严格布尔契约】（Tom 第十轮 #1）与服务端派生作用域（#3）
+  _clearanceStrictOk: _clearanceStrictOk,
+  _rowSetDigestOf: _rowSetDigestOf,
   VERSION: VERSION,
   ROW_KEYS: ROW_KEYS, TOP_KEYS: TOP_KEYS
 };
