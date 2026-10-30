@@ -3,7 +3,7 @@
 > 用途：把"GO-S4 五前置"从"设计/承诺"变成"可一键执行、可核验的证据采集流程"。
 > 本文件为【执行预案，非已执行报告】。分两层闸：Stage-0（安全层：零生产写、不触碰生产端点、tracked 树零改动；运行机 pycache 等预期派生物不计入副作用；可在 `TS_WRITE_FREEZE` 锁定下立即跑）与 Stage-1（需治理授权：翻 `TS_WRITE_FREEZE` + 放行 clearance 令牌，当前 BLOCKED）。
 > 关联：权威页 `22_NextPhase/T1-B_大局梳理与收敛方案_20261027.md` §六-v7（X批复审）+ 本 runbook。
-> 当前 HEAD：见 `git rev-parse HEAD`（本批提交 `97bbd5c` 之后）。
+> 当前 HEAD：见 `git rev-parse HEAD`（本批提交 `b0c25e6` 之后）。
 
 ---
 
