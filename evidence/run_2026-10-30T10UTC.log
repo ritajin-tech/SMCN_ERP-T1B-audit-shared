@@ -1,0 +1,56 @@
+===== S0-1 isolation (kernel-level) =====
+----------------------------------------------------------------------
+Ran 17 tests in 0.079s
+
+OK
+===== S0-2 read_guard =====
+  ok: 双侧均无 revision + 指纹一致 → 放行(CONTENT_FINGERPRINT)
+
+PASS: ts_read_guard 17/17 全绿（含 W 批 validateRows 收紧：安全整数+明确列宽）
+===== S0-3 controlled_audit =====
+  ✅ noRev: guard=CONTENT_FINGERPRINT
+
+[X2 readAll] pass=11 fail=0
+===== S0-4 core precheck =====
+  ok: 日志状态为 PREPARED（仅占位，未确认）
+
+PASS: 双阶段预检 + 写停止闸门不变量全部成立（全体通过才写 / 任一失败整批零写 / 首失败即停后续 NOT_ATTEMPTED / 持久恢复 UNKNOWN 不谎称成功）
+===== S0-5 single-source =====
+  负例[额外成员路由到 otherAction（Tom 本轮未覆盖原例）] 识别为非法=fail-closed=YES
+  负例[computed key 路由到受控入口] 识别为非法=fail-closed=YES
+  负例[替代表达式（无 return/function）] 识别为非法=fail-closed=YES
+  负例[白名单外键路由到受控入口（Tom #5a 未识别成员）] 识别为非法=fail-closed=YES
+  真实区块插入 evil→受控入口 负例 fail-closed=YES
+=== 结论：全部断言通过 ===
+===== S0-6 GAS<->Node harness =====
+
+=== 汇总 ===
+43/43 通过
+===== S0-7 generator idempotency =====
+embedded before=5416f37e9db64a705e3beb808ad93a5bf78b6bd80d7212471928d22927f041f6 after=5416f37e9db64a705e3beb808ad93a5bf78b6bd80d7212471928d22927f041f6 match=YES
+===== S0-8 node --check =====
+OK tools/ts_read_guard.js
+OK tools/ts_softdel_core.js
+OK tools/ts_controlled_audit.js
+node:internal/modules/cjs/loader:1386
+  throw err;
+  ^
+
+Error: Cannot find module 'C:\Users\rita.jin\SMCN_ERP-T1B-audit-shared\tools\ts_softdel_gas_embedded.js'
+    at node:internal/modules/cjs/loader:1383:15
+    at node:internal/main/check_syntax:33:20 {
+  code: 'MODULE_NOT_FOUND',
+  requireStack: []
+}
+
+Node.js v22.22.2
+OK tools/v4_patches/full/RemoteActions.A1d_v4_FINAL_entry_bound.js
+===== S0-8 node --check (corrected paths) =====
+OK tools/ts_read_guard.js
+OK tools/ts_softdel_core.js
+OK tools/ts_controlled_audit.js
+OK tools/v4_patches/full/ts_softdel_gas_embedded.js
+OK tools/v4_patches/full/RemoteActions.A1d_v4_FINAL_entry_bound.js
+===== S0-1 isolation summary (full tail) =====
+
+OK
