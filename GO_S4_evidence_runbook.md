@@ -1,7 +1,7 @@
 # GO-S4 证据跑批包（runbook）
 
 > 用途：把"GO-S4 五前置"从"设计/承诺"变成"可一键执行、可核验的证据采集流程"。
-> 本文件为【执行预案，非已执行报告】。分两层闸：Stage-0（安全，零生产写，可在 `TS_WRITE_FREEZE` 锁定下立即跑）与 Stage-1（需治理授权：翻 `TS_WRITE_FREEZE` + 放行 clearance 令牌，当前 BLOCKED）。
+> 本文件为【执行预案，非已执行报告】。分两层闸：Stage-0（安全层：零生产写、不触碰生产端点、tracked 树零改动；运行机 pycache 等预期派生物不计入副作用；可在 `TS_WRITE_FREEZE` 锁定下立即跑）与 Stage-1（需治理授权：翻 `TS_WRITE_FREEZE` + 放行 clearance 令牌，当前 BLOCKED）。
 > 关联：权威页 `22_NextPhase/T1-B_大局梳理与收敛方案_20261027.md` §六-v7（X批复审）+ 本 runbook。
 > 当前 HEAD：见 `git rev-parse HEAD`（本批提交 `97bbd5c` 之后）。
 
@@ -15,7 +15,7 @@
 | 期锁 clearance 令牌 | 未发放 | Rita 授权 + Tom 放行（非 `isClearance` 桩） |
 | GO-S4 五前置 | ①–④ NO-GO；⑤ 已授权 | 见各条 |
 
-**铁律**：Stage-1 任何脚本在 `TS_WRITE_FREEZE!=1`（未获授权）或缺少有效 clearance 时，`guardCheck` 必须 `PERIOD_LOCKED`/`CLEARANCE_REQUIRED` fail-closed，**绝不静默写生产**。本 runbook 的 Stage-0 已通过代码保证零生产写；Stage-1 的 fail-closed 由 `tools/ts_softdel.js` 守卫强制。
+**铁律**：Stage-1 任何脚本在 `TS_WRITE_FREEZE!=1`（未获授权）或缺少有效 clearance 时，`guardCheck` 必须 `PERIOD_LOCKED`/`CLEARANCE_REQUIRED` fail-closed，**绝不静默写生产**。本 runbook 的 Stage-0 已通过代码保证零生产写（运行机 pycache 等预期派生不计入副作用）；Stage-1 的 fail-closed 由 `tools/ts_softdel.js` 守卫强制。
 
 ---
 
@@ -51,8 +51,8 @@
 - **S1-2 客户端/部署身份**：**只读**核实际部署 URL 与 `developmentMode` 状态、版本、源码哈希、权限与入口（Tom 10:43Z：不公开会话 URL）；核对"不换链接"不变量（部署数/版本与推前一致）。
 
 ### ② 目标/keeper/底稿 + 期锁 + 时长当前版本与业务证据
-- **S1-3 候选集重派生（离线）**：从**经授权、版本绑定且脱敏**的快照离线重算受控候选（phase1 精确A 1230 组/3061h、phase2 col0 差 225 组/385.5h、phase2 B 级 259 组），输出候选 CSV + 哈希（Tom 10:43Z：不能把旧行数工时当验收目标）。
-  - 验收：受控 1714 行 + 64 待授权、UNSAFE=0、0 mixed load、复用 `_sdRowHash` 单一可信源、**版本绑定 + 脱敏**。
+- **S1-3 候选集重派生（离线）**：从**经授权、版本绑定且脱敏**的快照离线重算受控候选（phase1 精确A 1230 组/3061h、phase2 col0 差 225 组/385.5h、phase2 B 级 259 组仅为参考核对，非验收目标；Tom 10:43Z：不能把旧行数工时当验收目标）。
+  - 验收：受控候选集 = **离线重算结果**（不预设旧行数/工时，仅作参考核对）、UNSAFE=0、0 mixed load、复用 `_sdRowHash` 单一可信源、**版本绑定 + 脱敏**。
 - **S1-4 期锁依据**：记录 `bizDate<2026-10-01` 的 100% 历史重复行清单，作为"已锁账期需 clearance"的治理依据（Tom 10:43Z：不能据清单放行，须附期锁 + 业务有效性依据）。
 
 ### ③ 真实路径批次停止 / 独立回读 / 中断恢复 / 稳定快照
@@ -83,11 +83,12 @@
 - 期锁 clearance 令牌仍须 Tom 放行（非 `isClearance` 桩），并以 §1.5 完整实现为前提。
 - 阶段 A 任意一项未通过 / 证据不足 → 不进入阶段 C。
 
-**阶段 C — 生产授权执行**（仅当阶段 A+B 全部通过且授权明确后）：
-1. Rita 显式授权翻 `TS_WRITE_FREEZE`（留痕）+ Tom 放行 clearance 令牌（非桩）→ 注入运行参数。
-2. 依次跑 S1-1…S1-8（每步先 `--dry-run` 零写确认，再 `--apply` 才写）。
-3. 每步产出 `evidence/s1_<n>_<UTC>.log` 供双方核验。
-4. 全部 ①–④ 证据被 Tom 接受 → GO-S4 翻 NO-GO 为 GO → 执行实际 soft mark（R10807 A级 SAFE 候选）。
+**阶段 C — 生产授权执行闸（仅当阶段 A+B 全部通过且授权明确后，另行决策）**：
+🔴 关键修正（回应 Tom 2026-10-30 11:45Z）：阶段 C **不**内置"依次 apply、后认定 ①–④ 接受再 GO"的先写后验收顺序；实际生产写**不是**阶段 C 的必然动作，而是须由业务 owner Rita 在收到阶段 A+B 完整证据、确认 GO、并对**具体目标/版本/执行副作用**作出**独立授权**后，**另行决策是否允许任何生产写**。
+1. Rita 收到阶段 A+B 证据，逐项裁定 ①–④（范围 + 执行环境 + 回滚预案 + 独立复核人），确认 GO。
+2. Rita 指定**执行账户**（非 Tom 审阅账户；Tom 已明确"本账号不接任执行"）显式授权翻 `TS_WRITE_FREEZE`（留痕）+ Tom 放行 clearance 令牌（非桩）。
+3. 仅当上述独立授权齐备，才**另行**决定是否执行实际 soft mark（R10807 A级 SAFE 候选）；每步先 `--dry-run` 零写确认，再 `--apply` 才写，并产出 `evidence/s1_<n>_<UTC>.log`。
+4. 任何一步授权缺失 / 证据不足 → 停在本文件 + `evidence/`，不触碰生产。
 
 ---
 

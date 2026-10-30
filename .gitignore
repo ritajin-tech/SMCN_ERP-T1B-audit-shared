@@ -1,6 +1,10 @@
 # Transient harness artifacts (payloads written at runtime)
 _tmp/
 
+# Python bytecode cache：运行/测试产生的预期派生物，不影响 tracked 树完整性，须忽略
+__pycache__/
+*.pyc
+
 # Local credentials / secrets must never enter the public audit repo
 .hktool_remote.json
 _secrets/

@@ -2,6 +2,7 @@
 # ts_repro_isolation_runner.py 独立单测（Tom X 批·一 + 10:13Z 复审：OS 隔离边界诚实 fail-closed）。
 import os
 import sys
+import shutil
 import unittest
 from unittest import mock
 
@@ -12,7 +13,8 @@ def _facts(home='C:\\Users\\x', cwd='C:\\repo', home_readonly=True, cwd_readonly
            network_blocked=True, container_ev=None, extra_readonly=None, extra_writable=None,
            config_available=False, fs_ro_kernel=None, fs_rw_descendant=None,
            routes=None, allowed_subnets=None, writable_volumes=None, all_mounts=None,
-           policy_routing_detected=None):
+           policy_routing_detected=None, policy_routing_unknown=None,
+           mountinfo_malformed=None, unix_socket_reachable=None):
     ro = set()
     wr = set()
     hn = os.path.normcase(os.path.normpath(home))
@@ -42,7 +44,10 @@ def _facts(home='C:\\Users\\x', cwd='C:\\repo', home_readonly=True, cwd_readonly
             'allowed_subnets': set(allowed_subnets or []),
             'writable_volumes': set(os.path.normcase(os.path.normpath(p)) for p in (writable_volumes or [])),
             'all_mounts': all_mounts or [],
-            'policy_routing_detected': policy_routing_detected}
+            'policy_routing_detected': policy_routing_detected,
+            'policy_routing_unknown': policy_routing_unknown,
+            'mountinfo_malformed': mountinfo_malformed,
+            'unix_socket_reachable': unix_socket_reachable}
 
 
 class TestVerifyOsBoundary(unittest.TestCase):
@@ -302,11 +307,11 @@ class TestVerifyOsBoundary(unittest.TestCase):
         mi_rw = '123 456 7:8 / /home/x rw,relatime shared:1 - ext4 /dev/sda1 rw\n'
         with mock.patch.object(M.platform, 'system', return_value='Linux'), \
              mock.patch('builtins.open', mock.mock_open(read_data=mi_ro)):
-            ro_k, rw_d = M._read_mountinfo_ro(['/home/x'])
+            ro_k, rw_d, mal = M._read_mountinfo_ro(['/home/x'])
         self.assertIn(os.path.normcase('/home/x'), ro_k, 'ro,noexec 应判定为 ro（修复逗号选项漏判）')
         with mock.patch.object(M.platform, 'system', return_value='Linux'), \
              mock.patch('builtins.open', mock.mock_open(read_data=mi_rw)):
-            ro_k2, rw_d2 = M._read_mountinfo_ro(['/home/x'])
+            ro_k2, rw_d2, mal2 = M._read_mountinfo_ro(['/home/x'])
         self.assertNotIn(os.path.normcase('/home/x'), ro_k2, 'rw,relatime 应判定为非 ro')
 
     def test_root_mount_coverage(self):
@@ -315,7 +320,7 @@ class TestVerifyOsBoundary(unittest.TestCase):
         mi = '123 456 7:8 / / ro,relatime shared:1 - ext4 /dev/sda1 ro\n'
         with mock.patch.object(M.platform, 'system', return_value='Linux'), \
              mock.patch('builtins.open', mock.mock_open(read_data=mi)):
-            ro_k, rw_d = M._read_mountinfo_ro(['/home/x'])
+            ro_k, rw_d, mal = M._read_mountinfo_ro(['/home/x'])
         self.assertIn(os.path.normcase('/home/x'), ro_k, '根挂载 ro 应覆盖其子路径 /home/x')
 
     # ===== Tom 2026-10-30 10:43Z 复审（第三轮）：补充 6 类验收反例 =====
@@ -370,7 +375,7 @@ class TestVerifyOsBoundary(unittest.TestCase):
 
     def test_temp_dir_not_in_whitelist_fails(self):
         # 反例(n·临时目录不在白名单)：实际临时副本目录不在声明的 writable_volumes 内 => 拒绝
-        self.assertFalse(M._verify_temp_in_volume('/tmp/gas_repro_iso_xxx', {'C:\\tmp'}),
+        self.assertFalse(M._verify_temp_in_volume('C:\\tmp\\gas_repro_iso_xxx', {'C:\\tmp2'}),
                          '临时目录不在白名单内应返回 False')
         self.assertFalse(M._verify_temp_in_volume('C:\\tmp', {'C:\\tmp2'}),
                          '临时目录与白名单不相等/不含应返回 False')
@@ -393,6 +398,126 @@ class TestVerifyOsBoundary(unittest.TestCase):
             r = M._read_routes()
         self.assertFalse(r['ok'], '畸形非空表应置 ok=False')
         self.assertTrue(r['malformed'], '应标记 malformed')
+
+
+    # ===== Tom 2026-10-30 11:45Z 第四轮复审：补齐"不可读取/无法解析/未确认即 UNKNOWN 拒绝"反例 =====
+
+    def test_policy_routing_unknown_rejects(self):
+        # 反例(p·策略路由 UNKNOWN)：ip rule 缺失/失败/无 lookup => 无法独立证明策略路由=absent => 显式拒绝
+        # （Tom 11:45Z：原实现 ip 缺失/失败回落 manifest 自声明 absent 放行，现改为 UNKNOWN 拒绝）
+        self._mount('network=blocked\nfs_readonly=C:\\Users\\x\nwritable_volumes=C:\\tmp')
+        ok, detail = M.verify_os_boundary(True, 'manifest.txt',
+                                         facts=_facts(home_readonly=True, network_blocked=True,
+                                                      config_available=True,
+                                                      fs_ro_kernel=['C:\\Users\\x'],
+                                                      all_mounts=[('C:\\tmp', False)],
+                                                      routes={'ok': True, 'default_v4': False,
+                                                              'default_v6': False, 'onlink_v4': set(),
+                                                              'onlink_v6': set(), 'egress_v4': set(),
+                                                              'egress_v6': set()},
+                                                      policy_routing_unknown=True))
+        self.assertFalse(ok, detail)
+        self.assertIn('未知即拒绝', detail)
+
+    def test_policy_routing_detected_still_rejects(self):
+        # 反例(q·策略路由检出)：主表之外还有路由决策 => 仅核对主表无法证明完整禁网 => 拒绝（三态 detected）
+        self._mount('network=blocked\nfs_readonly=C:\\Users\\x\nwritable_volumes=C:\\tmp')
+        ok, detail = M.verify_os_boundary(True, 'manifest.txt',
+                                         facts=_facts(home_readonly=True, network_blocked=True,
+                                                      config_available=True,
+                                                      fs_ro_kernel=['C:\\Users\\x'],
+                                                      all_mounts=[('C:\\tmp', False)],
+                                                      routes={'ok': True, 'default_v4': False,
+                                                              'default_v6': False, 'onlink_v4': set(),
+                                                              'onlink_v6': set(), 'egress_v4': set(),
+                                                              'egress_v6': set()},
+                                                      policy_routing_detected=True))
+        self.assertFalse(ok, detail)
+        self.assertIn('策略路由', detail)
+
+    def test_mountinfo_malformed_rejects(self):
+        # 反例(r·畸形挂载表)：内核挂载表存在无法解析的条目（短行/无分隔符/转义越界）=> 显式 UNKNOWN 拒绝
+        # （Tom 11:45Z：原实现对短行/无分隔符 continue 跳过，现改为标记 malformed 拒绝）
+        self._mount('network=blocked\nfs_readonly=C:\\Users\\x\nwritable_volumes=C:\\tmp')
+        ok, detail = M.verify_os_boundary(True, 'manifest.txt',
+                                         facts=_facts(home_readonly=True, network_blocked=True,
+                                                      config_available=True,
+                                                      fs_ro_kernel=['C:\\Users\\x'],
+                                                      all_mounts=[('C:\\tmp', False)],
+                                                      routes={'ok': True, 'default_v4': False,
+                                                              'default_v6': False, 'onlink_v4': set(),
+                                                              'onlink_v6': set(), 'egress_v4': set(),
+                                                              'egress_v6': set()},
+                                                      mountinfo_malformed=True))
+        self.assertFalse(ok, detail)
+        self.assertIn('无法解析', detail)
+
+    def test_unix_socket_reachable_rejects(self):
+        # 反例(s·Unix socket side-channel)：沙箱内可达危险 Unix socket（docker.sock 等）=> 隔离逃逸 => 拒绝
+        # （Tom 11:45Z：两公网地址连接探针无法覆盖 Unix socket）
+        self._mount('network=blocked\nfs_readonly=C:\\Users\\x\nwritable_volumes=C:\\tmp')
+        ok, detail = M.verify_os_boundary(True, 'manifest.txt',
+                                         facts=_facts(home_readonly=True, network_blocked=True,
+                                                      config_available=True,
+                                                      fs_ro_kernel=['C:\\Users\\x'],
+                                                      all_mounts=[('C:\\tmp', False)],
+                                                      routes={'ok': True, 'default_v4': False,
+                                                              'default_v6': False, 'onlink_v4': set(),
+                                                              'onlink_v6': set(), 'egress_v4': set(),
+                                                              'egress_v6': set()},
+                                                      unix_socket_reachable=True))
+        self.assertFalse(ok, detail)
+        self.assertIn('Unix socket', detail)
+
+    def test_unescape_mountinfo_field(self):
+        # 单元：mountinfo 转义反转义（Tom 11:45Z：挂载点含转义字符须反转义后比对）
+        self.assertEqual(M._unescape_mountinfo_field('/vol\\040x'), '/vol x')
+        self.assertEqual(M._unescape_mountinfo_field('a\\040b\\040c'), 'a b c')
+        self.assertEqual(M._unescape_mountinfo_field('tab\\tend'), 'tab\tend')
+        self.assertEqual(M._unescape_mountinfo_field('bs\\\\end'), 'bs\\end')
+        # 转义后越界的挂载点（如 '/vol\\040x' 实为 '/vol x'）应能被真实覆盖/越界判定捕获
+        self.assertEqual(M._unescape_mountinfo_field('/home\\040x'), '/home x')
+
+    def test_escaped_mount_path_not_allowlisted(self):
+        # 反例(t·转义挂载路径)：挂载点含转义空格，反转义后实为 '/vol x'，落在声明卷之外 => 拒绝
+        # （Tom 11:45Z：mountinfo 转义路径须反转义后比对，否则转义可绕过覆盖/越界判定）
+        self._mount('network=blocked\nfs_readonly=C:\\Users\\x\nwritable_volumes=C:\\tmp')
+        ok, detail = M.verify_os_boundary(True, 'manifest.txt',
+                                         facts=_facts(home_readonly=True, network_blocked=True,
+                                                      config_available=True,
+                                                      fs_ro_kernel=['C:\\Users\\x'],
+                                                      all_mounts=[('/vol x', False), ('C:\\tmp', False)],
+                                                      routes={'ok': True, 'default_v4': False,
+                                                              'default_v6': False, 'onlink_v4': set(),
+                                                              'onlink_v6': set(), 'egress_v4': set(),
+                                                              'egress_v6': set()}))
+        self.assertFalse(ok, detail)
+        self.assertIn('未声明的可写挂载', detail)
+
+    def test_malicious_symlink_escapes_volume_fails(self):
+        # 反例(u·恶意软链接)：声明的 writable_volumes 为指向卷外的符号链接，临时目录经 realpath 解析后
+        # 真实越出声明卷 => 拒绝（Tom 11:45Z：symlink 须按真实路径比对，不可按字符串归一放行）
+        import tempfile as _tf
+        base = _tf.mkdtemp(prefix='iso_symlink_')
+        try:
+            real_vol = os.path.join(base, 'real_volume')
+            outside = os.path.join(base, 'outside')
+            os.makedirs(real_vol); os.makedirs(outside)
+            link = os.path.join(base, 'link_to_outside')
+            try:
+                os.symlink(outside, link)
+            except (OSError, NotImplementedError, ValueError):
+                self.skipTest('当前平台不支持创建符号链接，跳过真实 symlink 反例')
+            # 声明卷为符号链接 link(指向 outside)；真实临时目录在 outside 内
+            tmp_inside = os.path.join(link, 'gas_repro_iso_xxx')
+            self.assertFalse(M._verify_temp_in_volume(tmp_inside, {link}),
+                             '临时目录经 symlink 解析后真实越出声明卷应被拒绝')
+            # 对照：真实卷内应放行
+            tmp_real = os.path.join(real_vol, 'gas_repro_iso_xxx')
+            self.assertTrue(M._verify_temp_in_volume(tmp_real, {real_vol}),
+                            '真实卷内临时目录应放行')
+        finally:
+            shutil.rmtree(base, ignore_errors=True)
 
 
 if __name__ == '__main__':

@@ -169,6 +169,10 @@ THREAT_MODEL = (
     "  · 内核路由表存在经网关的出网路由（非默认、非直连；Tom 10:43Z：IPv4 经非零网关的具体路由未核，一律拒绝）；\n"
     "  · 任何 on-link 子网不在声明的 allowed_subnets 白名单（默认仅 loopback + link-local）；\n"
     "  · 策略路由/多表未显式声明 policy_routing=absent（本运行器仅核对主表，须由专用 netns 隔离保证并显式声明；Tom 10:43Z）；\n"
+    "  · 策略路由 UNKNOWN：`ip rule` 缺失/执行失败/无 lookup 表，无法独立证明策略路由=absent => 显式 UNKNOWN 并拒绝（Tom 11:45Z：不得回落 manifest 自声明 absent 放行）；\n"
+    "  · 内核挂载表(/proc/self/mountinfo)为空/畸形（短行/无分隔符/转义后越界）或存在任何未解析条目 => 无法确认覆盖与可写卷边界 => 显式 UNKNOWN 并拒绝（Tom 11:45Z）；\n"
+    "  · 声明路径含符号链接(symlink)或挂载点含转义字符，解析真实路径后越出声明卷/只读边界 => 拒绝（Tom 11:45Z：symlink 与 mountinfo 转义防御）；\n"
+    "  · 沙箱内可达危险 Unix socket 本地 side-channel（如 docker.sock）=> 拒绝（Tom 11:45Z：两公网地址连接探针无法覆盖 Unix socket）；\n"
     "  · 对白名单外地址的真实连接尝试成功；\n"
     "  · 声明只读的 home/cwd 覆盖挂载非内核 ro、或其下存在 rw 子挂载、或存在未声明的宿主可写父挂载；\n"
     "  · 除声明的 writable_volumes 外，遍历全部挂载发现任何未声明可写挂载（Tom 10:43Z：未遍历拒绝其他未声明可写挂载）；\n"
@@ -207,26 +211,56 @@ def _mount_opts_ro(opts_fields):
     return ('ro' in tokens) and ('rw' not in tokens)
 
 
+def _unescape_mountinfo_field(s):
+    r"""解 mountinfo 的八进制/转义（空格=\040、tab=\t、换行=\n、反斜杠=\\，其他 \xxx 八进制）。
+    Tom 11:45Z：mountinfo 挂载点含转义字符（如 '/vol\040x'）若不反转义会误判覆盖/越界 => 须反转义后比对。"""
+    if '\\' not in s:
+        return s
+    out = []
+    i = 0
+    n = len(s)
+    mapping = {'t': '\t', 'n': '\n', 'r': '\r', '\\': '\\', 's': ' ', 'a': '\a', 'b': '\b', 'f': '\f', 'v': '\v'}
+    while i < n:
+        c = s[i]
+        if c == '\\' and i + 1 < n:
+            nx = s[i + 1]
+            if nx in mapping:
+                out.append(mapping[nx]); i += 2; continue
+            if nx.isdigit():  # \xxx 八进制
+                j = i + 1; val = 0; cnt = 0
+                while j < n and s[j].isdigit() and cnt < 3:
+                    val = val * 8 + int(s[j]); j += 1; cnt += 1
+                out.append(chr(val) if 0 <= val < 0x110000 else '?')
+                i = j; continue
+            out.append(nx); i += 2; continue
+        out.append(c); i += 1
+    return ''.join(out)
+
+
 def _read_mountinfo_ro(paths):
-    """解析 /proc/self/mountinfo，返回 (fs_ro_kernel, fs_rw_descendant)（Tom 10:13Z 改写）。
+    """解析 /proc/self/mountinfo，返回 (fs_ro_kernel, fs_rw_descendant, malformed)（Tom 10:13Z 改写 + 11:45Z 反例）。
     - fs_ro_kernel：声明路径中，其【覆盖挂载】(最长匹配) 带 ro 标志的集合（内核强制只读，非仅靠 os.access）。
     - fs_rw_descendant：声明路径下存在 rw 子挂载的集合（只读父目录下可写子挂载/子目录逃逸）。
-    仅只读读取，不写任何文件；非 Linux 或读取失败返回 (set(), set())。
+    - malformed：是否出现无法解析的挂载行（短行/无分隔符/转义越界）。任一 malformed => 决策显式 UNKNOWN 并拒绝
+      （Tom 11:45Z：挂载解析对短行/无分隔符 continue 跳过 => 改为显式 UNKNOWN 拒绝，不得静默放行）。
+    仅只读读取，不写任何文件；非 Linux 或读取失败返回 (set(), set(), False)。
     Tom X 批·一（08:42Z 复审）：home/cwd 一个 os.access 不可写不证明子目录/其他挂载/所有写路径只读。
     """
     ro_kernel = set()
     rw_desc = set()
+    malformed = False
     try:
         with open('/proc/self/mountinfo', 'r', encoding='utf-8', errors='replace') as f:
             lines = f.readlines()
     except OSError:
-        return ro_kernel, rw_desc
+        return ro_kernel, rw_desc, malformed
     mounts = []  # (mountpoint_norm, ro_bool)
     for line in lines:
         parts = line.split()
         if len(parts) < 6:
+            malformed = True   # 短行/无分隔符 => 无法解析 => 标记 malformed（Tom 11:45Z）
             continue
-        mountpoint = parts[4]
+        mountpoint = _unescape_mountinfo_field(parts[4])
         # 可选字段以 '-' 分隔；'-' 之后为 fs_type / source / superblock options
         opts_fields = [parts[5]]
         try:
@@ -248,25 +282,28 @@ def _read_mountinfo_ro(paths):
             if mp != np and mp.startswith(np + os.sep) and ro is False:
                 rw_desc.add(np)
                 break
-    return ro_kernel, rw_desc
+    return ro_kernel, rw_desc, malformed
 
 
 def _read_mountinfo_all():
-    """解析 /proc/self/mountinfo，返回【全部挂载】(mountpoint_norm, ro_bool) 列表（Tom 10:13Z 新增）。
+    """解析 /proc/self/mountinfo，返回【全部挂载】(mountpoint_norm, ro_bool) 列表 + malformed 标志（Tom 10:13Z 新增 + 11:45Z 反例）。
     用于核对"未声明的宿主可写挂载"：除 writable_volumes 声明外，home/cwd 下不得存在未声明的 rw 挂载。
-    仅只读读取，不写任何文件；非 Linux 或读取失败返回 []。
+    malformed：出现无法解析的挂载行（短行/无分隔符/转义越界）=> 决策显式 UNKNOWN 并拒绝。
+    仅只读读取，不写任何文件；非 Linux 或读取失败返回 ([], False)。
     """
     mounts = []
+    malformed = False
     try:
         with open('/proc/self/mountinfo', 'r', encoding='utf-8', errors='replace') as f:
             lines = f.readlines()
     except OSError:
-        return mounts
+        return mounts, malformed
     for line in lines:
         parts = line.split()
         if len(parts) < 6:
+            malformed = True   # 短行/无分隔符 => 标记 malformed（Tom 11:45Z）
             continue
-        mountpoint = parts[4]
+        mountpoint = _unescape_mountinfo_field(parts[4])
         opts_fields = [parts[5]]
         try:
             sep = parts.index('-')
@@ -275,7 +312,7 @@ def _read_mountinfo_all():
             pass
         ro = _mount_opts_ro(opts_fields)
         mounts.append((os.path.normcase(os.path.normpath(mountpoint)), ro))
-    return mounts
+    return mounts, malformed
 
 
 def _cidr_contains(allowed_cidr, sub_bytes, sub_prefix):
@@ -312,11 +349,20 @@ def _fmt_subnet(sub_bytes, sub_prefix):
         return '(%d bytes)/%d' % (len(sub_bytes), sub_prefix)
 
 
+def _resolve_path(p):
+    """按真实路径归一（解析符号链接 + 规范化），用于比对真实 OS 授权边界（Tom 11:45Z：symlink/转义越界防御）。"""
+    try:
+        rp = os.path.realpath(p)
+    except (OSError, ValueError):
+        rp = os.path.normpath(p)
+    return os.path.normcase(rp)
+
+
 def _covered_by_volumes(mp, volumes):
-    """判断挂载点 mp 是否落在声明的受控写目录(volumes)之内（含相等）。（Tom 10:43Z）"""
-    mpn = os.path.normcase(os.path.normpath(mp))
+    """判断挂载点 mp 是否落在声明的受控写目录(volumes)之内（含相等）。（Tom 10:43Z + 11:45Z：realpath 解析 symlink/转义越界）"""
+    mpn = _resolve_path(mp)
     for v in volumes:
-        vn = os.path.normcase(os.path.normpath(v))
+        vn = _resolve_path(v)
         if mpn == vn or mpn.startswith(vn + os.sep):
             return True
     return False
@@ -324,33 +370,39 @@ def _covered_by_volumes(mp, volumes):
 
 def _verify_temp_in_volume(tmp_path, volumes):
     """验证实际 mkdtemp 位置 tmp_path 落在声明的 writable_volumes 之内（Tom 10:43Z：须绑定实际临时目录到该卷）。
-    返回 bool；不在任何卷内 => False（运行器须 fail-closed 拒绝）。"""
+    返回 bool；不在任何卷内 => False（运行器须 fail-closed 拒绝）。realpath 解析符号链接（Tom 11:45Z symlink 防御）。"""
     if not tmp_path:
         return False
     return _covered_by_volumes(tmp_path, volumes or set())
 
 
 def _detect_policy_routing():
-    """尽力探测策略路由/多表（Tom 10:43Z：策略路由/多表须经专用 netns 隔离保证并显式声明）。
-    仅做只读 `ip rule` 探测；缺 `ip` 或探测失败 => 返回 False（不误判，交由 manifest policy_routing=absent 声明兜底）。
-    返回 True 表示检出自定义策略规则（主表之外还有路由决策）。绝不写任何文件。"""
+    """尽力探测策略路由/多表（Tom 10:43Z + 11:45Z 第四轮：须独立证明，不能凭缺失/失败回落放行）。
+    仅做只读 `ip rule` 探测；返回三态字符串：
+      'detected' = 检出自定义策略规则（主表之外还有路由决策）=> 决策时拒绝；
+      'absent'   = ip 可用且仅有 local/main/default 默认表 => 可声明 absent；
+      'unknown'  = ip 缺失/执行失败/无输出/无 lookup 表 => 无法独立证明策略路由=absent
+                   => 决策时显式 UNKNOWN 并拒绝（Tom 11:45Z：ip 命令缺失/失败、策略规则无
+                    lookup 须显式 UNKNOWN 并拒绝，不得回落到 manifest 自声明 absent 放行）。
+    绝不写任何文件。"""
     try:
         r = subprocess.run(['ip', 'rule'], capture_output=True, text=True, timeout=2.0)
-        if r.returncode != 0:
-            return False
-        # 默认至少有 'from all lookup local/main/default'；出现其他 lookup/自定义偏好即视为策略路由
-        lines = [ln.strip() for ln in r.stdout.splitlines() if ln.strip()]
-        for ln in lines:
-            low = ln.lower()
-            if 'lookup' in low:
-                # 允许的默认表：local / main / default；其余（含数字表/自定义名）即策略路由
-                after = low.split('lookup', 1)[1]
-                table = after.strip().split()[0] if after.strip() else ''
-                if table not in ('local', 'main', 'default', ''):
-                    return True
-        return False
     except (OSError, ValueError, subprocess.SubprocessError):
-        return False
+        return 'unknown'          # ip 不可用 => 无法证明策略路由状态
+    if r.returncode != 0:
+        return 'unknown'          # ip 执行失败 => 无法证明
+    lines = [ln.strip() for ln in r.stdout.splitlines() if ln.strip()]
+    if not lines:
+        return 'unknown'          # 无输出 => 无法证明
+    for ln in lines:
+        low = ln.lower()
+        if 'lookup' in low:
+            # 允许的默认表：local / main / default；其余（含数字表/自定义名）即策略路由
+            after = low.split('lookup', 1)[1]
+            table = after.strip().split()[0] if after.strip() else ''
+            if table not in ('local', 'main', 'default', ''):
+                return 'detected'  # 自定义 lookup 表 => 策略路由
+    return 'absent'              # 仅有默认表 => 可声明 absent
 
 
 def _read_routes():
@@ -443,6 +495,33 @@ def _probe_network_blocked():
     return blocked == 2
 
 
+def _probe_unix_socket_blocked():
+    """非破坏性探针：探测沙箱内是否可达危险 Unix socket 本地 side-channel（如 docker.sock）。
+    返回 True = 检出可达/存在的危险 Unix socket（隔离不完整，决策须拒绝）；False = 未发现。
+    仅做存在性 + 连接尝试，不发送任何数据；Tom 11:45Z：两公网地址连接探针无法覆盖 Unix socket
+    等本地 side-channel，故显式补此探针并由决策层拒。绝不写任何文件。"""
+    candidates = ['/var/run/docker.sock', '/run/docker.sock']
+    import socket as _sock
+    af_unix = getattr(_sock, 'AF_UNIX', None)
+    for c in candidates:
+        try:
+            if not os.path.exists(c):
+                continue
+            if af_unix is None:
+                return True  # 平台不支持 Unix socket 探测但 socket 存在 => 保守标记（决策层按 manifest 处理）
+            try:
+                s = _sock.socket(af_unix, _sock.SOCK_STREAM)
+                s.settimeout(0.5)
+                s.connect(c)
+                s.close()
+                return True
+            except (OSError, ValueError):
+                return True  # 存在但连接失败：存在本身即提示 side-channel 风险，保守标记
+        except OSError:
+            continue
+    return False
+
+
 def _parse_sandbox_manifest(text):
     """解析 sandbox-manifest：必须【显式、机器可校验】地声明 OS 策略，不能只写散文/注释。
 
@@ -519,10 +598,11 @@ def _parse_sandbox_manifest(text):
 
 
 def _is_relevant_path(p, home, cwd):
-    """路径是否绑定到"用户可写相关"位置（家目录或 cwd）。仅以 /etc 等系统目录冒充只读 => 不算。"""
-    np = os.path.normcase(os.path.normpath(p))
+    """路径是否绑定到"用户可写相关"位置（家目录或 cwd）。仅以 /etc 等系统目录冒充只读 => 不算。
+    Tom 11:45Z：以真实路径（解析 symlink）比对，避免软链接伪造相关路径。"""
+    np = _resolve_path(p)
     for base in (home, cwd):
-        if base and os.path.normcase(os.path.normpath(base)) == np:
+        if base and _resolve_path(base) == np:
             return True
     return False
 
@@ -554,9 +634,12 @@ def _gather_runtime_facts(claims, probe_fn=None):
         'writable_volumes': claims.get('writable_volumes', set()),  # 受控写目录白名单
         'temp_dir': claims.get('temp_dir'),                        # 实际临时副本目录（须落在 writable_volumes 内）
         'policy_routing_detected': False,                          # 检出策略路由/多表 => 拒绝
+        'policy_routing_unknown': False,                           # 无法独立证明策略路由=absent(ip缺失/失败/无lookup) => 拒绝
+        'mountinfo_malformed': False,                              # 挂载表畸形(短行/无分隔符/转义越界) => 拒绝
+        'unix_socket_reachable': False,                            # 沙箱可达危险 Unix socket side-channel => 拒绝
     }
     for p in claims['fs_readonly']:
-        np = os.path.normcase(os.path.normpath(p))
+        np = _resolve_path(p)
         try:
             exists = os.path.isdir(np) or os.path.isfile(np)
             ro = exists and not os.access(np, os.W_OK)
@@ -570,10 +653,15 @@ def _gather_runtime_facts(claims, probe_fn=None):
     # —— 内核级配置证据（权威；探测/os.access 仅辅助，Tom X 批·一 / 10:13Z 复审）——
     if platform.system() == 'Linux':
         facts['config_available'] = True
-        facts['fs_ro_kernel'], facts['fs_rw_descendant'] = _read_mountinfo_ro(claims['fs_readonly'])
-        facts['all_mounts'] = _read_mountinfo_all()
+        ro_k, rw_d, mi_mal_1 = _read_mountinfo_ro([_resolve_path(p) for p in claims['fs_readonly']])
+        facts['fs_ro_kernel'], facts['fs_rw_descendant'] = ro_k, rw_d
+        facts['all_mounts'], mi_mal_2 = _read_mountinfo_all()
+        facts['mountinfo_malformed'] = bool(mi_mal_1 or mi_mal_2)
         facts['routes'] = _read_routes()
-        facts['policy_routing_detected'] = _detect_policy_routing()
+        pr_state = _detect_policy_routing()
+        facts['policy_routing_detected'] = (pr_state == 'detected')
+        facts['policy_routing_unknown'] = (pr_state == 'unknown')
+        facts['unix_socket_reachable'] = _probe_unix_socket_blocked()
     return facts
 
 
@@ -623,6 +711,16 @@ def _decide_boundary(claims, facts, platform_sys):
             return (False, '网络隔离未证实：检测到策略路由/多表（主表之外还有路由决策）；'
                            '本运行器仅核对 /proc/net/route 主表，无法证明完整禁网（Tom 10:43Z）。'
                            '须在专用 netns 内使其为权威并显式声明 policy_routing=absent。')
+        # 策略路由 UNKNOWN（ip 缺失/失败/无 lookup）=> 无法独立证明策略路由=absent => 显式拒绝（Tom 11:45Z）
+        if facts.get('policy_routing_unknown'):
+            return (False, '网络隔离未证实：策略路由/命名空间未独立证明（`ip rule` 缺失/执行失败/无 lookup 表，'
+                           '无法确认策略路由=absent）；按"未知即拒绝"原则拒绝（Tom 11:45Z）。'
+                           '须由专用 netns 内使其为权威并显式声明 policy_routing=absent。')
+        # 危险 Unix socket side-channel（Tom 11:45Z：两公网地址连接探针无法覆盖 Unix socket）
+        if facts.get('unix_socket_reachable'):
+            return (False, '网络隔离未证实：沙箱内可达危险 Unix socket side-channel（如 docker.sock），'
+                           '可能为完整隔离逃逸路径；两公网地址连接探针无法覆盖 Unix socket（Tom 11:45Z）。'
+                           '须移除/隔离该 side-channel 后重测。')
         if not claims.get('policy_routing_absent'):
             return (False, '网络隔离未证实：manifest 未显式声明 policy_routing=absent；'
                            '本运行器仅核对主表，策略路由/多表须经专用 netns 隔离保证并显式声明（Tom 10:43Z）。')
@@ -647,9 +745,14 @@ def _decide_boundary(claims, facts, platform_sys):
         return (False, '文件系统只读未证实：manifest 未将 fs_readonly 绑定到家目录或 cwd（用户可写相关路径）；'
                        '仅以 /etc 等系统目录冒充只读不足以证明操作员侧写入被阻断（Tom X 批·一）。')
     if cfg:
-        # 权威路径：内核挂载配置（ro 标志）为判据，os.access 仅辅助
+        # 畸形挂载表：无法确认覆盖与可写卷边界 => 显式 UNKNOWN 拒绝（Tom 11:45Z）
+        if facts.get('mountinfo_malformed'):
+            return (False, '文件系统只读未证实：内核挂载表(/proc/self/mountinfo)存在无法解析的条目'
+                           '（短行/无分隔符/转义越界）；无法确认覆盖与可写卷边界，按"未知即拒绝"原则拒绝'
+                           '（Tom 11:45Z）。须提供完整可解析的挂载表或声明专用 netns。')
+        # 权威路径：内核挂载配置（ro 标志）为判据，os.access 仅辅助；以真实路径（解析 symlink）比对
         for p in relevant:
-            np = os.path.normcase(os.path.normpath(p))
+            np = _resolve_path(p)
             if np in facts.get('fs_rw_descendant', set()):
                 return (False, '文件系统只读未证实：声明只读路径 %s 下存在可写子挂载(rw)，'
                                '只读父目录仍可被写入（逃逸）；内核挂载配置证明失败'
@@ -835,6 +938,7 @@ def main():
             tmp = tempfile.mkdtemp(prefix='gas_repro_iso_', dir=tdir)
         else:
             tmp = tempfile.mkdtemp(prefix='gas_repro_iso_')
+        tmp = _resolve_path(tmp)  # 解析真实路径，确保与 OS 授权边界（writable_volumes）一致（Tom 11:45Z）
         vols = mclaims.get('writable_volumes', set())
         if vols and not _verify_temp_in_volume(tmp, vols):
             print('[ABORT] 实际临时副本目录 %s 不在声明的 writable_volumes 内（Tom 10:43Z：临时目录绑定）；'
