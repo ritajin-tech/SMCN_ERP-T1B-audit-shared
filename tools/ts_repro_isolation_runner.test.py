@@ -1,7 +1,5 @@
 # -*- coding: utf-8 -*-
-# ts_repro_isolation_runner.py 独立单测（Tom X 批·一：OS 隔离边界诚实 fail-closed，
-# 要求【文件/挂载只读(绑定 home/cwd)】与【网络隔离】两项策略【同时】被运行时证据证实；
-# 容器名称/能力集缩减仅作佐证，绝不作为放行依据；不静默通过）。
+# ts_repro_isolation_runner.py 独立单测（Tom X 批·一 + 10:13Z 复审：OS 隔离边界诚实 fail-closed）。
 import os
 import sys
 import unittest
@@ -12,7 +10,8 @@ import ts_repro_isolation_runner as M
 
 def _facts(home='C:\\Users\\x', cwd='C:\\repo', home_readonly=True, cwd_readonly=False,
            network_blocked=True, container_ev=None, extra_readonly=None, extra_writable=None,
-           config_available=False, fs_ro_kernel=None, fs_rw_descendant=None, net_route_isolated=False):
+           config_available=False, fs_ro_kernel=None, fs_rw_descendant=None,
+           routes=None, allowed_subnets=None, writable_volumes=None, all_mounts=None):
     ro = set()
     wr = set()
     hn = os.path.normcase(os.path.normpath(home))
@@ -27,13 +26,20 @@ def _facts(home='C:\\Users\\x', cwd='C:\\repo', home_readonly=True, cwd_readonly
         ro.add(os.path.normcase(os.path.normpath(p)))
     for p in (extra_writable or []):
         wr.add(os.path.normcase(os.path.normpath(p)))
+    if routes is None:
+        routes = {'ok': True, 'default_v4': False, 'default_v6': False,
+                  'onlink_v4': set(), 'onlink_v6': set()}
     return {'home': home, 'cwd': cwd, 'readonly_paths': ro,
             'writable_claimed_paths': wr, 'network_blocked': network_blocked,
             'container_ev': container_ev,
             'config_available': config_available,
             'fs_ro_kernel': set(os.path.normcase(os.path.normpath(p)) for p in (fs_ro_kernel or [])),
             'fs_rw_descendant': set(os.path.normcase(os.path.normpath(p)) for p in (fs_rw_descendant or [])),
-            'net_route_isolated': net_route_isolated}
+            'all_mounts': [],
+            'routes': routes,
+            'allowed_subnets': set(allowed_subnets or []),
+            'writable_volumes': set(os.path.normcase(os.path.normpath(p)) for p in (writable_volumes or [])),
+            'all_mounts': all_mounts or []}
 
 
 class TestVerifyOsBoundary(unittest.TestCase):
@@ -44,7 +50,6 @@ class TestVerifyOsBoundary(unittest.TestCase):
         self.addCleanup(m.stop); self.addCleanup(mm.stop)
 
     def test_no_flag_fails(self):
-        # 未提供 --sandbox-verified => 拒绝（不凭自声明放行）
         ok, detail = M.verify_os_boundary(False, 'manifest.txt', facts=_facts())
         self.assertFalse(ok, detail)
         self.assertIn('sandbox-verified', detail)
@@ -54,31 +59,26 @@ class TestVerifyOsBoundary(unittest.TestCase):
         self.assertFalse(ok, detail)
 
     def test_manifest_empty_fails(self):
-        # manifest 文件存在但为空 => 解析失败
         self._mount('')
         ok, detail = M.verify_os_boundary(True, 'manifest.txt', facts=_facts())
         self.assertFalse(ok, detail)
         self.assertIn('空', detail)
 
     def test_manifest_prose_only_fails(self):
-        # 只有散文、无 key=value 机器可校验声明 => 解析失败（真实性不能只留在注释/散文）
         self._mount('container: read-only rootfs + network namespace')
         ok, detail = M.verify_os_boundary(True, 'manifest.txt', facts=_facts())
         self.assertFalse(ok, detail)
         self.assertIn('未显式声明', detail)
 
     def test_manifest_but_home_writable_fails(self):
-        # W 批逻辑曾因 /etc 不可写即放行；本例 manifest 仅声明 /etc 只读（非用户相关路径），
-        # 家目录实际可写 => 仍拒绝（未绑定 home/cwd）。
-        self._mount('network=blocked\nfs_readonly=C:\\Windows')
+        self._mount('network=blocked\nfs_readonly=C:\\Windows\nwritable_volumes=C:\\tmp')
         ok, detail = M.verify_os_boundary(True, 'manifest.txt',
                                          facts=_facts(home_readonly=False))
         self.assertFalse(ok, detail)
         self.assertIn('家目录或 cwd', detail)
 
     def test_pass_home_readonly_and_network_blocked(self):
-        # 两项策略同时成立：manifest 声明 network=blocked + fs_readonly=<home>，运行时 home 只读且网络不可达 => 放行
-        self._mount('network=blocked\nfs_readonly=C:\\Users\\x')
+        self._mount('network=blocked\nfs_readonly=C:\\Users\\x\nwritable_volumes=C:\\tmp')
         ok, detail = M.verify_os_boundary(True, 'manifest.txt',
                                          facts=_facts(home_readonly=True, network_blocked=True))
         self.assertTrue(ok, detail)
@@ -86,17 +86,14 @@ class TestVerifyOsBoundary(unittest.TestCase):
         self.assertIn('boundary-digest=', detail)
 
     def test_readonly_home_but_network_allowed_fails(self):
-        # 家目录只读但网络可达 => 网络隔离未证实 => 拒绝（Tom X 批·一：两项须同时）
-        self._mount('network=blocked\nfs_readonly=C:\\Users\\x')
+        self._mount('network=blocked\nfs_readonly=C:\\Users\\x\nwritable_volumes=C:\\tmp')
         ok, detail = M.verify_os_boundary(True, 'manifest.txt',
                                          facts=_facts(home_readonly=True, network_blocked=False))
         self.assertFalse(ok, detail)
         self.assertIn('网络隔离未证实', detail)
 
     def test_container_but_host_writable_fails(self):
-        # 容器/cgroup 证据存在，但声明的 home 实际可写 => 文件系统只读矛盾 => 拒绝；
-        # 容器证据不得替代用户侧写入阻断。
-        self._mount('network=blocked\nfs_readonly=C:\\Users\\x')
+        self._mount('network=blocked\nfs_readonly=C:\\Users\\x\nwritable_volumes=C:\\tmp')
         ok, detail = M.verify_os_boundary(True, 'manifest.txt',
                                          facts=_facts(home_readonly=False,
                                                      container_ev='cgroup 含容器运行时证据'))
@@ -104,16 +101,13 @@ class TestVerifyOsBoundary(unittest.TestCase):
         self.assertIn('文件系统只读矛盾', detail)
 
     def test_container_evidence_alone_not_sufficient(self):
-        # 仅有容器证据、manifest 只声明系统目录只读(非 home/cwd)、家目录可写 => 拒绝；
-        # 证明容器名称/CapEff 不能单独授权。
-        self._mount('network=blocked\nfs_readonly=C:\\Windows')
+        self._mount('network=blocked\nfs_readonly=C:\\Windows\nwritable_volumes=C:\\tmp')
         ok, detail = M.verify_os_boundary(True, 'manifest.txt',
                                          facts=_facts(home_readonly=False,
                                                      container_ev='进程能力集(CapEff)已缩减'))
         self.assertFalse(ok, detail)
 
     def test_arbitrary_nonempty_manifest_fails(self):
-        # 任意非空但无机器可校验声明的 manifest => 解析失败（Tom X 批·一 反例）
         self._mount('I solemnly declare this is isolated.')
         ok, detail = M.verify_os_boundary(True, 'manifest.txt', facts=_facts())
         self.assertFalse(ok, detail)
@@ -136,64 +130,181 @@ class TestVerifyOsBoundary(unittest.TestCase):
     # ===== Tom 08:42Z 复审：内核级配置为权威，连接探针/os.access 仅辅助；补充三个反例 =====
 
     def test_config_pass_kernel_ro_and_route_isolated(self):
-        # 内核级：覆盖挂载 ro 标志 + 无外部默认路由 => 放行（连接探针仅辅助）
-        self._mount('network=blocked\nfs_readonly=C:\\Users\\x')
+        self._mount('network=blocked\nfs_readonly=C:\\Users\\x\nwritable_volumes=C:\\tmp')
         ok, detail = M.verify_os_boundary(True, 'manifest.txt',
                                          facts=_facts(home_readonly=True, network_blocked=True,
                                                       config_available=True,
                                                       fs_ro_kernel=['C:\\Users\\x'],
-                                                      net_route_isolated=True))
+                                                      all_mounts=[('C:\\tmp', False)],
+                                                      routes={'ok': True, 'default_v4': False,
+                                                              'default_v6': False, 'onlink_v4': set(),
+                                                              'onlink_v6': set()}))
         self.assertTrue(ok, detail)
         self.assertIn('mountinfo', detail)
-        self.assertIn('net/route', detail)
+        self.assertIn('内核路由表', detail)
 
     def test_intranet_reachable_while_public_blocked_fails(self):
-        # 反例(a)：两个公网地址不可达(探针 blocked)，但内核路由表存在外部默认路由
-        # => 内网/其他地址/DNS 仍可能可达，完整禁网未证 => 拒绝（Tom 08:42Z）
-        self._mount('network=blocked\nfs_readonly=C:\\Users\\x')
+        # 反例(a)：连接探针 blocked，但内核路由表存在 IPv4 默认路由 => 内网/其他地址仍可达 => 拒绝
+        self._mount('network=blocked\nfs_readonly=C:\\Users\\x\nwritable_volumes=C:\\tmp')
         ok, detail = M.verify_os_boundary(True, 'manifest.txt',
                                          facts=_facts(home_readonly=True, network_blocked=True,
                                                       config_available=True,
                                                       fs_ro_kernel=['C:\\Users\\x'],
-                                                      net_route_isolated=False))
+                                                      routes={'ok': True, 'default_v4': True,
+                                                              'default_v6': False, 'onlink_v4': set(),
+                                                              'onlink_v6': set()}))
         self.assertFalse(ok, detail)
         self.assertIn('默认路由', detail)
 
     def test_ro_parent_with_writable_subdir_fails(self):
-        # 反例(b)：声明只读的 home 覆盖挂载带 ro，但其下存在 rw 子挂载(可写子目录逃逸)
-        # => 内核挂载配置证明失败 => 拒绝（Tom 08:42Z）
-        self._mount('network=blocked\nfs_readonly=C:\\Users\\x')
+        # 反例(b)：声明只读的 home 覆盖挂载带 ro，但其下存在 rw 子挂载(可写子目录逃逸) => 拒绝
+        self._mount('network=blocked\nfs_readonly=C:\\Users\\x\nwritable_volumes=C:\\tmp')
         ok, detail = M.verify_os_boundary(True, 'manifest.txt',
                                          facts=_facts(home_readonly=True, network_blocked=True,
                                                       config_available=True,
                                                       fs_ro_kernel=['C:\\Users\\x'],
                                                       fs_rw_descendant=['C:\\Users\\x'],
-                                                      net_route_isolated=True))
+                                                      routes={'ok': True, 'default_v4': False,
+                                                              'default_v6': False, 'onlink_v4': set(),
+                                                              'onlink_v6': set()}))
         self.assertFalse(ok, detail)
         self.assertIn('可写子挂载', detail)
 
     def test_other_mount_writable_fails(self):
         # 反例(c)：声明只读的 cwd 覆盖挂载带 ro，但其下存在其他可写挂载 => 逃逸 => 拒绝
-        self._mount('network=blocked\nfs_readonly=C:\\repo')
+        self._mount('network=blocked\nfs_readonly=C:\\repo\nwritable_volumes=C:\\tmp')
         ok, detail = M.verify_os_boundary(True, 'manifest.txt',
                                          facts=_facts(cwd='C:\\repo', cwd_readonly=True,
                                                       network_blocked=True, config_available=True,
                                                       fs_ro_kernel=['C:\\repo'],
                                                       fs_rw_descendant=['C:\\repo'],
-                                                      net_route_isolated=True))
+                                                      routes={'ok': True, 'default_v4': False,
+                                                              'default_v6': False, 'onlink_v4': set(),
+                                                              'onlink_v6': set()}))
         self.assertFalse(ok, detail)
         self.assertIn('可写子挂载', detail)
 
     def test_config_fs_ro_kernel_missing_fails(self):
-        # 声明只读路径的内核挂载配置非 ro（os.access 不可写不证明内核级只读）=> 拒绝
+        self._mount('network=blocked\nfs_readonly=C:\\Users\\x\nwritable_volumes=C:\\tmp')
+        ok, detail = M.verify_os_boundary(True, 'manifest.txt',
+                                         facts=_facts(home_readonly=True, network_blocked=True,
+                                                      config_available=True,
+                                                      fs_ro_kernel=[],
+                                                      routes={'ok': True, 'default_v4': False,
+                                                              'default_v6': False, 'onlink_v4': set(),
+                                                              'onlink_v6': set()}))
+        self.assertFalse(ok, detail)
+        self.assertIn('内核挂载配置非 ro', detail)
+
+    # ===== Tom 10:13Z 复审：路由/挂载证据仍须补齐（新增反例）=====
+
+    def test_route_ipv6_default_fails(self):
+        # 反例(d)：IPv4 无默认路由，但存在 IPv6 默认路由 => 仍可通过 IPv6 出网 => 拒绝
+        self._mount('network=blocked\nfs_readonly=C:\\Users\\x\nwritable_volumes=C:\\tmp')
+        ok, detail = M.verify_os_boundary(True, 'manifest.txt',
+                                         facts=_facts(home_readonly=True, network_blocked=True,
+                                                      config_available=True,
+                                                      fs_ro_kernel=['C:\\Users\\x'],
+                                                      routes={'ok': True, 'default_v4': False,
+                                                              'default_v6': True, 'onlink_v4': set(),
+                                                              'onlink_v6': set()}))
+        self.assertFalse(ok, detail)
+        self.assertIn('IPv6', detail)
+
+    def test_route_onlink_not_allowlisted_fails(self):
+        # 反例(e)：无默认路由，但存在 on-link 子网（网关为 0 的直连路由）不在 allowed_subnets
+        # => 可经直连子网访问内网/生产 => 拒绝
+        # 10.0.0.0/8 直连子网（小端 hex 0000000A，prefix 8）
+        onlink = {(b'\x0a\x00\x00\x00', 8)}
+        self._mount('network=blocked\nfs_readonly=C:\\Users\\x\nwritable_volumes=C:\\tmp')
+        ok, detail = M.verify_os_boundary(True, 'manifest.txt',
+                                         facts=_facts(home_readonly=True, network_blocked=True,
+                                                      config_available=True,
+                                                      fs_ro_kernel=['C:\\Users\\x'],
+                                                      routes={'ok': True, 'default_v4': False,
+                                                              'default_v6': False,
+                                                              'onlink_v4': onlink,
+                                                              'onlink_v6': set()}))
+        self.assertFalse(ok, detail)
+        self.assertIn('on-link', detail)
+
+    def test_route_empty_or_malformed_fails(self):
+        # 反例(f)：路由表读取/解析失败（空/畸形）=> 解析异常一律拒绝，不得默认放行
+        self._mount('network=blocked\nfs_readonly=C:\\Users\\x\nwritable_volumes=C:\\tmp')
+        ok, detail = M.verify_os_boundary(True, 'manifest.txt',
+                                         facts=_facts(home_readonly=True, network_blocked=True,
+                                                      config_available=True,
+                                                      fs_ro_kernel=['C:\\Users\\x'],
+                                                      routes={'ok': False, 'default_v4': False,
+                                                              'default_v6': False, 'onlink_v4': set(),
+                                                              'onlink_v6': set()}))
+        self.assertFalse(ok, detail)
+        self.assertIn('读取/解析失败', detail)
+
+    def test_route_onlink_allowed_passes(self):
+        # on-link 子网落在默认白名单（loopback/link-local）内 => 放行
+        onlink = {(b'\x7f\x00\x00\x01', 8)}  # 127.0.0.1/8
+        self._mount('network=blocked\nfs_readonly=C:\\Users\\x\nwritable_volumes=C:\\tmp')
+        ok, detail = M.verify_os_boundary(True, 'manifest.txt',
+                                         facts=_facts(home_readonly=True, network_blocked=True,
+                                                      config_available=True,
+                                                      fs_ro_kernel=['C:\\Users\\x'],
+                                                      all_mounts=[('C:\\tmp', False)],
+                                                      routes={'ok': True, 'default_v4': False,
+                                                              'default_v6': False,
+                                                              'onlink_v4': onlink,
+                                                              'onlink_v6': set()}))
+        self.assertTrue(ok, detail)
+
+    def test_writable_volumes_missing_fails(self):
+        # 反例(g)：声明 network + fs_readonly 但未声明 writable_volumes => 受控写目录未声明 => 拒绝
         self._mount('network=blocked\nfs_readonly=C:\\Users\\x')
         ok, detail = M.verify_os_boundary(True, 'manifest.txt',
                                          facts=_facts(home_readonly=True, network_blocked=True,
                                                       config_available=True,
-                                                      fs_ro_kernel=[],   # 覆盖挂载无 ro 标志
-                                                      net_route_isolated=True))
+                                                      fs_ro_kernel=['C:\\Users\\x'],
+                                                      routes={'ok': True, 'default_v4': False,
+                                                              'default_v6': False, 'onlink_v4': set(),
+                                                              'onlink_v6': set()}))
         self.assertFalse(ok, detail)
-        self.assertIn('内核挂载配置非 ro', detail)
+        self.assertIn('受控写目录未声明', detail)
+
+    def test_writable_volumes_not_rw_fails(self):
+        # 反例(h)：writable_volumes 指向的路径覆盖挂载非 rw（内核级）=> 生成器无法写入临时副本 => 拒绝
+        self._mount('network=blocked\nfs_readonly=C:\\Users\\x\nwritable_volumes=C:\\tmp')
+        ok, detail = M.verify_os_boundary(True, 'manifest.txt',
+                                         facts=_facts(home_readonly=True, network_blocked=True,
+                                                      config_available=True,
+                                                      fs_ro_kernel=['C:\\Users\\x'],
+                                                      all_mounts=[('C:\\tmp', True)],  # C:\tmp 覆盖挂载为 ro
+                                                      routes={'ok': True, 'default_v4': False,
+                                                              'default_v6': False, 'onlink_v4': set(),
+                                                              'onlink_v6': set()}))
+        self.assertFalse(ok, detail)
+        self.assertIn('受控写目录未证实', detail)
+
+    def test_mount_comma_option_ro_and_rw(self):
+        # 反例(i)：挂载选项逗号分隔（如 'ro,noexec' / 'rw,relatime'）须被精确分词
+        # col[5] 为挂载选项；ro,noexec => 判定 ro；rw,relatime => 判定 rw
+        mi_ro = '123 456 7:8 / /home/x ro,noexec shared:1 - ext4 /dev/sda1 ro\n'
+        mi_rw = '123 456 7:8 / /home/x rw,relatime shared:1 - ext4 /dev/sda1 rw\n'
+        with mock.patch.object(M.platform, 'system', return_value='Linux'), \
+             mock.patch('builtins.open', mock.mock_open(read_data=mi_ro)):
+            ro_k, rw_d = M._read_mountinfo_ro(['/home/x'])
+        self.assertIn(os.path.normcase('/home/x'), ro_k, 'ro,noexec 应判定为 ro（修复逗号选项漏判）')
+        with mock.patch.object(M.platform, 'system', return_value='Linux'), \
+             mock.patch('builtins.open', mock.mock_open(read_data=mi_rw)):
+            ro_k2, rw_d2 = M._read_mountinfo_ro(['/home/x'])
+        self.assertNotIn(os.path.normcase('/home/x'), ro_k2, 'rw,relatime 应判定为非 ro')
+
+    def test_root_mount_coverage(self):
+        # 反例(j)：根挂载 '/' 带 ro 时，其子路径（如 /home/x）应被判定为 ro
+        # （修复根挂载 '/' 前缀拼接成 '//' 误判覆盖关系的 bug）
+        mi = '123 456 7:8 / / ro,relatime shared:1 - ext4 /dev/sda1 ro\n'
+        with mock.patch.object(M.platform, 'system', return_value='Linux'), \
+             mock.patch('builtins.open', mock.mock_open(read_data=mi)):
+            ro_k, rw_d = M._read_mountinfo_ro(['/home/x'])
+        self.assertIn(os.path.normcase('/home/x'), ro_k, '根挂载 ro 应覆盖其子路径 /home/x')
 
 
 if __name__ == '__main__':

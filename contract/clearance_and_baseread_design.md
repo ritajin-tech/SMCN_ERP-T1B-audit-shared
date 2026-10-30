@@ -19,7 +19,7 @@
    - `snapshotFingerprint` = 本次读取守卫的完整规范化快照指纹；
    - 服务端校验令牌绑定与本次请求参数**完全一致**，否则 `PERIOD_LOCKED`（防越权放大到无关行/无关表）。
 3. **短时 + 可撤销**：令牌带 `issuedAt` 与 `ttl`（**Tom V 批：建议 ≤ 15 分钟**，自 09:51Z 的 ≤24h 收紧）；服务端校验未过期；owner 可随时在 Script Properties 删除令牌即全局撤销。
-4. **一次性 + 高熵 nonce 防重放**（Tom 09:51Z + V 批）：令牌含**高熵 nonce** + 绑定 `jobId`；服务端在**同一脚本级互斥区间原子消费** nonce——同一 nonce/jobId 第二次请求即 `REPLAY_REJECTED`。**重发不重放**：执行若失败（nonce 已消费但写未完成），必须**重新签发新令牌**（新 nonce）而非复用旧 nonce 重放。
+4. **一次性 + 高熵 nonce 防重放**（Tom 09:51Z + V 批）：令牌含**高熵 nonce** + 绑定 `jobId`；服务端在**同一脚本级互斥区间原子消费** nonce——同一 nonce/jobId 第二次请求即 `REPLAY_REJECTED`。**重发不重放**：执行若失败（nonce 已消费但写未完成），**必须先在 §1.5.5 状态机中按 `jobId+itemId+requestHash+keeperRow` 检索原 job 日志判定最终状态**（已 `COMMITTED` → RECONCILED_OK 不重执行；确未提交 → 重新签发新令牌），**不得盲重发/盲重放**（Tom 10:13Z 复审：:22 原"直接换 nonce"表述缺"先对账"条件，与 §1.5.5 一致）。
 5. **撤销与重放台账**：维护 `issued / consumed / revoked` 三态台账（Script Properties 或独立存储），供审计追溯；每次消费落"消费时间戳 + 消费 jobId + 消费者身份"。
 6. **审计不记录 bearer token**：日志/审计轨迹只记录令牌的**哈希摘要 / nonce 摘要 / 签发者身份 / 消费时间戳**，绝不明文记录 bearer token 本身（防日志泄露导致令牌被冒用）。
 7. **失败全拒**：身份不符 / 范围不符 / 过期 / 已消费 / 缺失 / 签发者身份未核验，一律 `PERIOD_LOCKED` 或 `CLEARANCE_REJECTED`，**绝不静默放行**。
@@ -63,8 +63,9 @@
 - 复用期锁守卫同一把 `LockService.getScriptLock()`（即 `guardCheck` 使用的脚本级互斥），在 `acquireLock` 区间内完成 nonce 的"读-校验-标记消费"原子操作——同 nonce/jobId 二次请求即 `REPLAY_REJECTED`，杜绝并发重放；
 - 🔴 **明确边界**：本项描述的是"须实现"的逻辑；当前 `isClearance` 桩未做任何 nonce 消费，故**不存在**任何锁内原子消费。把它替换为 `consumeClearance()` 调用只是接入点变更，必须连同本段的原子读-校验-标记实现一并落码并复核，才配称"锁内原子消费"，不得仅凭函数名变更即宣称已具备。
 
-**§1.5.5 异常恢复状态机（状态机本身已落码并测试；clearance 消费接入未落码）**：
-- 软标写路径的状态机（`PENDING → PREPARED → COMMITTED | UNKNOWN → RECONCILED_OK | RECONCILED_VOID | REPLAY_REJECTED`）已在 `ts_softdel_core.js` 实现，并经 `ts_softdel_core.precheck.test.js` 9/9 验证（COMMITTED 日志失败→UNKNOWN 不谎称成功、进程终止窗口→UNKNOWN）；
+**§1.5.5 异常恢复状态机（状态机逻辑已落码并有提交方 9/9 单元测试；clearance 消费接入未落码）**：
+- 软标写路径的状态机（`PENDING → PREPARED → COMMITTED | UNKNOWN → RECONCILED_OK | RECONCILED_VOID | REPLAY_REJECTED`）已在 `ts_softdel_core.js` 实现，并经 `ts_softdel_core.precheck.test.js` **提交方 9/9 单元测试**验证（COMMITTED 日志失败→UNKNOWN 不谎称成功、进程终止窗口→UNKNOWN）；
+- ⚠️ **范围限定（Tom 10:13Z 复审：:66–67 原"已实现/9/9验证"须按实际代码与提交方测试范围限定）**：此 9/9 为**提交方以 mock 注入的单元级验证**，覆盖写后抛错/回读丢失/COMMITTED 日志失败/进程终止窗口等逻辑分支；**不代表端到端完成**——尚无真实 GAS 部署绑定、无真实生产写回读、nonce 消费（§1.5.4）仍为桩。独立签发、作用域绑定、锁内消费、撤销与恢复仍须实际实现并经独立核验，不能凭文字或 mock 代表端到端完成；
 - clearance 的 nonce 消费须**复用同一把锁与同一套日志/对账**，进入 `UNKNOWN`（nonce 已消费但写未完成/结果不明）后，**禁止**直接换 nonce 重放——必须先按 `jobId+itemId+requestHash+keeperRow` 检索原 job 日志判定最终状态：
   · 若已 `COMMITTED` → `RECONCILED_OK`（不重执行）；
   · 若确未提交 → 重新签发新 nonce（新令牌），重新验签/作用域，再执行；
@@ -108,7 +109,7 @@ base 读取须是**批次级 fail-closed**：预检阶段发现"批次内存在�
 1. **预检与写入两阶段分离**：先对整批所需 base 行集做一次性完整读取 + 完整性断言；任何 UUID 的 base 读取返回"行数=0 但本地快照证明该 UUID 应存在"→ 判定 `BASE_READ_INCOMPLETE`，**整批 fail-closed**，不进入写入阶段。
 2. **版本一致性**：base 读取同样绑定读取守卫（内容指纹 / revision，复用 `ts_read_guard.js`）；base 源在读取期间漂移 → `BASE_VERSION_MISMATCH`，整批 fail-closed。
 3. **禁止 override fallback 静默放行**（Tom 09:51Z 明确要求）：即便提供 `TS_BASE_OVERRIDE` 本地快照，也**不得**在批次级完整性未通过时静默用它替换 live 读取结果；override 仅作为"已知 hktool 降级时的显式、受控、可审计"路径，且**必须与本次 apply 的 rowSetDigest 绑定、单独审批**，不作为默认 fallback。
-4. **根因优先**：在 hktool live 读取降级根因（缺页 / 超时 / 权限 / 该 tab 被改）未查清前，**禁止任何 live 写**；只允许受控 override 路径（已验证零误拒）。
+4. **根因优先**：在 hktool live 读取降级根因（缺页 / 超时 / 权限 / 该 tab 被改）未查清前，**禁止任何 live 写**；仅允许受控 override 路径——但 `TS_BASE_OVERRIDE` **尚未获独立授权**（§2.5），在根因未清 + 未授权前不得启用，禁止 live 写维持（Tom 10:13Z 复审：:111 原"已验证零误拒"与根因未证/override 未授权/禁 live 写矛盾，已修正）。
 
 ### 2.4 验收（请 Tom 给具体编辑）
 - hktool 降级根因结论；
@@ -124,7 +125,7 @@ base 读取须是**批次级 fail-closed**：预检阶段发现"批次内存在�
 3. **源表/版本绑定**：核对 `工时_候选0824` 是否为主库当前绑定的底稿表（存在同名/迁移/副本），以及 13:50 本地快照对应的版本是否为生产当前版本；版本不一致则"CSV 全量"不代表 live 全量；
 4. **受控 override**：`TS_BASE_OVERRIDE` 本地快照路径尚未获授权；在①③根因未清前，override 仅作为"已知 hktool 降级时的显式、受控、可审计"路径，且必须与本次 apply 的 `rowSetDigest` 绑定、单独审批，**不作为默认 fallback**。
 
-以上四条任一未证实时，仍禁止任何 live 写；仅允许受控 override 路径（已验证零误拒）。
+以上四条任一未证实时，仍禁止任何 live 写；仅允许受控 override 路径——但 `TS_BASE_OVERRIDE` **尚未获独立授权**（§2.5），在根因未清 + 未授权前不得启用（Tom 10:13Z 复审：:127 同 :111，已修正"已验证零误拒"表述）。
 
 ---
 
