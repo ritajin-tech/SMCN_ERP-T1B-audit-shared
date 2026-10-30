@@ -11,7 +11,8 @@ import ts_repro_isolation_runner as M
 
 
 def _facts(home='C:\\Users\\x', cwd='C:\\repo', home_readonly=True, cwd_readonly=False,
-           network_blocked=True, container_ev=None, extra_readonly=None, extra_writable=None):
+           network_blocked=True, container_ev=None, extra_readonly=None, extra_writable=None,
+           config_available=False, fs_ro_kernel=None, fs_rw_descendant=None, net_route_isolated=False):
     ro = set()
     wr = set()
     hn = os.path.normcase(os.path.normpath(home))
@@ -28,7 +29,11 @@ def _facts(home='C:\\Users\\x', cwd='C:\\repo', home_readonly=True, cwd_readonly
         wr.add(os.path.normcase(os.path.normpath(p)))
     return {'home': home, 'cwd': cwd, 'readonly_paths': ro,
             'writable_claimed_paths': wr, 'network_blocked': network_blocked,
-            'container_ev': container_ev}
+            'container_ev': container_ev,
+            'config_available': config_available,
+            'fs_ro_kernel': set(os.path.normcase(os.path.normpath(p)) for p in (fs_ro_kernel or [])),
+            'fs_rw_descendant': set(os.path.normcase(os.path.normpath(p)) for p in (fs_rw_descendant or [])),
+            'net_route_isolated': net_route_isolated}
 
 
 class TestVerifyOsBoundary(unittest.TestCase):
@@ -77,7 +82,7 @@ class TestVerifyOsBoundary(unittest.TestCase):
         ok, detail = M.verify_os_boundary(True, 'manifest.txt',
                                          facts=_facts(home_readonly=True, network_blocked=True))
         self.assertTrue(ok, detail)
-        self.assertIn('两项策略均经运行时证据证实', detail)
+        self.assertIn('OS 边界两项策略均经', detail)
         self.assertIn('boundary-digest=', detail)
 
     def test_readonly_home_but_network_allowed_fails(self):
@@ -127,6 +132,68 @@ class TestVerifyOsBoundary(unittest.TestCase):
             ev = M._linux_container_evidence()
         self.assertIsNotNone(ev)
         self.assertIn('能力集', ev)
+
+    # ===== Tom 08:42Z 复审：内核级配置为权威，连接探针/os.access 仅辅助；补充三个反例 =====
+
+    def test_config_pass_kernel_ro_and_route_isolated(self):
+        # 内核级：覆盖挂载 ro 标志 + 无外部默认路由 => 放行（连接探针仅辅助）
+        self._mount('network=blocked\nfs_readonly=C:\\Users\\x')
+        ok, detail = M.verify_os_boundary(True, 'manifest.txt',
+                                         facts=_facts(home_readonly=True, network_blocked=True,
+                                                      config_available=True,
+                                                      fs_ro_kernel=['C:\\Users\\x'],
+                                                      net_route_isolated=True))
+        self.assertTrue(ok, detail)
+        self.assertIn('mountinfo', detail)
+        self.assertIn('net/route', detail)
+
+    def test_intranet_reachable_while_public_blocked_fails(self):
+        # 反例(a)：两个公网地址不可达(探针 blocked)，但内核路由表存在外部默认路由
+        # => 内网/其他地址/DNS 仍可能可达，完整禁网未证 => 拒绝（Tom 08:42Z）
+        self._mount('network=blocked\nfs_readonly=C:\\Users\\x')
+        ok, detail = M.verify_os_boundary(True, 'manifest.txt',
+                                         facts=_facts(home_readonly=True, network_blocked=True,
+                                                      config_available=True,
+                                                      fs_ro_kernel=['C:\\Users\\x'],
+                                                      net_route_isolated=False))
+        self.assertFalse(ok, detail)
+        self.assertIn('默认路由', detail)
+
+    def test_ro_parent_with_writable_subdir_fails(self):
+        # 反例(b)：声明只读的 home 覆盖挂载带 ro，但其下存在 rw 子挂载(可写子目录逃逸)
+        # => 内核挂载配置证明失败 => 拒绝（Tom 08:42Z）
+        self._mount('network=blocked\nfs_readonly=C:\\Users\\x')
+        ok, detail = M.verify_os_boundary(True, 'manifest.txt',
+                                         facts=_facts(home_readonly=True, network_blocked=True,
+                                                      config_available=True,
+                                                      fs_ro_kernel=['C:\\Users\\x'],
+                                                      fs_rw_descendant=['C:\\Users\\x'],
+                                                      net_route_isolated=True))
+        self.assertFalse(ok, detail)
+        self.assertIn('可写子挂载', detail)
+
+    def test_other_mount_writable_fails(self):
+        # 反例(c)：声明只读的 cwd 覆盖挂载带 ro，但其下存在其他可写挂载 => 逃逸 => 拒绝
+        self._mount('network=blocked\nfs_readonly=C:\\repo')
+        ok, detail = M.verify_os_boundary(True, 'manifest.txt',
+                                         facts=_facts(cwd='C:\\repo', cwd_readonly=True,
+                                                      network_blocked=True, config_available=True,
+                                                      fs_ro_kernel=['C:\\repo'],
+                                                      fs_rw_descendant=['C:\\repo'],
+                                                      net_route_isolated=True))
+        self.assertFalse(ok, detail)
+        self.assertIn('可写子挂载', detail)
+
+    def test_config_fs_ro_kernel_missing_fails(self):
+        # 声明只读路径的内核挂载配置非 ro（os.access 不可写不证明内核级只读）=> 拒绝
+        self._mount('network=blocked\nfs_readonly=C:\\Users\\x')
+        ok, detail = M.verify_os_boundary(True, 'manifest.txt',
+                                         facts=_facts(home_readonly=True, network_blocked=True,
+                                                      config_available=True,
+                                                      fs_ro_kernel=[],   # 覆盖挂载无 ro 标志
+                                                      net_route_isolated=True))
+        self.assertFalse(ok, detail)
+        self.assertIn('内核挂载配置非 ro', detail)
 
 
 if __name__ == '__main__':

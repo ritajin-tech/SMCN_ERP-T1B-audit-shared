@@ -12,9 +12,14 @@ T1-B 复现隔离运行器（回应 Tom 08:27Z 对 S3 的复核 + 2026-10-29 20:
   (d) 外部 OS 沙箱仅以"WSL/容器名称"判断 -> 事后哈希对比不是权限边界；
       改为：本运行器【不凭自声明创建或证明】OS 隔离——隔离必须由操作员自有 OS 施加，
       并经【--sandbox-manifest(机器可校验声明: network=blocked + fs_readonly=<home/cwd>) +
-      非破坏性运行时证据(家目录/cwd 只读 os.access W_OK=False + 网络真不可达)】同时证实；
+      非破坏性运行时证据】同时证实；运行时证据以【内核级配置为权威】：
+        · 文件系统只读：/proc/self/mountinfo 覆盖挂载带 ro 标志（内核强制只读，非仅靠 os.access）；
+        · 网络隔离：/proc/self/net/route 无外部默认路由（完整禁网内核级证据，非仅靠两个公共地址连接探针）；
+      os.access 与连接探针【仅作辅助】，不得作为唯一判据（Tom X 批·一：两公网地址不可达可能是
+      路由/防火墙选择性阻断，不证明内网/其他地址/DNS/其他协议被禁；home/cwd 一个 os.access 不可写
+      不证明子目录/其他挂载/所有写路径只读）。
       文件/挂载只读 与 网络隔离 两项策略【必须同时】成立，容器/cgroup/CapEff 仅作佐证；
-      任一适用策略未证实即 fail-closed，边界未证实前绝不启动生成器（Tom X 批·一）。
+      任一适用策略未证实即 fail-closed，边界未证实前绝不启动生成器（Tom X 批·一 / 08:42Z 复审）。
 
 🔴 强制边界（均可验证，失败即 fail-closed）：
 1) 原树只读：运行前对【原始审阅仓】tools/ 做完整快照（kind+hash/target）；运行后【无论生成器成功/失败】
@@ -24,6 +29,7 @@ T1-B 复现隔离运行器（回应 Tom 08:27Z 对 S3 的复核 + 2026-10-29 20:
 4) 最小环境 + try/finally 清理：以 `python -I` 运行；异常也清理临时目录，并确认清理成功。
 5) 低权限/挂载只读 + 网络隔离（OS 级）：若未提供显式且经探针验证的 OS 沙箱，【默认拒绝】运行。
    要求【文件/挂载只读(绑定 home/cwd)】与【网络隔离】两项策略同时被运行时证据证实；
+   运行时证据以【内核级挂载/路由配置为权威】，os.access 与连接探针仅辅助；
    普通非隔离用户（/etc 不可写但家目录可写、或家目录只读但网络可达）均不满足。
 
 用法：
@@ -152,9 +158,80 @@ def _linux_container_evidence():
     return None
 
 
+def _read_mountinfo_ro(paths):
+    """解析 /proc/self/mountinfo，返回 (fs_ro_kernel, fs_rw_descendant)。
+    - fs_ro_kernel：声明路径中，其【覆盖挂载】(最长匹配) 带 ro 标志的集合（内核强制只读，非仅靠 os.access）。
+    - fs_rw_descendant：声明路径下存在 rw 子挂载的集合（只读父目录下可写子挂载/子目录逃逸）。
+    仅只读读取，不写任何文件；非 Linux 或读取失败返回 (set(), set())。
+    Tom X 批·一（08:42Z 复审）：home/cwd 一个 os.access 不可写不证明子目录/其他挂载/所有写路径只读。
+    """
+    ro_kernel = set()
+    rw_desc = set()
+    try:
+        with open('/proc/self/mountinfo', 'r', encoding='utf-8', errors='replace') as f:
+            lines = f.readlines()
+    except OSError:
+        return ro_kernel, rw_desc
+    mounts = []  # (mountpoint_norm, ro_bool)
+    for line in lines:
+        parts = line.split()
+        if len(parts) < 6:
+            continue
+        mountpoint = parts[4]
+        # 可选字段以 '-' 分隔；'-' 之后为 fs_type / source / superblock options
+        opts_fields = [parts[5]]
+        try:
+            sep = parts.index('-')
+            opts_fields.extend(parts[sep + 3:])
+        except ValueError:
+            pass
+        combined = ' ' + ' '.join(opts_fields) + ' '
+        ro = (' ro ' in combined) and (' rw ' not in combined)  # ro 优先且明确
+        mounts.append((os.path.normcase(os.path.normpath(mountpoint)), ro))
+    # 按 mountpoint 长度降序：最具体的覆盖挂载优先匹配
+    mounts.sort(key=lambda x: len(x[0]), reverse=True)
+    for p in paths:
+        np = os.path.normcase(os.path.normpath(p))
+        covering_ro = None
+        for mp, ro in mounts:
+            if np == mp or np.startswith(mp + os.sep):
+                covering_ro = ro
+                break
+        if covering_ro is True:
+            ro_kernel.add(np)
+        # 检测该声明路径下的 rw 子挂载（逃逸）
+        for mp, ro in mounts:
+            if mp != np and mp.startswith(np + os.sep) and ro is False:
+                rw_desc.add(np)
+                break
+    return ro_kernel, rw_desc
+
+
+def _read_route_isolated():
+    """解析 /proc/self/net/route，判断是否【无外部默认路由】。
+    存在 Destination=00000000 且 Mask=00000000 的默认路由 => 主机可达外部 => 未隔离。
+    返回 True 表示内核路由表证明无外部默认路由（完整禁网的内核级证据）；
+    返回 False 表示存在默认路由或读取失败（Tom X 批·一：两个公共地址不可达≠完整禁网）。
+    """
+    try:
+        with open('/proc/self/net/route', 'r', encoding='utf-8', errors='replace') as f:
+            lines = f.readlines()
+    except OSError:
+        return False
+    for line in lines[1:]:  # 跳过表头
+        cols = line.split()
+        if len(cols) < 8:
+            continue
+        dest, mask = cols[1], cols[7]
+        if dest == '00000000' and mask == '00000000':
+            return False  # 存在默认路由 => 可达外部 => 未隔离
+    return True  # 无默认路由 => 内核级证明无外部网络
+
+
 def _probe_network_blocked():
     """非破坏性辅助探针：尝试连接可达公共地址，短时超时；均不可达 => 网络被隔离（辅助证据）。
-    仅做连接尝试，不发送任何数据；不做为唯一判据（Tom W 批·点①：网络探测不足为凭）。"""
+    仅做连接尝试，不发送任何数据；不做为唯一判据（Tom W 批·点① / X 批·一：网络探测不足为凭，
+    两公网地址不可达可能是路由/防火墙选择性阻断，不证明内网/其他地址/DNS/其他协议被禁）。"""
     import socket
     blocked = 0
     for host, port in (('8.8.8.8', 443), ('1.1.1.1', 443)):
@@ -221,8 +298,10 @@ def _is_relevant_path(p, home, cwd):
 
 
 def _gather_runtime_facts(claims, probe_fn=None):
-    """非破坏性运行时证据采集：对 manifest 声明的每个 fs_readonly 路径做 os.access(W_OK=False) 校验，
-    并探测网络是否真正不可达。返回 facts 字典。绝不实际写任何文件。
+    """非破坏性运行时证据采集：对 manifest 声明的每个 fs_readonly 路径做 os.access(W_OK=False) 校验
+    （辅助），并在 Linux 上读取内核级配置证据（/proc/self/mountinfo 覆盖挂载 ro 标志 +
+    /proc/self/net/route 无外部默认路由）。返回 facts 字典。绝不实际写任何文件。
+    Tom X 批·一（08:42Z 复审）：内核级挂载/路由配置为权威，os.access 与连接探针仅辅助。
     """
     home = os.path.expanduser('~')
     try:
@@ -231,10 +310,14 @@ def _gather_runtime_facts(claims, probe_fn=None):
         cwd = None
     facts = {
         'home': home, 'cwd': cwd,
-        'readonly_paths': set(),          # 实际校验为只读的路径
-        'writable_claimed_paths': set(),  # 声明只读但实际可写（矛盾）
-        'network_blocked': False,
+        'readonly_paths': set(),          # 实际校验为只读的路径（辅助，os.access）
+        'writable_claimed_paths': set(),  # 声明只读但实际可写（矛盾，os.access）
+        'network_blocked': False,         # 连接探针（辅助）
         'container_ev': _linux_container_evidence(),
+        'config_available': False,        # 是否能读取内核级配置（Linux /proc）
+        'fs_ro_kernel': set(),            # 声明路径覆盖挂载带 ro 标志（内核强制只读，权威）
+        'fs_rw_descendant': set(),        # 声明路径下存在 rw 子挂载（逃逸，权威）
+        'net_route_isolated': False,      # 内核路由表无外部默认路由（完整禁网，权威）
     }
     for p in claims['fs_readonly']:
         np = os.path.normcase(os.path.normpath(p))
@@ -248,47 +331,80 @@ def _gather_runtime_facts(claims, probe_fn=None):
         else:
             facts['writable_claimed_paths'].add(np)
     facts['network_blocked'] = bool(probe_fn() if probe_fn else _probe_network_blocked())
+    # —— 内核级配置证据（权威；探测/os.access 仅辅助，Tom X 批·一）——
+    if platform.system() == 'Linux':
+        facts['config_available'] = True
+        facts['fs_ro_kernel'], facts['fs_rw_descendant'] = _read_mountinfo_ro(claims['fs_readonly'])
+        facts['net_route_isolated'] = _read_route_isolated()
     return facts
 
 
 def _decide_boundary(claims, facts, platform_sys):
     """纯决策（无副作用，可单测）：要求【网络隔离】与【文件系统只读(绑定用户相关路径)】两项
-    独立生效且均被运行时证据证实；容器/cgroup/CapEff 仅作佐证，绝不作为放行依据。任一未证实即 fail-closed。
+    独立生效且均被运行时证据证实。内核级挂载/路由配置为权威，os.access 与连接探针仅辅助
+    （Tom X 批·一 / 08:42Z 复审）。容器/cgroup/CapEff 仅作佐证，绝不作为放行依据。任一未证实即 fail-closed。
     """
     evidence = []
-    # —— 网络隔离：manifest 声明 + 运行时连接探针不可达 ——
-    if claims.get('network_blocked'):
-        if facts.get('network_blocked'):
-            evidence.append('网络隔离：manifest 声明 network=blocked + 运行时连接探针不可达')
-        else:
-            return (False, '网络隔离未证实：manifest 声明 network=blocked，但运行时连接探针仍可达'
-                           '（网络未被阻断）；OS 网络边界必须由运行时证据证实，不得仅凭声明放行（Tom X 批·一）。')
-    else:
+    cfg = facts.get('config_available', False)
+    # —— 网络隔离 ——
+    if not claims.get('network_blocked'):
         return (False, '网络隔离未声明：manifest 未声明 network=blocked；文件/网络两项策略须同时声明并证实。')
+    if cfg:
+        if facts.get('net_route_isolated'):
+            evidence.append('网络隔离：内核路由表(/proc/self/net/route)证明无外部默认路由'
+                           '（完整禁网的内核级证据，非仅靠两个公共地址连接探针）')
+        else:
+            return (False, '网络隔离未证实：内核路由表存在外部默认路由（Destination/Mask=00000000）；'
+                           '仅两个公共地址连接失败可能是路由/防火墙选择性阻断，'
+                           '不能证明内网/其他地址/DNS/其他协议被禁（Tom X 批·一：公网不可达≠完整禁网）。'
+                           '须由路由表或独立网络命名空间证明完整禁网。')
+    else:
+        if facts.get('network_blocked'):
+            evidence.append('网络隔离：连接探针不可达（本平台无 /proc 路由表，回落到连接探针，证据较弱，仅辅助）')
+        else:
+            return (False, '网络隔离未证实：manifest 声明 network=blocked，但运行时连接探针仍可达；'
+                           '且本平台无法读取内核路由表佐证（Tom X 批·一）。')
 
-    # —— 文件系统只读：必须绑定 home 或 cwd（用户可写相关路径），且运行时校验为只读 ——
+    # —— 文件系统只读：必须绑定 home 或 cwd（用户可写相关路径）——
     home = facts.get('home')
     cwd = facts.get('cwd')
     relevant = [p for p in claims.get('fs_readonly', set()) if _is_relevant_path(p, home, cwd)]
     if not relevant:
         return (False, '文件系统只读未证实：manifest 未将 fs_readonly 绑定到家目录或 cwd（用户可写相关路径）；'
                        '仅以 /etc 等系统目录冒充只读不足以证明操作员侧写入被阻断（Tom X 批·一）。')
-    fs_ok = False
-    for p in relevant:
-        np = os.path.normcase(os.path.normpath(p))
-        if np in facts.get('writable_claimed_paths', set()):
-            return (False, '文件系统只读矛盾：manifest 声明只读的家目录/cwd 路径 %s 运行时实际可写；'
-                           '边界未证实，拒绝（Tom X 批·一）。' % p)
-        if np in facts.get('readonly_paths', set()):
-            fs_ok = True
-            evidence.append('文件系统只读：manifest 声明 fs_readonly=%s + 运行时 os.access(W_OK=False) 证实' % p)
-    if not fs_ok:
-        return (False, '文件系统只读未证实：家目录/cwd 虽声明为只读，但运行时 os.access(W_OK=False) 不成立'
-                       '（实际可写或路径不存在）；不得静默通过（Tom X 批·一）。')
+    if cfg:
+        # 权威路径：内核挂载配置（ro 标志）为判据，os.access 仅辅助
+        for p in relevant:
+            np = os.path.normcase(os.path.normpath(p))
+            if np in facts.get('fs_rw_descendant', set()):
+                return (False, '文件系统只读未证实：声明只读路径 %s 下存在可写子挂载(rw)，'
+                               '只读父目录仍可被写入（逃逸）；内核挂载配置证明失败'
+                               '（Tom X 批·一：home/cwd 一个 os.access 不可写不证明子目录/其他挂载只读）。' % p)
+            if np not in facts.get('fs_ro_kernel', set()):
+                return (False, '文件系统只读未证实：声明只读路径 %s 的内核挂载配置非 ro'
+                               '（/proc/self/mountinfo 无覆盖挂载带 ro 标志）；'
+                               'os.access 不可写不证明内核级只读（Tom X 批·一）。' % p)
+            evidence.append('文件系统只读：/proc/self/mountinfo 证明 %s 覆盖挂载带 ro 标志'
+                           '（内核强制只读，非仅靠 os.access）' % p)
+    else:
+        # 回落到 os.access（较弱，仅当本平台无 /proc 配置时）
+        fs_ok = False
+        for p in relevant:
+            np = os.path.normcase(os.path.normpath(p))
+            if np in facts.get('writable_claimed_paths', set()):
+                return (False, '文件系统只读矛盾：manifest 声明只读的家目录/cwd 路径 %s 运行时实际可写；'
+                               '边界未证实，拒绝（Tom X 批·一）。' % p)
+            if np in facts.get('readonly_paths', set()):
+                fs_ok = True
+                evidence.append('文件系统只读：manifest 声明 fs_readonly=%s + 运行时 os.access(W_OK=False) 证实'
+                               '（本平台无 mountinfo，回落较弱）' % p)
+        if not fs_ok:
+            return (False, '文件系统只读未证实：家目录/cwd 虽声明为只读，但运行时 os.access(W_OK=False) 不成立'
+                           '（实际可写或路径不存在）；不得静默通过（Tom X 批·一）。')
     # 容器/cgroup/CapEff 仅佐证，绝不单独放行
     if facts.get('container_ev'):
         evidence.append('（佐证，非放行依据）%s' % facts['container_ev'])
-    return (True, 'OS 边界两项策略均经运行时证据证实：' + '；'.join(evidence)
+    return (True, 'OS 边界两项策略均经内核级配置证据证实：' + '；'.join(evidence)
             + '。容器/cgroup/CapEff 仅作佐证，不作为放行依据；生成器仅可在已证实隔离的环境中运行，'
               'manifest 真实性由审阅方带外核验。')
 
@@ -440,8 +556,9 @@ def main():
     print('[5/5] 原树只读已验证：运行前后 tools/ 双向快照完全一致（新增/删除/类型/内容均 0 差异，%d 条目）；'
           '临时副本已确认清理。' % len(before))
     print('[PASS] 隔离边界可验证：原树只读(双向代码断言,所有路径) + 仅临时副本可写 + 生成器无网络导入'
-          '(fail-closed) + OS 沙箱前置(显式声明 + 机器可校验 manifest + 运行时双策略[文件只读绑定home/cwd + 网络真不可达]证实)；'
-          '失败时不触及仓外或其他目录。')
+          '(fail-closed) + OS 沙箱前置(显式声明 + 机器可校验 manifest + 内核级双策略['
+          '文件只读=覆盖挂载 ro 标志(/proc/self/mountinfo) + 网络隔离=无外部默认路由(/proc/self/net/route)]证实，'
+          '连接探针/os.access 仅辅助)；失败时不触及仓外或其他目录。')
     return 0
 
 

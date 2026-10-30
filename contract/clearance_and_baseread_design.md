@@ -70,6 +70,24 @@
   · 若确未提交 → 重新签发新 nonce（新令牌），重新验签/作用域，再执行；
 - 全程不得盲重试、不得回滚式猜测；对账结论写入撤销/重放台账（`issued/consumed/revoked` 三态 + 消费时间戳 + 消费者身份 + 对账结论）。
 
+### 1.6 CODE 现状 vs 设计边界（回应 Tom 08:42Z X4 · 消除一切旧段落歧义）
+
+> 本节能见即所得地把"代码现在是什么"与"设计要什么"对齐，杜绝任何"已实现"错觉（Tom X4：core:183 调用 isClearance 仍在取锁前、embedded 对应函数仍 return false）。
+
+**截至本 X 批审计仓 HEAD 的代码现状（与 §1.5"未落码"声明完全一致）：**
+1. `ts_softdel_core.js:183`（clearance 入口）当前在【取锁之前】即调用 `isClearance`；且 `isClearance` 本身仍为 `return false` 桩；
+2. 部署物 `ts_softdel_gas_embedded.js:1101` 对应 `--clearance` 分支同样仍为 `return false` 桩；
+3. 故当前【零】实际 clearance 校验、【零】锁内原子消费、【零】nonce 账本、【零】撤销/恢复——全部待落码。
+
+**设计要求的修正（须 GO-S4 ④ 落码 + Tom 代码复核 + 红线#10 原地更新部署后才生效）：**
+- **消除 TOCTOU**：将 clearance 校验（含 nonce 的"读-校验-标记消费"）**移入** `guardCheck` 同一把 `LockService.getScriptLock()` 区间内；当前"取锁前先判 clearance"在锁外判定授权，存在竞态窗口，不满足 §1.5.4 的"锁内原子消费"。
+- 实现 `issueClearance()` / `consumeClearance()` 与 `Script Properties` 三态账本（§1.5.2–§1.5.5）。
+- 签发者独立身份核验、作用域绑定（jobId/rowSetDigest/snapshotFingerprint）、≤15min TTL、撤销通道——全部须实际实现并经独立核验，不靠桩。
+
+**474 缺读根因 + 受控 override**：仍待证/未获授权（§2.5 不变），在根因未清前禁止任何 live 写。
+
+> 已通读 §1.1–§1.5，确认无"已实现/已部署/已验证"类旧段落与设计边界冲突；如有遗留请 Tom 指明具体行号。
+
 ---
 
 ## 2. base 读取：批次级 fail-closed（回应 Tom 技术阻塞②）
