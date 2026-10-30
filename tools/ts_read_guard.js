@@ -36,4 +36,21 @@ function verifyReadGuard(g) {
   return { ok: true, guard };
 }
 
-module.exports = { normCell, contentFingerprint, verifyReadGuard };
+// Tom V 批·A点② 补强：读取守卫输入健全性校验 —— row 为唯一、稳定的数字行号；cells 为完整数组。
+// 返回违规列表（空 == 通过）；guard 调用方应在计算指纹前先跑本校验，失败即 fail-closed。
+function validateRows(rows) {
+  if (!Array.isArray(rows)) return ['rows 不是数组'];
+  const seen = {};
+  for (let i = 0; i < rows.length; i++) {
+    const r = rows[i] || {};
+    if (typeof r.row !== 'number' || !isFinite(r.row) || r.row < 1) {
+      return ['rows[' + i + '].row 非稳定数字行号: ' + JSON.stringify(r.row)];
+    }
+    if (seen[r.row]) return ['rows[' + i + '].row 行号重复: ' + r.row];
+    seen[r.row] = true;
+    if (!Array.isArray(r.cells)) return ['rows[' + i + '].cells 非数组'];
+  }
+  return [];
+}
+
+module.exports = { normCell, contentFingerprint, verifyReadGuard, validateRows };

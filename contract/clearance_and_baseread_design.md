@@ -13,14 +13,16 @@
 为让 1450 行（全部 bizDate<2026-10-01 锁账期）可被授权放行，又不破坏红线#10（不换链接、安全部署）、且不把它变成"谁都能传令牌就放行"的后门，clearance 必须是**独立授权的服务端契约**。
 
 ### 1.2 契约要素（须由服务端校验，全部满足才放行）
-1. **身份核验**：令牌由业务 owner（Rita）在**服务端 Script Properties** 中签发，**不写死在公开代码**（`isClearance` 改为读 `PropertiesService.getScriptProperties().getProperty('T1B_CLEARANCE_TOKEN')`）。
+1. **身份核验（独立身份认证，非仅靠常驻共享令牌）**：令牌由业务 owner（Rita）在**服务端 Script Properties** 中签发，**不写死在公开代码**（`isClearance` 改为读 `PropertiesService.getScriptProperties()`）。⚠️ Tom V 批明确指出：**Script Properties 中的常驻共享 bearer token 本身不提供独立身份认证**——故签发/消费两侧都必须核验"是谁、凭什么"：owner 经独立身份通道（如已认证的管理员会话/独立密钥）签发，服务端消费时校验签发者身份绑定，不得仅凭"令牌存在"即放行。
 2. **最小范围绑定**：令牌须绑定 `{ action: 'ts_softdel_apply', sheetId: '1Pi5u9fE', jobId, rowSetDigest, snapshotFingerprint }`；
-   - `rowSetDigest` = 本次 apply 目标行集（keeper/目标行号）的 SHA-256；
+   - `rowSetDigest` = 本次 apply 目标行集（按规范排序的 keeper/目标行号 + 各自指纹）的 SHA-256；
    - `snapshotFingerprint` = 本次读取守卫的完整规范化快照指纹；
    - 服务端校验令牌绑定与本次请求参数**完全一致**，否则 `PERIOD_LOCKED`（防越权放大到无关行/无关表）。
-3. **短时 + 可撤销**：令牌带 `issuedAt` 与 `ttl`（建议 ≤ 24h）；服务端校验未过期；owner 可随时在 Script Properties 删除令牌即全局撤销。
-4. **一次性 + nonce 防重放**（Tom 09:51Z 明确要求）：令牌含一次性 `nonce`（或单次 `jobId`）；服务端**原子消费**——同一令牌/同一 jobId 第二次请求即 `REPLAY_REJECTED`。（因生产写是幂等软标，重放无害，但 nonce 仍是审计与防混淆必需。）
-5. **失败全拒**：身份不符 / 范围不符 / 过期 / 已消费 / 缺失，一律 `PERIOD_LOCKED` 或 `CLEARANCE_REJECTED`，**绝不静默放行**。
+3. **短时 + 可撤销**：令牌带 `issuedAt` 与 `ttl`（**Tom V 批：建议 ≤ 15 分钟**，自 09:51Z 的 ≤24h 收紧）；服务端校验未过期；owner 可随时在 Script Properties 删除令牌即全局撤销。
+4. **一次性 + 高熵 nonce 防重放**（Tom 09:51Z + V 批）：令牌含**高熵 nonce** + 绑定 `jobId`；服务端在**同一脚本级互斥区间原子消费** nonce——同一 nonce/jobId 第二次请求即 `REPLAY_REJECTED`。**重发不重放**：执行若失败（nonce 已消费但写未完成），必须**重新签发新令牌**（新 nonce）而非复用旧 nonce 重放。
+5. **撤销与重放台账**：维护 `issued / consumed / revoked` 三态台账（Script Properties 或独立存储），供审计追溯；每次消费落"消费时间戳 + 消费 jobId + 消费者身份"。
+6. **审计不记录 bearer token**：日志/审计轨迹只记录令牌的**哈希摘要 / nonce 摘要 / 签发者身份 / 消费时间戳**，绝不明文记录 bearer token 本身（防日志泄露导致令牌被冒用）。
+7. **失败全拒**：身份不符 / 范围不符 / 过期 / 已消费 / 缺失 / 签发者身份未核验，一律 `PERIOD_LOCKED` 或 `CLEARANCE_REJECTED`，**绝不静默放行**。
 
 ### 1.3 部署方式（红线#10）
 - 仅**原地更新部署**（只推 HEAD 或 `projects.deployments.update`），**不新建部署、不换链接**；
@@ -28,8 +30,10 @@
 - 公开仓代码**不内嵌**令牌值与端点（已脱敏）。
 
 ### 1.4 验收（请 Tom 给具体编辑）
-- 令牌存放键名 / 格式 / TTL / 是否限单行；
-- nonce 是一次性的还是按 jobId 锁定；
+- 令牌存放键名 / 格式 / TTL（≤15min 是否过短，可否按批次规模放宽）；
+- nonce 原子消费的脚本级互斥实现细节（是否复用 `guardCheck` 同一把 `getScriptLock`）；
+- 签发者独立身份核验的具体通道（管理员会话 / 独立密钥 / 二次确认）；
+- 撤销/重放台账的存储位置与保留期；
 - 是否须经 Tom 代码复核后再部署；
 - 是否同意原地更新（不换链接）。
 

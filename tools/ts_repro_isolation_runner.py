@@ -1,22 +1,29 @@
 #!/usr/bin/env python3
 # -*- coding: utf-8 -*-
 """
-T1-B 复现隔离运行器（回应 Tom 08:27Z 对 S3 的复核）：
+T1-B 复现隔离运行器（回应 Tom 08:27Z 对 S3 的复核 + 2026-10-29 20:21 回复的 V 批补强）：
 把"OS 隔离 / 原树只读 / 仅临时目录可写 / 禁网"由【代码强制】，而非仅注释声明；
-并修复"生成器非零返回跳过后置快照"——后置原树快照在【所有退出路径】执行。
+并修复 Tom 指出的全部 S3 残留：
+  (a) 后置快照仅遍历 before 键 -> 运行期在 repo 内【新增】的文件不会被发现；
+      改为 before/after 双向路径集合 + 类型/内容对比（新增/删除/类型变更/内容变更都捕获）。
+  (b) 快照范围只含文件哈希 -> 不含目录/符号链接类型；改为记录 each 路径的 kind
+      (file/dir/symlink/other) + (file:sha256 | symlink:target)，类型变更即视为原树被改。
+  (c) 清理用 ignore_errors=True 且未确认成功 -> 改为确认清理结果，失败即 fail-closed 报告。
+  (d) 外部 OS 沙箱仅以"WSL/容器名称"判断 -> 事后哈希对比不是权限边界；
+      改为【必须先显式验证】的运行前置：须带 --sandbox-verified 显式声明（操作员在
+      WSL/容器/macOS sandbox-exec 内包裹运行），并叠加实测探针（尝试写系统保护路径必须被拒），
+      二者缺一即拒绝运行。
 
 🔴 强制边界（均可验证，失败即 fail-closed）：
-1) 原树只读：运行前对【原始审阅仓】tools/ 做完整 SHA-256 快照；运行后【无论生成器成功/失败】
-   再次快照并断言一致。任何对原树的改动都在此被捕获并中止——这是"原树只读"的代码级证据。
+1) 原树只读：运行前对【原始审阅仓】tools/ 做完整快照（kind+hash/target）；运行后【无论生成器成功/失败】
+   再次快照并双向断言一致（新增/删除/类型/内容任一差异即捕获）。任何对原树的改动都在此被中止。
 2) 仅临时目录可写：只把 tools/ 复制到一次性临时副本；生成器仅在副本内写；运行 cwd=tmp。
-3) 禁网（代码级 fail-closed）：扫描生成器源码，若含网络 / 子进程 / 危险导入则拒绝运行。
-4) 最小环境 + try/finally 清理：以 `python -I`（忽略环境、无 site-packages）运行；异常也清理临时目录。
-   （注：`-I` 只是环境隔离，【不是】沙箱；真正的安全边界来自上面的 1/2/3 与 OS 层包裹。）
-5) 低权限 / 挂载只读（OS 级）：若所在 OS 无法提供强沙箱（如原生 Windows），【默认拒绝】运行，
-   不提供任何绕过开关——必须由调用者在 WSL / 容器 / macOS sandbox-exec 中包裹后再运行。
+3) 禁网（代码级 fail-closed）：扫描生成器源码，若含网络/子进程/危险导入则拒绝运行。
+4) 最小环境 + try/finally 清理：以 `python -I` 运行；异常也清理临时目录，并确认清理成功。
+5) 低权限/挂载只读（OS 级）：若未提供显式且经探针验证的 OS 沙箱，【默认拒绝】运行。
 
 用法：
-    python tools/ts_repro_isolation_runner.py <审阅仓本地路径>
+    python tools/ts_repro_isolation_runner.py <审阅仓本地路径> --sandbox-verified
 
 🔴 说明：本运行器不把"运行待审仓生成器"当作零写/零执行证明；它只是把复现配方放进一个
 由代码强制的隔离边界，供审阅方在自有 OS 上复现。复现结果仍记为【提交方报告】，除非另有
@@ -25,6 +32,7 @@ T1-B 复现隔离运行器（回应 Tom 08:27Z 对 S3 的复核）：
 import os
 import sys
 import re
+import stat
 import hashlib
 import shutil
 import subprocess
@@ -39,6 +47,14 @@ NETWORK_IMPORT_RE = re.compile(
     r'from\s+(socket|urllib|requests|http|ftplib|smtplib|paramiko|subprocess|ctypes)\s+import)',
     re.M)
 
+# 运行期禁止写入的"系统保护路径"探针目标（跨平台）：若这些路径可写，说明沙箱未隔离 -> 拒绝。
+SANDBOX_PROBE_PATHS = [
+    '/etc/ts_iso_probe_deny',                 # POSIX 系统目录
+    '/System/Library/ts_iso_probe_deny',      # macOS
+    'C:\\Windows\\ts_iso_probe_deny',         # Windows（原生 Windows 本就拒绝）
+    'C:\\Program Files\\ts_iso_probe_deny',
+]
+
 
 def sha256_file(p):
     h = hashlib.sha256()
@@ -48,16 +64,62 @@ def sha256_file(p):
     return h.hexdigest()
 
 
+def _kind_of(path):
+    """返回路径类型：symlink / dir / file / other / None（不存在）。lstat 不跟随符号链接。"""
+    try:
+        st = os.lstat(path)
+    except OSError:
+        return None
+    if stat.S_ISLNK(st.st_mode):
+        return 'symlink'
+    if stat.S_ISDIR(st.st_mode):
+        return 'dir'
+    if stat.S_ISREG(st.st_mode):
+        return 'file'
+    return 'other'
+
+
 def snapshot_tools(repo):
-    """对 repo/tools/ 下所有文件做完整 SHA-256 快照（相对路径 -> 哈希）。"""
+    """对 repo/tools/ 下所有条目做完整快照：rel_path -> {kind, h|t}。"""
     tools_dir = os.path.join(repo, 'tools')
     snap = {}
-    for root, _, files in os.walk(tools_dir):
-        for f in files:
-            p = os.path.join(root, f)
+    for root, dirs, files in os.walk(tools_dir):
+        for name in list(dirs) + list(files):
+            p = os.path.join(root, name)
             rel = os.path.relpath(p, repo).replace('\\', '/')
-            snap[rel] = sha256_file(p)
+            kind = _kind_of(p)
+            if kind == 'file':
+                snap[rel] = {'kind': 'file', 'h': sha256_file(p)}
+            elif kind == 'symlink':
+                try:
+                    snap[rel] = {'kind': 'symlink', 't': os.readlink(p)}
+                except OSError:
+                    snap[rel] = {'kind': 'symlink', 't': ''}
+            elif kind in ('dir', 'other'):
+                snap[rel] = {'kind': kind}
+            # kind None（已消失）不记录
     return snap
+
+
+def _diff_snapshots(before, after):
+    """双向对比：新增 / 删除 / 类型变更 / 内容(哈希/链接目标)变更。"""
+    added, removed, changed_kind, changed_content = [], [], [], []
+    for k in after:
+        if k not in before:
+            added.append(k)
+        else:
+            b, a = before[k], after[k]
+            if b.get('kind') != a.get('kind'):
+                changed_kind.append(k)
+            elif a.get('kind') == 'file' and b.get('h') != a.get('h'):
+                changed_content.append(k)
+            elif a.get('kind') == 'symlink' and b.get('t') != a.get('t'):
+                changed_content.append(k)
+    for k in before:
+        if k not in after:
+            removed.append(k)
+    return {'added': added, 'removed': removed,
+            'changed_kind': changed_kind, 'changed_content': changed_content}
 
 
 def scan_generator(path):
@@ -69,14 +131,64 @@ def scan_generator(path):
     return suspects
 
 
+def verify_os_sandbox(sandbox_verified_flag):
+    """Tom V 批：外部 OS 沙箱必须先显式验证，不得仅凭"WSL/容器"名称。
+    返回 (ok, detail)：ok=False 即 fail-closed 拒绝运行。"""
+    if not sandbox_verified_flag:
+        return (False, '未提供 --sandbox-verified：本运行器要求操作员在 WSL/容器/macOS sandbox-exec '
+                       '内包裹运行并显式声明；不提供任何绕过开关。事后哈希对比不是权限边界，'
+                       'WSL/容器名称本身也不是证明。')
+    # 探针：尝试写系统保护路径，必须被拒（说明低权限/只读挂载有效）。
+    writable_system = []
+    for pp in SANDBOX_PROBE_PATHS:
+        parent = os.path.dirname(pp)
+        if not os.path.isdir(parent):
+            continue
+        try:
+            with open(pp, 'w') as f:
+                f.write('probe')
+            writable_system.append(pp)
+            try:
+                os.remove(pp)
+            except OSError:
+                pass
+        except (OSError, IOError):
+            pass  # 被拒 = 好现象
+    if writable_system:
+        return (False, '沙箱探针失败：系统保护路径可写 %s，说明 OS 层未隔离（低权限/只读挂载无效），拒绝运行。'
+                       % writable_system)
+    # 原生 Windows 仍直接拒绝（无强 OS 沙箱）
+    is_windows_native = platform.system() == 'Windows' and 'microsoft' not in platform.release().lower()
+    if is_windows_native:
+        return (False, '原生 Windows 无法提供强 OS 沙箱，拒绝运行；请在 WSL/容器内运行。')
+    return (True, '沙箱前置已验证：显式声明 + 系统路径写探针被拒。')
+
+
+def _remove_tree_confirm(path):
+    """移除目录并确认成功；失败返回 False（调用方按 fail-closed 处理）。不使用 ignore_errors。"""
+    try:
+        if os.path.lexists(path):
+            shutil.rmtree(path)  # 不使用 ignore_errors=True：任何清理异常都会上抛被捕获
+        # 确认已移除
+        if os.path.lexists(path):
+            return False
+        return True
+    except (OSError, IOError) as e:
+        print('[cleanup] 移除失败：%s' % e)
+        return False
+
+
 def main():
     args = sys.argv[1:]
     repo = None
+    sandbox_verified = False
     for a in args:
-        if not a.startswith('-'):
+        if a == '--sandbox-verified':
+            sandbox_verified = True
+        elif not a.startswith('-'):
             repo = a
     if not repo:
-        print('usage: python tools/ts_repro_isolation_runner.py <审阅仓本地路径>')
+        print('usage: python tools/ts_repro_isolation_runner.py <审阅仓本地路径> --sandbox-verified')
         return 2
 
     tools_dir = os.path.join(repo, 'tools')
@@ -88,9 +200,15 @@ def main():
         print('[ABORT] 找不到生成器 %s' % gen_path)
         return 3
 
-    # 1) 原树快照（before）—— 强制"原树只读"的代码级证据
+    # 0) OS 沙箱前置（显式声明 + 探针，缺一即拒绝）—— Tom V 批
+    ok_sb, detail_sb = verify_os_sandbox(sandbox_verified)
+    if not ok_sb:
+        print('[ABORT] OS 沙箱前置未通过：%s' % detail_sb)
+        return 8
+
+    # 1) 原树快照（before）—— 完整 kind+hash/target
     before = snapshot_tools(repo)
-    print('[1/4] 原树快照完成：%d 个文件（before）' % len(before))
+    print('[1/5] 原树快照完成：%d 个条目（before，含 kind+hash）' % len(before))
 
     # 3) 网络 / 危险导入扫描（fail-closed）
     suspects = scan_generator(gen_path)
@@ -99,13 +217,6 @@ def main():
         for s in suspects:
             print('  - %s' % s)
         return 4
-
-    # 5) OS 沙箱可用性（原生 Windows 默认拒绝；【不提供】任何绕过开关）
-    is_windows_native = platform.system() == 'Windows' and 'microsoft' not in platform.release().lower()
-    if is_windows_native:
-        print('[ABORT] 原生 Windows 无法提供强 OS 沙箱（低权限/挂载只读/禁网）；')
-        print('        本运行器不提供绕过开关。请在 WSL / 容器 / macOS sandbox-exec 中运行本运行器。')
-        return 5
 
     # 2) 复制到一次性临时副本（仅副本可写）
     tmp = tempfile.mkdtemp(prefix='gas_repro_iso_')
@@ -117,8 +228,8 @@ def main():
         gen_copy = os.path.join(copy_dir, GENERATOR)
         # 4) 最小环境 + python -I（隔离 site-packages / PYTHONPATH），cwd=tmp
         env = {'PATH': os.environ.get('PATH', ''), 'SYSTEMROOT': os.environ.get('SYSTEMROOT', '')}
-        print('[2/4] 已复制到临时副本 %s（仅此目录可写）' % copy_dir)
-        print('[3/4] 在隔离副本内运行 %s（cwd=%s, python -I）...' % (GENERATOR, copy_dir))
+        print('[2/5] 已复制到临时副本 %s（仅此目录可写）' % copy_dir)
+        print('[3/5] 在隔离副本内运行 %s（cwd=%s, python -I）...' % (GENERATOR, copy_dir))
         r = subprocess.run([sys.executable, '-I', gen_copy], cwd=copy_dir, env=env,
                            capture_output=True, text=True)
         sys.stdout.write(r.stdout)
@@ -127,26 +238,32 @@ def main():
         if gen_rc != 0:
             print('[WARN] 生成器返回非零：%d（继续核验原树是否被改动，绝不跳过后置快照）' % gen_rc)
     finally:
-        # 🔴 修复 Tom 08:27Z S3：后置原树快照在【所有退出路径】执行（成功/失败/异常均不跳过）。
-        # 先清理本次临时副本，再对原树做 after 快照并与 before 断言一致。
-        shutil.rmtree(tmp, ignore_errors=True)
-        after = snapshot_tools(repo)
-        diff = [k for k in before if before.get(k) != after.get(k)]
-        if diff:
+        # 🔴 清理：确认结果，失败即 fail-closed（不再 ignore_errors 静默）
+        cleanup_ok = _remove_tree_confirm(tmp)
+        if not cleanup_ok:
             tree_changed = True
-            print('[ABORT] 原树被改动！差异（前 %d 项）：%s' % (len(diff), diff[:5]))
+            print('[ABORT] 临时副本清理失败，按 fail-closed 记原树状态不可信；请手动核查 %s' % tmp)
+        # 🔴 后置原树快照（after）—— 双向对比（新增/删除/类型/内容）
+        after = snapshot_tools(repo)
+        diff = _diff_snapshots(before, after)
+        if (diff['added'] or diff['removed'] or diff['changed_kind'] or diff['changed_content']):
+            tree_changed = True
+            print('[ABORT] 原树被改动！差异：')
+            print('  added=%s' % diff['added'][:5])
+            print('  removed=%s' % diff['removed'][:5])
+            print('  changed_kind=%s' % diff['changed_kind'][:5])
+            print('  changed_content=%s' % diff['changed_content'][:5])
 
-    # 4) 依据 finally 中的核验结论裁决（顺序：原树改动 > 生成器失败 > 通过）
+    # 4) 依据 finally 中的核验结论裁决（顺序：原树改动/清理失败 > 生成器失败 > 通过）
     if tree_changed:
         return 7
     if gen_rc != 0:
-        print('[FAIL] 生成器非零返回 %d（原树已核验未被改动，但生成器自身失败，未写入仓外）'
-              % gen_rc)
+        print('[FAIL] 生成器非零返回 %d（原树已核验未被改动，但生成器自身失败，未写入仓外）' % gen_rc)
         return 6
-    print('[4/4] 原树只读已验证：运行前后 tools/ SHA-256 完全一致（%d 文件）；'
-          '临时副本已清理。' % len(before))
-    print('[PASS] 隔离边界可验证：原树只读(代码断言,所有路径) + 仅临时副本可写 + 生成器无网络导入'
-          '(fail-closed)；失败时不触及仓外或其他目录。')
+    print('[5/5] 原树只读已验证：运行前后 tools/ 双向快照完全一致（新增/删除/类型/内容均 0 差异，%d 条目）；'
+          '临时副本已确认清理。' % len(before))
+    print('[PASS] 隔离边界可验证：原树只读(双向代码断言,所有路径) + 仅临时副本可写 + 生成器无网络导入'
+          '(fail-closed) + OS 沙箱前置(显式声明+写探针)；失败时不触及仓外或其他目录。')
     return 0
 
 
