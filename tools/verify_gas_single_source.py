@@ -58,10 +58,11 @@ SOURCES = [
 # ============================================================
 PINNED_GEN_SHA256 = 'd733c3370ed3df65df42a1c2ebabba67954e4ecbc80cde026950d6318594f3a2'
 PINNED_ARTIFACTS = {
+    # 2026-10-30 重新同步（core 因 Tom 2101 #1/#3 改动后必须重生成；PIN 更新=显式变更，请审阅方核对）
     'ts_softdel_gas_embedded.js':
-        '5416f37e9db64a705e3beb808ad93a5bf78b6bd80d7212471928d22927f041f6',
+        '9f88f3e6c270d763dcdc6c1ff3f8be66a9fe99be92604ebebda83cd11376403a',
     'RemoteActions.A1d_v4_FINAL_entry_bound.js':
-        '8d8745f7a5d0d9d2306b398dfd3c6b4a40d7d0a01f34d93249051ec4d5fcbe46',
+        '8872df57ae6c8f483cde74f6db7c7f762e945896bca1a8bb9aac40c2a9438fa8',
 }
 
 # 生成器非确定性来源（只读静态扫描用）：命中任一即不具"可复现"资格

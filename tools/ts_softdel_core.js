@@ -76,26 +76,107 @@ function _requestHashOf(it) {
   }));
 }
 
-// ---- S1-8 clearance 严格判定契约（Tom 第十轮缺陷 #1）----
+// ---- S1-8 clearance 严格判定契约（Tom 第十轮缺陷 #1 + Tom 2101 #1）----
 // deps.isClearance 的实现（tools/ts_clearance.consumeClearance）返回【结构化对象】
 //   {ok:false, reason:'REVOKED'} —— 该对象在 JS 中仍是 truthy；
 //   若用 !! 强转，拒绝结果会被当成「授权通过」，直接绕过期锁守卫。
-// 因此定义唯一判定口径：**仅 true 或 {ok:true} 视为通过**，其余一律 false（fail-closed）。
-//   旧桩 (tok, rows)=>false / ()=>false 返回 false → 仍 false（PERIOD_LOCKED 维持）。
+// 因此定义唯一判定口径：**严格形态**
+//   · STRICT（默认，GAS 无 process ⇒ 恒走此路）：仅接受对象 {ok:true, nonce:<非空串>}。
+//     理由（Tom 2101 #1「建议生产接口仅接受明确结构化 {ok:true}，禁止不明形态和异常放行」）：
+//       - 裸布尔 true 不携带被消费 nonce ⇒ 无法与账本对照，\"谁授权了什么\"不可追溯；
+//       - ok:'true'（字符串）等不明形态一律 false；
+//       - 返回值含 scenario=throw 的情况在调用侧已 try/catch ⇒ 绝不按放行处理。
+//   · PROTOTYPE：兼容旧测试替身返回裸 true；仅当显式设置
+//     TS_CLEARANCE_SHAPE_MODE=prototype 生效（测试逃生口，默认关闭）。
+function _clearanceShapeMode() {
+  if (typeof process !== 'undefined' && process.env &&
+      process.env.TS_CLEARANCE_SHAPE_MODE === 'prototype') return 'prototype';
+  return 'strict';
+}
+
 function _clearanceStrictOk(raw) {
-  if (raw === true) return true;
-  if (raw && typeof raw === 'object' && raw.ok === true) return true;
-  return false;
+  const mode = _clearanceShapeMode();
+  if (mode === 'prototype') {
+    if (raw === true) return true;
+    if (raw && typeof raw === 'object' && raw.ok === true) return true;
+    return false;
+  }
+  // STRICT：只接受「明确结构化 {ok:true, nonce} 」
+  if (!raw || typeof raw !== 'object' || Array.isArray(raw)) return false;
+  if (raw.ok !== true) return false;
+  if (typeof raw.nonce !== 'string' || !raw.nonce) return false;
+  return true;
 }
 
 // Tom 第十轮缺陷 #3：rowSetDigest 必须由【本次受保护的真实批次】计算，不接受客户端自报。
 //   规范形态：逐 target 取 (row:uuid:keeperRow) 后字典序排序，再 SHA-256 —— 与行顺序无关、可独立复算。
+//   ⚠️ V1 仅绑定行身份，**不绑定每行的内容指纹** ⇒ Tom 2101 #3 判定其不足以约束内容。
 function _rowSetDigestOf(rows) {
   var ids = rows.map(function (it) {
     return String(Number(it && it.row)) + ':' + String((it && it.uuid) || '') + ':' + String(Number(it && it.keeperRow));
   });
   ids.sort();
   return _sdSha256(JSON.stringify(ids));
+}
+
+// ---- Tom 2101 #3：V2 行集指纹（绑定【逐行内容】+ 行数 + 规范形态）----
+//   · 逐行内容指纹 = _requestHashOf(it)（与 centers 请求身份同一函数，杜绝二次重写）；
+//   · 规范形态：按 (row, uuid, keeperRow) 字典序排序后拼接，行顺序无关；
+//   · 行数参与摘要：防止「删掉一行但身份串仍可对齐」的类漂移；
+//   · 任一行为非法形态（NaN row / 空 uuid）→ 返回 null ⇒ 调用方整批拒绝（fail-closed）。
+function _rowSetDigestV2Of(rows) {
+  if (!Array.isArray(rows) || !rows.length) return null;
+  var parts = [];
+  for (var i = 0; i < rows.length; i++) {
+    var it = rows[i] || {};
+    var row = Number(it.row), keeperRow = Number(it.keeperRow);
+    if (!isFinite(row) || row <= 0) return null;
+    if (!isFinite(keeperRow) || keeperRow <= 0) return null;
+    var uuid = String(it.uuid || '');
+    if (!uuid) return null;
+    parts.push(row + ':' + keeperRow + ':' + uuid + ':' + _requestHashOf(it));
+  }
+  parts.sort();
+  return _sdSha256(JSON.stringify({ alg: 'rowset-v2', n: parts.length, rows: parts }));
+}
+
+// ---- Tom 2101 #3：V2 快照指纹（绑定【生产目标 + 动作 + job + 版本】）----
+//   旧版仅 _sdSha256({v: masterVersion}) —— 不绑定目标表身份、动作、jobId、批次与行集，
+//   换个目标或换个批次仍可能拿到同一指纹 ⇒ 令牌可被挪用到别的写目标。
+//   现版把全部身份要素纳入；缺值/空值 → 返回 null ⇒ 调用方整批拒绝（不得静默降级）。
+//   键序固定展开（不依赖 JSON.stringify 的对象遍历顺序）。
+function _snapshotFingerprintV2(o) {
+  o = o || {};
+  var req = {
+    targetSpreadsheetId: o.targetSpreadsheetId,
+    targetSheetName: o.targetSheetName,
+    action: o.action,
+    jobId: o.jobId,
+    batchId: o.batchId,
+    masterVersion: o.masterVersion,
+    baselineVersion: o.baselineVersion,
+    rowCount: o.rowCount,
+    rowSetDigestV2: o.rowSetDigestV2,
+  };
+  var keys = ['targetSpreadsheetId', 'targetSheetName', 'action', 'jobId', 'batchId',
+    'masterVersion', 'baselineVersion', 'rowCount', 'rowSetDigestV2'];
+  for (var i = 0; i < keys.length; i++) {
+    var v = req[keys[i]];
+    if (v === null || v === undefined || v === '') return null;   // 缺值 ⇒ 拒绝，不得回退旧版
+    if (typeof v === 'number' && !isFinite(v)) return null;
+  }
+  return _sdSha256(JSON.stringify({
+    alg: 'snapshot-v2',
+    targetSpreadsheetId: String(req.targetSpreadsheetId),
+    targetSheetName: String(req.targetSheetName),
+    action: String(req.action),
+    jobId: String(req.jobId),
+    batchId: String(req.batchId),
+    masterVersion: String(req.masterVersion),
+    baselineVersion: String(req.baselineVersion),
+    rowCount: Number(req.rowCount),
+    rowSetDigestV2: String(req.rowSetDigestV2),
+  }));
 }
 
 // 结构化校验（输入形态 + 逐行 + keeper 图）；返回 {error} 或 {rows}
@@ -277,13 +358,53 @@ function tsSoftDelGuardedCore(e, deps) {
         // 缺失依赖 → 整批拒绝（不静默放行）
         return _res(false, { error: 'CLEARANCE_DEP_MISSING', batchId: batchId, jobId: jobId });
       }
-      // #3：作用域在锁内由真实对象派生 —— 行集取自本次受保护批次（含 keeperRow），
-      //     快照指纹取自锁内真实读到的主库版本（readAllMaster 的结果），均非客户端自报。
-      var _rsDigest = _rowSetDigestOf(rows);
-      var _fp = _sdSha256(JSON.stringify({ v: String(master.version || '') }));
+      // #3 + Tom 2101 #3：作用域在锁内由真实对象派生 —— 行集取自本次受保护批次（含逐行内容指纹），
+      //     快照指纹绑定【生产目标 + 动作 + job/batch + 主库版本 + 底稿版本 + 行集】，
+      //     全部取自服务端依赖，**无任何一项来自客户端自报**。
+      // Tom 2101 #3 具体修正：
+      //   · 指纹 V1 仅哈希 master.version ⇒ 换个目标/换批仍可能同指纹，令牌可被挪用到别的写目标；
+      //   · rowSetDigest V1 只含 (row:uuid:keeperRow) ⇒ 不绑定逐行内容，改行内容仍可过。
+      //   现一律改用 V2；任一项缺值/非法 → 整批拒绝（CLEARANCE_*_UNKNOWN，fail-closed）。
+      var _rsDigest = _rowSetDigestV2Of(rows);
+      if (!_rsDigest) {
+        return _res(false, { error: 'CLEARANCE_ROWSET_UNKNOWN', batchId: batchId, jobId: jobId });
+      }
+      if (typeof deps.targetIdentity !== 'function' || typeof deps.baselineVersion !== 'function') {
+        return _res(false, { error: 'CLEARANCE_SCOPE_DEP_MISSING', batchId: batchId, jobId: jobId });
+      }
+      var _tgt = null;
+      try { _tgt = deps.targetIdentity(); } catch (te) { _tgt = null; }
+      if (!_tgt || String(_tgt.spreadsheetId || '') === '' || String(_tgt.sheetName || '') === '') {
+        return _res(false, { error: 'CLEARANCE_TARGET_UNKNOWN', batchId: batchId, jobId: jobId });
+      }
+      var _baseVer = null;
+      try { _baseVer = deps.baselineVersion(); } catch (be) { _baseVer = null; }
+      if (String(_baseVer || '') === '') {
+        return _res(false, { error: 'CLEARANCE_BASELINE_UNKNOWN', batchId: batchId, jobId: jobId });
+      }
+      var _fp = _snapshotFingerprintV2({
+        targetSpreadsheetId: _tgt.spreadsheetId,
+        targetSheetName: _tgt.sheetName,
+        action: 'softDelGuarded',
+        jobId: jobId,
+        batchId: batchId,
+        masterVersion: master.version,
+        baselineVersion: _baseVer,
+        rowCount: rows.length,
+        rowSetDigestV2: _rsDigest,
+      });
+      if (!_fp) {
+        return _res(false, { error: 'CLEARANCE_FINGERPRINT_UNKNOWN', batchId: batchId, jobId: jobId });
+      }
       try {
         var _raw = deps.isClearance(clearanceToken, rows, {
           jobId: jobId, rows: rows, rowSetDigest: _rsDigest, snapshotFingerprint: _fp, lock: _lock,
+          // Tom 2101 #2：锁 **id 必填**（与句柄一致）+ 声明锁域（防止别处的锁句柄被当成本期锁）
+          lockId: _lock ? _lock.id : null,
+          lockDomain: 'period-lock/guard',
+          scopeVersion: 'v2', rowsCount: rows.length,
+          masterVersion: master.version, baselineVersion: _baseVer,
+          targetSpreadsheetId: _tgt.spreadsheetId, targetSheetName: _tgt.sheetName,
         });
         // #1：严格布尔契约 —— {ok:false, reason:...} 对象不得被判为通过。
         clearanceOk = _clearanceStrictOk(_raw);
@@ -746,7 +867,10 @@ module.exports = {
   _findAnyCommit: _findAnyCommit, _lastRecord: _lastRecord,
   // 导出供测试直接断言【严格布尔契约】（Tom 第十轮 #1）与服务端派生作用域（#3）
   _clearanceStrictOk: _clearanceStrictOk,
-  _rowSetDigestOf: _rowSetDigestOf,
+  _clearanceShapeMode: _clearanceShapeMode,
+  _rowSetDigestOf: _rowSetDigestOf,   // V1（已弃用，仅供对照/迁移测试）
+  _rowSetDigestV2Of: _rowSetDigestV2Of,
+  _snapshotFingerprintV2: _snapshotFingerprintV2,
   VERSION: VERSION,
   ROW_KEYS: ROW_KEYS, TOP_KEYS: TOP_KEYS
 };
