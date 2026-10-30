@@ -267,7 +267,8 @@ def _read_mountinfo_ro(paths):
             sep = parts.index('-')
             opts_fields.extend(parts[sep + 3:])
         except ValueError:
-            pass
+            malformed = True   # 缺少 '-' 分隔符 => 挂载表畸形（Tom 12:51Z：原实现静默 pass，现 fail-closed）
+            continue
         ro = _mount_opts_ro(opts_fields)
         mounts.append((os.path.normcase(os.path.normpath(mountpoint)), ro))
     # 按 mountpoint 长度降序：最具体的覆盖挂载优先匹配
@@ -309,7 +310,8 @@ def _read_mountinfo_all():
             sep = parts.index('-')
             opts_fields.extend(parts[sep + 3:])
         except ValueError:
-            pass
+            malformed = True   # 缺少 '-' 分隔符 => 挂载表畸形（Tom 12:51Z：原实现静默 pass，现 fail-closed）
+            continue
         ro = _mount_opts_ro(opts_fields)
         mounts.append((os.path.normcase(os.path.normpath(mountpoint)), ro))
     return mounts, malformed
@@ -879,8 +881,8 @@ def _remove_tree_confirm(path):
         return False
 
 
-def main():
-    args = sys.argv[1:]
+def main(argv=None):
+    args = list(argv) if argv is not None else sys.argv[1:]
     repo = None
     sandbox_verified = False
     manifest_path = None
@@ -932,7 +934,7 @@ def main():
     try:
         with open(manifest_path, 'r', encoding='utf-8', errors='replace') as f:
             mtext = f.read()
-        _, mclaims = _parse_sandbox_manifest(mtext)
+        mclaims, _ = _parse_sandbox_manifest(mtext)  # Tom 12:51Z：返回值 (claims, errors)；claims 为字典、errors 为列表，须取第一个
         tdir = mclaims.get('temp_dir')
         if tdir and os.path.isdir(tdir):
             tmp = tempfile.mkdtemp(prefix='gas_repro_iso_', dir=tdir)

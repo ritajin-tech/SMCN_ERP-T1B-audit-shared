@@ -25,14 +25,14 @@
 
 | # | 证据项 | 命令（在仓库根） | 验收 |
 |---|---|---|---|
-| S0-1 | 隔离内核级证据 | `python tools/ts_repro_isolation_runner.test.py` | 31/31 PASS（含 mountinfo ro + route 无默认/无出网路由 + 畸形表拒 + 策略路由拒 + 未声明可写挂载拒 + temp_dir 绑定 + 非Linux默认拒 + 其他反例；Tom 2026-10-30 10:43Z 第三轮复审补强） |
+| S0-1 | 隔离内核级证据 | `python tools/ts_repro_isolation_runner.test.py` | 41 项（40 通过、1 跳过；symlink best-effort 跳过）；含 mountinfo ro + route 无默认/无出网路由 + 畸形表拒 + 策略路由 UNKNOWN 拒 + 未声明可写挂载拒 + temp_dir 绑定 + 非Linux默认拒 + 其他反例 + main 解包 bug 修复集成测试（Tom 2026-10-30 12:51Z 第五轮复审补强） |
 | S0-2 | 读取守卫 | `node tools/ts_read_guard.test.js` | 17/17 PASS |
 | S0-3 | 受控读取（去伪装 + 终点 probe） | `node tools/ts_controlled_audit.test.js` | 11/11 PASS |
 | S0-4 | 写入失败停止 + journal 返回值 | `node tools/ts_softdel_core.precheck.test.js` | 9/9 PASS（含 COMMITTED 失败→UNKNOWN） |
 | S0-5 | 单源逐字一致（两份 GAS 产物 = core） | `python tools/verify_gas_single_source.py` | 全部断言通过 |
 | S0-6 | GAS↔Node 等价 | `node tools/ts_softdel_gas_harness.js` | 43/43 PASS |
 | S0-7 | 生成器幂等 | `python tools/gen_gas_softdel.py && python tools/verify_gas_single_source.py` | 重跑后产物 SHA-256 不变 |
-| S0-8 | JS 语法 | `node --check tools/*.js` | 全部 OK |
+| S0-8 | JS 语法（逐文件） | `for f in tools/*.js; do node --check "$f"; done`（逐文件命令与 EXIT 见 `evidence/run_2026-10-30T10UTC.log` §9） | 16/16 逐文件 EXIT=0（含 ts_softdel.js 修复重复 let KEY；Tom 12:51Z 要求与日志逐文件一致） |
 
 **产出**：`evidence/run_<UTC日期>.log`（本批已捕获，见 `evidence/`）。审阅方可用 GitHub 只读连接器自行复跑 S0-1…S0-8 验证，无需我方代为"证明"。
 

@@ -17,6 +17,10 @@
 4) 「不执行 S0-7 生成器，也不把仓库只读连接器称为运行环境」→
    - GitHub 只读连接器**仅用于你独立读取/核验已提交树**，它**不是运行环境**、也**不执行任何脚本**；本日志的 S0-1..S0-8 是提交方在**本地 checkout** 上执行，与只读连接器无关。
    - S0-7 的"生成器"是提交方**本地**执行 `gen_gas_softdel.py` 以演示**幂等性**（连跑两次产物 SHA-256 不变）；该执行只幂等重写两个 GAS 产品文件（tracked、连跑后内容不变），不写仓外、不碰生产。它**不是**"在只读连接器上运行"或"以运行生成器替代隔离证明"。
+5) 「日志固定 99c4ce0，不能直接证明其后 d75ca28 全部变更」+「冻结值的定义与先前记录存在差异」→
+   - 提交方澄清：本日志固定的 **99c4ce0 是代码核验 commit**（含 X1 第四轮隔离加固 + runbook §3 + 设计§2.4 + ts_softdel.js 语法修复）；**d75ca28 是日志重写 commit**（仅改本日志文本与措辞，不含代码变更）。二者职责分离：日志不直接证明 d75ca28 的代码影响，因为 d75ca28 本就不含代码改动。
+   - 冻结值（`TS_WRITE_FREEZE`）的现场状态以**执行守卫 `guardCheck` 为权威**，不由邮件文字推定；本日志仅记录"提交方按其 standing 策略维持锁定、未翻闸"，不主张现场已变更。
+   - S0-7 的"两次运行生成器"是**本地幂等性演示**（记录固定产物的 SHA-256），**不是**独立复测、也**不是**零副作用证据；真正的独立复测须由审阅方在自有环境复跑 S0-1..S0-8（GitHub 只读连接器拉取固定 commit 后本地执行）。
 
 ---
 
@@ -32,7 +36,7 @@
 - 命令：`python tools/ts_repro_isolation_runner.test.py`
 - 退出码：EXIT=0
 - 输出：`Ran 38 tests in 0.128s` / `OK (skipped=1)`
-- 说明：隔离测试 **31 → 38**（新增 4th 轮反例：策略路由 UNKNOWN 拒绝 / 畸形挂载表拒绝 / Unix socket side-channel 拒绝 / 转义挂载路径拒绝 / symlink 反例 best-effort skip）。全部 exit=0。
+- 说明：**37 通过、1 跳过（共 38）**；1 项为 symlink best-effort 跳过（本机无特权创建 symlink），**非 38/38 全通过**（回应 Tom 12:51Z 措辞修正）。隔离测试 **31 → 38**（新增 4th 轮反例：策略路由 UNKNOWN 拒绝 / 畸形挂载表拒绝 / Unix socket side-channel 拒绝 / 转义挂载路径拒绝 / symlink 反例 best-effort skip）。全部 exit=0。
 
 ## 3. S0-2 读取守卫
 - 命令：`node tools/ts_read_guard.test.js`
@@ -100,7 +104,7 @@
 
 | 项 | 结果 | EXIT |
 |---|---|---|
-| S0-1 隔离 | 38/38 PASS（含 4th 轮反例；skipped=1 为 symlink best-effort） | 0 |
+| S0-1 隔离 | 37 通过、1 跳过（共 38；skipped=1 为 symlink best-effort，非 38/38 全通过） | 0 |
 | S0-2 读取守卫 | 17/17 | 0 |
 | S0-3 受控读取 | 11/11 | 0 |
 | S0-4 写失败停止 | 9/9 | 0 |
@@ -118,3 +122,17 @@
 - `TS_WRITE_FREEZE` 维持锁定（未翻闸）。
 - clearance 令牌未发放。
 - tracked 树零改动：运行/测试产生的 `__pycache__/` 已加入 `.gitignore`，`git status` 无未跟踪项；固定 commit 99c4ce0 即本批最终树。
+
+---
+
+## 12. 2026-10-30 12:51Z 第五轮复审补强（Tom 复审 d75ca28 隔离运行器/runbook/clearance/日志）
+
+> 本批新增代码变更**不在** 99c4ce0（日志固定 commit）；其 commit 为后续新增（见下方）。以下为对 Tom 12:51Z 指出的 **真实 bug** 与若干措辞/一致性问题的闭环。
+
+1) **真实 bug 修复（main 临时目录段解包错误）**：`tools/ts_repro_isolation_runner.py` 原 `_, mclaims = _parse_sandbox_manifest(mtext)` 误将返回值第二元素（errors 列表）当 claims 字典，`mclaims.get(...)` 在 manifest 解析无错（errors 为空）时触发 `AttributeError` 且不在 `except OSError` 捕获内 → main 无法完成复现（Tom 12:51Z 实测指出）。修复：改为 `mclaims, _ = _parse_sandbox_manifest(mtext)`（claims 为第一返回值）。新增 `test_parse_sandbox_manifest_returns_claims_dict_first` 锁定 `(claims, errors)` 契约（第一元素为字典、含 temp_dir/writable_volumes）。
+2) **main 贯穿集成测试（非生产）**：新增 `test_main_temp_dir_binding_integration` —— 用哑生成器（无网络/子进程导入）+ mock 边界前置 + mock subprocess.run，贯穿 main() 核临时目录实际位置与授权卷，断言返回 0（PASS）且临时副本被清理；证明修复后不再抛 AttributeError（此前 Tom 指出"无法完成正常复现"）。`main(argv=None)` 新增可选 argv 参数以便测试注入。
+3) **mountinfo 缺 '-' 分隔符 fail-closed**：`_read_mountinfo_ro` / `_read_mountinfo_all` 原对 `parts.index('-')` 抛 `ValueError` 静默 `pass`（畸形长行被当作合法解析）；改为标记 `malformed=True` 并 `continue`（Tom 12:51Z：畸形长行可能被忽略而非标记 malformed）。新增 `test_mountinfo_missing_dash_malformed`（两函数均断言 malformed）。
+4) **测试计数修正**：本日志 §2 与 §10 原写"38/38 PASS" → 修正为 **37 通过、1 跳过（共 38）**（回应 Tom 12:51Z："应表述 37 通过、1 跳过，不是 38/38 全通过"）。
+5) **Stage-0 表格统一**：runbook `GO_S4_evidence_runbook.md` §1 S0-1 原写旧"31/31" → 更新为当前 41 项（40 通过、1 跳过）；S0-8 原"node --check tools/*.js 通配" → 改为与日志 §9 一致的**逐文件**命令与"16/16 逐文件 EXIT=0"（回应 Tom 12:51Z 一致性要求）。
+6) **隔离测试新增后总数**：本轮新增 3 例（契约守卫 + mountinfo 缺'-' + main 贯穿集成）→ 隔离测试 **38 → 41**（40 通过、1 跳过）。提交方本地复跑：`Ran 41 tests ... OK (skipped=1)`，EXIT=0。
+7) **namespace/路由/全部挂载/写边界独立证明**：Tom 指出"列举若干 Unix socket 和公网探针不能证明所有网络通道均被内核级隔离"。提交方同意：当前增强（策略路由 UNKNOWN 拒绝 / Unix socket 探针 / 全挂载遍历 / 真实路径比对）是**缩小攻击面**而非**完整证明**；真正的"实际 namespace、路由、全部挂载及写边界"独立证据仍须由 Stage-1 在专用 netns 内、经授权后实跑核证（runbook S1-1..S1-8），本 Stage-0 不主张已证。

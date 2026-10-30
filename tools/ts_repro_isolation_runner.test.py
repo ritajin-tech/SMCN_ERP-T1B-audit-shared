@@ -520,5 +520,65 @@ class TestVerifyOsBoundary(unittest.TestCase):
             shutil.rmtree(base, ignore_errors=True)
 
 
+    # ===== Tom 2026-10-30 12:51Z 第五轮复审：main 临时目录段解包 bug + mountinfo 缺 '-' fail-closed =====
+
+    def test_parse_sandbox_manifest_returns_claims_dict_first(self):
+        # 契约守卫（Tom 12:51Z）：_parse_sandbox_manifest 返回 (claims, errors)，
+        # claims 为字典（含 temp_dir/writable_volumes），errors 为列表。
+        # main 临时目录段曾误写为 `_, mclaims = ...`，把 errors(列表) 当成 claims(字典) => mclaims.get 抛 AttributeError。
+        # 本测试锁定"第一个返回值是字典、含 temp_dir/writable_volumes"的契约。
+        text = 'network=blocked\nfs_readonly=C:\\Users\\x\nwritable_volumes=C:\\tmp\ntemp_dir=C:\\tmp'
+        claims, errors = M._parse_sandbox_manifest(text)
+        self.assertIsInstance(claims, dict, '第一个返回值必须是 claims 字典')
+        self.assertIsInstance(errors, list, '第二个返回值必须是 errors 列表')
+        self.assertEqual(claims.get('temp_dir'), os.path.normcase(os.path.normpath('C:\\tmp')),
+                         'claims 应含 temp_dir（字典取值，非列表）')
+        self.assertIn(os.path.normcase('C:\\tmp'), claims.get('writable_volumes', set()),
+                       'claims 应含 writable_volumes（字典取值，非列表）')
+
+    def test_mountinfo_missing_dash_malformed(self):
+        # 反例(v·缺 '-' 分隔符)：挂载行 >=6 列但无 '-' 分隔符（内核挂载表畸形）=> 标记 malformed => 拒绝
+        # （Tom 12:51Z：原实现 parts.index('-') 抛 ValueError 被静默 pass，畸形长行被当作合法解析）
+        # 真实 mountinfo 必有 '-' 分隔符，缺之即畸形；两解析函数均须 fail-closed。
+        mi = '123 456 7:8 /home/x ro,relatime shared:1 ext4 /dev/sda1 ro\n'  # 9 列，无 '-'
+        with mock.patch.object(M.platform, 'system', return_value='Linux'), \
+             mock.patch('builtins.open', mock.mock_open(read_data=mi)):
+            ro_k, rw_d, mal1 = M._read_mountinfo_ro(['/home/x'])
+            mounts, mal2 = M._read_mountinfo_all()
+        self.assertTrue(mal1, '_read_mountinfo_ro 应标记 malformed（缺 - 分隔符）')
+        self.assertTrue(mal2, '_read_mountinfo_all 应标记 malformed（缺 - 分隔符）')
+
+    def test_main_temp_dir_binding_integration(self):
+        # 贯穿 main() 的非生产集成测试（Tom 12:51Z：要求核临时目录实际位置与授权卷，且不抛 AttributeError）。
+        # 不触碰真实生成器/生产：用哑生成器 + mock 边界前置（非 Linux 平台会在 OS 边界前置即拒绝，到不了临时目录段）
+        # + mock subprocess.run（避免真实拉起解释器）。核验：main 返回 0（PASS）且临时副本被清理。
+        import tempfile as _tf
+        repo = _tf.mkdtemp(prefix='iso_main_repo_')
+        tools_dir = os.path.join(repo, 'tools')
+        os.makedirs(tools_dir)
+        gen_path = os.path.join(tools_dir, M.GENERATOR)
+        with open(gen_path, 'w', encoding='utf-8') as f:
+            f.write('import sys\n')
+            f.write('sys.exit(0)\n')  # 哑生成器：无网络/子进程导入，scan_generator 应放行
+        vol_base = _tf.mkdtemp(prefix='iso_vol_')  # 声明卷 + 实际临时基目录（须存在）
+        manifest_path = os.path.join(repo, 'sandbox.manifest')
+        with open(manifest_path, 'w', encoding='utf-8') as f:
+            f.write('network=blocked\n')
+            f.write('fs_readonly=C:\\Users\\x\n')
+            f.write('writable_volumes=%s\n' % vol_base)
+            f.write('temp_dir=%s\n' % vol_base)
+        fake_run = mock.MagicMock(returncode=0, stdout='', stderr='')
+        try:
+            with mock.patch.object(M, 'verify_os_boundary', return_value=(True, 'mock boundary ok')), \
+                 mock.patch.object(M.subprocess, 'run', return_value=fake_run):
+                rc = M.main([repo, '--sandbox-verified', '--sandbox-manifest', manifest_path])
+            self.assertEqual(rc, 0, 'main 应贯穿临时目录绑定并 PASS（非生产哑生成器），不应抛 AttributeError')
+            leaked = [n for n in os.listdir(vol_base) if n.startswith('gas_repro_iso_')]
+            self.assertEqual(leaked, [], '临时副本应被清理，不应遗留 gas_repro_iso_ 目录')
+        finally:
+            shutil.rmtree(repo, ignore_errors=True)
+            shutil.rmtree(vol_base, ignore_errors=True)
+
+
 if __name__ == '__main__':
     unittest.main(verbosity=2)
