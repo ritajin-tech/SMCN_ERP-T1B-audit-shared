@@ -42,8 +42,10 @@ function verifyReadGuard(g) {
 //   · 每个 row 必须是【安全整数】(Number.isSafeInteger) 且 >=1（拒绝 1.5 / '2' / NaN / Infinity）；
 //   · 行号唯一（重复即违规）；
 //   · cells 必须是数组（拒绝非数组）；
-//   · 列宽规则：opts.expectedWidth 给出时，每个【非空】行 cells.length 必须 == expectedWidth；
-//     未给出时，所有【非空】行 cells.length 必须彼此相等（明确列宽，杜绝缺列/结构异常）。
+//   · 列宽规则（Tom X 批·二 收紧）：opts.expectedWidth 给出时，【每一行】cells.length 必须 == expectedWidth——
+//     含全空行也必须全宽（接口契约须以完整宽度的空数组表示真实空行；缺列/短空行即判异常缺失）；
+//     未给出 expectedWidth 时，所有行（含全空行）cells.length 必须彼此相等（明确列宽，杜绝缺列/结构异常）。
+//     【不以 truthy 回退补空掩盖异常】：cells 为 null/非数组即判违规，调用方不得用 `cells||[]` 伪造成空行。
 function validateRows(rows, opts) {
   opts = opts || {};
   const expectedWidth = (typeof opts.expectedWidth === 'number') ? opts.expectedWidth : null;
@@ -57,13 +59,12 @@ function validateRows(rows, opts) {
     }
     if (seen[r.row]) return ['rows[' + i + '].row 行号重复: ' + r.row];
     seen[r.row] = true;
-    if (!Array.isArray(r.cells)) return ['rows[' + i + '].cells 非数组'];
-    // 仅对【非空】行（cells 实际含内容）施加列宽规则；全空行（已被筛除前）不强制宽度。
-    const hasContent = r.cells.some(c => c !== null && c !== undefined && String(c).trim() !== '');
-    if (!hasContent) continue;
+    if (!Array.isArray(r.cells)) return ['rows[' + i + '].cells 非数组(null/非数组=异常缺失，不得伪造成空行)'];
+    // Tom X 批·二：列宽规则对【每一行】生效（含全空行）——缺列/短空行（长度不符 expectedWidth 或隐性基准）即判异常，
+    // 不再以 hasContent 跳过；真实空行须以完整宽度的空数组显式表示。
     if (expectedWidth !== null) {
       if (r.cells.length !== expectedWidth) {
-        return ['rows[' + i + '].cells 列宽不符: 期望 ' + expectedWidth + ' 实际 ' + r.cells.length];
+        return ['rows[' + i + '].cells 列宽不符(含全空行须全宽): 期望 ' + expectedWidth + ' 实际 ' + r.cells.length];
       }
     } else {
       if (implicitWidth === null) implicitWidth = r.cells.length;

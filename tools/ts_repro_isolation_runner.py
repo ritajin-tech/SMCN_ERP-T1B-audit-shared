@@ -11,8 +11,10 @@ T1-B 复现隔离运行器（回应 Tom 08:27Z 对 S3 的复核 + 2026-10-29 20:
   (c) 清理用 ignore_errors=True 且未确认成功 -> 改为确认清理结果，失败即 fail-closed 报告。
   (d) 外部 OS 沙箱仅以"WSL/容器名称"判断 -> 事后哈希对比不是权限边界；
       改为：本运行器【不凭自声明创建或证明】OS 隔离——隔离必须由操作员自有 OS 施加，
-      并经【--sandbox-manifest(带外佐证) + 非破坏性运行时证据(家目录/系统目录只读 + Linux 容器/cgroup)】
-      证实；任一适用探针缺失即 fail-closed，边界未证实前绝不启动生成器（Tom W 批·点①）。
+      并经【--sandbox-manifest(机器可校验声明: network=blocked + fs_readonly=<home/cwd>) +
+      非破坏性运行时证据(家目录/cwd 只读 os.access W_OK=False + 网络真不可达)】同时证实；
+      文件/挂载只读 与 网络隔离 两项策略【必须同时】成立，容器/cgroup/CapEff 仅作佐证；
+      任一适用策略未证实即 fail-closed，边界未证实前绝不启动生成器（Tom X 批·一）。
 
 🔴 强制边界（均可验证，失败即 fail-closed）：
 1) 原树只读：运行前对【原始审阅仓】tools/ 做完整快照（kind+hash/target）；运行后【无论生成器成功/失败】
@@ -20,7 +22,9 @@ T1-B 复现隔离运行器（回应 Tom 08:27Z 对 S3 的复核 + 2026-10-29 20:
 2) 仅临时目录可写：只把 tools/ 复制到一次性临时副本；生成器仅在副本内写；运行 cwd=tmp。
 3) 禁网（代码级 fail-closed）：扫描生成器源码，若含网络/子进程/危险导入则拒绝运行。
 4) 最小环境 + try/finally 清理：以 `python -I` 运行；异常也清理临时目录，并确认清理成功。
-5) 低权限/挂载只读（OS 级）：若未提供显式且经探针验证的 OS 沙箱，【默认拒绝】运行。
+5) 低权限/挂载只读 + 网络隔离（OS 级）：若未提供显式且经探针验证的 OS 沙箱，【默认拒绝】运行。
+   要求【文件/挂载只读(绑定 home/cwd)】与【网络隔离】两项策略同时被运行时证据证实；
+   普通非隔离用户（/etc 不可写但家目录可写、或家目录只读但网络可达）均不满足。
 
 用法：
     python tools/ts_repro_isolation_runner.py <审阅仓本地路径> --sandbox-verified --sandbox-manifest <隔离策略描述文件>
@@ -162,60 +166,173 @@ def _probe_network_blocked():
     return blocked == 2
 
 
-def verify_os_boundary(sandbox_verified_flag, manifest_path):
-    """Tom V→W 批·点①：OS 隔离边界必须由【独立生效的 OS 策略 + 可核验配置】证明，
-    自声明开关 / Python -I / 导入黑名单 / 事后 tools 快照【不能替代】权限边界。
+def _parse_sandbox_manifest(text):
+    """解析 sandbox-manifest：必须【显式、机器可校验】地声明 OS 策略，不能只写散文/注释。
 
-    本函数不凭自声明放过；它要求操作员提供 --sandbox-manifest（描述实际 OS 策略的带外佐证），
-    并叠加【非破坏性运行时证据】：家目录/系统目录只读（os.access，不实际写）+ Linux 容器/cgroup 证据。
-    网络探测仅作辅助，绝不作为唯一判据。任一适用探针缺失时【不静默通过】—— 边界未证实即 fail-closed。
+    返回 (claims, errors)：
+      claims = {'network_blocked': bool, 'fs_readonly': set(路径)}。
+    要求同时声明 network=blocked 与至少一个 fs_readonly=<path>；否则 errors 非空。
 
-    返回 (ok, detail)：ok=False 即拒绝运行生成器（直到边界在自有 OS 上被证实）。
+    Tom X 批·一：manifest 真实性不能只留在注释/散文中；须以 key=value 形式显式声明，
+    并由 _gather_runtime_facts / _decide_boundary 用运行时证据逐条证实。
+    """
+    claims = {'network_blocked': False, 'fs_readonly': set()}
+    errors = []
+    if not text or not text.strip():
+        errors.append('manifest 为空，无法解析策略声明')
+        return claims, errors
+    for raw in text.splitlines():
+        line = raw.strip()
+        if not line or line.startswith('#'):
+            continue
+        if '=' not in line:
+            # 非键值行视为散文，不计入机器可校验声明（Tom X 批·一：真实性不能只留在注释/散文）
+            continue
+        key, _, rawval = line.partition('=')
+        key = key.strip().lower()
+        val = rawval.strip()
+        if key == 'network':
+            lv = val.lower()
+            if lv in ('blocked', 'deny', 'disabled'):
+                claims['network_blocked'] = True
+            elif lv in ('open', 'allowed', 'enabled'):
+                claims['network_blocked'] = False
+            # 其余视为未声明，保持 False
+        elif key == 'fs_readonly':
+            # 保留原始大小写但按 OS 规范化（Windows 大小写不敏感）便于运行时比对
+            for p in val.split(','):
+                p = p.strip()
+                if p:
+                    claims['fs_readonly'].add(os.path.normcase(p))
+    if not claims['network_blocked']:
+        errors.append('manifest 未显式声明 network=blocked（OS 网络隔离须机器可校验）')
+    if not claims['fs_readonly']:
+        errors.append('manifest 未显式声明任何 fs_readonly=<path>（OS 文件系统只读须机器可校验且绑定具体路径）')
+    return claims, errors
+
+
+def _is_relevant_path(p, home, cwd):
+    """路径是否绑定到"用户可写相关"位置（家目录或 cwd）。仅以 /etc 等系统目录冒充只读 => 不算。"""
+    np = os.path.normcase(os.path.normpath(p))
+    for base in (home, cwd):
+        if base and os.path.normcase(os.path.normpath(base)) == np:
+            return True
+    return False
+
+
+def _gather_runtime_facts(claims, probe_fn=None):
+    """非破坏性运行时证据采集：对 manifest 声明的每个 fs_readonly 路径做 os.access(W_OK=False) 校验，
+    并探测网络是否真正不可达。返回 facts 字典。绝不实际写任何文件。
+    """
+    home = os.path.expanduser('~')
+    try:
+        cwd = os.getcwd()
+    except OSError:
+        cwd = None
+    facts = {
+        'home': home, 'cwd': cwd,
+        'readonly_paths': set(),          # 实际校验为只读的路径
+        'writable_claimed_paths': set(),  # 声明只读但实际可写（矛盾）
+        'network_blocked': False,
+        'container_ev': _linux_container_evidence(),
+    }
+    for p in claims['fs_readonly']:
+        np = os.path.normcase(os.path.normpath(p))
+        try:
+            exists = os.path.isdir(np) or os.path.isfile(np)
+            ro = exists and not os.access(np, os.W_OK)
+        except OSError:
+            ro = False
+        if ro:
+            facts['readonly_paths'].add(np)
+        else:
+            facts['writable_claimed_paths'].add(np)
+    facts['network_blocked'] = bool(probe_fn() if probe_fn else _probe_network_blocked())
+    return facts
+
+
+def _decide_boundary(claims, facts, platform_sys):
+    """纯决策（无副作用，可单测）：要求【网络隔离】与【文件系统只读(绑定用户相关路径)】两项
+    独立生效且均被运行时证据证实；容器/cgroup/CapEff 仅作佐证，绝不作为放行依据。任一未证实即 fail-closed。
+    """
+    evidence = []
+    # —— 网络隔离：manifest 声明 + 运行时连接探针不可达 ——
+    if claims.get('network_blocked'):
+        if facts.get('network_blocked'):
+            evidence.append('网络隔离：manifest 声明 network=blocked + 运行时连接探针不可达')
+        else:
+            return (False, '网络隔离未证实：manifest 声明 network=blocked，但运行时连接探针仍可达'
+                           '（网络未被阻断）；OS 网络边界必须由运行时证据证实，不得仅凭声明放行（Tom X 批·一）。')
+    else:
+        return (False, '网络隔离未声明：manifest 未声明 network=blocked；文件/网络两项策略须同时声明并证实。')
+
+    # —— 文件系统只读：必须绑定 home 或 cwd（用户可写相关路径），且运行时校验为只读 ——
+    home = facts.get('home')
+    cwd = facts.get('cwd')
+    relevant = [p for p in claims.get('fs_readonly', set()) if _is_relevant_path(p, home, cwd)]
+    if not relevant:
+        return (False, '文件系统只读未证实：manifest 未将 fs_readonly 绑定到家目录或 cwd（用户可写相关路径）；'
+                       '仅以 /etc 等系统目录冒充只读不足以证明操作员侧写入被阻断（Tom X 批·一）。')
+    fs_ok = False
+    for p in relevant:
+        np = os.path.normcase(os.path.normpath(p))
+        if np in facts.get('writable_claimed_paths', set()):
+            return (False, '文件系统只读矛盾：manifest 声明只读的家目录/cwd 路径 %s 运行时实际可写；'
+                           '边界未证实，拒绝（Tom X 批·一）。' % p)
+        if np in facts.get('readonly_paths', set()):
+            fs_ok = True
+            evidence.append('文件系统只读：manifest 声明 fs_readonly=%s + 运行时 os.access(W_OK=False) 证实' % p)
+    if not fs_ok:
+        return (False, '文件系统只读未证实：家目录/cwd 虽声明为只读，但运行时 os.access(W_OK=False) 不成立'
+                       '（实际可写或路径不存在）；不得静默通过（Tom X 批·一）。')
+    # 容器/cgroup/CapEff 仅佐证，绝不单独放行
+    if facts.get('container_ev'):
+        evidence.append('（佐证，非放行依据）%s' % facts['container_ev'])
+    return (True, 'OS 边界两项策略均经运行时证据证实：' + '；'.join(evidence)
+            + '。容器/cgroup/CapEff 仅作佐证，不作为放行依据；生成器仅可在已证实隔离的环境中运行，'
+              'manifest 真实性由审阅方带外核验。')
+
+
+def verify_os_boundary(sandbox_verified_flag, manifest_path, facts=None, probe_fn=None):
+    """Tom X 批·一（回应 05:16Z 复审）：重写 OS 隔离边界，诚实 fail-closed。
+    - 不凭自声明创建或证明隔离；操作员须自有 OS 施加并经【--sandbox-manifest(机器可校验声明) + 运行时证据】证实。
+    - 要求【文件/挂载只读】与【网络隔离】两项策略【同时】独立生效且被运行时证据证实；
+      普通非隔离用户（/etc 不可写但家目录可写、或家目录只读但网络可达）均不满足。
+    - 容器名称/能力集缩减仅作佐证，绝不作为授权依据。
+    - manifest 须【显式声明】network=blocked 与 fs_readonly=<路径>，真实性不能只留在注释/散文中。
+    - 绑定进程/配置摘要（digest），使裁决与本次运行的实际解释器/cwd/manifest/平台绑定，防篡改冒用。
+    - 任一适用探针缺失即 fail-closed，边界未证实前绝不启动生成器。
+    返回 (ok, detail)；facts/probe_fn 注入供单测（不触发真实网络/OS 交互）。
     """
     if not sandbox_verified_flag:
         return (False, '未提供 --sandbox-verified：本运行器要求操作员在已证实隔离的 OS（容器/WSL/'
-                       'macOS sandbox-exec）内包裹运行并显式声明；不提供任何绕过开关。')
+                       'macOS sandbox-exec）内包裹运行并显式声明；不提供任何绕过开关（Tom X 批·一）。')
     if not manifest_path or not os.path.isfile(manifest_path):
         return (False, '未提供 --sandbox-manifest：无法对 OS 边界做带外核验；本运行器不凭自声明开关放行'
-                       '（Tom W 批·点①：自声明开关不能替代权限边界）。')
+                       '（Tom X 批·一：自声明开关不能替代权限边界）。')
     try:
         with open(manifest_path, 'r', encoding='utf-8', errors='replace') as f:
             manifest_text = f.read()
     except OSError as e:
         return (False, 'sandbox-manifest 读取失败：%s' % e)
-    if not manifest_text.strip():
-        return (False, 'sandbox-manifest 为空，无法证明 OS 边界。')
-    evidence = ['manifest 已载入(%d 字节，带外佐证)' % len(manifest_text)]
-
-    # 运行时证据①：文件访问边界（非破坏性 os.access，不实际写）—— 家目录/系统目录应为只读
-    file_boundary = False
-    home = os.path.expanduser('~')
-    if home and os.path.isdir(home) and not os.access(home, os.W_OK):
-        file_boundary = True
-        evidence.append('家目录只读(os.access W_OK=False)')
-    sysdir = '/etc' if platform.system() != 'Windows' else 'C:\\Windows'
-    if os.path.isdir(sysdir) and not os.access(sysdir, os.W_OK):
-        file_boundary = True
-        evidence.append('系统目录只读(os.access W_OK=False)')
-
-    # 运行时证据②：Linux 容器/cgroup 或能力集缩减（真正的 OS 级隔离）
-    cg_ev = _linux_container_evidence()
-    if cg_ev:
-        evidence.append(cg_ev)
-
-    # 网络边界（辅助，不作唯一判据）
-    if _probe_network_blocked():
-        evidence.append('网络不可达(连接探测被拒，辅助证据)')
-
-    # 判定：必须有至少一项【运行时】边界证据（文件只读 或 容器/cgroup）；
-    # manifest 仅作带外佐证，绝不能单独放行。无适用探针时绝不静默通过。
-    if file_boundary or cg_ev:
-        return (True, 'OS 边界运行时证据成立：' + '；'.join(evidence) + '。生成器仅可在已证实隔离的'
-                       '环境中运行；manifest 真实性由审阅方带外核验。')
-    return (False, '未检出 OS 级隔离运行时证据（家目录可写且无非容器/cgroup 证据）：' + '；'.join(evidence)
-                   + '。边界未证实，拒绝运行生成器（Tom W 批·点①）。')
-
-
+    claims, errors = _parse_sandbox_manifest(manifest_text)
+    if errors:
+        return (False, 'sandbox-manifest 解析失败：' + '；'.join(errors)
+                + '。机器可校验的策略声明不可缺失（Tom X 批·一）。')
+    if facts is None:
+        facts = _gather_runtime_facts(claims, probe_fn=probe_fn)
+    ok, detail = _decide_boundary(claims, facts, platform.system())
+    # 绑定进程/配置摘要：使裁决与本次运行的实际解释器 + cwd + manifest + 平台绑定，防冒用
+    digest_src = '|'.join([
+        manifest_text.strip(),
+        sys.executable or '',
+        (facts.get('home') or ''),
+        (facts.get('cwd') or ''),
+        platform.system() or '',
+        repr(sorted(claims.get('fs_readonly', set()))),
+    ])
+    digest = hashlib.sha256(digest_src.encode('utf-8')).hexdigest()[:16]
+    return (ok, detail + ' [boundary-digest=%s]' % digest)
 def _remove_tree_confirm(path):
     """移除目录并确认成功；失败返回 False（调用方按 fail-closed 处理）。不使用 ignore_errors。"""
     try:
@@ -323,7 +440,8 @@ def main():
     print('[5/5] 原树只读已验证：运行前后 tools/ 双向快照完全一致（新增/删除/类型/内容均 0 差异，%d 条目）；'
           '临时副本已确认清理。' % len(before))
     print('[PASS] 隔离边界可验证：原树只读(双向代码断言,所有路径) + 仅临时副本可写 + 生成器无网络导入'
-          '(fail-closed) + OS 沙箱前置(显式声明+写探针)；失败时不触及仓外或其他目录。')
+          '(fail-closed) + OS 沙箱前置(显式声明 + 机器可校验 manifest + 运行时双策略[文件只读绑定home/cwd + 网络真不可达]证实)；'
+          '失败时不触及仓外或其他目录。')
     return 0
 
 

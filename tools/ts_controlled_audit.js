@@ -62,6 +62,9 @@ async function get(args) {
   }
   return {};
 }
+// 🔴 依赖注入：默认 _fetch = get（真实 hktool 通道）；单测用 setFetch 替换为 mock，无需触网。
+let _fetch = get;
+function setFetch(f) { _fetch = f; }
 // 列字母 -> 1-based 宽度（单字母足矣：Q=17, O=15）。用于读取链"明确列宽"fail-closed 校验。
 function colIndex(col) {
   let n = 0;
@@ -70,7 +73,7 @@ function colIndex(col) {
 }
 
 async function readAll(ssId, sheet, lastCol) {
-  const probe = await get({ ssId, sheet, mode: 'values', a1: 'A1:' + lastCol + '2' });
+  const probe = await _fetch({ ssId, sheet, mode: 'values', a1: 'A1:' + lastCol + '2' });
   const last = probe.lastRow || 0;
   const revision = probe.revision != null ? probe.revision : null;
   if (!last || last < 2) return { rows: [], lastRow: last, ok: false, reason: 'EMPTY_PROBE' };
@@ -78,22 +81,21 @@ async function readAll(ssId, sheet, lastCol) {
   const pages = [], rows = []; let pageFail = false, truncated = false;
   for (let s =1; s <= last; s += 400) {
     const e = Math.min(s + 399, last);
-    const r = await get({ ssId, sheet, mode: 'values', a1: `A${s}:${lastCol}${e}` });
+    const r = await _fetch({ ssId, sheet, mode: 'values', a1: `A${s}:${lastCol}${e}` });
     const got = (r && r.values) ? r.values.length : 0;
     const expected = (e - s + 1);
     const ok = got > 0 && got === expected;
     pages.push({ reqStart: s, reqEnd: e, got, expected, ok });
     if (!ok) { if (got === 0) pageFail = true; else truncated = true; }
-    (r && r.values ? r.values : []).forEach((cells, i) => { const rr = s + i; if (rr <= last) rows.push({ row: rr, cells: cells || [] }); });
+    // 🔴 Tom X 批·二：不得用 cells||[] 伪造成空行——原始响应行槽直接入列，
+    // 让 validateRows 能检出 null/false/非数组（异常缺失）；真实全空行须由接口以完整宽度空数组显式表示。
+    (r && r.values ? r.values : []).forEach((cells, i) => { const rr = s + i; if (rr <= last) rows.push({ row: rr, cells: cells }); });
   }
 
   // 🔴 Tom W 批·点②：读取链接入 validateRows（安全整数行号 + 唯一 + 明确列宽），
   // 在计算内容指纹【及】筛除空行【之前】执行；任何结构异常（非整数行号/重复/缺列/列宽不一致）即 fail-closed。
   const v1 = rg.validateRows(rows, { expectedWidth });
   if (v1.length) return { rows, lastRow: last, pages, ok: false, reason: 'VALIDATE_ROWS_FAILED', detail: v1 };
-
-  const probe2 = await get({ ssId, sheet, mode: 'values', a1: 'A1:' + lastCol + '2' });
-  const rev2 = probe2.revision != null ? probe2.revision : null;
 
   // 🔴 内容指纹绑定（回应 Tom 🅐 点②）：revision 缺失时仅靠 lastRow 会漏检"同 lastRow 内容变化"，
   // 故对【完整规范化快照】做 SHA-256 指纹，并重读全量做一次指纹交叉校验（fail-closed）。
@@ -102,17 +104,23 @@ async function readAll(ssId, sheet, lastCol) {
   const pages2 = [];   // 第二遍同样逐页校验期望行数（Tom W 批·点②）
   for (let s = 1; s <= last; s += 400) {
     const e = Math.min(s + 399, last);
-    const r = await get({ ssId, sheet, mode: 'values', a1: `A${s}:${lastCol}${e}` });
+    const r = await _fetch({ ssId, sheet, mode: 'values', a1: `A${s}:${lastCol}${e}` });
     const got = (r && r.values) ? r.values.length : 0;
     const expected = (e - s + 1);
     const ok = got > 0 && got === expected;
     pages2.push({ reqStart: s, reqEnd: e, got, expected, ok });
     if (!ok) { if (got === 0) pageFail = true; else truncated = true; }
-    (r && r.values ? r.values : []).forEach((cells, i) => { const rr = s + i; if (rr <= last) rows2.push({ row: rr, cells: cells || [] }); });
+    (r && r.values ? r.values : []).forEach((cells, i) => { const rr = s + i; if (rr <= last) rows2.push({ row: rr, cells: cells }); });
   }
   // 第二遍同样接入 validateRows（两次取得同样的不完整数据指纹相同也不能证明完整）
   const v2 = rg.validateRows(rows2, { expectedWidth });
   if (v2.length) return { rows, lastRow: last, pages, ok: false, reason: 'VALIDATE_ROWS_FAILED', detail: v2 };
+
+  // 🔴 Tom X 批·二：终点 probe（第二遍【之后】再探），以"起读前 probe1"为起点，
+  // 覆盖全读取窗口的 lastRow/revision 漂移比对；probe2 必须在第二遍全量读【之后】，
+  // 否则第二遍中途的追加/改版在终点不被检出（旧实现 probe2 在二遍之前，二遍之后无终点 probe）。
+  const probe2 = await _fetch({ ssId, sheet, mode: 'values', a1: 'A1:' + lastCol + '2' });
+  const rev2 = probe2.revision != null ? probe2.revision : null;
 
   const endFp = rg.contentFingerprint(rows2);
   const guard = rg.verifyReadGuard({
@@ -121,6 +129,8 @@ async function readAll(ssId, sheet, lastCol) {
   });
   if (!guard.ok) return { rows, lastRow: last, pages, ok: false, reason: guard.reason };
 
+  // 两遍原始快照均经 validateRows 校验后再筛除真实空行（按接口契约确认的完整宽度空数组）；
+  // 异常缺失（null/false/短行）已在 validateRows 阶段 fail-closed，不至此。
   const data = rows.filter(x => x.cells.some(c => String(c ?? '').trim() !== ''));
   return { rows: data, lastRow: last, pages, ok: !pageFail && !truncated, revision, guard: guard.guard };
 }
@@ -155,7 +165,8 @@ async function readAllRetry(ssId, sheet, lastCol) {
   return { rows: [], lastRow: 0, ok: false, reason: lastErr || 'READ_FAILED' };
 }
 
-(async () => {
+// 🔴 主流程：联网只读回读生产表 + 底稿，按 UUID 重新推导受控 A 级软标目标集。
+async function run() {
   const stamp = new Date(Date.now() + 8 * 3600e3).toISOString().replace(/[:T]/g, '-').slice(0, 19);
   process.stderr.write('[1/4] 只读回读生产表 ' + PROD_TAB + ' ...\n');
   const prod = await readAllRetry(TS_ID, PROD_TAB, 'Q');
@@ -245,4 +256,8 @@ async function readAllRetry(ssId, sheet, lastCol) {
   fs.writeFileSync(outPath, JSON.stringify(out, null, 2), 'utf8');
   process.stderr.write('[4/4] 已写出 ' + outPath + '\n');
   process.stdout.write(JSON.stringify(out.summary, null, 2));
-})();
+}
+
+// 导出（供单测注入 mock 读取通道，无需触网）；仅当直接运行时才执行联网主流程。
+module.exports = { setFetch, readAll, readAllRetry, run };
+if (require.main === module) { (async () => { await run(); })(); }

@@ -381,7 +381,9 @@ function tsSoftDelGuardedCore(e, deps) {
             detail: '前序目标写失败/结果不明，已停止后续业务写入；须按 job/目标身份对账裁定恢复（禁止盲目重试）' });
           continue;
         }
-        var prepOk = _jrn(deps, jobId, batchId, wItemId, wReqHash, wUuid, dry, 'PREPARED', wKeeper);
+        // Tom X 批·三(2)：PREPARED 必须明确传 null reason + keeperRow —— 原调用把 wKeeper 错当 reason，
+        // keeperRow 实际缺失，崩溃恢复时 PREPARED 不能保存所宣称的完整 keeper 身份。
+        var prepOk = _jrn(deps, jobId, batchId, wItemId, wReqHash, wUuid, dry, 'PREPARED', null, wKeeper);
         if (!prepOk) { results.push({ row: wRow, ok: false, wrote: false, reason: 'PREPARED_LOG_FAILED', state: 'UNCONFIRMED' }); anyFail = true; writeStopped = true; continue; }
         if (!dry) {
           var wroteOk = false;
@@ -412,7 +414,9 @@ function tsSoftDelGuardedCore(e, deps) {
           results.push(_rr);
           patched++; wroteRows.push(_rr);
         } else {
-          results.push({ row: wRow, ok: true, wrote: false, level: wLevel, state: 'CONFIRMED_SUCCESS' });
+          // Tom X 批·三(2)：dry 成功必须明确为 DRY_SUCCESS（预检/探测成功，非写成功）；
+          // 不得与真写成功的 CONFIRMED_SUCCESS 混淆 —— wrote:false 已表明未写，状态再显式区分。
+          results.push({ row: wRow, ok: true, wrote: false, level: wLevel, state: 'DRY_SUCCESS' });
         }
       }
     }
@@ -484,15 +488,19 @@ function journal(deps, jobId, subBatchId, itemId, requestHash, state, uuid, reas
     } catch (_ke) {}
   }
   try {
-    deps.journalAppend({ jobId: jobId, subBatchId: subBatchId, itemId: itemId, requestHash: requestHash,
+    // Tom X 批·三(2) 根因修复：此前仅捕获「异常」却**无视 journalAppend 的布尔返回值**，
+    // 导致"日志写失败但返回 false（非抛异常）"被当成成功 —— COMMITTED 失败永不触发 UNKNOWN。
+    // 现显式接收返回值：false ⇒ 写失败 ⇒ journal 返回 false（调用方据此标记 UNKNOWN，不谎称 COMMITTED）；
+    // 仅当显式 false 才判失败，其余真值（含旧式无返回值）保持成功语义，不破坏现有契约。
+    var _appended = deps.journalAppend({ jobId: jobId, subBatchId: subBatchId, itemId: itemId, requestHash: requestHash,
       state: state, uuid: uuid == null ? null : String(uuid),
       reason: reason == null ? null : String(reason),
       keeperRow: keeperRow == null ? null : Number(keeperRow),
       keeperUuid: keeperUuid, keeperHash: keeperHash,
       ts: Date.now() });
-    return true;
+    return _appended !== false;
   } catch (e) {
-    return false;   // 日志写失败 → 返回 false，绝不吞掉后假装成功
+    return false;   // 日志写抛异常 → 返回 false，绝不吞掉后假装成功
   }
 }
 

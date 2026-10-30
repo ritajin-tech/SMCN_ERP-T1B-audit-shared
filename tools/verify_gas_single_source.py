@@ -59,9 +59,9 @@ SOURCES = [
 PINNED_GEN_SHA256 = 'd733c3370ed3df65df42a1c2ebabba67954e4ecbc80cde026950d6318594f3a2'
 PINNED_ARTIFACTS = {
     'ts_softdel_gas_embedded.js':
-        '5bcb0bf5c8cecc44d084c3493983f953bc39e5eedae55ae6641fb11683a940df',
+        '5416f37e9db64a705e3beb808ad93a5bf78b6bd80d7212471928d22927f041f6',
     'RemoteActions.A1d_v4_FINAL_entry_bound.js':
-        '4a03d04b9bf021445e7546f11d04e724e451e9292224af7702522b02b9db2bbf',
+        '8d8745f7a5d0d9d2306b398dfd3c6b4a40d7d0a01f34d93249051ec4d5fcbe46',
 }
 
 # 生成器非确定性来源（只读静态扫描用）：命中任一即不具"可复现"资格
@@ -145,6 +145,7 @@ OUT_OF_TREE_ANCHOR = {
     'published_in': 'T1-B 往来邮件（审阅树之外的发布点）',
     'emails': [
         'msg_D4YHxfuec2wt0tb7iqrutF2euHh97_49Qxywq3tOE9JSAW @ 2026-10-28T18:14Z（O 批：pin 值首次公开）',
+        'X 批系统还复邮件 @ 2026-10-30（X3(2) journal 根因修复后重跑生成器，两产物哈希随 core 变更而更新，pin 同步刷新；生成器自身 pin 未变）',
     ],
     'values': {
         'gen_gas_softdel.py': PINNED_GEN_SHA256,

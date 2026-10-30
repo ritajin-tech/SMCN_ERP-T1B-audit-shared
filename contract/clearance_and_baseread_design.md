@@ -37,23 +37,35 @@
 - 是否须经 Tom 代码复核后再部署；
 - 是否同意原地更新（不换链接）。
 
-### 1.5 落地位置、验签/作用域校验、锁内原子消费与异常恢复状态机（Tom W 批·点④）
+### 1.5 落地位置、鉴权、验签/作用域校验、锁内原子消费与异常恢复状态机（Tom W 批·点④ / X 批·四 拆分澄清）
 
-> 本节仍为【设计草案，未部署、未授权、未落地】；仅供 Tom 复核代码前的设计确认，不构成任何部署或写表许可。
+> ⚠️ **实现状态红线（X 批·四 显式声明）**：本节全部为【设计草案】，**不是已实现/已验证**。
+> 截至本 X 批（审计仓 HEAD 待提交），`ts_softdel_core.js` 的 `--clearance` 入口（生成器 `gen_gas_softdel.py:189` 与部署物 `ts_softdel_gas_embedded.js:1101`）**仍为 `return false` 桩**；尚未新增 `issueClearance()/consumeClearance()`；尚未在任何 `Script Properties` 落令牌；**未部署、未授权、未放行、零换链接、零生产写**。
+> 下文四项（位置 / 鉴权 / 验签作用域 / 锁内原子消费 / 恢复状态机）是"须如何设计"，逐项独立标注是否已落码。
+> 🔴 **关键澄清（回应 Tom X 批·四）**：**仅把 `isClearance` 从 `return false` 改成调用 `consumeClearance()` 并不自动获得"锁内原子消费"**——那只是换函数名。真正的锁内原子消费（§1.5.4）要求 nonce 在同一把 `LockService.getScriptLock()` 区间内被"读-校验-标记消费"原子完成，且消费异常须进入 UNKNOWN 对账状态机（§1.5.5）；这些**尚未落码、未经 Tom 代码复核、未部署**。
 
-**实现位置**（须 Tom 代码复核通过 + 红线#10 原地更新不换链接后才部署）：
+**§1.5.1 实现位置（未落码）**（须 Tom 代码复核通过 + 红线#10 原地更新不换链接后才部署）：
 - 令牌校验入口：`gen_gas_softdel.py:189` 与部署物 `ts_softdel_gas_embedded.js:1101` 当前 `return false` 的 `--clearance` 分支，改为调用 `verifyClearance(token, reqScope)`；
-- 签发/消费/台账：新增服务端函数 `issueClearance()` / `consumeClearance()`，状态存于 `PropertiesService.getScriptProperties()`（不与公开代码同 diff 内嵌令牌值）；
-- 锁内消费：复用期锁守卫同一把 `LockService.getScriptLock()`（即 `guardCheck` 使用的脚本级互斥），在 `acquireLock` 区间内完成 nonce 原子消费——同 nonce/jobId 二次请求即 `REPLAY_REJECTED`，杜绝并发重放。
+- 签发/消费/台账：新增服务端函数 `issueClearance()` / `consumeClearance()`，状态存于 `PropertiesService.getScriptProperties()`（不与公开代码同 diff 内嵌令牌值）。
 
-**验签 / 作用域校验**（服务端，全满足才放行）：
-- 验签：令牌经独立身份密钥签名，服务端用签发者公钥验签；`Script Properties` 的常驻共享 bearer 仅作传输通道，**不**作为身份核验本身（Tom V 批已明确指出）；
+**§1.5.2 鉴权 / 独立身份核验（未落码）**：
+- 令牌由业务 owner（Rita）经**独立身份通道**（已认证管理员会话 / 独立密钥，非常驻共享 bearer）签发，**不写死在公开代码**；
+- `Script Properties` 中的常驻共享 bearer 仅作传输通道，**不**作为身份核验本身（Tom V 批已明确指出：常驻共享 bearer 不提供独立身份认证）；
+- 消费侧校验"是谁、凭什么"：绑定签发者身份，不得仅凭"令牌存在"即放行。
+
+**§1.5.3 验签 / 作用域校验（未落码）**（服务端，全满足才放行）：
+- 验签：令牌经独立身份密钥签名，服务端用签发者公钥验签；
 - 作用域：校验 `token.jobId === req.jobId`，且 `token.rowSetDigest === sha256(规范排序的目标行集)`，且 `token.snapshotFingerprint === 本次读取守卫指纹`，任一不符即 `CLEARANCE_REJECTED`；
-- 过期：服务端校验 `issuedAt + ttl`（≤15min）未过期；过期即 `CLEARANCE_EXPIRED`。
+- 过期：服务端校验 `issuedAt + ttl`（≤15min）未过期；过期即 `CLEARANCE_EXPIRED`；
+- 失败全拒：身份不符 / 范围不符 / 过期 / 已消费 / 缺失 / 签发者身份未核验，一律 `PERIOD_LOCKED` 或 `CLEARANCE_REJECTED`，绝不静默放行。
 
-**异常恢复状态机**（Tom W 批·点④：nonce 消费后失败须先对账，不得仅换 nonce 重放）：
-- 每 job/item 状态：`PENDING → PREPARED → COMMITTED | UNKNOWN → RECONCILED_OK | RECONCILED_VOID | REPLAY_REJECTED`；
-- 进入 `UNKNOWN`（nonce 已消费但写未完成/结果不明）后，**禁止**直接换 nonce 重放——必须先按 `jobId+itemId+requestHash+keeperRow` 检索原 job 日志判定最终状态：
+**§1.5.4 锁内原子消费（未落码 · 核心澄清点）**：
+- 复用期锁守卫同一把 `LockService.getScriptLock()`（即 `guardCheck` 使用的脚本级互斥），在 `acquireLock` 区间内完成 nonce 的"读-校验-标记消费"原子操作——同 nonce/jobId 二次请求即 `REPLAY_REJECTED`，杜绝并发重放；
+- 🔴 **明确边界**：本项描述的是"须实现"的逻辑；当前 `isClearance` 桩未做任何 nonce 消费，故**不存在**任何锁内原子消费。把它替换为 `consumeClearance()` 调用只是接入点变更，必须连同本段的原子读-校验-标记实现一并落码并复核，才配称"锁内原子消费"，不得仅凭函数名变更即宣称已具备。
+
+**§1.5.5 异常恢复状态机（状态机本身已落码并测试；clearance 消费接入未落码）**：
+- 软标写路径的状态机（`PENDING → PREPARED → COMMITTED | UNKNOWN → RECONCILED_OK | RECONCILED_VOID | REPLAY_REJECTED`）已在 `ts_softdel_core.js` 实现，并经 `ts_softdel_core.precheck.test.js` 9/9 验证（COMMITTED 日志失败→UNKNOWN 不谎称成功、进程终止窗口→UNKNOWN）；
+- clearance 的 nonce 消费须**复用同一把锁与同一套日志/对账**，进入 `UNKNOWN`（nonce 已消费但写未完成/结果不明）后，**禁止**直接换 nonce 重放——必须先按 `jobId+itemId+requestHash+keeperRow` 检索原 job 日志判定最终状态：
   · 若已 `COMMITTED` → `RECONCILED_OK`（不重执行）；
   · 若确未提交 → 重新签发新 nonce（新令牌），重新验签/作用域，再执行；
 - 全程不得盲重试、不得回滚式猜测；对账结论写入撤销/重放台账（`issued/consumed/revoked` 三态 + 消费时间戳 + 消费者身份 + 对账结论）。
@@ -62,14 +74,19 @@
 
 ## 2. base 读取：批次级 fail-closed（回应 Tom 技术阻塞②）
 
-### 2.1 现状问题
+### 2.1 现状问题（现象 + 假设，根因未证）
+> ⚠️ 【设计草案，未部署、未授权】；以下"根因"为**待证假设**，非已证结论（见 §2.5，Tom W 批·点④：仅凭"hktool 读不到 / CSV 全量"推断"仅 hktool 故障"证据不足）。
+
 dry-run 实测：exactA 1225 组中 **474 个 UUID 在 live 主库"工时_候选0824"读不到**（报错"底稿该UUID行数=0"），但本地 13:50 底稿快照（11685 行）完整包含全部 1225 个 UUID。
-证明是 **hktool live 读取降级/截断**，非数据丢失。服务端 CAS 同样 live 读主库底稿做 base 哈希校验——若同样降级，apply 时 474 行也会被服务端拒，只能写 751 行、剩 474 悬着，且暴露主库底稿读取不可靠。
+**疑似**为 hktool live 读取降级/截断（**假设，未证**），**不能据此断定"非数据丢失"**。须按 §2.5 三条独立路径分别举证（客户端 / 服务端 SpreadsheetApp / 源表版本绑定）后方可下结论；在根因未查清前，依 §2.3.4 禁止任何 live 写。
+服务端 CAS 同样 live 读主库底稿做 base 哈希校验——若同样降级，apply 时 474 行也会被服务端拒，只能写 751 行、剩 474 悬着，且暴露主库底稿读取不可靠（此风险为逻辑推演，亦待 §2.5 验证）。
 
 ### 2.2 设计目标
 base 读取须是**批次级 fail-closed**：预检阶段发现"批次内存在读取不完整/版本不一致"即**整批拒绝**，不允许"读到的就写、读不到的就静默误拒"。
 
-### 2.3 设计要素
+### 2.3 设计要素（设计草案，未部署、未授权）
+> ⚠️ 本节为【设计草案】；base 读取 fail-closed 逻辑**未落码、未部署、未授权**，且 §2.1 根因仍属假设。下文描述"须如何设计"，非"已实现"。
+
 1. **预检与写入两阶段分离**：先对整批所需 base 行集做一次性完整读取 + 完整性断言；任何 UUID 的 base 读取返回"行数=0 但本地快照证明该 UUID 应存在"→ 判定 `BASE_READ_INCOMPLETE`，**整批 fail-closed**，不进入写入阶段。
 2. **版本一致性**：base 读取同样绑定读取守卫（内容指纹 / revision，复用 `ts_read_guard.js`）；base 源在读取期间漂移 → `BASE_VERSION_MISMATCH`，整批 fail-closed。
 3. **禁止 override fallback 静默放行**（Tom 09:51Z 明确要求）：即便提供 `TS_BASE_OVERRIDE` 本地快照，也**不得**在批次级完整性未通过时静默用它替换 live 读取结果；override 仅作为"已知 hktool 降级时的显式、受控、可审计"路径，且**必须与本次 apply 的 rowSetDigest 绑定、单独审批**，不作为默认 fallback。

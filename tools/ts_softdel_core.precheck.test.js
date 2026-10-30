@@ -138,7 +138,8 @@ console.log('=== 测试5：第二目标 PREPARED_LOG_FAILED => 首目标写成�
 {
   // 3 目标；仅第二目标(itemId=4)的 PREPARED 日志写失败 -> 触发 writeStopped
   const deps = makeDeps();
-  deps.journalAppend = (rec) => { if (rec.state === 'PREPARED' && rec.itemId === 4) throw new Error('simulated log write failure'); return true; };
+  const jlog5 = [];
+  deps.journalAppend = (rec) => { jlog5.push(rec); if (rec.state === 'PREPARED' && rec.itemId === 4) throw new Error('simulated log write failure'); return true; };
   WRITE_COUNT = 0;
   const rows = buildBatch([
     { row: 2, keeperRow: 3, uuid: 'U-AAA', level: 'A' },
@@ -156,6 +157,9 @@ console.log('=== 测试5：第二目标 PREPARED_LOG_FAILED => 首目标写成�
   assert(r2 && r2.wrote === true && (r2.state === 'CONFIRMED_SUCCESS' || r2.state === 'COMMITTED'), '首目标已确认成功(CONFIRMED_SUCCESS/COMMITTED)');
   assert(r4 && r4.reason === 'PREPARED_LOG_FAILED' && r4.state === 'UNCONFIRMED', '第二目标 PREPARED_LOG_FAILED/UNCONFIRMED');
   assert(r6 && r6.reason === 'BATCH_STOPPED_NOT_ATTEMPTED' && r6.state === 'NOT_ATTEMPTED', '第三目标停止未尝试(NOT_ATTEMPTED)');
+  const prep2 = jlog5.find(r => r.state === 'PREPARED' && r.itemId === 2);
+  assert(prep2 && prep2.keeperRow === 3, '首目标 PREPARED 日志记录 keeperRow=3（修复 X 批·三(2) 漏传）');
+  assert(prep2 && prep2.reason === null, '首目标 PREPARED 日志 reason=null（非误填 keeper 行号）');
 }
 
 console.log('=== 测试6：首目标写入异常(WRITE_FLUSH_EXCEPTION) => 首 UNKNOWN、后续 NOT_ATTEMPTED（Tom W 批·点③ 停止闸门）===');
@@ -181,5 +185,74 @@ console.log('=== 测试6：首目标写入异常(WRITE_FLUSH_EXCEPTION) => 首 U
   assert(r6 && r6.state === 'NOT_ATTEMPTED', '第三目标未尝试(NOT_ATTEMPTED)');
 }
 
-console.log('\n' + (fails ? ('FAIL: ' + fails + ' 项') : 'PASS: 双阶段预检 + 写停止闸门不变量全部成立（全体通过才写 / 任一失败整批零写 / 首失败即停后续 NOT_ATTEMPTED）'));
+console.log('=== 测试7：首目标写成功但回读丢失(READ_FAIL) => 首 UNKNOWN wrote=true、后续 NOT_ATTEMPTED（Tom X 批·三(2) 持久恢复）===');
+{
+  const deps = makeDeps();
+  // 模拟"写已发生但回读丢失"：writeProdO 成功返回 true，readProdO 抛错（回读不可用）
+  deps.readProdO = (row) => { if (row === 2) throw new Error('recover-read unavailable'); return PROD_O[row]; };
+  WRITE_COUNT = 0;
+  const rows = buildBatch([
+    { row: 2, keeperRow: 3, uuid: 'U-AAA', level: 'A' },
+    { row: 4, keeperRow: 5, uuid: 'U-BBB', level: 'A' },
+    { row: 6, keeperRow: 7, uuid: 'U-CCC', level: 'A' },
+  ]);
+  const e = { postBody: { action: 'softDelGuarded', sheet: 'DB_工时流水', dry: false,
+    expectMasterVersion: 'V1', jobId: 'JTEST_T7', batchId: 'BTEST', rows } };
+  const res = JSON.parse(core.tsSoftDelGuardedCore(e, deps));
+  assert(res.ok === false, '批次 ok=false');
+  assert(WRITE_COUNT === 1, '首目标实际写入 1 次 (got ' + WRITE_COUNT + ')');
+  const r2 = res.results.find(r => r.row === 2);
+  const r4 = res.results.find(r => r.row === 4);
+  const r6 = res.results.find(r => r.row === 6);
+  assert(r2 && r2.reason === 'WRITE_UNCONFIRMED' && r2.state === 'UNKNOWN' && r2.wrote === true, '首目标写后回读丢失/UNKNOWN/wrote=true（不谎称成功）');
+  assert(r4 && r4.state === 'NOT_ATTEMPTED', '第二目标未尝试(NOT_ATTEMPTED)');
+  assert(r6 && r6.state === 'NOT_ATTEMPTED', '第三目标未尝试(NOT_ATTEMPTED)');
+}
+
+console.log('=== 测试8：写成功+回读确认但 COMMITTED 日志失败 => 首 UNKNOWN（Tom X 批·三(2) 持久恢复）===');
+{
+  const deps = makeDeps();
+  // 写成功 + 回读确认 O=TRUE，但 COMMITTED 日志追加失败 -> 状态 UNKNOWN（不得谎称 COMMITTED）
+  deps.journalAppend = (rec) => { if (rec.state === 'COMMITTED') return false; return true; };
+  WRITE_COUNT = 0;
+  const rows = buildBatch([
+    { row: 2, keeperRow: 3, uuid: 'U-AAA', level: 'A' },
+  ]);
+  const e = { postBody: { action: 'softDelGuarded', sheet: 'DB_工时流水', dry: false,
+    expectMasterVersion: 'V1', jobId: 'JTEST_T8', batchId: 'BTEST', rows } };
+  const res = JSON.parse(core.tsSoftDelGuardedCore(e, deps));
+  assert(res.ok === false, '批次 ok=false（COMMITTED 日志失败）');
+  assert(WRITE_COUNT === 1, '首目标实际写入 1 次');
+  const r2 = res.results.find(r => r.row === 2);
+  assert(r2 && r2.state === 'UNKNOWN' && r2.reason === 'COMMITTED_LOG_FAILED' && r2.wrote === true, 'COMMITTED 日志失败/UNKNOWN/wrote=true（不谎称 COMMITTED）');
+}
+
+console.log('=== 测试9：进程终止窗口（PREPARED 已落、COMMITTED 未落）=> 状态查询 UNKNOWN（Tom X 批·三(2) 持久恢复）===');
+{
+  const jlog9 = [];
+  const deps = makeDeps();
+  // 模拟进程终止窗口：写成功，PREPARED 落盘，但 COMMITTED 永远失败（进程终止前只来得及 PREPARED）。
+  // 关键：日志"写失败"必须【不落盘】（返回 false 且不计记录），否则 COMMITTED 记录存在会与"失败"自相矛盾；
+  //   真实依赖契约即"false=未持久化"，故此处先判失败、失败时不 push。
+  deps.journalAppend = (rec) => { if (rec.state === 'COMMITTED') return false; jlog9.push(rec); return true; };
+  deps.journalList = (jobId, itemId) => jlog9.filter(r => r.jobId === jobId && r.itemId === itemId);
+  deps.journalGet = (jobId, itemId) => { const a = jlog9.filter(r => r.jobId === jobId && r.itemId === itemId); return a.length ? a[a.length-1] : null; };
+  WRITE_COUNT = 0;
+  const rows = buildBatch([
+    { row: 2, keeperRow: 3, uuid: 'U-AAA', level: 'A' },
+  ]);
+  const e = { postBody: { action: 'softDelGuarded', sheet: 'DB_工时流水', dry: false,
+    expectMasterVersion: 'V1', jobId: 'JTEST_T9', batchId: 'BTEST', rows } };
+  const res = JSON.parse(core.tsSoftDelGuardedCore(e, deps));
+  assert(res.ok === false, '批次 ok=false（COMMITTED 日志失败）');
+  // 进程终止窗口：日志只有 PREPARED（无 COMMITTED），状态查询应 UNKNOWN（非 COMMITTED）
+  const reqHash = core._requestHashOf(rows[0]);
+  const sres = JSON.parse(core.tsSoftDelStatus({ postBody: { action: 'statusQuery', jobId: 'JTEST_T9', batchId: 'BTEST',
+    rows: [{ row: 2, requestHash: reqHash, uuid: 'U-AAA' }] } }, deps));
+  const sr = sres.rows[0];
+  assert(sr && sr.state === 'UNKNOWN', '进程终止窗口：状态查询 UNKNOWN（PREPARED 无 COMMITTED 不得误判成功）');
+  assert(sr && sr.journalState === 'PREPARED', '日志状态为 PREPARED（仅占位，未确认）');
+}
+
+console.log('\n' + (fails ? ('FAIL: ' + fails + ' 项') : 'PASS: 双阶段预检 + 写停止闸门不变量全部成立（全体通过才写 / 任一失败整批零写 / 首失败即停后续 NOT_ATTEMPTED / 持久恢复 UNKNOWN 不谎称成功）'));
 process.exit(fails ? 1 : 0);
