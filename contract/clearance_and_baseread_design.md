@@ -109,7 +109,7 @@ base 读取须是**批次级 fail-closed**：预检阶段发现"批次内存在�
 1. **预检与写入两阶段分离**：先对整批所需 base 行集做一次性完整读取 + 完整性断言；任何 UUID 的 base 读取返回"行数=0 但本地快照证明该 UUID 应存在"→ 判定 `BASE_READ_INCOMPLETE`，**整批 fail-closed**，不进入写入阶段。
 2. **版本一致性**：base 读取同样绑定读取守卫（内容指纹 / revision，复用 `ts_read_guard.js`）；base 源在读取期间漂移 → `BASE_VERSION_MISMATCH`，整批 fail-closed。
 3. **禁止 override fallback 静默放行**（Tom 09:51Z 明确要求）：即便提供 `TS_BASE_OVERRIDE` 本地快照，也**不得**在批次级完整性未通过时静默用它替换 live 读取结果；override 仅作为"已知 hktool 降级时的显式、受控、可审计"路径，且**必须与本次 apply 的 rowSetDigest 绑定、单独审批**，不作为默认 fallback。
-4. **根因优先**：在 hktool live 读取降级根因（缺页 / 超时 / 权限 / 该 tab 被改）未查清前，**禁止任何 live 写**；仅允许受控 override 路径——但 `TS_BASE_OVERRIDE` **尚未获独立授权**（§2.5），在根因未清 + 未授权前不得启用，禁止 live 写维持（Tom 10:13Z 复审：:111 原"已验证零误拒"与根因未证/override 未授权/禁 live 写矛盾，已修正）。
+4. **根因优先**：在 hktool live 读取降级根因（缺页 / 超时 / 权限 / 该 tab 被改）未查清前，**禁止任何 live 写**；override 路径仍【明确禁止启用】—— `TS_BASE_OVERRIDE` **尚未获独立授权**（§2.5），在根因未清 + 未授权前不得启用，禁止 live 写维持（Tom 10:13Z 复审：:111 原"已验证零误拒"与根因未证/override 未授权/禁 live 写矛盾，已修正）。
 
 ### 2.4 验收（请 Tom 给具体编辑）
 - hktool 降级根因结论；
@@ -125,7 +125,7 @@ base 读取须是**批次级 fail-closed**：预检阶段发现"批次内存在�
 3. **源表/版本绑定**：核对 `工时_候选0824` 是否为主库当前绑定的底稿表（存在同名/迁移/副本），以及 13:50 本地快照对应的版本是否为生产当前版本；版本不一致则"CSV 全量"不代表 live 全量；
 4. **受控 override**：`TS_BASE_OVERRIDE` 本地快照路径尚未获授权；在①③根因未清前，override 仅作为"已知 hktool 降级时的显式、受控、可审计"路径，且必须与本次 apply 的 `rowSetDigest` 绑定、单独审批，**不作为默认 fallback**。
 
-以上四条任一未证实时，仍禁止任何 live 写；仅允许受控 override 路径——但 `TS_BASE_OVERRIDE` **尚未获独立授权**（§2.5），在根因未清 + 未授权前不得启用（Tom 10:13Z 复审：:127 同 :111，已修正"已验证零误拒"表述）。
+以上四条任一未证实时，仍禁止任何 live 写；override 路径仍【明确禁止启用】—— `TS_BASE_OVERRIDE` **尚未获独立授权**（§2.5），在根因未清 + 未授权前不得启用（Tom 10:13Z 复审：:127 同 :111，已修正"已验证零误拒"表述）。
 
 ---
 

@@ -166,10 +166,15 @@ THREAT_MODEL = (
     "  (b) 文件系统：除显式声明的可写卷（writable_volumes）与临时副本目录外，不能向 home/cwd 或任何未声明挂载写入。\n"
     "- 禁止条件（任一成立即 fail-closed，绝不启动生成器）：\n"
     "  · 内核路由表存在 IPv4 或 IPv6 默认路由（仅核对主表，故要求运行于专用 netns 使主表为权威；策略路由/多表须由 netns 隔离保证）；\n"
+    "  · 内核路由表存在经网关的出网路由（非默认、非直连；Tom 10:43Z：IPv4 经非零网关的具体路由未核，一律拒绝）；\n"
     "  · 任何 on-link 子网不在声明的 allowed_subnets 白名单（默认仅 loopback + link-local）；\n"
+    "  · 策略路由/多表未显式声明 policy_routing=absent（本运行器仅核对主表，须由专用 netns 隔离保证并显式声明；Tom 10:43Z）；\n"
     "  · 对白名单外地址的真实连接尝试成功；\n"
     "  · 声明只读的 home/cwd 覆盖挂载非内核 ro、或其下存在 rw 子挂载、或存在未声明的宿主可写父挂载；\n"
-    "  · 路由表/挂载表为空或畸形（解析异常一律拒绝，不默认放行）。\n"
+    "  · 除声明的 writable_volumes 外，遍历全部挂载发现任何未声明可写挂载（Tom 10:43Z：未遍历拒绝其他未声明可写挂载）；\n"
+    "  · 实际 mkdtemp 临时副本位置不在声明的 writable_volumes 内（Tom 10:43Z：临时目录须绑定到受控写目录）；\n"
+    "  · 路由表/挂载表为空或畸形（解析异常一律拒绝，不默认放行）；\n"
+    "  · 非 Linux 平台（无 /proc 内核级配置可作证据，连接探针/os.access 无法覆盖 Unix socket/其他协议/其他网段/策略路由，按'未知即拒绝'原则拒绝；Tom 10:43Z）。\n"
     "- 受控写目录：仅 writable_volumes 声明的路径 + 临时副本目录可写；其余一律只读。生成器无网络导入、不触生产端点。\n"
 )
 
@@ -307,6 +312,47 @@ def _fmt_subnet(sub_bytes, sub_prefix):
         return '(%d bytes)/%d' % (len(sub_bytes), sub_prefix)
 
 
+def _covered_by_volumes(mp, volumes):
+    """判断挂载点 mp 是否落在声明的受控写目录(volumes)之内（含相等）。（Tom 10:43Z）"""
+    mpn = os.path.normcase(os.path.normpath(mp))
+    for v in volumes:
+        vn = os.path.normcase(os.path.normpath(v))
+        if mpn == vn or mpn.startswith(vn + os.sep):
+            return True
+    return False
+
+
+def _verify_temp_in_volume(tmp_path, volumes):
+    """验证实际 mkdtemp 位置 tmp_path 落在声明的 writable_volumes 之内（Tom 10:43Z：须绑定实际临时目录到该卷）。
+    返回 bool；不在任何卷内 => False（运行器须 fail-closed 拒绝）。"""
+    if not tmp_path:
+        return False
+    return _covered_by_volumes(tmp_path, volumes or set())
+
+
+def _detect_policy_routing():
+    """尽力探测策略路由/多表（Tom 10:43Z：策略路由/多表须经专用 netns 隔离保证并显式声明）。
+    仅做只读 `ip rule` 探测；缺 `ip` 或探测失败 => 返回 False（不误判，交由 manifest policy_routing=absent 声明兜底）。
+    返回 True 表示检出自定义策略规则（主表之外还有路由决策）。绝不写任何文件。"""
+    try:
+        r = subprocess.run(['ip', 'rule'], capture_output=True, text=True, timeout=2.0)
+        if r.returncode != 0:
+            return False
+        # 默认至少有 'from all lookup local/main/default'；出现其他 lookup/自定义偏好即视为策略路由
+        lines = [ln.strip() for ln in r.stdout.splitlines() if ln.strip()]
+        for ln in lines:
+            low = ln.lower()
+            if 'lookup' in low:
+                # 允许的默认表：local / main / default；其余（含数字表/自定义名）即策略路由
+                after = low.split('lookup', 1)[1]
+                table = after.strip().split()[0] if after.strip() else ''
+                if table not in ('local', 'main', 'default', ''):
+                    return True
+        return False
+    except (OSError, ValueError, subprocess.SubprocessError):
+        return False
+
+
 def _read_routes():
     """解析 /proc/net/route(IPv4) 与 /proc/net/ipv6_route(IPv6)，返回结构化路由证据（Tom 10:13Z 重写）。
     返回 dict: {ok, default_v4, default_v6, onlink_v4:set((bytes,prefix)), onlink_v6:set((bytes,prefix))}。
@@ -317,7 +363,8 @@ def _read_routes():
     注：/proc 仅暴露主表；策略路由/多表须经专用 netns 隔离使主表为权威（见 THREAT_MODEL）。
     """
     result = {'ok': False, 'default_v4': False, 'default_v6': False,
-              'onlink_v4': set(), 'onlink_v6': set()}
+              'onlink_v4': set(), 'onlink_v6': set(),
+              'egress_v4': set(), 'egress_v6': set(), 'malformed': False}
     if platform.system() != 'Linux':
         return result  # 非 Linux 由调用方回落到连接探针（较弱）
     try:
@@ -327,16 +374,26 @@ def _read_routes():
             return result  # 空表 => 解析异常 => 拒（Tom 10:13Z：空/畸形表被跳过后也可能返回 True）
         for line in v4[1:]:
             cols = line.split()
-            if len(cols) < 8:
+            # Tom 10:43Z：route 文件固定 11 列；不足即视为畸形行，须拒绝（非空但全畸形不能置 ok=True）
+            if len(cols) < 11:
+                result['malformed'] = True
                 continue
             dest, gw, mask = cols[1], cols[2], cols[7]
+            try:
+                ab = bytes(reversed(bytes.fromhex(dest)))
+                mp = bin(int(mask, 16)).count('1') if int(mask, 16) else 0
+            except ValueError:
+                result['malformed'] = True
+                continue
             if dest == '00000000' and mask == '00000000':
                 result['default_v4'] = True
             elif gw == '00000000' and dest != '00000000':
                 # 直连子网：网关为 0，主机可路由到该子网；记录 (bytes, prefix)
-                ab = bytes(reversed(bytes.fromhex(dest)))
-                mp = bin(int(mask, 16)).count('1') if int(mask, 16) else 0
                 result['onlink_v4'].add((ab, mp))
+            elif gw != '00000000' and dest != '00000000':
+                # 经网关的出网路由（非默认、非直连）：存在网关即潜在出网/内网其他网段路径
+                # （Tom 10:43Z：IPv4 经非零网关的具体路由不进入 onlink 集合，未核 => 须拒绝）
+                result['egress_v4'].add((ab, mp))
         with open('/proc/net/ipv6_route', 'r', encoding='utf-8', errors='replace') as f:
             v6 = f.readlines()
         if not v6:
@@ -344,17 +401,27 @@ def _read_routes():
         for line in v6:
             cols = line.split()
             if len(cols) < 6:
+                result['malformed'] = True
                 continue
             dst, dst_len = cols[0], cols[1]
+            try:
+                ab = bytes.fromhex(dst)
+                mp = int(dst_len, 16)
+            except ValueError:
+                result['malformed'] = True
+                continue
             if dst == '00000000000000000000000000000000' and dst_len == '00':
                 result['default_v6'] = True
             elif dst != '00000000000000000000000000000000':
-                try:
-                    ab = bytes.fromhex(dst)
-                    mp = int(dst_len, 16)
+                # IPv6 非默认路由：若 next_hop(col[4]) 非零，即经网关出网 => 记入 egress
+                nh = cols[4] if len(cols) > 4 else '00000000000000000000000000000000'
+                if nh != '00000000000000000000000000000000':
+                    result['egress_v6'].add((ab, mp))
+                else:
                     result['onlink_v6'].add((ab, mp))
-                except ValueError:
-                    continue
+        if result['malformed']:
+            # 任一畸形行 => 解析异常 => 一律拒绝，不得默认放行（Tom 10:43Z：非空但全畸形仍可置 ok=True）
+            return result
         result['ok'] = True
     except OSError:
         return result
@@ -387,7 +454,8 @@ def _parse_sandbox_manifest(text):
     并由 _gather_runtime_facts / _decide_boundary 用运行时证据逐条证实。
     """
     claims = {'network_blocked': False, 'fs_readonly': set(),
-              'allowed_subnets': set(), 'writable_volumes': set(), 'probe_targets': set()}
+              'allowed_subnets': set(), 'writable_volumes': set(), 'probe_targets': set(),
+              'temp_dir': None, 'policy_routing_absent': False}
     errors = []
     if not text or not text.strip():
         errors.append('manifest 为空，无法解析策略声明')
@@ -433,6 +501,16 @@ def _parse_sandbox_manifest(text):
                 p = p.strip()
                 if p:
                     claims['probe_targets'].add(p)
+        elif key == 'temp_dir':
+            # 实际临时副本目录：生成器临时副本须创建于此；须落在 writable_volumes 内（Tom 10:43Z：须绑定实际 mkdtemp 位置到该卷）
+            v = val.strip()
+            claims['temp_dir'] = os.path.normcase(os.path.normpath(v)) if v else None
+        elif key == 'policy_routing':
+            # 策略路由/多表声明：仅当显式声明 absent 才被接受（否则视为未声明 => 决策时拒绝）
+            # （Tom 10:43Z：本运行器仅核对主表，策略路由/多表须经专用 netns 隔离保证并显式声明）
+            lv = val.lower()
+            if lv == 'absent':
+                claims['policy_routing_absent'] = True
     if not claims['network_blocked']:
         errors.append('manifest 未显式声明 network=blocked（OS 网络隔离须机器可校验）')
     if not claims['fs_readonly']:
@@ -474,6 +552,8 @@ def _gather_runtime_facts(claims, probe_fn=None):
                    'onlink_v4': set(), 'onlink_v6': set()},  # 结构化路由证据（权威）
         'allowed_subnets': claims.get('allowed_subnets', set()),    # 可达子网白名单
         'writable_volumes': claims.get('writable_volumes', set()),  # 受控写目录白名单
+        'temp_dir': claims.get('temp_dir'),                        # 实际临时副本目录（须落在 writable_volumes 内）
+        'policy_routing_detected': False,                          # 检出策略路由/多表 => 拒绝
     }
     for p in claims['fs_readonly']:
         np = os.path.normcase(os.path.normpath(p))
@@ -493,6 +573,7 @@ def _gather_runtime_facts(claims, probe_fn=None):
         facts['fs_ro_kernel'], facts['fs_rw_descendant'] = _read_mountinfo_ro(claims['fs_readonly'])
         facts['all_mounts'] = _read_mountinfo_all()
         facts['routes'] = _read_routes()
+        facts['policy_routing_detected'] = _detect_policy_routing()
     return facts
 
 
@@ -530,18 +611,35 @@ def _decide_boundary(claims, facts, platform_sys):
                                '不在声明的 allowed_subnets 白名单内；无默认路由仍可经直连子网/更具体路由访问内网/生产'
                                '（Tom 10:13Z）。须将实际可达子网显式声明为允许，或证明其无法路由到生产。'
                                % _fmt_subnet(sub_bytes, sub_prefix))
+        # 经网关的出网路由（非默认、非直连）：存在网关即潜在出网/内网其他网段路径（Tom 10:43Z：非默认网关路由未核）
+        egress = (routes.get('egress_v4') or set()) | (routes.get('egress_v6') or set())
+        if egress:
+            es = next(iter(egress))
+            return (False, '网络隔离未证实：内核路由表存在经网关的出网路由 %s（非默认、非直连）；'
+                           '存在网关即存在潜在出网/内网其他网段路径（Tom 10:43Z：IPv4 经非零网关的具体路由未核）。'
+                           '须由网络命名空间/过滤策略证明完整禁网。' % _fmt_subnet(es[0], es[1]))
+        # 策略路由/多表：主表之外还有路由决策 => 本运行器仅核对主表无法证明完整禁网（Tom 10:43Z）
+        if facts.get('policy_routing_detected'):
+            return (False, '网络隔离未证实：检测到策略路由/多表（主表之外还有路由决策）；'
+                           '本运行器仅核对 /proc/net/route 主表，无法证明完整禁网（Tom 10:43Z）。'
+                           '须在专用 netns 内使其为权威并显式声明 policy_routing=absent。')
+        if not claims.get('policy_routing_absent'):
+            return (False, '网络隔离未证实：manifest 未显式声明 policy_routing=absent；'
+                           '本运行器仅核对主表，策略路由/多表须经专用 netns 隔离保证并显式声明（Tom 10:43Z）。')
         if not facts.get('network_blocked'):
-            return (False, '网络隔离未证实：内核路由表无默认路由，但运行时对白名单外地址的真实连接尝试仍可达'
+            return (False, '网络隔离未证实：内核路由表无默认路由/无出网路由，但运行时对白名单外地址的真实连接尝试仍可达'
                            '（连接探针证实存在其他出网路径，如策略路由/Unix socket）；'
-                           'Tom 10:13Z：须对白名单中每个地址做真实连接尝试并确认仅白名单可达。')
-        evidence.append('网络隔离：内核路由表证实无 IPv4/IPv6 默认路由 + 全部 on-link 子网落在 allowed_subnets 白名单'
+                           'Tom 10:43Z：须对白名单中每个地址做真实连接尝试并确认仅白名单可达。')
+        evidence.append('网络隔离：内核路由表证实无 IPv4/IPv6 默认路由 + 无经网关出网路由 + 全部 on-link '
+                       '子网落在 allowed_subnets 白名单 + 策略路由已显式声明 absent（专用 netns 内主表为权威）'
                        ' + 白名单外真实连接尝试不可达（完整禁网的内核级证据，非仅靠两个公共地址连接探针）')
     else:
-        if facts.get('network_blocked'):
-            evidence.append('网络隔离：连接探针不可达（本平台无 /proc 路由表，回落到连接探针，证据较弱，仅辅助）')
-        else:
-            return (False, '网络隔离未证实：manifest 声明 network=blocked，但运行时连接探针仍可达；'
-                           '且本平台无法读取内核路由表佐证（Tom X 批·一）。')
+        # 非 Linux：无 /proc 内核级配置证据；连接探针/os.access 不能证明完整禁网
+        # （Unix socket、其他协议、其他网段、策略路由均无法覆盖）=> 按"未知即拒绝"原则拒绝
+        # （Tom 10:43Z：非Linux分支回落两个公网探针与 os.access 仍可能放行）。
+        return (False, '网络隔离/文件只读未证实：本平台无 /proc 内核级配置（mountinfo/route）可核，'
+                       '连接探针与 os.access 无法证明 Unix socket/其他协议/其他网段/策略路由被禁，'
+                       '按"未知即拒绝"原则拒绝（Tom 10:43Z）；请在 Linux 专用 netns 内运行以获内核级证据。')
     home = facts.get('home')
     cwd = facts.get('cwd')
     relevant = [p for p in claims.get('fs_readonly', set()) if _is_relevant_path(p, home, cwd)]
@@ -594,6 +692,21 @@ def _decide_boundary(claims, facts, platform_sys):
                 return (False, '受控写目录未证实：%s 的覆盖挂载非 rw（内核级），生成器无法写入临时副本；'
                                'writable_volumes 须指向真实可写的受控目录（Tom 10:13Z）。' % wv)
         evidence.append('受控写目录：%s 已声明且内核级可写（生成器临时副本唯一允许写入位置）' % wv)
+
+    # Tom 10:43Z：遍历全部挂载，拒绝任何未声明可写挂载（除声明的 writable_volumes 外，其余挂载须全部内核 ro）
+    if facts.get('config_available'):
+        for mp, ro in facts.get('all_mounts', []):
+            if ro is False and not _covered_by_volumes(mp, writable_volumes):
+                return (False, '文件系统只读未证实：存在未声明的可写挂载 %s（不在 writable_volumes 内）；'
+                               '除显式声明的受控写目录外，其余挂载须全部内核 ro'
+                               '（Tom 10:43Z：未遍历拒绝其他未声明可写挂载）。' % mp)
+    # Tom 10:43Z：须将实际 mkdtemp 位置绑定到声明的 writable_volumes（防止临时副本落在未声明可写位置）
+    temp_dir = claims.get('temp_dir')
+    if temp_dir:
+        if not _verify_temp_in_volume(temp_dir, writable_volumes):
+            return (False, '受控写目录未证实：声明的 temp_dir=%s 不在 writable_volumes 之内；'
+                           '实际临时副本目录须落在声明的受控写目录内（Tom 10:43Z：临时目录绑定）。' % temp_dir)
+        evidence.append('受控写目录：声明的 temp_dir=%s 已绑定到 writable_volumes（实际临时副本位置受控）' % temp_dir)
 
     # 容器/cgroup/CapEff 仅佐证，绝不单独放行
     if facts.get('container_ev'):
@@ -711,8 +824,25 @@ def main():
             print('  - %s' % s)
         return 4
 
-    # 2) 复制到一次性临时副本（仅副本可写）
-    tmp = tempfile.mkdtemp(prefix='gas_repro_iso_')
+    # 2) 复制到一次性临时副本（仅副本可写）—— Tom 10:43Z：须将实际 mkdtemp 位置绑定到声明的 writable_volumes
+    tmp = None
+    try:
+        with open(manifest_path, 'r', encoding='utf-8', errors='replace') as f:
+            mtext = f.read()
+        _, mclaims = _parse_sandbox_manifest(mtext)
+        tdir = mclaims.get('temp_dir')
+        if tdir and os.path.isdir(tdir):
+            tmp = tempfile.mkdtemp(prefix='gas_repro_iso_', dir=tdir)
+        else:
+            tmp = tempfile.mkdtemp(prefix='gas_repro_iso_')
+        vols = mclaims.get('writable_volumes', set())
+        if vols and not _verify_temp_in_volume(tmp, vols):
+            print('[ABORT] 实际临时副本目录 %s 不在声明的 writable_volumes 内（Tom 10:43Z：临时目录绑定）；'
+                  '请在 manifest 声明 temp_dir 并使其落在 writable_volumes。' % tmp)
+            return 9
+    except OSError as e:
+        print('[ABORT] 读取 manifest 失败：%s' % e)
+        return 9
     copy_dir = os.path.join(tmp, 'tools')
     gen_rc = -1
     tree_changed = False
