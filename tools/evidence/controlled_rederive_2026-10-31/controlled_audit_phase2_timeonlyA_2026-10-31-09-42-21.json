@@ -1,0 +1,585 @@
+{
+  "meta": {
+    "generatedAtBJT": "2026-10-31 09:42:21",
+    "source": {
+      "prodScan": "evidence/controlled_rederive_2026-10-31/prod_scan_2026-10-31.json",
+      "baseSnapshot": "C:/Users/rita.jin/WorkBuddy/SMCN_ERP/_backups/sheets/2026-10-31/主库T1B__工时.csv",
+      "scanMeta": {
+        "generatedAtBJT": "2026-10-31 17:42:21",
+        "source": "C:/Users/rita.jin/WorkBuddy/SMCN_ERP/_backups/sheets/2026-10-31/生产工时表__DB_工时流水.csv",
+        "readOnly": true,
+        "softColumnPresent": false,
+        "note": "PRE-GO DRAFT：备份 CSV 不含软标 O 列，alreadyHandled 未计算；GO 时须以含 O 列 live 快照重跑",
+        "dataRows": 6157,
+        "uuidGroups": 4379
+      }
+    },
+    "logic": "A/B 级冗余副本软标（O 列=TRUE，不物理删）；哈希单一可信源 ts_softdel_norm._sdRowHash",
+    "note": "phase1_exactA 用 --audit-safe 跑（无 --allow-time-only）；phase2_timeonlyA 用 --audit-safe --allow-time-only；phase2_B 用 --audit-all"
+  },
+  "detail": {
+    "safe": [
+      {
+        "uuid": "d3dcedd4-694a-4a94-b0c7-1c9d2106eaff",
+        "baseCount": 1,
+        "targets": [
+          {
+            "row": 7547,
+            "keeperRow": 4141,
+            "targetHash": "sha256:94a32123f404829385f0fef3df2390e726a9e7d1af13e062da2b4a620cb356ae",
+            "keeperHash": "sha256:94a32123f404829385f0fef3df2390e726a9e7d1af13e062da2b4a620cb356ae",
+            "hasBase": true,
+            "baseHash": "sha256:421f46f61c96de4436efe13b0d98968897c779fc267ac8ff5f6792d673c8f200"
+          }
+        ]
+      },
+      {
+        "uuid": "0c609e1b-f11b-4eed-a54c-0db35ed3e68d",
+        "baseCount": 1,
+        "targets": [
+          {
+            "row": 7548,
+            "keeperRow": 4142,
+            "targetHash": "sha256:ba9de2aa32f1f824c15525ff7fdf597611e7e822db05eff7e5ce1033b53c2a63",
+            "keeperHash": "sha256:ba9de2aa32f1f824c15525ff7fdf597611e7e822db05eff7e5ce1033b53c2a63",
+            "hasBase": true,
+            "baseHash": "sha256:917b0248c18a3b6bc548264483a75178e04ccd79245645f94402a4cafc23a0d7"
+          }
+        ]
+      },
+      {
+        "uuid": "08765ba9-2b14-4755-9be3-89578a15288e",
+        "baseCount": 1,
+        "targets": [
+          {
+            "row": 7550,
+            "keeperRow": 4144,
+            "targetHash": "sha256:44645783ab686b26adab6710daaf55cca35a83037751506d6eaa98c605149c35",
+            "keeperHash": "sha256:44645783ab686b26adab6710daaf55cca35a83037751506d6eaa98c605149c35",
+            "hasBase": true,
+            "baseHash": "sha256:b0bda79d4c2b205c184098a574637adac1ab21be288c859a6a33390777d181c4"
+          }
+        ]
+      },
+      {
+        "uuid": "bd4d278c-8da7-49e5-adf8-4b35eebb6b8b",
+        "baseCount": 1,
+        "targets": [
+          {
+            "row": 7551,
+            "keeperRow": 4145,
+            "targetHash": "sha256:c35c4e2a5d63c8fef9d7a5b4def77640d36b42e036e23b272dfa3f901e3b2c6c",
+            "keeperHash": "sha256:c35c4e2a5d63c8fef9d7a5b4def77640d36b42e036e23b272dfa3f901e3b2c6c",
+            "hasBase": true,
+            "baseHash": "sha256:133ab8b1658d9d20df6e48623b59220ae64bd92996c7702516c29b31fd6a7e57"
+          }
+        ]
+      },
+      {
+        "uuid": "77461cce-9855-428a-951a-459ba6594cdc",
+        "baseCount": 1,
+        "targets": [
+          {
+            "row": 7553,
+            "keeperRow": 4147,
+            "targetHash": "sha256:f5cb1c66bd2e20618db6f8ba577f96e8027d7e9e007e5b2b947215dfab4ceeb9",
+            "keeperHash": "sha256:f5cb1c66bd2e20618db6f8ba577f96e8027d7e9e007e5b2b947215dfab4ceeb9",
+            "hasBase": true,
+            "baseHash": "sha256:8e72a7468b20a2c5d3a67ece606976509e7459a656ca568060f795dd062cd51f"
+          }
+        ]
+      },
+      {
+        "uuid": "b0878b9d-4b4e-42e0-ae91-1be716ed3b38",
+        "baseCount": 1,
+        "targets": [
+          {
+            "row": 7556,
+            "keeperRow": 4150,
+            "targetHash": "sha256:b5fe0b0fc868900ba6851b208b60c3a9025f748cfccd1769f152285672d2492c",
+            "keeperHash": "sha256:b5fe0b0fc868900ba6851b208b60c3a9025f748cfccd1769f152285672d2492c",
+            "hasBase": true,
+            "baseHash": "sha256:2239dc60c1e11c86d0c3d52cb3a929b909af5c74c395e89187d15010f6c17a54"
+          }
+        ]
+      },
+      {
+        "uuid": "dbf5bbc4-1031-45a5-9163-4a37fc4fb2ba",
+        "baseCount": 1,
+        "targets": [
+          {
+            "row": 7558,
+            "keeperRow": 4152,
+            "targetHash": "sha256:59285a8899b37cf54b36b2c8af5022fa1dd18a1c40c22eaf728d4ba42501c430",
+            "keeperHash": "sha256:59285a8899b37cf54b36b2c8af5022fa1dd18a1c40c22eaf728d4ba42501c430",
+            "hasBase": true,
+            "baseHash": "sha256:cfba3ccbabbad6ef930f50888ddc7a8cce672d274a65d9903501f0c66bc7abf5"
+          }
+        ]
+      },
+      {
+        "uuid": "5c40c77b-f146-4b42-b900-910c0a283100",
+        "baseCount": 1,
+        "targets": [
+          {
+            "row": 7562,
+            "keeperRow": 4156,
+            "targetHash": "sha256:d35593af29f5f3d2a1a725f1cc4ace9e966e95ea71a2959ea374fc49b38c7ebd",
+            "keeperHash": "sha256:d35593af29f5f3d2a1a725f1cc4ace9e966e95ea71a2959ea374fc49b38c7ebd",
+            "hasBase": true,
+            "baseHash": "sha256:052313c45589d45fc537e4a9fefee77c13088a32fe130ebc8475a2dd58af69c8"
+          }
+        ]
+      },
+      {
+        "uuid": "8d912ee1-b196-4a8b-9b52-719c216e89c0",
+        "baseCount": 1,
+        "targets": [
+          {
+            "row": 7564,
+            "keeperRow": 4158,
+            "targetHash": "sha256:d1819ad2c546ec32e0f7dd4ec03423a2983f22ff2dae44273aa5643fde94b21e",
+            "keeperHash": "sha256:d1819ad2c546ec32e0f7dd4ec03423a2983f22ff2dae44273aa5643fde94b21e",
+            "hasBase": true,
+            "baseHash": "sha256:fa27268b6cc4d593535c6003e02072e3c266725abd4529cd319ac7ca475565ff"
+          }
+        ]
+      },
+      {
+        "uuid": "d51f9dd3-f4fc-4a9a-86cf-5fb6c4bdf042",
+        "baseCount": 1,
+        "targets": [
+          {
+            "row": 7567,
+            "keeperRow": 4161,
+            "targetHash": "sha256:a06636caff852080f8486e5d960f272904908d49f3fd4024ae51158476b3f45a",
+            "keeperHash": "sha256:a06636caff852080f8486e5d960f272904908d49f3fd4024ae51158476b3f45a",
+            "hasBase": true,
+            "baseHash": "sha256:c13dfdf3606f634a5081702684f4c0139c275c664e8e39a91483c1d97f83da03"
+          }
+        ]
+      },
+      {
+        "uuid": "5f98b0aa-3dc2-4477-ac08-e8b3ccac1221",
+        "baseCount": 1,
+        "targets": [
+          {
+            "row": 7571,
+            "keeperRow": 4165,
+            "targetHash": "sha256:c5c8ab3481bbf23f73cfe360b2e1b7634492657ea644c45bda26cb792f387aba",
+            "keeperHash": "sha256:c5c8ab3481bbf23f73cfe360b2e1b7634492657ea644c45bda26cb792f387aba",
+            "hasBase": true,
+            "baseHash": "sha256:504cebf5a874a68f2385e43197db5e2b91d2c408cf38dcf64fc0329610e4c22d"
+          }
+        ]
+      },
+      {
+        "uuid": "dbe5ebc1-333e-48bb-8a98-38520800ccdd",
+        "baseCount": 1,
+        "targets": [
+          {
+            "row": 7576,
+            "keeperRow": 4170,
+            "targetHash": "sha256:de339fde35d5052214763918904477b690f4f0a6f2ea2406d00647fcfc302dce",
+            "keeperHash": "sha256:de339fde35d5052214763918904477b690f4f0a6f2ea2406d00647fcfc302dce",
+            "hasBase": true,
+            "baseHash": "sha256:4fd09324ecc0b9a6d0206ecc7edd66a509541edbe03a8049c58d7cd7d8dba83f"
+          }
+        ]
+      },
+      {
+        "uuid": "980b445b-0f4f-46b0-aeb2-2c262c5b16dc",
+        "baseCount": 1,
+        "targets": [
+          {
+            "row": 7577,
+            "keeperRow": 4171,
+            "targetHash": "sha256:7357cef912862843c6d363472d8941932b1bf457bc07fd57735af09345ea001e",
+            "keeperHash": "sha256:7357cef912862843c6d363472d8941932b1bf457bc07fd57735af09345ea001e",
+            "hasBase": true,
+            "baseHash": "sha256:faab6441bc25ac13a7d9834b96b3fd42a2461dea9adab0588da7a65e70b71390"
+          }
+        ]
+      },
+      {
+        "uuid": "790fb352-c39e-4da0-a1ba-18585e959976",
+        "baseCount": 1,
+        "targets": [
+          {
+            "row": 7581,
+            "keeperRow": 4175,
+            "targetHash": "sha256:603acf35e1d75d3049d3c9eb65c6f2145369a6e9fe81bac80a8c3fb3ae4103a5",
+            "keeperHash": "sha256:603acf35e1d75d3049d3c9eb65c6f2145369a6e9fe81bac80a8c3fb3ae4103a5",
+            "hasBase": true,
+            "baseHash": "sha256:a82cc843410123513b3d2021b37e24022eeafc7a192adf3b634cc20fa8e1cc78"
+          }
+        ]
+      },
+      {
+        "uuid": "008aa219-dce3-484d-9c91-1af5b7108a4e",
+        "baseCount": 1,
+        "targets": [
+          {
+            "row": 7582,
+            "keeperRow": 4176,
+            "targetHash": "sha256:898ad79b1fc85b656b3c748d4bde3497e2fea03c1e5235ce2ddac4d504a35c9f",
+            "keeperHash": "sha256:898ad79b1fc85b656b3c748d4bde3497e2fea03c1e5235ce2ddac4d504a35c9f",
+            "hasBase": true,
+            "baseHash": "sha256:f66c3f081aa7a60de349ecfaaeee6d0b164239defec058ba93ceaa549377d281"
+          }
+        ]
+      },
+      {
+        "uuid": "822549a6-cc1e-4f16-bf71-65854e057846",
+        "baseCount": 1,
+        "targets": [
+          {
+            "row": 7583,
+            "keeperRow": 4177,
+            "targetHash": "sha256:0d2d6fdce27d442a521af226a0bfc4524e0cd39a88fa2e194055b0a3e8bf941d",
+            "keeperHash": "sha256:0d2d6fdce27d442a521af226a0bfc4524e0cd39a88fa2e194055b0a3e8bf941d",
+            "hasBase": true,
+            "baseHash": "sha256:ffea2a288c81525c113b77e3cb8740d9188a40952163a989797d77ae4fa93469"
+          }
+        ]
+      },
+      {
+        "uuid": "d7dc16f7-ca32-43a9-a2c8-62432e7b0862",
+        "baseCount": 1,
+        "targets": [
+          {
+            "row": 7584,
+            "keeperRow": 4178,
+            "targetHash": "sha256:101a22bbfcf7726a5037bbe313779a57cf111b9e25acc65c9731f3cc8c5b7815",
+            "keeperHash": "sha256:101a22bbfcf7726a5037bbe313779a57cf111b9e25acc65c9731f3cc8c5b7815",
+            "hasBase": true,
+            "baseHash": "sha256:0a02f23f85abfd5893f5a4742096d8e91b5895ca9ec06b786bac1f11539e871c"
+          }
+        ]
+      },
+      {
+        "uuid": "fb1d7eaf-a6f3-4019-9ef4-756a6ee0e5da",
+        "baseCount": 1,
+        "targets": [
+          {
+            "row": 7590,
+            "keeperRow": 4184,
+            "targetHash": "sha256:1deb9c135c62406223b948d26c13df3456215dab63d4e79533a62c594d4d7bc7",
+            "keeperHash": "sha256:1deb9c135c62406223b948d26c13df3456215dab63d4e79533a62c594d4d7bc7",
+            "hasBase": true,
+            "baseHash": "sha256:d6a208af07ccb759e8bcc3f2a1f2b2d1f3352a752345db6a1f18d8381d929970"
+          }
+        ]
+      },
+      {
+        "uuid": "c1a274f2-01ae-4432-8043-7d66bfd8dad7",
+        "baseCount": 1,
+        "targets": [
+          {
+            "row": 7596,
+            "keeperRow": 4190,
+            "targetHash": "sha256:6b4348040bb8572cd7dcaea11389492f586d49c39d27474e364b409f9632d2ce",
+            "keeperHash": "sha256:6b4348040bb8572cd7dcaea11389492f586d49c39d27474e364b409f9632d2ce",
+            "hasBase": true,
+            "baseHash": "sha256:faccb5c0f56b6dff82747e2f54a87fa82f0593e4bd350dbe85232bb32d357112"
+          }
+        ]
+      },
+      {
+        "uuid": "9c5eb378-5a1d-44b2-a406-5dd3d46b1d30",
+        "baseCount": 1,
+        "targets": [
+          {
+            "row": 7597,
+            "keeperRow": 4191,
+            "targetHash": "sha256:0b3c593cfd3f18d66d973e5e14518e0c8e644eb535912b6f4538849a63e56cfd",
+            "keeperHash": "sha256:0b3c593cfd3f18d66d973e5e14518e0c8e644eb535912b6f4538849a63e56cfd",
+            "hasBase": true,
+            "baseHash": "sha256:37f43ddde15bbc7df0cc47a5cf899958d0179aaae932dd5d91f900940c162953"
+          }
+        ]
+      },
+      {
+        "uuid": "cb6961d6-6669-436c-b858-83389e11a934",
+        "baseCount": 1,
+        "targets": [
+          {
+            "row": 7598,
+            "keeperRow": 4192,
+            "targetHash": "sha256:2b4c06f51971586b1ce5264fdb58ce831a514ff8f55ba5ec73b4c54bf65dad1f",
+            "keeperHash": "sha256:2b4c06f51971586b1ce5264fdb58ce831a514ff8f55ba5ec73b4c54bf65dad1f",
+            "hasBase": true,
+            "baseHash": "sha256:9520a4f6eb282d1bc900439aa40260dc40a808f3f0ac60757b00624d0fd3cf57"
+          }
+        ]
+      },
+      {
+        "uuid": "a448a473-c822-4622-b84d-2743c0d22678",
+        "baseCount": 1,
+        "targets": [
+          {
+            "row": 7606,
+            "keeperRow": 4200,
+            "targetHash": "sha256:edde4ac45578cf84a2abe9e6c935c009fae4b4e4b2c17facbdcbb1203b104f61",
+            "keeperHash": "sha256:edde4ac45578cf84a2abe9e6c935c009fae4b4e4b2c17facbdcbb1203b104f61",
+            "hasBase": true,
+            "baseHash": "sha256:a3f0ad54d429531dd29040c8cb11ec9941a44c3a421461216e01da7b04d4532a"
+          }
+        ]
+      },
+      {
+        "uuid": "a806b88f-4edf-4b73-9bbe-e5337fd3d5db",
+        "baseCount": 1,
+        "targets": [
+          {
+            "row": 7607,
+            "keeperRow": 4201,
+            "targetHash": "sha256:17a45357247eb029760de41cba0ae21aa28383cb0611eeb8181731e3b856c4c7",
+            "keeperHash": "sha256:17a45357247eb029760de41cba0ae21aa28383cb0611eeb8181731e3b856c4c7",
+            "hasBase": true,
+            "baseHash": "sha256:2a275f0d047ef10c312e21c89f664c92d56f21e84a5e830491598081395f1319"
+          }
+        ]
+      },
+      {
+        "uuid": "4d39b680-50d4-48f8-ae43-099b3b93349b",
+        "baseCount": 1,
+        "targets": [
+          {
+            "row": 7608,
+            "keeperRow": 4202,
+            "targetHash": "sha256:dcd82a4b4dd9ef8f9ef8afe7cd707cc1addb31e049d29353732a9a064bb55ecc",
+            "keeperHash": "sha256:dcd82a4b4dd9ef8f9ef8afe7cd707cc1addb31e049d29353732a9a064bb55ecc",
+            "hasBase": true,
+            "baseHash": "sha256:1178e96fce4baca156020fa4c7975ae07ab8e0f52647b1dac3137159de37a3d3"
+          }
+        ]
+      },
+      {
+        "uuid": "487193e0-9a0a-4c42-9f85-9b69dfd1158c",
+        "baseCount": 1,
+        "targets": [
+          {
+            "row": 7612,
+            "keeperRow": 4206,
+            "targetHash": "sha256:b0cd08b4b81657695f67b4d8a5aaba1e34b569849bc7b7ca2ae9a371667ef4c3",
+            "keeperHash": "sha256:b0cd08b4b81657695f67b4d8a5aaba1e34b569849bc7b7ca2ae9a371667ef4c3",
+            "hasBase": true,
+            "baseHash": "sha256:ff680c7322835f07a3a17ec69be84e6ff2fcda4af45f8fbbc9bac0db0696f07d"
+          }
+        ]
+      },
+      {
+        "uuid": "76395b4d-1d0e-409d-823f-a3339e05fe9d",
+        "baseCount": 1,
+        "targets": [
+          {
+            "row": 7613,
+            "keeperRow": 4207,
+            "targetHash": "sha256:5505032733e0b231f421bc9f34bf623e3418c126fc0aa3c2409d7d2c53fd1a01",
+            "keeperHash": "sha256:5505032733e0b231f421bc9f34bf623e3418c126fc0aa3c2409d7d2c53fd1a01",
+            "hasBase": true,
+            "baseHash": "sha256:a4a4b1330843362a4ffde61ce06a778771e12876c968217f2cdc6a7643b3ef9e"
+          }
+        ]
+      },
+      {
+        "uuid": "579b4bbe-f9bb-43e1-97c0-80da6fb0a595",
+        "baseCount": 1,
+        "targets": [
+          {
+            "row": 7615,
+            "keeperRow": 4209,
+            "targetHash": "sha256:495c16aca71725b7509c4dd106e1a77b6b8cb763169a3e123a50fb35cbc6c287",
+            "keeperHash": "sha256:495c16aca71725b7509c4dd106e1a77b6b8cb763169a3e123a50fb35cbc6c287",
+            "hasBase": true,
+            "baseHash": "sha256:e657a54d78169c21aac03948f51c746546df492520732f3141b6881c8a7fb09d"
+          }
+        ]
+      },
+      {
+        "uuid": "42930eb1-965f-438f-801b-41a6c803cc01",
+        "baseCount": 1,
+        "targets": [
+          {
+            "row": 7617,
+            "keeperRow": 4211,
+            "targetHash": "sha256:9761069bcd0a5bede2e2dcc449abd9f6db035f984319dd84486ce08d4433380e",
+            "keeperHash": "sha256:9761069bcd0a5bede2e2dcc449abd9f6db035f984319dd84486ce08d4433380e",
+            "hasBase": true,
+            "baseHash": "sha256:2f729444464b5183594f5c9d43d2bcd6d331118f9f5f028c8553af782f57f1eb"
+          }
+        ]
+      },
+      {
+        "uuid": "0ecf20bb-8a7f-4330-85f2-0eb129b7a12e",
+        "baseCount": 1,
+        "targets": [
+          {
+            "row": 7618,
+            "keeperRow": 4212,
+            "targetHash": "sha256:fbc4509b37e339160cccd425f616a9f6731e5713a9c68c198aceef4778496d80",
+            "keeperHash": "sha256:fbc4509b37e339160cccd425f616a9f6731e5713a9c68c198aceef4778496d80",
+            "hasBase": true,
+            "baseHash": "sha256:c48c5ece86712f6cffed60d594ef91cc7c6700e409631afe9e6f448b0e762ff6"
+          }
+        ]
+      },
+      {
+        "uuid": "fee3cf50-6773-4b7b-b2af-c8b63ac89402",
+        "baseCount": 1,
+        "targets": [
+          {
+            "row": 7619,
+            "keeperRow": 4213,
+            "targetHash": "sha256:54dd3f05b54683e189eb40e67f661fccea283472a51f2a53290cf7c209e1a71b",
+            "keeperHash": "sha256:54dd3f05b54683e189eb40e67f661fccea283472a51f2a53290cf7c209e1a71b",
+            "hasBase": true,
+            "baseHash": "sha256:3b82ba2ae25e3dcb98143450777977516e0a0d60f98c36bf52e5e2821208b175"
+          }
+        ]
+      },
+      {
+        "uuid": "0089788e-9fd9-4612-861e-c1a28c3e81cf",
+        "baseCount": 1,
+        "targets": [
+          {
+            "row": 7621,
+            "keeperRow": 4215,
+            "targetHash": "sha256:9c509f9c5f7324a2e35ac027cd140b84c710b1f9626bef9b387a1a3ad44f5c74",
+            "keeperHash": "sha256:9c509f9c5f7324a2e35ac027cd140b84c710b1f9626bef9b387a1a3ad44f5c74",
+            "hasBase": true,
+            "baseHash": "sha256:3e0c5907762ad71ac3b403f796467c6d162b996404e0dd11439884af7a5ad026"
+          }
+        ]
+      },
+      {
+        "uuid": "f0897ddc-6410-4d55-ad05-3040fbbf7b22",
+        "baseCount": 1,
+        "targets": [
+          {
+            "row": 7624,
+            "keeperRow": 4218,
+            "targetHash": "sha256:1d3c5a36f2c2fdb803c9dc855e311bdc34265223898a18286bf32b1039801261",
+            "keeperHash": "sha256:1d3c5a36f2c2fdb803c9dc855e311bdc34265223898a18286bf32b1039801261",
+            "hasBase": true,
+            "baseHash": "sha256:4e17769304e48b0743d84655c8632bc3c2734162a5fcbf2e50d8019626337b16"
+          }
+        ]
+      },
+      {
+        "uuid": "cef9b1a9-4cdf-4569-b921-c35b6a9ac02e",
+        "baseCount": 1,
+        "targets": [
+          {
+            "row": 7625,
+            "keeperRow": 4219,
+            "targetHash": "sha256:63a7ad14aeee05a4042d48d05258e074f598c28de5dca6055ab5d3a28b5b5e47",
+            "keeperHash": "sha256:63a7ad14aeee05a4042d48d05258e074f598c28de5dca6055ab5d3a28b5b5e47",
+            "hasBase": true,
+            "baseHash": "sha256:ba456c5aa78270ed17937cfaea1bad6dbbd44710df862755ef8851fa426ace7e"
+          }
+        ]
+      },
+      {
+        "uuid": "0e157cbf-2ebc-4e81-bd0b-2e3fc69b1bee",
+        "baseCount": 1,
+        "targets": [
+          {
+            "row": 7632,
+            "keeperRow": 4226,
+            "targetHash": "sha256:fdd450e47605ce4a1333474ffa6e691648feb46ec030132e51212d7e19dc5e3b",
+            "keeperHash": "sha256:fdd450e47605ce4a1333474ffa6e691648feb46ec030132e51212d7e19dc5e3b",
+            "hasBase": true,
+            "baseHash": "sha256:e406f0f5670fee256831af377da7b0a754d3f81a3b3702759f54eab0428c8a57"
+          }
+        ]
+      },
+      {
+        "uuid": "3625c639-13a4-4f1a-8776-de23a58e6222",
+        "baseCount": 1,
+        "targets": [
+          {
+            "row": 7633,
+            "keeperRow": 4227,
+            "targetHash": "sha256:162e2dc2897a9a9e006c1f5083e8f93ac71c2f50badc892f13a7a231acdd1800",
+            "keeperHash": "sha256:162e2dc2897a9a9e006c1f5083e8f93ac71c2f50badc892f13a7a231acdd1800",
+            "hasBase": true,
+            "baseHash": "sha256:ada574b28a0cc1de566e93342b5d4057d8ba29a500d9eebcba62093d16ed353c"
+          }
+        ]
+      },
+      {
+        "uuid": "3d303da5-89da-4f0d-b42b-d5a2bc87f2f4",
+        "baseCount": 1,
+        "targets": [
+          {
+            "row": 7634,
+            "keeperRow": 4228,
+            "targetHash": "sha256:1b10f0b1276e48ec11b7bbf2701dbde4dd65f7111205750318b24f004b7e2d18",
+            "keeperHash": "sha256:1b10f0b1276e48ec11b7bbf2701dbde4dd65f7111205750318b24f004b7e2d18",
+            "hasBase": true,
+            "baseHash": "sha256:3ec037e01c09c6a6aee9a3a8860f8e21b28954efa1681c87e3ab16d04515dfb0"
+          }
+        ]
+      },
+      {
+        "uuid": "eefd5a4d-6b39-4841-9dab-f29ef505109f",
+        "baseCount": 1,
+        "targets": [
+          {
+            "row": 7635,
+            "keeperRow": 4229,
+            "targetHash": "sha256:bd10df7bb1b0a6645bc54b340aad5bb687bf9ff4bb02e122f96d05dad2bbdcb7",
+            "keeperHash": "sha256:bd10df7bb1b0a6645bc54b340aad5bb687bf9ff4bb02e122f96d05dad2bbdcb7",
+            "hasBase": true,
+            "baseHash": "sha256:930134e7ee18431cfc3905cd2501d8b202b37d85cfbb536b16537403bfc6b3e3"
+          }
+        ]
+      },
+      {
+        "uuid": "b5f2eff5-84c5-4daa-bc3d-ba797315a541",
+        "baseCount": 1,
+        "targets": [
+          {
+            "row": 7636,
+            "keeperRow": 4230,
+            "targetHash": "sha256:50aefcf9e666994ab62dc9c27d1bcc2c0248bac13e60dcc927478d43d77a2f69",
+            "keeperHash": "sha256:50aefcf9e666994ab62dc9c27d1bcc2c0248bac13e60dcc927478d43d77a2f69",
+            "hasBase": true,
+            "baseHash": "sha256:e5dd2ccaa5164ea71627968b43c18f8a451e7333a8c6ec117de42a2220b0e900"
+          }
+        ]
+      },
+      {
+        "uuid": "1b85f2cd-f1f8-45de-9136-cd01c2abe1f9",
+        "baseCount": 1,
+        "targets": [
+          {
+            "row": 7637,
+            "keeperRow": 4231,
+            "targetHash": "sha256:6f7d313f9f93684a71e997b6db6e68b96787c7f3392424c4f30bb41a95df9627",
+            "keeperHash": "sha256:6f7d313f9f93684a71e997b6db6e68b96787c7f3392424c4f30bb41a95df9627",
+            "hasBase": true,
+            "baseHash": "sha256:6025d9c3b08e5632077accf183061fdf61f0a257446d07e0e4817e80a10482bf"
+          }
+        ]
+      },
+      {
+        "uuid": "3e422df0-e983-4153-92db-8564def3050b",
+        "baseCount": 1,
+        "targets": [
+          {
+            "row": 7642,
+            "keeperRow": 4236,
+            "targetHash": "sha256:3067b5555e0624a0c38fa6b55d18e93c4abebe0406fc629e894fe720f20813ca",
+            "keeperHash": "sha256:3067b5555e0624a0c38fa6b55d18e93c4abebe0406fc629e894fe720f20813ca",
+            "hasBase": true,
+            "baseHash": "sha256:85ada3ad6bed176433a32bb8cdc4c54a54a2b7984ab8288db00a782a9da0f60f"
+          }
+        ]
+      }
+    ],
+    "notInBase": []
+  }
+}
