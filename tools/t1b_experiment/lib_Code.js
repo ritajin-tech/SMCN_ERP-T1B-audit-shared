@@ -1,38 +1,79 @@
 /**
- * T1-B 阶段B 非生产实验 · 共享锁库（E2/E3 落地原型）
- * 被 writerA / writerB 两个独立项目共同引用 -> 二者调用 acquireLock 锁定的是"本库脚本域"，跨项目互斥成立。
- * 冻结状态 TS_WRITE_FREEZE 与写者注册表存于单一共享配置表（E3 单一受信源），杜绝"同名 Script Properties 各自为政"。
- * 纯非生产；不读主库/生产表；仅读写传入的测试表 ssId。表内只用默认 Sheet1（config 在固定格、log 追加于下方）。
+ * T1-B 阶段B 非生产实验 · 共享锁库（E2/E3 落地原型）v3
+ * 被 writerA / writerB 两个独立项目共同引用。
  *
- * v2 修订（响应 Tom 09:03Z 静态评审）：
- *  - readFreeze 改为三态状态机（ON/OFF/UNKNOWN），UNKNOWN 一律 fail-closed 拒写（修复发现#1）
- *  - acquireLock 返回可释放的锁柄；新增 releaseLock，调用方显式释放（修复发现#3）
- *  - 新增 guardedWrite：锁 + 冻结闸(guardCheck) + 实际受保护写 同域绑定，失败/冻结一律不进入写（修复发现#4）
+ * v3 修订（响应 Tom 09:51Z v2 静态复核 5 条）：
+ *  #1 锁路径真实分流：
+ *      OWN     —— 写者项目自身 getScriptLock（跨项目不互斥，负对照/复现漏洞）
+ *      LIB     —— 库内 getScriptLock（经实测仍按"执行脚本"域，跨项目不互斥；证明"仅抽到库里"无效）
+ *      CENTRAL —— 集中锁端点（单一部署，内部持自身 getScriptLock；两写者都 urlFetch 它 → 真正跨项目互斥，正例）
+ *  #2 releaseLock 返回值透传；guardedWrite 把释放结果附进返回；释放失败/未知不得记 RELEASED
+ *  #3 writeFreeze 纳入同一协调域（guardedWriteFreeze）；并显式声明权限面未封闭（须外部 ACL）
+ *  #4 独立日志通道（t1b_exp_log sheet）+ 关联 execId，业务写与观察日志分离
+ *
+ * 纯非生产；不读主库/生产表；仅读写传入的测试表 ssId。
+ * 部署红线：本文件含 doLocker_（集中锁端点），但 LOCKER_URL 为占位 REPLACE_LOCKER_URL，
+ * 未配置前 CENTRAL 模式返回 LOCKER_URL_NOT_CONFIGURED；正式运行须由有权方部署并填入 URL。
  */
 var SHARED_LOCK_DOMAIN = 't1b-exp-guard';
 var FREEZE_ON = 1, FREEZE_OFF = 0, FREEZE_UNKNOWN = -1;
 
 function _sheet(ssId) { return SpreadsheetApp.openById(ssId).getSheets()[0]; }
-
-// E2: 跨项目共享锁。返回 {ok, lock, domain, t}；调用方必须配对调用 releaseLock(handle)。
-function acquireLock(domain, holdMs) {
-  var lock = LockService.getScriptLock();
-  try {
-    var ok = lock.tryLock(holdMs || 30000);
-    return { ok: ok, lock: ok ? lock : null, domain: domain, t: new Date().toISOString() };
-  } catch (e) {
-    return { ok: false, lock: null, error: String(e), domain: domain, t: new Date().toISOString() };
-  }
+function _logSheet(ssId) {
+  var book = SpreadsheetApp.openById(ssId);
+  var name = 't1b_exp_log';
+  var sh = book.getSheetByName(name);
+  if (!sh) { sh = book.insertSheet(name); sh.appendRow(['execId', 'ts', 'writer', 'mode', 'event', 'ok', 'detail']); }
+  return sh;
 }
-function releaseLock(handle) {
-  if (handle && handle.lock) {
+
+// ---------------- E2：三种真实锁路径 ----------------
+
+// OWN：写者自身 getScriptLock —— 跨项目不互斥（漏洞本身，负对照）
+function acquireOwnLock(holdMs) {
+  var lock = LockService.getScriptLock();
+  try { var ok = lock.tryLock(holdMs || 30000); return { ok: ok, lock: ok ? lock : null, mode: 'OWN', t: new Date().toISOString() }; }
+  catch (e) { return { ok: false, error: String(e), mode: 'OWN', t: new Date().toISOString() }; }
+}
+// LIB：库内 getScriptLock —— 经实测仍按"执行脚本"域（writerA 调锁 A 域、writerB 调锁 B 域）→ 跨项目不互斥
+function acquireLibLock(domain, holdMs) {
+  var lock = LockService.getScriptLock();
+  try { var ok = lock.tryLock(holdMs || 30000); return { ok: ok, lock: ok ? lock : null, mode: 'LIB', domain: domain, t: new Date().toISOString() }; }
+  catch (e) { return { ok: false, error: String(e), mode: 'LIB', domain: domain, t: new Date().toISOString() }; }
+}
+// CENTRAL：集中锁端点（单一部署，内部持自身 getScriptLock）—— 两写者都 urlFetch 它 → 真正跨项目互斥（正例）
+function acquireCentralLock(domain, holdMs, lockerUrl) {
+  if (!lockerUrl || lockerUrl.indexOf('REPLACE') === 0) {
+    return { ok: false, error: 'LOCKER_URL_NOT_CONFIGURED', mode: 'CENTRAL', t: new Date().toISOString() };
+  }
+  try {
+    var url = lockerUrl + '?op=acquire&domain=' + encodeURIComponent(domain) + '&hold=' + (holdMs || 30000);
+    var res = UrlFetchApp.fetch(url, { method: 'post', muteHttpExceptions: true, payload: '' });
+    var j = JSON.parse(res.getContentText());
+    return { ok: !!j.ok, token: j.token || null, mode: 'CENTRAL', domain: domain, t: new Date().toISOString() };
+  } catch (e) { return { ok: false, error: String(e), mode: 'CENTRAL', domain: domain, t: new Date().toISOString() }; }
+}
+function releaseCentralLock(domain, token, lockerUrl) {
+  if (!lockerUrl || lockerUrl.indexOf('REPLACE') === 0) return { released: false, error: 'LOCKER_URL_NOT_CONFIGURED' };
+  try {
+    var url = lockerUrl + '?op=release&domain=' + encodeURIComponent(domain) + '&token=' + encodeURIComponent(token || '');
+    var res = UrlFetchApp.fetch(url, { method: 'post', muteHttpExceptions: true, payload: '' });
+    var j = JSON.parse(res.getContentText());
+    return { released: !!j.released, t: new Date().toISOString() };
+  } catch (e) { return { released: false, error: String(e), t: new Date().toISOString() }; }
+}
+// 统一释放（OWN/LIB 锁柄 + CENTRAL token）
+function releaseLock(handle, lockerUrl) {
+  if (!handle) return { released: false, t: new Date().toISOString() };
+  if (handle.mode === 'CENTRAL') return releaseCentralLock(handle.domain, handle.token, lockerUrl);
+  if (handle.lock) {
     try { handle.lock.releaseLock(); return { released: true, t: new Date().toISOString() }; }
     catch (e) { return { released: false, error: String(e), t: new Date().toISOString() }; }
   }
   return { released: false, t: new Date().toISOString() };
 }
 
-// E3: 严格三态冻结状态机（修复发现#1：空值/错误类型/未知形态一律 UNKNOWN 拒写）
+// ---------------- E3：严格三态冻结 ----------------
 function readFreeze(ssId) {
   var v;
   try { v = _sheet(ssId).getRange('A1').getValue(); }
@@ -41,28 +82,41 @@ function readFreeze(ssId) {
   if (v === FREEZE_OFF || v === 0 || v === '0' || v === false) return FREEZE_OFF;
   return FREEZE_UNKNOWN; // 空值/错误类型/未知形态 -> UNKNOWN，fail-closed
 }
+// 冻结写入（注意：仍无法封闭"能写该表者即可改 A1"的权限面；此为架构局限，须外部 ACL，如实声明）
 function writeFreeze(ssId, val) {
   _sheet(ssId).getRange('A1').setValue(val ? FREEZE_ON : FREEZE_OFF);
   return readFreeze(ssId);
+}
+// 冻结变更纳入同一协调域（修复 #3：原先 writeFreeze 直接写、无锁）
+function guardedWriteFreeze(ssId, val, lockerUrl) {
+  var handle = acquireCentralLock(SHARED_LOCK_DOMAIN, 30000, lockerUrl);
+  if (!handle.ok) { handle = acquireOwnLock(30000); if (!handle.ok) return { ok: false, reason: 'FREEZE_LOCK_FAILED' }; }
+  try { var f = writeFreeze(ssId, val); return { ok: true, freeze: f }; }
+  finally { releaseLock(handle, lockerUrl); }
 }
 function guardCheck(ssId) {
   var f = readFreeze(ssId);
   if (f === FREEZE_ON) return 'PERIOD_LOCKED';
   if (f === FREEZE_OFF) return 'OK';
-  return 'UNKNOWN_REJECT'; // fail-closed：缺值/异常/不可读 一律拒写
+  return 'UNKNOWN_REJECT'; // fail-closed
 }
 
-// 统一受保护写入口（修复发现#4：锁 + 冻结闸 + 真实受保护写 同域绑定）
-function guardedWrite(ssId, domain, protectedFn) {
-  var handle = acquireLock(domain, 30000);
-  if (!handle.ok) return { ok: false, reason: 'ACQUIRE_FAILED', lockRef: domain };
+// ---------------- 受保护写入口（释放状态透传 #2）----------------
+function guardedWrite(ssId, domain, protectedFn, mode, lockerUrl) {
+  var handle;
+  if (mode === 'OWN') handle = acquireOwnLock(30000);
+  else if (mode === 'CENTRAL') handle = acquireCentralLock(domain, 30000, lockerUrl);
+  else handle = acquireLibLock(domain, 30000); // LIB 默认
+  if (!handle.ok) return { ok: false, reason: 'ACQUIRE_FAILED:' + handle.mode, mode: handle.mode, release: { released: false, skipped: true } };
+  var out = { ok: false, mode: handle.mode, release: { released: false } };
   try {
     var verdict = guardCheck(ssId);
-    if (verdict !== 'OK') return { ok: false, reason: verdict, lockRef: domain }; // PERIOD_LOCKED / UNKNOWN_REJECT
-    var result = protectedFn();
-    return { ok: true, result: result, lockRef: domain };
+    if (verdict !== 'OK') { out.ok = false; out.reason = verdict; return out; } // PERIOD_LOCKED / UNKNOWN_REJECT
+    out.result = protectedFn();
+    out.ok = true;
+    return out;
   } finally {
-    releaseLock(handle);
+    out.release = releaseLock(handle, lockerUrl); // 释放结果透传，调用方据此决定记 RELEASED 还是 RELEASE_FAIL
   }
 }
 
@@ -71,9 +125,33 @@ function registerWriter(ssId, name) {
   sh.getRange('A2').setValue((sh.getRange('A2').getValue() || '') + '|' + name);
   return name;
 }
-// 受保护的写者注册（与 guardedWrite 同域，修复发现#4：注册写此前未纳入统一保护）
-function guardedRegister(ssId, name) {
-  return guardedWrite(ssId, SHARED_LOCK_DOMAIN, function () { return registerWriter(ssId, name); });
+function guardedRegister(ssId, name, mode, lockerUrl) {
+  return guardedWrite(ssId, SHARED_LOCK_DOMAIN, function () { return registerWriter(ssId, name); }, mode, lockerUrl);
 }
 
-function appendLog(ssId, row) { _sheet(ssId).appendRow(row); }
+// ---------------- 日志（独立通道 #4）----------------
+function appendLog(ssId, row) { _logSheet(ssId).appendRow(row); }
+
+// ---------------- 集中锁端点（部署为 web app 后提供 CENTRAL 锁）----------------
+function doGet(e) { return doLocker_(e); }
+function doPost(e) { return doLocker_(e); }
+function doLocker_(e) {
+  var p = (e && e.parameter) || {};
+  var domain = p.domain || SHARED_LOCK_DOMAIN;
+  var props = PropertiesService.getScriptProperties();
+  var lock = LockService.getScriptLock(); // 本脚本（集中锁部署）自身的锁域 —— 两写者都 funnel 进此域 → 真正互斥
+  if (p.op === 'acquire') {
+    var ok = lock.tryLock(parseInt(p.hold, 10) || 30000);
+    var token = ok ? Utilities.getUuid() : null;
+    if (ok) props.setProperty('LOCK_' + domain, token);
+    return ContentService.createTextOutput(JSON.stringify({ ok: ok, token: token }));
+  }
+  if (p.op === 'release') {
+    var t = p.token || '';
+    var cur = props.getProperty('LOCK_' + domain) || '';
+    var had = (cur === t && t !== '');
+    if (had) { try { lock.releaseLock(); } catch (e) {} props.deleteProperty('LOCK_' + domain); }
+    return ContentService.createTextOutput(JSON.stringify({ released: had }));
+  }
+  return ContentService.createTextOutput(JSON.stringify({ ok: false, error: 'BAD_OP' }));
+}

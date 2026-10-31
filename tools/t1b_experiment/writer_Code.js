@@ -3,56 +3,62 @@
  * 与 writerB 为两个"独立 script 项目"（不同 scriptId），用于实证跨项目锁语义。
  * 仅读写传入的隔离测试表 ssId；不读主库/生产表；不充当任何正式填报入口。
  *
- * v2 修订（响应 Tom 09:03Z 静态评审）：
- *  - runTest 改为经 guardedWrite：锁未取到或冻结 -> 记 REJECTED，绝不伪造 RELEASED（修复发现#2）
- *  - ACQUIRED 仅在真正持锁且通过冻结闸后记录；RELEASED 仅在实际释放后记录（修复发现#2）
- *  - 受保护区间 = guardedWrite 内；锁柄显式释放（修复发现#3）
- *  - guard 闸与真实受保护写路径同域绑定（修复发现#4）
+ * v3 修订（响应 Tom 09:51Z 静态复核）：
+ *  #1 runOwn=OWN 负对照（写者自身锁，跨项目不互斥，复现漏洞）；runShared=CENTRAL 正例（集中锁，跨项目互斥）
+ *  #2 释放状态透传：RELEASED 仅当 release.ok；否则记 RELEASE_FAIL，绝不伪造成功
+ *  #3 setfreeze 走 guardedWriteFreeze（与受保护写同一协调域）
+ *  #4 日志写入独立 log sheet + execId 关联；业务写（ACQUIRED）在受保护区间内
  */
-function runTest(ssId, writerName, sleepMs, useShared) {
+var SSID = 'REPLACE_SSID';
+var LOCKER_URL = 'REPLACE_LOCKER_URL'; // 集中锁端点部署 URL（非生产）；配置前 CENTRAL 模式返回 LOCKER_URL_NOT_CONFIGURED
+
+function _execId() { return Utilities.getUuid(); }
+
+function runTest(ssId, writerName, sleepMs, mode) {
+  var eid = _execId();
   var sheet = SpreadsheetApp.openById(ssId).getSheets()[0];
   var start = new Date();
-  var ref = useShared ? 'SHARED_LIB' : 'OWN_PROJECT';
-  // 真实受保护写路径：锁 + 冻结闸 + 写 同域（guardedWrite 内）
+  var handleMode = (mode === 'OWN') ? 'OWN' : 'CENTRAL'; // OWN = 负对照；CENTRAL = 正例
+  // 真实受保护写路径：锁 + 冻结闸 + 业务写（ACQUIRED 即模拟一次受保护写）同域（guardedWrite 内）
   var r = SharedLockLib.guardedWrite(ssId, 't1b-exp-guard', function () {
     var seq = sheet.getLastRow();
-    sheet.appendRow([start.toISOString(), writerName, ref, 'ACQUIRED', 1, seq, '']);
+    SharedLockLib.appendLog(ssId, [eid, start.toISOString(), writerName, handleMode, 'ACQUIRED', 1, 'seq=' + seq]);
     Utilities.sleep(sleepMs || 4000);
     return { seq: seq };
-  });
+  }, handleMode, LOCKER_URL);
   var end = new Date();
-  if (r.ok) {
-    // 仅在实际释放后记录 RELEASED，绝不伪造
-    sheet.appendRow([end.toISOString(), writerName, ref, 'RELEASED', 1, sheet.getLastRow(), 'released']);
+  // #2 释放状态透传：仅 release.ok 才记 RELEASED；释放失败/未知记 RELEASE_FAIL（不伪造）；未取得锁/冻结拒写记 REJECTED
+  var rel = r.release;
+  if (r.ok && rel && rel.released) {
+    SharedLockLib.appendLog(ssId, [eid, end.toISOString(), writerName, handleMode, 'RELEASED', 1, 'released']);
+  } else if (r.ok) {
+    SharedLockLib.appendLog(ssId, [eid, end.toISOString(), writerName, handleMode, 'RELEASE_FAIL', 0, JSON.stringify(rel || {})]);
   } else {
-    // 未取得锁 / 冻结拒写 -> 记 REJECTED，不得进入受保护写入，不得伪造 RELEASED
-    sheet.appendRow([end.toISOString(), writerName, ref, 'REJECTED', 0, sheet.getLastRow(), r.reason]);
+    SharedLockLib.appendLog(ssId, [eid, end.toISOString(), writerName, handleMode, 'REJECTED', 0, r.reason]);
   }
-  return { writer: writerName, acquired: r.ok, reason: r.reason, lockRef: ref,
+  return { writer: writerName, acquired: r.ok, mode: handleMode, reason: r.reason, release: rel, execId: eid,
            start: start.toISOString(), end: end.toISOString() };
 }
 
 function guardTest(ssId) {
   var verdict = SharedLockLib.guardCheck(ssId);
-  SpreadsheetApp.openById(ssId).getSheets()[0].appendRow(
-    [new Date().toISOString(), 'GUARD', 'freeze', verdict, verdict === 'PERIOD_LOCKED' ? 1 : 0, '', '']);
+  SharedLockLib.appendLog(ssId, [_execId(), new Date().toISOString(), 'GUARD', 'freeze', verdict, verdict === 'PERIOD_LOCKED' ? 1 : 0, '']);
   return verdict;
 }
 
-function setFreeze(ssId, val) { return SharedLockLib.writeFreeze(ssId, val); }
-function register(ssId, name) { return SharedLockLib.guardedRegister(ssId, name); }
+function setFreeze(ssId, val) { return SharedLockLib.guardedWriteFreeze(ssId, val, LOCKER_URL); }
+function register(ssId, name, mode) { return SharedLockLib.guardedRegister(ssId, name, mode || 'CENTRAL', LOCKER_URL); }
 
 function doGet(e) {
   var p = e.parameter || {};
-  var sid = p.ssId || '';
+  var sid = p.ssId || SSID;
   if (p.mode === 'install') {
-    var us = (p.useShared === '1');
-    ScriptApp.newTrigger(us ? 'runShared' : 'runOwn')
-      .timeBased().after(90000).create();
-    return ContentService.createTextOutput('trigger installed useShared=' + us);
+    var m = (p.lockMode === 'OWN') ? 'runOwn' : 'runShared'; // 明确区分负对照 / 正例触发器
+    ScriptApp.newTrigger(m).timeBased().after(90000).create();
+    return ContentService.createTextOutput('trigger installed ' + m);
   }
   if (p.mode === 'run') {
-    var r = runTest(sid, p.name || 'writerX', parseInt(p.sleep || '4000', 10), p.useShared === '1');
+    var r = runTest(sid, p.name || 'writerX', parseInt(p.sleep || '4000', 10), p.lockMode || 'CENTRAL');
     return ContentService.createTextOutput(JSON.stringify(r));
   }
   if (p.mode === 'read') {
@@ -60,19 +66,15 @@ function doGet(e) {
     return ContentService.createTextOutput(JSON.stringify(rows));
   }
   if (p.mode === 'setfreeze') {
-    var fv = SharedLockLib.writeFreeze(sid, p.val === '1' ? 1 : 0);
-    return ContentService.createTextOutput('freeze=' + fv);
+    var fv = setFreeze(sid, p.val === '1' ? 1 : 0);
+    return ContentService.createTextOutput('freeze=' + JSON.stringify(fv));
   }
   if (p.mode === 'guard') {
-    var v = SharedLockLib.guardCheck(sid);
-    SpreadsheetApp.openById(sid).getSheets()[0].appendRow(
-      [new Date().toISOString(), 'GUARD', 'freeze', v, v === 'PERIOD_LOCKED' ? 1 : 0, '', '']);
+    var v = guardTest(sid);
     return ContentService.createTextOutput(v);
   }
   return ContentService.createTextOutput('bad mode');
 }
 
-function runOwn() { runTest(SSID, 'writerTrig', 4000, false); }
-function runShared() { runTest(SSID, 'writerTrig', 4000, true); }
-// 触发器内拿不到参数，故 SSID 由 bootstrap 写入（仅本实验）；生产代码不依赖此。
-var SSID = 'REPLACE_SSID';
+function runOwn() { runTest(SSID, 'writerTrig', 4000, 'OWN'); }        // 负对照：自身锁，跨项目不互斥（复现漏洞 N2）
+function runShared() { runTest(SSID, 'writerTrig', 4000, 'CENTRAL'); } // 正例：集中锁，跨项目互斥（E2 验证 N1）
