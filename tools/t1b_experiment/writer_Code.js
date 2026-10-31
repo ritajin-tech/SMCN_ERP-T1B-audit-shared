@@ -3,41 +3,44 @@
  * 与 writerB 为两个"独立 script 项目"（不同 scriptId），用于实证跨项目锁语义。
  * 仅读写传入的隔离测试表 ssId；不读主库/生产表；不充当任何正式填报入口。
  *
- * 远程调用（由 Python 经临时 web app 引导触发，跑完即删部署，净零链接）：
- *   doGet(e): ?mode=run&useShared=0|1&sleep=4000&name=writerX  -> 跑一次 runTest 并返回文本
- *   doGet(e): ?mode=install&useShared=0|1 -> 装一个 90s 后触发 runTest 的定时触发器（用于并发演练）
+ * v2 修订（响应 Tom 09:03Z 静态评审）：
+ *  - runTest 改为经 guardedWrite：锁未取到或冻结 -> 记 REJECTED，绝不伪造 RELEASED（修复发现#2）
+ *  - ACQUIRED 仅在真正持锁且通过冻结闸后记录；RELEASED 仅在实际释放后记录（修复发现#2）
+ *  - 受保护区间 = guardedWrite 内；锁柄显式释放（修复发现#3）
+ *  - guard 闸与真实受保护写路径同域绑定（修复发现#4）
  */
 function runTest(ssId, writerName, sleepMs, useShared) {
   var sheet = SpreadsheetApp.openById(ssId).getSheets()[0];
   var start = new Date();
-  var acquired = false, lockRef = null;
-  try {
-    if (useShared) {
-      var r = SharedLockLib.acquireLock('t1b-exp-guard', 30000);
-      acquired = r.acquired; lockRef = 'SHARED_LIB';
-    } else {
-      var lock = LockService.getScriptLock();
-      acquired = lock.tryLock(30000); lockRef = 'OWN_PROJECT';
-    }
+  var ref = useShared ? 'SHARED_LIB' : 'OWN_PROJECT';
+  // 真实受保护写路径：锁 + 冻结闸 + 写 同域（guardedWrite 内）
+  var r = SharedLockLib.guardedWrite(ssId, 't1b-exp-guard', function () {
     var seq = sheet.getLastRow();
-    sheet.appendRow([start.toISOString(), writerName, lockRef, 'ACQUIRED', acquired ? 1 : 0, seq, '']);
-    if (acquired) Utilities.sleep(sleepMs || 4000);
-  } finally { /* own 锁 tryLock 后自动释放；shared 库锁同理 */ }
+    sheet.appendRow([start.toISOString(), writerName, ref, 'ACQUIRED', 1, seq, '']);
+    Utilities.sleep(sleepMs || 4000);
+    return { seq: seq };
+  });
   var end = new Date();
-  sheet.appendRow([end.toISOString(), writerName, lockRef, 'RELEASED', acquired ? 1 : 0, seq, '']);
-  return { writer: writerName, acquired: acquired, lockRef: lockRef,
+  if (r.ok) {
+    // 仅在实际释放后记录 RELEASED，绝不伪造
+    sheet.appendRow([end.toISOString(), writerName, ref, 'RELEASED', 1, sheet.getLastRow(), 'released']);
+  } else {
+    // 未取得锁 / 冻结拒写 -> 记 REJECTED，不得进入受保护写入，不得伪造 RELEASED
+    sheet.appendRow([end.toISOString(), writerName, ref, 'REJECTED', 0, sheet.getLastRow(), r.reason]);
+  }
+  return { writer: writerName, acquired: r.ok, reason: r.reason, lockRef: ref,
            start: start.toISOString(), end: end.toISOString() };
 }
 
 function guardTest(ssId) {
-  var verdict = SharedLockLib.guardCheck(ssId); // E3 单一受信源读冻结
+  var verdict = SharedLockLib.guardCheck(ssId);
   SpreadsheetApp.openById(ssId).getSheets()[0].appendRow(
     [new Date().toISOString(), 'GUARD', 'freeze', verdict, verdict === 'PERIOD_LOCKED' ? 1 : 0, '', '']);
   return verdict;
 }
 
 function setFreeze(ssId, val) { return SharedLockLib.writeFreeze(ssId, val); }
-function register(ssId, name) { return SharedLockLib.registerWriter(ssId, name); }
+function register(ssId, name) { return SharedLockLib.guardedRegister(ssId, name); }
 
 function doGet(e) {
   var p = e.parameter || {};

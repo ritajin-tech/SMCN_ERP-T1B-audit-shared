@@ -1,11 +1,11 @@
 {
   "captured_at": "2026-10-31T08:10:13.175445Z",
-  "purpose": "Tom 07:51 要求：保留脱敏状态码/响应错误详情/项目部署及调用身份和配置，以实证 Execution API 可用性",
+  "purpose": "Tom 07:51 + 09:03 要求：保留脱敏状态码/响应错误详情/项目部署/调用身份/配置，并补充脱敏请求参数、调用目标、部署类型与适用权限，以实证 Execution API 调用结果。",
   "calling_identity": {
     "email": "rita.jin@spacematrix.com",
-    "scope": "email profile https://www.googleapis.com/auth/cloud-platform https://www.googleapis.com/auth/drive.file https://www.googleapis.com/auth/drive.metadata.readonly https://www.googleapis.com/auth/logging.read https://www.googleapis.com/auth/script.deployments https://www.googleapis.com/auth/script.projects https://www.googleapis.com/auth/script.webapp.deploy https://www.googleapis.com/auth/service.management https://www.googleapis.com/auth/userinfo.email https://www.googleapis.com/auth/userinfo.profile openid",
+    "scope": "email profile cloud-platform drive.file drive.metadata.readonly logging.read script.deployments script.projects script.webapp.deploy service.management userinfo.email userinfo.profile openid",
     "expires_in": "3599",
-    "note": "调用身份=上述 Google 账号（clasp OAuth token 持有者），即三个实验项目的创建/部署者"
+    "note": "调用身份=上述 Google 账号（clasp OAuth token 持有者），即三个实验项目的创建/部署者；本令牌不含 spreadsheets scope。"
   },
   "execution_api_call": {
     "endpoint": "https://script.googleapis.com/v1/scripts/1z9mLKlMF654FlqJQGRELirJftEX-9UQ4DHyKWez5Dk-ytvb4t13UQIZe:run",
@@ -13,6 +13,16 @@
     "function": "runTest",
     "http_status": 400,
     "response_body": "{\n  \"error\": {\n    \"code\": 400,\n    \"message\": \"Request contains an invalid argument.\",\n    \"status\": \"INVALID_ARGUMENT\"\n  }\n}\n"
+  },
+  "request_detail_desensitized": {
+    "function": "runTest",
+    "parameters": ["<实验测试表ID占位符>", "writerX", 4000, true],
+    "note": "参数为隔离实验测试表占位符，不含任何生产表/主库 ID 或数据；devMode=true。"
+  },
+  "call_target": {
+    "script_id": "1z9mLKlMF654FlqJQGRELirJftEX-9UQ4DHyKWez5Dk-ytvb4t13UQIZe (writer_A，隔离实验项目，非生产)",
+    "deployment_type": "default head read-only deployment（无 API-executable 部署）；API-executable 部署需单独 create 且 caller 须被显式授权",
+    "applicable_permission": "本令牌持有 script.projects / script.deployments scope，但 Execution API :run 要求目标脚本先部署为 API executable 且调用方在脚本的访问列表内——当前默认只读部署不满足该形态，故 400 INVALID_ARGUMENT。"
   },
   "project_deployments": {
     "LIB": [
@@ -40,5 +50,6 @@
       }
     ]
   },
-  "deployment_note": "三个项目各 1 条默认 head 只读部署（API 不可删，详见梳理文档 §9）；本实验从未创建可匿名调用的 web app 端点（无 entryPointType/access 配置），净零入口链接成立。"
+  "deployment_note": "三个项目各 1 条默认 head 只读部署（API 不可删，详见梳理文档 §9）；本实验从未创建可匿名调用的 web app 端点（无 entryPointType/access 配置），净零入口链接成立。",
+  "interpretation": "单次 INVALID_ARGUMENT 仅证明『该次请求（默认只读部署、无 API-executable 形态）不被接受』；不能据此判定 Execution API 已弃用，也不能证明所有身份/部署组合不可用（如另行将目标脚本部署为 API executable 并授权调用方，结果可能不同）。本证据为实验项目单次失败登记，无生产项目/生产数据参与，亦未用生产项目试错。Tom 09:03 发现#5 已落实。"
 }
