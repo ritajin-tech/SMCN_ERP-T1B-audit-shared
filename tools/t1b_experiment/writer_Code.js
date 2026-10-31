@@ -1,5 +1,5 @@
 /**
- * T1-B 阶段B 非生产实验 · 写者项目（模拟 W3 无锁独立写者 / W4 新项目）v6
+ * T1-B 阶段B 非生产实验 · 写者项目（模拟 W3 无锁独立写者 / W4 新项目）v8
  * 与 writerB 为两个"独立 script 项目"（不同 scriptId），用于实证跨项目锁语义。
  * 仅读写传入的隔离测试表 ssId；不读主库/生产表；不充当任何正式填报入口。
  *
@@ -44,7 +44,9 @@ function register(ssId, name, mode) {
   return SharedLockLib.guardedWrite(ssId, 't1b-exp-guard', eid, name, 0, mode || 'CENTRAL', LOCKER_URL, 'register');
 }
 function reconcile(ssId) { return SharedLockLib.reconcileLedger(ssId); }
-function resolve(ssId, token) { return SharedLockLib.reconcileResolve(ssId, token); } // v7 #5 独立核验后才解锁
+// v8 #2：独立核验解锁须传入【真实签名令牌】(SharedLockLib.buildResolveToken 由授权工具链生成，密钥绝不入仓)；
+//   空令牌 -> RESOLVE_TOKEN_REQUIRED；TEST_TOKEN / 伪造 -> RESOLVE_TOKEN_INVALID（负例被拒，字符串≠核验证明）。
+function resolve(ssId, token) { return SharedLockLib.reconcileResolve(ssId, token); }
 
 function doGet(e) {
   var p = e.parameter || {};
@@ -80,7 +82,8 @@ function doGet(e) {
     return ContentService.createTextOutput(JSON.stringify(rc));
   }
   if (p.mode === 'resolve') {
-    var rx = resolve(sid, p.token || 'TEST_TOKEN'); // v7 #5 独立核验后解锁（须 token）
+    // v8 #2：不再默认 TEST_TOKEN（那是被拒的负例）；须传入真实签名令牌，否则 RESOLVE_TOKEN_REQUIRED
+    var rx = resolve(sid, p.token || '');
     return ContentService.createTextOutput(JSON.stringify(rx));
   }
   return ContentService.createTextOutput('bad mode');

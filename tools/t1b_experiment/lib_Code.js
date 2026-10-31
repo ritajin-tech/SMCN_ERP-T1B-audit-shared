@@ -1,5 +1,5 @@
 /**
- * T1-B 阶段B 非生产实验 · 共享锁库 / 集中锁协调器（E2/E3 落地原型）v7
+ * T1-B 阶段B 非生产实验 · 共享锁库 / 集中锁协调器（E2/E3 落地原型）v8
  * 被 writerA / writerB 两个独立项目共同引用；集中锁端点(deploy 为 web app)即本文件部署。
  *
  * v7 修订（响应 Tom 12:26Z 第7轮静态复核 5 条）：核心——把【数据分类账】设为 fence 排序与准入的
@@ -22,12 +22,26 @@
  *     保留 UNKNOWN 并 needsIndependentVerification；新增 reconcileResolve（须 token）仅在独立核验后修复缓存；
  *     畸形行标记不静默跳过。release 失败 / 端点鉴权 / ACL / 目标侧 fencing / 真实隔离仍为运行时+治理实证（待授权环境）。
  *
+ * v8 修订（响应 Tom 21:51Z 第8轮 3 条）：
+ *  #1 账本完整性 fail-closed（Tom 8-1）：_ledgerBlocked / reconcileLedger 原 seen[f] 只记存在性、重复 fence 不报错
+ *     -> 新增【重复 fence(DUP) / 零值 fence(ZERO) / 非法状态(BADSTATUS)】检测，均 fail-closed 阻断/标记；
+ *     验收覆盖 重复/缺口/畸形/零值/非法状态 五类异常。
+ *  #2 独立核验令牌真证据绑定（Tom 8-2）：reconcileResolve 原仅判 token 非空 -> 改为【HMAC 签名结构化令牌】
+ *     （approver|verifier|maxf|ts|sig），核验：签名有效 / 批准者≠复核者(职责分离) / 24h 新鲜度 / 账本状态绑定；
+ *     不匹配或 TEST_TOKEN 等任意字符串一律 RESOLVE_TOKEN_INVALID 拒（字符串≠核验证明）；通过后才写 B1 并留处置记录；
+ *     新增 buildResolveToken（供授权工具链，密钥绝不入仓）+ _dispositionSheet 处置留痕。
+ *  #3 目标侧条件写/防绕过/隔离权限/释放失败/故障恢复：属【授权隔离环境实证】项（Tom 8-3），代码侧已含单调 fence 条件写
+ *     + 资源绑定 RESOURCE_BINDING_REJECT 防绕过 + 端点真实释放记录；运行实证仍须 Rita 签 §5 授权环境后由独立核验人跑通。
+ *
  * 纯非生产；不读主库/生产表；仅操作授权隔离测试表。
  * 部署红线：LOCKER_URL / ALLOWED_SSID 均为 REPLACE_* 占位；未配置前 CENTRAL 返回 NOT_CONFIGURED；正式运行须由有权方部署并填 URL/ID。
  */
 var SHARED_LOCK_DOMAIN = 't1b-exp-guard';
 var FREEZE_ON = 1, FREEZE_OFF = 0, FREEZE_UNKNOWN = -1;
 var ALLOWED_SSID = 'REPLACE_SSID'; // 集中锁协调器资源绑定：仅允许授权隔离测试表
+var RESOLVE_SECRET = 'REPLACE_VERIFY_SECRET'; // 独立核验令牌签名密钥；仅由有权方在授权环境配置，绝不入仓
+// v8 #2 合法账本状态白名单（COMMITTED/CRASH_PENDING/REPLAYED 之外皆为非法状态，fail-closed）
+var VALID_STATUS = ['COMMITTED', 'CRASH_PENDING', 'REPLAYED'];
 
 // ---------------- v6 #2 严格整数解析（整数/范围/溢出/读取错误 一律失败） ----------------
 function _parseIntStrict(v, min, max) {
@@ -98,7 +112,8 @@ function _ledgerLookup(ssId, identity, eid) {
   }
   return { found: false, conflict: false };
 }
-// v7 #3/#5 准入阻断：账本存在任何未核验异常（CRASH_PENDING / NaN / 缺口）即阻断写，直到独立核验
+// v7 #3/#5 准入阻断：账本存在任何未核验异常即阻断写，直到独立核验
+// v8 #1：新增 重复 fence / 零值 fence / 非法状态 检测，均 fail-closed 阻断
 function _ledgerBlocked(ssId) {
   var sh = _dataSheet(ssId), last = sh.getLastRow();
   if (last <= 1) return false;
@@ -109,8 +124,12 @@ function _ledgerBlocked(ssId) {
     var row = i + 2;
     var f = _parseIntStrict(fc[i][0], 0, 9007199254740991);
     if (f === null) return true;            // 畸形 fence -> 阻断
+    if (f === 0) return true;               // v8 #1 零值 fence（fence 恒>=1）-> 阻断
+    if (seen[f]) return true;               // v8 #1 重复 fence -> 阻断（双写/完整性违例）
     seen[f] = true; if (f > maxF) maxF = f;
-    if (String(sc[i][0]) === 'CRASH_PENDING') return true; // 未核验崩溃窗口 -> 阻断
+    var st = String(sc[i][0] || '');
+    if (VALID_STATUS.indexOf(st) < 0) return true; // v8 #1 非法状态 -> 阻断
+    if (st === 'CRASH_PENDING') return true; // 未核验崩溃窗口 -> 阻断
   }
   for (var k = 1; k <= maxF; k++) { if (!seen[k]) return true; } // 缺口 -> 阻断
   return false;
@@ -246,9 +265,13 @@ function reconcileLedger(ssId) {
     for (var i = 0; i < fc.length; i++) {
       var row = i + 2;
       var f = _parseIntStrict(fc[i][0], 0, 9007199254740991);
-      if (f === null) { malformed.push('row' + row + ':NaN'); continue; } // 标记，不静默跳过
+      if (f === null) { malformed.push('row' + row + ':NaN'); continue; }      // 标记，不静默跳过
+      if (f === 0) { malformed.push('row' + row + ':ZERO'); continue; }        // v8 #1 零值 fence
+      if (seen[f]) { malformed.push('row' + row + ':DUP'); continue; }         // v8 #1 重复 fence（双写/完整性违例）
       seen[f] = true; if (f > maxF) maxF = f;
-      if (String(sc[i][0]) === 'CRASH_PENDING') pending.push('row' + row + ':CRASH_PENDING');
+      var st = String(sc[i][0] || '');
+      if (VALID_STATUS.indexOf(st) < 0) { malformed.push('row' + row + ':BADSTATUS:' + st); continue; } // v8 #1 非法状态
+      if (st === 'CRASH_PENDING') pending.push('row' + row + ':CRASH_PENDING');
     }
     for (var k = 1; k <= maxF; k++) { if (!seen[k]) gaps.push('missing:' + k); }
   }
@@ -256,13 +279,53 @@ function reconcileLedger(ssId) {
   // v7 #5：DO NOT setValue B1 / DO NOT auto-upgrade to PASS；保留 UNKNOWN 并要求独立核验
   return { maxLedger: maxF, gaps: gaps, pending: pending, malformed: malformed, unknown: unknown, reconciled: false, needsIndependentVerification: unknown };
 }
-function reconcileResolve(ssId, token) {
-  // v7 #5：ONLY after independent verification；须 token；修复缓存仅在此步发生
+// v8 #2 独立核验令牌：结构化 + HMAC 签名 + 职责分离 + 新鲜度 + 账本状态绑定 + 负例
+// 令牌格式 approver|verifier|maxf|ts|sig ；sig = HMAC_SHA256(RESOLVE_SECRET, approver|verifier|maxf|ts)
+// 批准者(approver)=Rita/有权方；独立复核者(verifier)=Tom 指定的独立核验人；二者不得为同一人。
+function _hmacHex(secret, data) {
+  var sig = Utilities.computeHmacSha256Signature(data, secret);
+  var h = '';
+  for (var i = 0; i < sig.length; i++) { var b = sig[i]; if (b < 0) b += 256; h += ('0' + (b & 0xff).toString(16)).slice(-2); }
+  return h;
+}
+// 供【授权工具链】（非本仓代码）在有 SECRET 的授权环境内生成令牌；本仓只做核验，绝不内置密钥
+function buildResolveToken(approver, verifier, maxf, ts, secret) {
+  var body = approver + '|' + verifier + '|' + maxf + '|' + ts;
+  return body + '|' + _hmacHex(secret, body);
+}
+function _verifyResolveToken(token, currentMaxF) {
   if (!token) return { ok: false, reason: 'RESOLVE_TOKEN_REQUIRED' };
+  var parts = String(token).split('|');
+  if (parts.length !== 5) return { ok: false, reason: 'RESOLVE_TOKEN_MALFORMED' };
+  var approver = parts[0], verifier = parts[1], maxf = parts[2], ts = parts[3], sig = parts[4];
+  // 负例：TEST_TOKEN / 空 / 任意非 HMAC 字符串 -> 一律拒（字符串≠核验证明）
+  if (!approver || !verifier || !maxf || !ts || !sig) return { ok: false, reason: 'RESOLVE_TOKEN_INVALID' };
+  if (!RESOLVE_SECRET || RESOLVE_SECRET.indexOf('REPLACE') === 0) return { ok: false, reason: 'RESOLVE_SECRET_NOT_CONFIGURED' };
+  var body = approver + '|' + verifier + '|' + maxf + '|' + ts;
+  if (_hmacHex(RESOLVE_SECRET, body) !== sig) return { ok: false, reason: 'RESOLVE_TOKEN_INVALID' };
+  if (approver === verifier) return { ok: false, reason: 'RESOLVE_SEPARATION_DUTY_VIOLATED' }; // 批准者≠独立复核者
+  var t = _parseIntStrict(ts, 0, 9007199254740991);
+  if (t === null || Date.now() - t > 86400000) return { ok: false, reason: 'RESOLVE_TOKEN_EXPIRED' }; // 24h 新鲜度
+  var mf = _parseIntStrict(maxf, 1, 9007199254740991);
+  if (mf === null || mf !== currentMaxF) return { ok: false, reason: 'RESOLVE_LEDGER_MISMATCH' }; // 核验者须看当前状态
+  return { ok: true, approver: approver, verifier: verifier, maxf: mf };
+}
+function _dispositionSheet(ssId) {
+  var book = _book(ssId), name = 't1b_exp_disposition';
+  var sh = book.getSheetByName(name);
+  if (!sh) { sh = book.insertSheet(name); sh.appendRow(['ts', 'approver', 'verifier', 'maxLedger', 'action', 'note']); }
+  return sh;
+}
+function reconcileResolve(ssId, token) {
+  // v7 #5 + v8 #2：ONLY after 经签名令牌证明的独立核验；令牌须嵌 批准者≠复核者 + 账本状态 + 时效；
+  //   修复缓存(写 B1) 仅在此步、且仅在令牌核验通过后发生；全过程留处置记录（谁/何时/依据/动作）。
   var r = reconcileLedger(ssId);
   if (r.unknown) return { ok: false, reason: 'STILL_UNKNOWN_BLOCKED', report: r };
-  _sheet(ssId).getRange('B1').setValue(r.maxLedger); // 缓存刷新仅在核验通过后
-  return { ok: true, cache: r.maxLedger, maxLedger: r.maxLedger };
+  var v = _verifyResolveToken(token, r.maxLedger);
+  if (!v.ok) return { ok: false, reason: v.reason }; // 未通过核验 -> 绝不修复缓存（fail-closed）
+  _sheet(ssId).getRange('B1').setValue(r.maxLedger);
+  _dispositionSheet(ssId).appendRow([new Date().toISOString(), v.approver, v.verifier, r.maxLedger, 'RESOLVED', 'ledger reconciled & cache refreshed by signed independent verification']);
+  return { ok: true, cache: r.maxLedger, maxLedger: r.maxLedger, approver: v.approver, verifier: v.verifier };
 }
 
 // ---------------- 集中锁协调器端点（部署为 web app；两写者 funnel 进同一部署）----------------
