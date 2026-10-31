@@ -1,0 +1,120 @@
+{
+  "ts": "2026-10-31T17:23:43.833Z",
+  "lastRow": 11380,
+  "alive": 11111,
+  "windowDays": 14,
+  "cutoff": "2026-10-16",
+  "byDay": [
+    {
+      "date": "2026-10-16",
+      "rows": 14,
+      "emptyUuid": 0,
+      "emptyPct": 0,
+      "hours": 72.5
+    },
+    {
+      "date": "2026-10-17",
+      "rows": 3,
+      "emptyUuid": 0,
+      "emptyPct": 0,
+      "hours": 8
+    },
+    {
+      "date": "2026-10-18",
+      "rows": 1,
+      "emptyUuid": 0,
+      "emptyPct": 0,
+      "hours": 9
+    },
+    {
+      "date": "2026-10-19",
+      "rows": 26,
+      "emptyUuid": 0,
+      "emptyPct": 0,
+      "hours": 98
+    },
+    {
+      "date": "2026-10-20",
+      "rows": 16,
+      "emptyUuid": 0,
+      "emptyPct": 0,
+      "hours": 64
+    },
+    {
+      "date": "2026-10-21",
+      "rows": 34,
+      "emptyUuid": 0,
+      "emptyPct": 0,
+      "hours": 152
+    },
+    {
+      "date": "2026-10-22",
+      "rows": 37,
+      "emptyUuid": 0,
+      "emptyPct": 0,
+      "hours": 188
+    },
+    {
+      "date": "2026-10-23",
+      "rows": 60,
+      "emptyUuid": 0,
+      "emptyPct": 0,
+      "hours": 294.5
+    },
+    {
+      "date": "2026-10-24",
+      "rows": 63,
+      "emptyUuid": 0,
+      "emptyPct": 0,
+      "hours": 462
+    },
+    {
+      "date": "2026-10-25",
+      "rows": 4,
+      "emptyUuid": 0,
+      "emptyPct": 0,
+      "hours": 8
+    },
+    {
+      "date": "2026-10-26",
+      "rows": 12,
+      "emptyUuid": 0,
+      "emptyPct": 0,
+      "hours": 32
+    },
+    {
+      "date": "2026-10-27",
+      "rows": 44,
+      "emptyUuid": 0,
+      "emptyPct": 0,
+      "hours": 142
+    },
+    {
+      "date": "2026-10-28",
+      "rows": 24,
+      "emptyUuid": 0,
+      "emptyPct": 0,
+      "hours": 56
+    },
+    {
+      "date": "2026-10-29",
+      "rows": 23,
+      "emptyUuid": 0,
+      "emptyPct": 0,
+      "hours": 68
+    },
+    {
+      "date": "2026-10-30",
+      "rows": 27,
+      "emptyUuid": 0,
+      "emptyPct": 0,
+      "hours": 101
+    }
+  ],
+  "window": {
+    "rows": 388,
+    "emptyUuid": 0,
+    "emptyPct": 0
+  },
+  "verdict": "窗口内零空 UUID ⇒ 空 UUID 为历史遗留，漏洞未再触发"
+}
