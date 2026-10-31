@@ -13,16 +13,16 @@ var LOCKER_URL = 'REPLACE_LOCKER_URL'; // 集中锁端点部署 URL（非生产�
 
 function _execId() { return Utilities.getUuid(); }
 
-function runTest(ssId, writerName, sleepMs, mode, crashsim) {
-  var eid = _execId();
+function runTest(ssId, writerName, sleepMs, mode, crashsim, payload, fixedEid) {
+  var eid = fixedEid || _execId(); // v7 #1：fixedEid 支持重放演示（同身份应返回原凭据）
   var start = new Date();
   var handleMode = (mode === 'OWN') ? 'OWN' : 'CENTRAL';
   // OWN：写者本地持自身锁做受保护写（ACQUIRED/RELEASED 在锁内本地记录），跨项目不互斥，复现漏洞；
   // CENTRAL：受保护原子写整体 funnel 进集中端点（端点内真正持锁+闸+原子分类账写+释放），跨项目互斥。
-  var r = SharedLockLib.guardedWrite(ssId, 't1b-exp-guard', eid, writerName, sleepMs || 4000, handleMode, LOCKER_URL, 'write', crashsim);
+  var r = SharedLockLib.guardedWrite(ssId, 't1b-exp-guard', eid, writerName, sleepMs || 4000, handleMode, LOCKER_URL, 'write', crashsim, payload || '');
   var end = new Date();
   var rel = r.released;
-  var status = r.ok ? 'OK' : ((r.reason === 'PERIOD_LOCKED' || r.reason === 'UNKNOWN_REJECT' || r.reason === 'FENCE_CORRUPT_REJECT' || r.reason === 'FENCE_READ_REJECT') ? 'REJECTED' : 'FAIL');
+  var status = r.ok ? 'OK' : ((r.reason === 'PERIOD_LOCKED' || r.reason === 'UNKNOWN_REJECT' || r.reason === 'FENCE_CORRUPT_REJECT' || r.reason === 'FENCE_READ_REJECT' || r.reason === 'RECONCILE_PENDING_REJECT' || r.reason === 'EID_CONTENT_CONFLICT') ? 'REJECTED' : 'FAIL');
   SharedLockLib.appendLog(ssId, [eid, end.toISOString(), writerName, handleMode, status, r.ok ? 1 : 0,
     'reason=' + (r.reason || '') + ' fence=' + (r.fencing || '') + ' rel=' + rel + (r.replayed ? ' replayed=1' : '')]);
   return { writer: writerName, acquired: r.ok, mode: handleMode, reason: r.reason, fencing: r.fencing, released: rel, execId: eid, replayed: !!r.replayed,
@@ -44,6 +44,7 @@ function register(ssId, name, mode) {
   return SharedLockLib.guardedWrite(ssId, 't1b-exp-guard', eid, name, 0, mode || 'CENTRAL', LOCKER_URL, 'register');
 }
 function reconcile(ssId) { return SharedLockLib.reconcileLedger(ssId); }
+function resolve(ssId, token) { return SharedLockLib.reconcileResolve(ssId, token); } // v7 #5 独立核验后才解锁
 
 function doGet(e) {
   var p = e.parameter || {};
@@ -54,8 +55,8 @@ function doGet(e) {
     return ContentService.createTextOutput('trigger installed ' + m);
   }
   if (p.mode === 'run') {
-    // v6 #1 崩溃窗口仿真：crashsim=1 → 端点追加分类账后故意不更新 B1，须随后 reconcile 修复
-    var r = runTest(sid, p.name || 'writerX', parseInt(p.sleep || '4000', 10), p.lockMode || 'CENTRAL', p.crashsim === '1' ? '1' : '0');
+    // v7 #1 重放演示：传 eid 固定值 + 相同 payload → 应返回原凭据(replayed=1)；崩溃窗口仿真 crashsim=1
+    var r = runTest(sid, p.name || 'writerX', parseInt(p.sleep || '4000', 10), p.lockMode || 'CENTRAL', p.crashsim === '1' ? '1' : '0', p.payload || '', p.eid || '');
     return ContentService.createTextOutput(JSON.stringify(r));
   }
   if (p.mode === 'read') {
@@ -77,6 +78,10 @@ function doGet(e) {
   if (p.mode === 'reconcile') {
     var rc = reconcile(sid);
     return ContentService.createTextOutput(JSON.stringify(rc));
+  }
+  if (p.mode === 'resolve') {
+    var rx = resolve(sid, p.token || 'TEST_TOKEN'); // v7 #5 独立核验后解锁（须 token）
+    return ContentService.createTextOutput(JSON.stringify(rx));
   }
   return ContentService.createTextOutput('bad mode');
 }
