@@ -15,7 +15,7 @@ const store = fsStore.makeFileStore(cfg.dir, { lockWaitMs: 5000 });
 
 // 每个进程独立登记 signer 密钥（模拟：各进程从服务端配置各自装载，不得由请求携带）
 cl.clearTrustedSigners();
-cl.trustSigner('rita', cfg.secret);
+cl.trustSigner('rita', cfg.secret, { now: cfg.now });
 cl._setDefaultSecret(cfg.secret);
 
 const lock = cl.makeHeldLock(cfg.lockId, { secret: cfg.secret, domain: 'period-lock/guard' });
@@ -28,6 +28,7 @@ try {
     lockId: cfg.lockId,
     lockDomain: 'period-lock/guard',
     lock: lock,
+    lockVerify: (id, dom, epoch) => ({ held: true, epoch: epoch }),
     store: store,
     consumer: 'pid' + process.pid,
     // 注入时钟必须与签发时钟同源（否则按 IssuedAt+ttl 判定已过期 ⇒ 掩盖真实竞态语义）

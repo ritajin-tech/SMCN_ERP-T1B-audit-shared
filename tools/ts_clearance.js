@@ -11,6 +11,15 @@
 //     按原 job/item/request/keeper 的持久对账与完整恢复状态机（列为 Stage-1 未完成项）。
 //   本文件零生产写、不激活任何 clearance 令牌（仅提供函数，由调用方注入 deps.isClearance）。
 //
+// ✳️ Tom 2026-10-30 18:21:56Z 第十三轮追加收紧（对应本文件内标注「Tom 2102 #N」）：
+//   #1 形态不等于真实消费 —— 单纯的 {ok:true} 不能替代【账本消费事实】，签发者/nonce/job/batch/
+//      作用域必须与 journal 绑定；本模块因此把 signer/kid/jobId/nonce/consumedAt 全部作为返回值
+//      交回调用方（core），由 core 在同锁区写入 journal（见 ts_softdel_core.js 的 binding 步骤）。
+//   #2 锁句柄：签名之外还须【服务端登记表事实】（ctx.lockVerify），
+//      → 处理 Tom 指出「复制或重启后的旧签名不能证明当前持锁」。
+//   #3 略（在 core 侧）。
+//   #4 密钥版本/轮换/撤销 + 签发与消费必须同互斥域 + 禁止自动重放。
+//
 // 设计依据：contract/clearance_and_baseread_design.md §1.5.1–§1.5.5
 //   · 作用域绑定：token.jobId/rowSetDigest/snapshotFingerprint 三者全等才允许消费；
 //     【Tom 第十轮 #3】rowSetDigest / snapshotFingerprint 必须由调用方（core）在锁内
@@ -61,26 +70,112 @@ const _defaultStore = makeStore();
 const _TEST_SECRET = 'test-secret-non-production';
 let _injectedSecret = null;
 
-// ---- 受信签发方登记表（Tom 2101 #4：signer 字符串不证明独立身份）----
-//   "签名的 signer 字段是字符串"本身确实不证明任何身份。本模块因此要求：
-//     **验签密钥必须由 signer id 索引**。未登记的 signer 一律 SIGNER_NOT_TRUSTED（fail-closed），
-//     不再拿"某一个全局 secret"去验所有人 —— 这样"换一个 signer 串"无法借用别的密钥通过。
-//   在 GAS 生产路径，该登记表必须来自服务端受信配置（PropertiesService/独立签发服务），
-//   本文件的内存实现仅为原型，【不构成独立身份或生产鉴权证明】。
-const _signerRegistry = new Map(); // signerId -> secret
+// ---- 受信签发方 + 密钥版本登记表（Tom 2101 #4 / Tom 2102 #4）----
+//   Tom 2101 #4：「signer 字符串不证明独立身份」⇒ 验签密钥必须由 signer id 索引。
+//   Tom 2102 #4：「签名者信任配置须由独立管理员在服务端管控身份、密钥版本/轮换/撤销与审计；
+//                 不公开密钥」⇒ 进一步要求 **密钥版本（kid）化**：
+//     · trustSigner(id, secret, {kid})      —— 登记签发方并登记首个密钥版本；
+//     · rotateSignerKey(id, newSecret)      —— 轮换：新增密钥版本，旧版在撤销/过期前仍可验旧令牌；
+//     · revokeSignerKey(id, kid)            —— 撤销单个版本（历史上的旧令牌立即失效）；
+//     · revokeSigner(id)                    —— 撤销该签发方全部版本（身份被停用）；
+//     · _keyStatus(id, kid, now)            —— 单一判定口径：未登记/未知/已撤销/未生效/已过期。
+//   形态：signerId -> { keys: Map<kid, {secret, kid, revoked, notBefore, notAfter, createdAt, revokedAt}> }
+//   诚实边界：本文件的内存实现仅为原型，**不构成独立身份或生产鉴权证明**；
+//   生产路径必须换为服务端受信配置（由独立管理员管控），且不对外暴露密钥。
+const _signerRegistry = new Map();
 
-function trustSigner(signerId, secret) {
+// clearance 签发/消费/撤销必须落在【同一真实互斥域】；域必须从服务端来，不接受请求携带。
+const CLEARANCE_LOCK_DOMAIN = 'period-lock/guard';
+
+function _signerEntry(signerId) {
+  if (!_signerRegistry.has(signerId)) {
+    _signerRegistry.set(signerId, { signerId: signerId, keys: new Map() });
+  }
+  return _signerRegistry.get(signerId);
+}
+function _nextKid(entry) { return 'k' + (entry.keys.size + 1); }
+
+function trustSigner(signerId, secret, opts) {
+  opts = opts || {};
   if (!signerId || typeof signerId !== 'string') return { ok: false, reason: 'SIGNER_ID_INVALID' };
   if (!secret || typeof secret !== 'string') return { ok: false, reason: 'SIGNER_KEY_INVALID' };
-  _signerRegistry.set(signerId, secret);
-  return { ok: true, signerId: signerId };
+  const entry = _signerEntry(signerId);
+  const kid = opts.kid || _nextKid(entry);
+  const now = opts.now != null ? opts.now : Date.now();
+  entry.keys.set(kid, {
+    secret: secret, kid: kid, revoked: false, revokedAt: null,
+    notBefore: opts.notBefore != null ? opts.notBefore : now,
+    notAfter: opts.notAfter != null ? opts.notAfter : null,
+    createdAt: now,
+  });
+  return { ok: true, signerId: signerId, kid: kid };
+}
+
+// 轮换：新增一个密钥版本（旧版本在未被撤销/未过期前仍可验证历史令牌）
+function rotateSignerKey(signerId, newSecret, opts) {
+  opts = opts || {};
+  if (!_signerRegistry.has(signerId)) return { ok: false, reason: 'SIGNER_NOT_TRUSTED', signer: String(signerId) };
+  if (!newSecret || typeof newSecret !== 'string') return { ok: false, reason: 'SIGNER_KEY_INVALID' };
+  const entry = _signerRegistry.get(signerId);
+  return trustSigner(signerId, newSecret, opts);
+}
+
+// 撤销单个密钥版本；kid 省略 => 撤销该签发方全部版本
+function revokeSignerKey(signerId, kid, opts) {
+  opts = opts || {};
+  if (!_signerRegistry.has(signerId)) return { ok: false, reason: 'SIGNER_NOT_TRUSTED', signer: String(signerId) };
+  const entry = _signerRegistry.get(signerId);
+  const now = opts.now != null ? opts.now : Date.now();
+  const targets = kid ? [kid] : Array.from(entry.keys.keys());
+  let n = 0;
+  targets.forEach(function (k) {
+    const rec = entry.keys.get(k);
+    if (rec && !rec.revoked) { rec.revoked = true; rec.revokedAt = now; n++; }
+  });
+  return { ok: true, signerId: signerId, revokedCount: n };
+}
+function revokeSigner(signerId, opts) { return revokeSignerKey(signerId, null, opts || {}); }
+
+function activeSignerKeys(signerId) {
+  if (!_signerRegistry.has(signerId)) return [];
+  const entry = _signerRegistry.get(signerId);
+  const out = [];
+  entry.keys.forEach(function (v, k) {
+    out.push({ kid: k, revoked: !!v.revoked, notBefore: v.notBefore, notAfter: v.notAfter, revokedAt: v.revokedAt });
+  });
+  return out;
 }
 function clearTrustedSigners() { _signerRegistry.clear(); }
 function trustedSignerIds() { return Array.from(_signerRegistry.keys()); }
 
+// 单一判定口径（Tom 2102 #4）：返回 {ok:true,key} 或 {ok:false, reason}
+function _keyStatus(signerId, kid, now) {
+  if (!signerId || typeof signerId !== 'string') return { ok: false, reason: 'SIGNER_ID_INVALID' };
+  if (!_signerRegistry.has(signerId)) return { ok: false, reason: 'SIGNER_NOT_TRUSTED', signer: String(signerId) };
+  const entry = _signerRegistry.get(signerId);
+  const k = entry.keys.get(String(kid || ''));
+  if (!k) return { ok: false, reason: 'SIGNER_KEY_UNKNOWN', kid: String(kid || '') };
+  if (k.revoked) return { ok: false, reason: 'SIGNER_KEY_REVOKED', kid: k.kid };
+  if (k.notBefore != null && now < k.notBefore) return { ok: false, reason: 'SIGNER_KEY_NOT_YET_VALID', kid: k.kid };
+  if (k.notAfter != null && now > k.notAfter) return { ok: false, reason: 'SIGNER_KEY_EXPIRED', kid: k.kid };
+  return { ok: true, key: k };
+}
+
+// 「当前应当用于签发」的密钥版本：取最新且当前有效的那个
+function _currentSigningKey(signerId, now) {
+  if (!_signerRegistry.has(signerId)) return { ok: false, reason: 'SIGNER_NOT_TRUSTED', signer: String(signerId) };
+  const entry = _signerRegistry.get(signerId);
+  const kids = Array.from(entry.keys.keys());
+  for (let i = kids.length - 1; i >= 0; i--) {
+    const st = _keyStatus(signerId, kids[i], now);
+    if (st.ok) return st;
+  }
+  return { ok: false, reason: 'SIGNER_NO_VALID_KEY', signer: String(signerId) };
+}
+
 function _resolveSecret(secret, signerId) {
-  // 优先：signer 登记表中该签者的密钥（独立验签的基础）
-  if (signerId && _signerRegistry.has(signerId)) return _signerRegistry.get(signerId);
+  // 锁句柄 attestation 用的服务端密钥：**仅**来自服务端注入/调用方显式提供，
+  // 与签发方密钥表解耦（避免"拿签发密钥去验锁句柄"造成的作用域混淆）。
   if (secret) return secret;
   if (_injectedSecret) return _injectedSecret;
   // Tom 第十轮 #4：默认测试密钥无法证明独立身份/生产鉴权 ——
@@ -93,9 +188,11 @@ function _hmac(secret, payload) {
   return crypto.createHmac('sha256', secret).update(payload).digest('hex');
 }
 
+// Tom 2102 #4：kid（密钥版本）参与签名负载 ⇒ 换版本即换签名空间，
+//   防止"拿着旧版本签发的令牌，用新版本的密钥也能验过"这类跨版本复用。
 function _sign(tok, secret) {
   const p = [
-    tok.signer, tok.jobId, tok.rowSetDigest, tok.snapshotFingerprint,
+    tok.signer, String(tok.kid || ''), tok.jobId, tok.rowSetDigest, tok.snapshotFingerprint,
     String(tok.issuedAt), String(tok.ttl), tok.nonce,
   ].join('|');
   return _hmac(secret, p);
@@ -122,8 +219,17 @@ function _scopeEqual(a, b) {
 //   (4) 诚实边界：签名过也只能证明"持有同一把密钥的适配器签发过它"，
 //       **真实服务端 LockService 串行的证明必须由 GAS 适配器落地**（tools/ts_lock_adapter.js 骨架），
 //       本原型不声称已完成、不充当生产同锁证据。
-function _signLockHandle(handle, secret, dom) {
-  return _hmac(secret, String(handle.id) + '|' + String(dom));
+//
+// Tom 2102 #2 追加收紧（原缺陷：只验签名 ⇒ 复制出来的旧句柄、或重启后登记表为空时的旧签名
+//   依然能通过 —— Tom 原文「签名仅证明持密钥者签过 id/domain，
+//   复制或重启后的旧签名不能证明当前持锁」）：
+//   (5) attestation 必须携带 epoch，且 epoch 参与签名负载；
+//   (6) 除验签外，还必须通过 **服务端登记表事实** ctx.lockVerify(id, dom, epoch)：
+//         - 未提供 lockVerify ⇒ LOCK_REGISTRY_MISSING（fail-closed，无 env 逃生口）；
+//         - 登记表显示非 HELD / epoch 不一致 ⇒ LOCK_NOT_REGISTERED|LOCK_RELEASED|LOCK_EPOCH_MISMATCH。
+//       即校验 = 验签 ∧ 登记表 HELD ∧ epoch 一致（三项合取，缺一即拒）。
+function _signLockHandle(handle, secret, dom, epoch) {
+  return _hmac(secret, String(handle.id) + '|' + String(dom) + '|' + String(epoch == null ? '' : epoch));
 }
 
 function _lockError(ctx, secret) {
@@ -143,24 +249,37 @@ function _lockError(ctx, secret) {
   //   此处一旦可放行，"任何人都能自造持锁凭据"的缺陷就整体回归，故必须无条件 fail-closed。
   if (!at || typeof at !== 'object') return 'LOCK_ATTEST_MISSING';
   if (at.alg !== 'HMAC-SHA256' || !at.dom || typeof at.dom !== 'string') return 'LOCK_ATTEST_BAD';
+  // (5) epoch 必填（Tom 2102 #2 乙：无 epoch ⇒ 无法区分"本次持锁"与"历史遗留签名"）
+  if (at.epoch === undefined || at.epoch === null || at.epoch === '') return 'LOCK_ATTEST_BAD';
   if (!secret) return 'LOCK_ATTEST_BAD'; // 无密钥则无法验签 ⇒ fail-closed
-  const expectSig = _signLockHandle(lock, secret, at.dom);
+  const expectSig = _signLockHandle(lock, secret, at.dom, at.epoch);
   if (!at.sig || String(at.sig) !== expectSig) return 'LOCK_ATTEST_BAD';
   // 声明域与实际签名域必须一致
-  if (ctx.lockDomain && String(ctx.lockDomain) !== String(at.dom)) return 'LOCK_DOMAIN_MISMATCH';
+  if (!ctx.lockDomain) return 'LOCK_DOMAIN_MISSING';
+  if (String(ctx.lockDomain) !== String(at.dom)) return 'LOCK_DOMAIN_MISMATCH';
+  // (6) 服务端登记表事实（Tom 2102 #2）：签名只证明"签过"，必须再查服务端当前持锁状态
+  if (typeof ctx.lockVerify !== 'function') return 'LOCK_REGISTRY_MISSING';
+  let vf;
+  try { vf = ctx.lockVerify(lock.id, at.dom, at.epoch); } catch (e) { vf = null; }
+  if (!vf || vf.held !== true) {
+    return (vf && vf.reason) ? String(vf.reason) : 'LOCK_NOT_HELD_BY_SERVER';
+  }
   return null;
 }
 
 // 构造一个【受信适配器签发】的已持有锁句柄（模拟 LockService.getScriptLock() 已 acquire 的状态）
 //   · 生产／真实 GAS 路径应由 tools/ts_lock_adapter.js 在 acquire 成功瞬间签发；
+//   · opts.epoch 必填：与 ts_lock_adapter 登记表对齐；缺失 ⇒ 句柄不带 epoch ⇒ 校验必拒。
 //   · 本函数用于测试与本地复现，仍【不证明】真实服务端串行。
 function makeHeldLock(id, opts) {
   opts = opts || {};
-  const dom = opts.domain || 'period-lock/guard';
+  const dom = opts.domain || CLEARANCE_LOCK_DOMAIN;
   const handle = { id: id || 'HELD_LOCK_1', held: true, released: false };
   const secret = opts.secret || _resolveSecret(opts.secret, opts.signerId);
+  const epoch = (opts.epoch === undefined || opts.epoch === null) ? 1 : opts.epoch;
+  handle._attestDom = dom;
   if (secret) {
-    handle.attest = { alg: 'HMAC-SHA256', dom: dom, sig: _signLockHandle(handle, secret, dom) };
+    handle.attest = { alg: 'HMAC-SHA256', dom: dom, epoch: epoch, sig: _signLockHandle(handle, secret, dom, epoch) };
   }
   return handle;
 }
@@ -169,8 +288,8 @@ function makeHeldLock(id, opts) {
 function issueClearance(opts) {
   opts = opts || {};
   const store = opts.store || _defaultStore;
-  const secret = _resolveSecret(opts.secret, opts.signer);
-  if (!secret) return { ok: false, reason: 'MISSING_SECRET' };
+  // 注：签发密钥不再来自 _resolveSecret（已与 signer 登记表解耦），而来自 _currentSigningKey(opts.signer, now)（见下方第 305 行）。
+  // 此处【不再】要求传入 opts.secret —— 签发方是受信管理员，密钥由登记表按 kid 版本提供；传入 secret 反而是冗余且会误拒。
   const now = opts.now != null ? opts.now : Date.now();
   const ttlMinutes = opts.ttlMinutes != null ? opts.ttlMinutes : DEFAULT_TTL_MINUTES;
   // Tom 第十轮 #4：TTL 必须有上限，避免签发长期有效的授权窗口
@@ -179,14 +298,24 @@ function issueClearance(opts) {
     return { ok: false, reason: 'TTL_EXCEEDS_CAP', maxMinutes: MAX_TTL_MINUTES, got: ttlMinutes };
   }
   if (!opts.signer) return { ok: false, reason: 'MISSING_SIGNER' };
-  // Tom 2101 #4：signer 必须是【已登记的受信签发方】，禁止"任意字符串 + 某个共享密钥"即签发
+  // Tom 2102 #4：signer 必须是【已登记的受信签发方】且持有**当前有效密钥版本**
   if (!_signerRegistry.has(opts.signer)) {
     return { ok: false, reason: 'SIGNER_NOT_TRUSTED', signer: String(opts.signer) };
+  }
+  const _ks = _currentSigningKey(opts.signer, now);
+  if (!_ks.ok) return { ok: false, reason: _ks.reason, signer: String(opts.signer) };
+  const _key = _ks.key;
+  // Tom 2102 #4：签发须落在【同一真实互斥域】—— 缺失 lockDomain ⇒ 拒绝（不做无域签发）。
+  //   注意：签发方是受信管理员（不持 worker 的 guard 锁），故此处【只校验 lockDomain 已声明并记录】，
+  //   真正的「持锁 + 服务端登记表」核验发生在消费/撤销时（见 _lockError 的 lockVerify 三态合取）。
+  if (!opts.lockDomain || typeof opts.lockDomain !== 'string') {
+    return { ok: false, reason: 'ISSUE_LOCK_DOMAIN_MISSING' };
   }
   const ttl = ttlMinutes * 60 * 1000;
   const nonce = crypto.randomBytes(16).toString('hex');
   const tok = {
     signer: opts.signer,
+    kid: _key.kid,
     jobId: opts.jobId,
     rowSetDigest: opts.rowSetDigest,
     snapshotFingerprint: opts.snapshotFingerprint,
@@ -196,13 +325,17 @@ function issueClearance(opts) {
   };
   tok.alg = 'HMAC-SHA256';
   tok.ttlMinutes = ttlMinutes;
-  tok.sig = _sign(tok, secret);
+  tok.sig = _sign(tok, _key.secret);
   const token = Buffer.from(JSON.stringify(tok)).toString('base64');
   store.set('tok:' + nonce, {
     state: 'issued',
     issuedAt: now,
     ttl: ttl,
     signer: opts.signer,
+    kid: _key.kid,
+    // Tom 2102 #4：记录签发时的互斥域 ⇒ 消费/撤销时必须是同一域
+    lockId: String(opts.lockId),
+    lockDomain: String(opts.lockDomain || CLEARANCE_LOCK_DOMAIN),
     scope: {
       jobId: opts.jobId,
       rowSetDigest: opts.rowSetDigest,
@@ -212,7 +345,7 @@ function issueClearance(opts) {
     consumer: null,
     revokedAt: null,
   });
-  return { ok: true, token, nonce, issuedAt: now, ttl };
+  return { ok: true, token, nonce, kid: _key.kid, signer: opts.signer, issuedAt: now, ttl };
 }
 
 // ---- 消费（Tom 第十轮 #1 严格布尔契约：一律返回 {ok, reason}，绝不返回裸布尔或裸对象）----
@@ -237,10 +370,10 @@ function consumeClearance(token, ctx) {
     return { ok: false, reason: 'MALFORMED' };
   }
   if (!tok || !tok.sig || !tok.nonce) return { ok: false, reason: 'MALFORMED' };
-  // 验签密钥按 signer 选取（Tom 2101 #4：未登记 signer ⇒ 无法取得其独立密钥 ⇒ 拒绝）
-  if (!_signerRegistry.has(tok.signer)) return { ok: false, reason: 'SIGNER_NOT_TRUSTED', signer: String(tok.signer) };
-  const verifySecret = _signerRegistry.get(tok.signer);
-  if (_sign(tok, verifySecret) !== tok.sig) return { ok: false, reason: 'BAD_SIGNATURE' };
+  // 验签密钥按 (signer, kid) 选取（Tom 2102 #4：版本化的独立验签）
+  const ks = _keyStatus(tok.signer, tok.kid, now);
+  if (!ks.ok) return { ok: false, reason: ks.reason, signer: String(tok.signer) };
+  if (_sign(tok, ks.key.secret) !== tok.sig) return { ok: false, reason: 'BAD_SIGNATURE' };
 
   // Tom 第十轮 #3：作用域字段缺失/为空 → 拒绝，绝不接受客户端自报后放宽
   if (!ctx.jobId) return { ok: false, reason: 'SCOPE_JOBID_MISSING' };
@@ -261,20 +394,31 @@ function consumeClearance(token, ctx) {
   if (!rec) return { ok: false, reason: 'UNKNOWN_TOKEN' };
   if (rec.revokedAt) return { ok: false, reason: 'REVOKED' };
   if (rec.state === 'consumed') return { ok: false, reason: 'REPLAY_REJECTED' };
-  // Tom 2101 #2/#4：**CAS 原子标记**——只有记录仍与刚读到的完全一致才允许落Consumed。
+  // Tom 2102 #4：签发与消费必须落在【同一真实互斥域】，否则视为跨域挪用的票据
+  if (!rec.lockDomain || String(rec.lockDomain) !== String(ctx.lockDomain || '')) {
+    return { ok: false, reason: 'LOCK_DOMAIN_MISMATCH', issueDomain: String(rec.lockDomain || null), consumeDomain: String(ctx.lockDomain || null) };
+  }
+  // Tom 2102 #2：复制/回放已经在别处消费过的记录 ⇒ 即使 hex Approval 也应被拒（此处由 CAS 保障）
+  // Tom 2101 #2/#4：**CAS 原子标记**——只有记录仍与刚读到的完全一致才允许落 consumed。
   //   并发/跨进程下第二名必被判 CONSUME_RACE_REJECTED，不再出现"两个消费者都成功"。
   const casOk = store.cas(key, rec, {
     state: 'consumed',
     issuedAt: rec.issuedAt,
     ttl: rec.ttl,
     signer: rec.signer,
+    kid: rec.kid || null,
+    lockId: rec.lockId || null,
+    lockDomain: rec.lockDomain || null,
     scope: rec.scope,
     consumedAt: now,
     consumer: ctx.consumer || 'unknown',
     revokedAt: rec.revokedAt || null,
   });
   if (!casOk) return { ok: false, reason: 'CONSUME_RACE_REJECTED', nonce: tok.nonce };
-  return { ok: true, nonce: tok.nonce, jobId: tok.jobId, consumedAt: now };
+  // Tom 2102 #1：把【账本真实消费事实】完整回传，供 core 在同锁区写入 journal 绑定：
+  //   signer / kid / nonce / jobId / consumedAt —— 缺一即说明"形态过了但账本没消费"。
+  return { ok: true, nonce: tok.nonce, jobId: tok.jobId, signer: tok.signer,
+    kid: String(tok.kid || ''), consumedAt: now };
 }
 
 // ---- 撤销（Tom 第十轮 #3：与消费同锁串行；返回结构化结果）----
@@ -289,12 +433,17 @@ function revokeClearance(token, opts) {
   let tok;
   try { tok = JSON.parse(Buffer.from(String(token), 'base64').toString('utf8')); } catch (e) { return { ok: false, reason: 'MALFORMED' }; }
   if (!tok || !tok.nonce) return { ok: false, reason: 'MALFORMED' };
-  if (!_signerRegistry.has(tok.signer)) return { ok: false, reason: 'SIGNER_NOT_TRUSTED', signer: String(tok.signer) };
-  if (_sign(tok, _signerRegistry.get(tok.signer)) !== tok.sig) return { ok: false, reason: 'BAD_SIGNATURE' };
+  const rs = _keyStatus(tok.signer, tok.kid, (opts.now != null ? opts.now : Date.now()));
+  if (!rs.ok) return { ok: false, reason: rs.reason, signer: String(tok.signer) };
+  if (_sign(tok, rs.key.secret) !== tok.sig) return { ok: false, reason: 'BAD_SIGNATURE' };
   const rec = store.get('tok:' + tok.nonce);
   if (!rec) return { ok: false, reason: 'UNKNOWN_TOKEN' };
   if (rec.state === 'consumed') return { ok: false, reason: 'ALREADY_CONSUMED' };
   if (rec.revokedAt) return { ok: false, reason: 'ALREADY_REVOKED' };
+  // Tom 2102 #4：撤销同样必须与签发同域
+  if (!rec.lockDomain || String(rec.lockDomain) !== String(opts.lockDomain || '')) {
+    return { ok: false, reason: 'LOCK_DOMAIN_MISMATCH', issueDomain: String(rec.lockDomain || null), consumeDomain: String(opts.lockDomain || null) };
+  }
   const casOk = store.cas('tok:' + tok.nonce, rec, Object.assign({}, rec, {
     revokedAt: (opts.now != null ? opts.now : Date.now()),
   }));
@@ -306,9 +455,12 @@ function revokeClearance(token, opts) {
 // 语义：本函数【只读 + 零写 + 零自动重试】。它不裁定 job/item/request/keeper 的最终状态，
 //   而是把"必须人工裁决的事实"结构化登记出来，交给有权方按底稿/journal 裁决。
 //   诚实边界：**状态机本身仍未实现**（Stage-1 未完成项），本函数只提供"不得静默重试"的强制入口。
+// Tom 2102 #4 追加：除"判定契约"外，额外登记
+//   (a) replayAllowed=false / autoRetry=false —— 明令禁止任何自动重放入口；
+//   (b) 每个请求项登记的四个原身份：jobId / itemId / requestHash / uuid / keeperRow；
+//   (c) ledgerState —— 该项在账本里的最后已知状态（UNKNOWN 需人工裁决，不得推断）。
 // 参数：{ jobId, rows, journalRead(jobId,itemId)->records[] }
-// 返回：{ ok:true, requires:[{ itemId, requestHash, uuid, keeperRow, witness, requires }] }
-//       witness 缺失（journal 读不到/读失败）→ requires='REQUIRES_ADMIN_ADJUDICATION'
+// 返回：{ ok:true, requires:[{ jobId, itemId, requestHash, uuid, keeperRow, witness, ledgerState, requires }] }
 function reconcileUnknown(ctx) {
   ctx = ctx || {};
   const rows = Array.isArray(ctx.rows) ? ctx.rows : [];
@@ -318,12 +470,13 @@ function reconcileUnknown(ctx) {
     const it = rows[i] || {};
     const itemId = Number(it.row);
     const req = {
-      jobId: ctx.jobId || null,
+      jobId: ctx.jobId == null ? null : String(ctx.jobId),
       itemId: itemId,
-      requestHash: it.requestHash || null,
+      requestHash: it.requestHash == null ? null : String(it.requestHash),
       uuid: String(it.uuid || ''),
       keeperRow: Number(it.keeperRow) || null,
       witness: null,
+      ledgerState: 'UNKNOWN',
       requires: 'REQUIRES_ADMIN_ADJUDICATION',
     };
     if (typeof jr === 'function') {
@@ -333,17 +486,26 @@ function reconcileUnknown(ctx) {
         req.witness = recs.map((r) => ({
           state: r.state || null, reason: r.reason || null, ts: r.ts || null,
         }));
+        const last = recs[recs.length - 1] || {};
+        req.ledgerState = last.state ? String(last.state) : 'UNKNOWN';
       }
     }
     requires.push(req);
   }
-  return { ok: true, admit: 'RECOVERY_STATE_MACHINE_NOT_IMPLEMENTED', autoRetry: false, requires: requires };
+  return {
+    ok: true,
+    admit: 'RECOVERY_STATE_MACHINE_NOT_IMPLEMENTED',
+    autoRetry: false,
+    replayAllowed: false,
+    requires: requires,
+  };
 }
 
 module.exports = {
   PROTOTYPE_ONLY,
   MAX_TTL_MINUTES,
   DEFAULT_TTL_MINUTES,
+  CLEARANCE_LOCK_DOMAIN,
   issueClearance,
   consumeClearance,
   revokeClearance,
@@ -351,8 +513,14 @@ module.exports = {
   makeStore,
   makeHeldLock,
   trustSigner,
+  rotateSignerKey,
+  revokeSignerKey,
+  revokeSigner,
+  activeSignerKeys,
   clearTrustedSigners,
   trustedSignerIds,
+  _keyStatus,
+  _currentSigningKey,
   _sign,
   _lockError,
   _setDefaultSecret: (s) => { _injectedSecret = s; },

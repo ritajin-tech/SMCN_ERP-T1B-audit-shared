@@ -21,25 +21,34 @@ function ok(name, cond) {
 }
 
 const SECRET = 'non-production-secret';
-const SCOPE = { jobId: 'J1', rowSetDigest: 'sha256:abc', snapshotFingerprint: 'fp:1' };
+const SCOPE = { jobId: 'J1', rowSetDigest: 'sha256:abc', snapshotFingerprint: 'fp:1', lockDomain: 'period-lock/guard' };
 const NOW = 1_700_000_000_000;
+const LOCK_ID = 'HELD_LOCK_1';
 
 // Tom 2101 #4：签发验签密钥按 signer id 登记（非单一全局密钥）
 function trustDefault() {
   cl.clearTrustedSigners();
-  cl.trustSigner('rita', SECRET);
+  cl.trustSigner('rita', SECRET, { now: NOW });
   // 注入 File-level 默认密钥（模拟 GAS 侧由服务端配置注入，而非请求携带）
   cl._setDefaultSecret(SECRET);
 }
 trustDefault();
 
-// 调用方【已持有】且经【受信锁适配器签发】的句柄（模拟 LockService.getScriptLock() 已 acquire）
-const LOCK_ID = 'HELD_LOCK_1';
-const HELD = () => cl.makeHeldLock(LOCK_ID, { secret: SECRET, domain: 'period-lock/guard' });
-const CTX = () => ({ ...SCOPE, lockId: LOCK_ID, lock: HELD(), store: cl.makeStore(), secret: SECRET, consumer: 'exec1' });
-
+// Tom 第十三轮 #2：消费/撤销必须带【服务端锁登记表校验器】（lockVerify）；
+//   持有锁也必须由受信适配器签发并登记（否则 registry 查不到 ⇒ LOCK_NOT_REGISTERED）。
+//   这里用 adapter.acquireTrustedLock 在取锁瞬间【签发 + 登记】，再用 makeRegistryVerifier 校验。
+const VERIFIER = adapter.makeRegistryVerifier();
+function acquireHeld() {
+  return adapter.acquireTrustedLock({
+    acquireLock: () => ({ __gasLock: true }),
+    releaseLock: () => true,
+    lockSecret: () => SECRET,
+    lockIdFor: () => LOCK_ID,
+  });
+}
+const HELD = () => acquireHeld();
 function fresh() {
-  return { store: cl.makeStore(), lock: HELD() };
+  return { store: cl.makeStore(), lock: acquireHeld() };
 }
 
 // 1) 正常签发 + 消费
@@ -48,7 +57,7 @@ function fresh() {
   const { store, lock } = fresh();
   const r0 = cl.issueClearance({ signer: 'rita', ...SCOPE, ttlMinutes: 15, store, now: NOW });
   ok('签发成功（登记 signer）', r0.ok === true);
-  const r = cl.consumeClearance(r0.token, { ...SCOPE, lockId: LOCK_ID, lock, store, consumer: 'exec1', now: NOW + 1000 });
+  const r = cl.consumeClearance(r0.token, { ...SCOPE, lockId: LOCK_ID, lock, store, consumer: 'exec1', lockVerify: VERIFIER, now: NOW + 1000 });
   ok('正常签发+消费 → ok=true', r.ok === true);
   ok('  · 消费返回被消费 nonce（可追溯）', typeof r.nonce === 'string' && r.nonce.length === 32);
 })();
@@ -58,8 +67,8 @@ function fresh() {
   trustDefault();
   const { store, lock } = fresh();
   const { token } = cl.issueClearance({ signer: 'rita', ...SCOPE, ttlMinutes: 15, store, now: NOW });
-  const r1 = cl.consumeClearance(token, { ...SCOPE, lockId: LOCK_ID, lock, store, now: NOW + 1000 });
-  const r2 = cl.consumeClearance(token, { ...SCOPE, lockId: LOCK_ID, lock, store, now: NOW + 2000 });
+  const r1 = cl.consumeClearance(token, { ...SCOPE, lockId: LOCK_ID, lock, store, lockVerify: VERIFIER, now: NOW + 1000 });
+  const r2 = cl.consumeClearance(token, { ...SCOPE, lockId: LOCK_ID, lock, store, lockVerify: VERIFIER, now: NOW + 2000 });
   ok('首次消费 ok=true', r1.ok === true);
   ok('二次消费 → REPLAY_REJECTED', r2.ok === false && r2.reason === 'REPLAY_REJECTED');
 })();
@@ -75,7 +84,7 @@ function fresh() {
     trustDefault();
     const { store, lock } = fresh();
     const { token } = cl.issueClearance({ signer: 'rita', ...SCOPE, ttlMinutes: 15, store, now: NOW });
-    const r = cl.consumeClearance(token, { ...sc, lockId: LOCK_ID, lock, store, now: NOW + 1000 });
+    const r = cl.consumeClearance(token, { ...sc, lockDomain: 'period-lock/guard', lockId: LOCK_ID, lock, store, lockVerify: VERIFIER, now: NOW + 1000 });
     ok('作用域不符（' + label + '）→ SCOPE_MISMATCH', r.ok === false && r.reason === 'SCOPE_MISMATCH');
   }
 })();
@@ -85,7 +94,7 @@ function fresh() {
   trustDefault();
   const { store, lock } = fresh();
   const { token } = cl.issueClearance({ signer: 'rita', ...SCOPE, ttlMinutes: 5, store, now: NOW });
-  const r = cl.consumeClearance(token, { ...SCOPE, lockId: LOCK_ID, lock, store, now: NOW + 6 * 60 * 1000 });
+  const r = cl.consumeClearance(token, { ...SCOPE, lockId: LOCK_ID, lock, store, lockVerify: VERIFIER, now: NOW + 6 * 60 * 1000 });
   ok('超过 TTL（5min）→ EXPIRED', r.ok === false && r.reason === 'EXPIRED');
 })();
 
@@ -94,9 +103,9 @@ function fresh() {
   trustDefault();
   const { store, lock } = fresh();
   const { token } = cl.issueClearance({ signer: 'rita', ...SCOPE, ttlMinutes: 15, store, now: NOW });
-  const rv = cl.revokeClearance(token, { store, lock, lockId: LOCK_ID, now: NOW + 500 });
+  const rv = cl.revokeClearance(token, { store, lock, lockId: LOCK_ID, lockDomain: 'period-lock/guard', lockVerify: VERIFIER, now: NOW + 500 });
   ok('撤销成功（持锁）', rv.ok === true);
-  const r = cl.consumeClearance(token, { ...SCOPE, lockId: LOCK_ID, lock, store, now: NOW + 1000 });
+  const r = cl.consumeClearance(token, { ...SCOPE, lockId: LOCK_ID, lock, store, lockVerify: VERIFIER, now: NOW + 1000 });
   ok('已撤销 → REVOKED', r.ok === false && r.reason === 'REVOKED');
 })();
 
@@ -106,7 +115,7 @@ function fresh() {
   const { store, lock } = fresh();
   const { token } = cl.issueClearance({ signer: 'rita', ...SCOPE, ttlMinutes: 15, store, now: NOW });
   const tampered = token.slice(0, -2) + (token.endsWith('==') ? 'AA' : '==');
-  const r = cl.consumeClearance(tampered, { ...SCOPE, lockId: LOCK_ID, lock, store, now: NOW + 1000 });
+  const r = cl.consumeClearance(tampered, { ...SCOPE, lockId: LOCK_ID, lock, store, lockVerify: VERIFIER, now: NOW + 1000 });
   ok('篡改令牌 → 拒绝（BAD_SIGNATURE/MALFORMED）', r.ok === false && (r.reason === 'BAD_SIGNATURE' || r.reason === 'MALFORMED'));
 })();
 
@@ -115,14 +124,14 @@ function fresh() {
   trustDefault();
   const { store, lock } = fresh();
   const { token, nonce } = cl.issueClearance({ signer: 'rita', ...SCOPE, ttlMinutes: 15, store, now: NOW });
-  const c = { ...SCOPE, lockId: LOCK_ID, lock, store, consumer: 'exec1' };
+  const c = { ...SCOPE, lockId: LOCK_ID, lock, store, consumer: 'exec1', lockDomain: 'period-lock/guard', lockVerify: VERIFIER };
   const r = cl.consumeClearance(token, { ...c, now: NOW + 1000 });
   ok('消费成功（标记 consumed）', r.ok === true);
   const retry = cl.consumeClearance(token, { ...c, now: NOW + 1500 });
   ok('UNKNOWN 恢复：盲重试同 token → REPLAY_REJECTED（禁止盲重试）', retry.ok === false && retry.reason === 'REPLAY_REJECTED');
   const rec = store.get('tok:' + nonce);
   ok('对账台账 state=consumed（须重新签发新 nonce，不复用旧 token）', rec && rec.state === 'consumed');
-  const rvAfter = cl.revokeClearance(token, { store, lock, lockId: LOCK_ID, now: NOW + 1600 });
+  const rvAfter = cl.revokeClearance(token, { store, lock, lockId: LOCK_ID, lockDomain: 'period-lock/guard', lockVerify: VERIFIER, now: NOW + 1600 });
   ok('已消费后再撤销 → ALREADY_CONSUMED（不可回滚已消费）', rvAfter.ok === false && rvAfter.reason === 'ALREADY_CONSUMED');
 })();
 
@@ -206,11 +215,55 @@ function fresh() {
     lockSecret: () => SECRET,
     lockIdFor: () => 'GUARD_LOCK',
   });
-  r = cl.consumeClearance(t.token, { ...SCOPE, lockId: 'GUARD_LOCK', lockDomain: 'period-lock/guard', lock: trustedHandle, store: s, now: NOW + 1000 });
+  r = cl.consumeClearance(t.token, { ...SCOPE, lockId: 'GUARD_LOCK', lockDomain: 'period-lock/guard', lock: trustedHandle, store: s, lockVerify: VERIFIER, now: NOW + 1000 });
   ok('2101#2 受信适配器签发句柄 → 允许消费（ok=true）', r.ok === true); // Tom 要求的「服务端适配器持锁」路径
   if (savedEnv != null) process.env.TS_CLEARANCE_ALLOW_UNATTESTED_LOCK = savedEnv;
+})();
 
-  ({ s, t } = mk());
+// ---- Tom 第十三轮 #2：服务端锁登记表事实（lockVerify）----
+//   签名只证明"持密钥者签过 id/dom/epoch"；复制出来的旧句柄、或重启后登记表为空时的旧签名，必须被拒。
+(function () {
+  trustDefault();
+  adapter._resetRegistry();
+  const { s, t } = (() => { const st = cl.makeStore(); const tk = cl.issueClearance({ signer: 'rita', ...SCOPE, ttlMinutes: 15, store: st, now: NOW }); return { s: st, t: tk }; })();
+
+  // 未提供 verifier ⇒ LOCK_REGISTRY_MISSING（fail-closed，无 env 逃生口）
+  let r = cl.consumeClearance(t.token, { ...SCOPE, lockId: LOCK_ID, lock: cl.makeHeldLock(LOCK_ID, { secret: SECRET }), store: s, now: NOW + 1000 });
+  ok('2102#2 缺 ctx.lockVerify ⇒ LOCK_REGISTRY_MISSING（fail-closed）', r.ok === false && r.reason === 'LOCK_REGISTRY_MISSING');
+
+  // 句柄合法且签名正确，但【未登记到服务端登记表】（模拟"复制/重启后的旧句柄"）⇒ LOCK_NOT_REGISTERED
+  const unreg = cl.makeHeldLock(LOCK_ID, { secret: SECRET });
+  r = cl.consumeClearance(t.token, { ...SCOPE, lockId: LOCK_ID, lock: unreg, lockVerify: VERIFIER, store: s, now: NOW + 1000 });
+  ok('2102#2 句柄合法但未登记 ⇒ LOCK_NOT_REGISTERED（签名不算"当前持锁"）', r.ok === false && r.reason === 'LOCK_NOT_REGISTERED');
+
+  // 正常：经适配器取锁（签发+登记）⇒ 通过
+  const reg = adapter.acquireTrustedLock({ acquireLock: () => ({}), releaseLock: () => true, lockSecret: () => SECRET, lockIdFor: () => LOCK_ID });
+  r = cl.consumeClearance(t.token, { ...SCOPE, lockId: LOCK_ID, lock: reg, lockVerify: VERIFIER, store: s, now: NOW + 1000 });
+  ok('2102#2 经适配器取锁（签发+登记）⇒ 允许消费', r.ok === true);
+
+  // 释放后：登记表状态非 HELD ⇒ 后续消费被拒（阻断后续操作）
+  // 注意：releaseTrustedLock 会把 reg.attest 置 null（防「释放后的旧句柄」被重放），
+  // 故此处必须用【同一 id/epoch + 完好 attest 的新句柄】才能走通 attest 校验、落到 verifier 的 LOCK_RELEASED，
+  // 而不是停在 LOCK_ATTEST_MISSING。
+  const acquiredEpoch = reg.attest.epoch;
+  const rel = adapter.releaseTrustedLock({ releaseLock: () => true }, reg);
+  ok('2102#2 释放三态返回 RELEASED', rel.ok === true && rel.state === 'RELEASED');
+  const postRelHandle = cl.makeHeldLock(LOCK_ID, { secret: SECRET, epoch: acquiredEpoch });
+  r = cl.consumeClearance(t.token, { ...SCOPE, lockId: LOCK_ID, lock: postRelHandle, lockVerify: VERIFIER, store: s, now: NOW + 2000 });
+  ok('2102#2 释放后登记表非 HELD ⇒ LOCK_RELEASED（阻断后续，旧句柄不可复用）', r.ok === false && r.reason === 'LOCK_RELEASED');
+
+  // 释放异常：不得声称成功、不得把 released 置 true
+  const relFail = adapter.releaseTrustedLock({ releaseLock: () => { throw new Error('boom'); } }, cl.makeHeldLock(LOCK_ID, { secret: SECRET }));
+  ok('2102#2 释放异常 ⇒ 不声称成功（ok=false, state=RELEASE_FAILED/UNKNOWN）', relFail.ok === false && (relFail.state === 'RELEASE_FAILED' || relFail.state === 'RELEASE_UNKNOWN'));
+  ok('2102#2 释放异常 ⇒ 本地 handle.released 不置 true（不靠本地状态伪造平台释放）', relFail.handleId != null && cl.makeHeldLock(LOCK_ID, { secret: SECRET }).released === false);
+  adapter._resetRegistry();
+})();
+
+// ---- Tom 第十轮 #3：撤销缺锁 → 拒绝（消费与撤销须串行化于同一把锁）----
+(function () {
+  trustDefault();
+  const mk = () => { const s = cl.makeStore(); const t = cl.issueClearance({ signer: 'rita', ...SCOPE, ttlMinutes: 15, store: s, now: NOW }); return { s, t }; };
+  const { s, t } = mk();
   const rv = cl.revokeClearance(t.token, { store: s, now: NOW + 500 });
   ok('#3 撤销缺锁 → 拒绝（消费与撤销须串行化于同一把锁）', rv.ok === false && rv.reason === 'LOCK_MISSING');
 })();
@@ -226,7 +279,7 @@ function fresh() {
   for (const [label, sc, expect] of cases) {
     const { store, lock } = fresh();
     const { token } = cl.issueClearance({ signer: 'rita', ...SCOPE, ttlMinutes: 15, store, now: NOW });
-    const r = cl.consumeClearance(token, { ...sc, lockId: LOCK_ID, lock, store, now: NOW + 1000 });
+    const r = cl.consumeClearance(token, { ...sc, lockDomain: 'period-lock/guard', lockId: LOCK_ID, lock, store, lockVerify: VERIFIER, now: NOW + 1000 });
     ok('#3 作用域字段缺失（' + label + '）→ ' + expect, r.ok === false && r.reason === expect);
   }
 })();
@@ -253,16 +306,21 @@ function fresh() {
 
   // 2101 #4：逐 signer 独立密钥 —— 换号借用不得通过
   cl.clearTrustedSigners();
-  cl.trustSigner('rita', 'key-A');
-  cl.trustSigner('tom', 'key-B');
+  cl.trustSigner('rita', 'key-A', { now: NOW });
+  cl.trustSigner('tom', 'key-B', { now: NOW });
   const s2 = cl.makeStore();
   const tA = cl.issueClearance({ signer: 'rita', ...SCOPE, ttlMinutes: 5, store: s2, now: NOW });
   ok('2101#4 signer=rita 用 key-A 签发成功', tA.ok === true);
-  // 仍登记，但密钥被换掉 ⇒ 验签须失败（证明不是"共享一把密钥验所有人"）
-  cl.trustSigner('rita', 'key-A-rotated');
-  const rRot = cl.consumeClearance(tA.token, { ...SCOPE, lockId: LOCK_ID, lock: HELD(), store: s2, now: NOW + 1000 });
-  ok('2101#4 rita 密钥轮换后旧令牌 → BAD_SIGNATURE（独立验签密钥生效）',
-    rRot.ok === false && rRot.reason === 'BAD_SIGNATURE');
+  // 轮换密钥（产生 k2）：旧密钥未被撤销前【旧令牌仍可用】—— 允许密钥滚动而不误伤在途令牌
+  const rot = cl.rotateSignerKey('rita', 'key-A-rotated', { now: NOW });
+  ok('2101#4 轮换产生新 kid=k2', rot.ok === true && rot.kid === 'k2');
+  const rStill = cl.consumeClearance(tA.token, { ...SCOPE, lockId: LOCK_ID, lock: HELD(), store: s2, lockVerify: VERIFIER, now: NOW + 1000 });
+  ok('2101#4 轮换后未撤销旧密钥 → 旧令牌仍可用（不误伤在途令牌）', rStill.ok === true);
+  // 撤销旧密钥 k1 ⇒ 旧令牌立即失效（证明不是"共享一把密钥验所有人"）
+  cl.revokeSignerKey('rita', 'k1', { now: NOW });
+  const rRot = cl.consumeClearance(tA.token, { ...SCOPE, lockId: LOCK_ID, lock: HELD(), store: s2, lockVerify: VERIFIER, now: NOW + 2000 });
+  ok('2101#4 撤销 k1 后旧令牌 → SIGNER_KEY_REVOKED（独立验签密钥生效）',
+    rRot.ok === false && rRot.reason === 'SIGNER_KEY_REVOKED');
   trustDefault();
 
   // 未注入 secret 且未放开测试开关 → 不得回退默认测试密钥
@@ -273,7 +331,7 @@ function fresh() {
   const noSecret = cl.issueClearance({ signer: 'rita', ...SCOPE, ttlMinutes: 15, store: cl.makeStore(), now: NOW });
   ok('#4 未登记 signer 且无注入密钥 → MISSING_SECRET / SIGNER_NOT_TRUSTED（不回退测试密钥、不给 blanket 签发）',
     noSecret.ok === false && (noSecret.reason === 'MISSING_SECRET' || noSecret.reason === 'SIGNER_NOT_TRUSTED'));
-  cl.trustSigner('rita', SECRET);
+  cl.trustSigner('rita', SECRET, { now: NOW });
   const noSecret2 = cl.issueClearance({ signer: 'rita', ...SCOPE, ttlMinutes: 15, store: cl.makeStore(), now: NOW });
   ok('#4 已登记 signer 但无注入密钥且未放开开关 → SIGNER key available ⇒ 仍可用其登记密钥签发',
     noSecret2.ok === true);
@@ -287,9 +345,9 @@ function fresh() {
   const { store } = fresh();
   const { token } = cl.issueClearance({ signer: 'rita', ...SCOPE, ttlMinutes: 15, store, now: NOW });
   const nonAtomic = { get: (k) => store.get(k), set: (k, v) => store.set(k, v) }; // 无 cas
-  const r = cl.consumeClearance(token, { ...SCOPE, lockId: LOCK_ID, lock: HELD(), store: nonAtomic, now: NOW + 1000 });
+  const r = cl.consumeClearance(token, { ...SCOPE, lockId: LOCK_ID, lock: HELD(), store: nonAtomic, lockVerify: VERIFIER, now: NOW + 1000 });
   ok('2101#2 账本无 cas 接口 → STORE_NOT_ATOMIC（禁止读-改-写覆盖）', r.ok === false && r.reason === 'STORE_NOT_ATOMIC');
-  const rv = cl.revokeClearance(token, { store: nonAtomic, lockId: LOCK_ID, lock: HELD(), now: NOW + 500 });
+  const rv = cl.revokeClearance(token, { store: nonAtomic, lockId: LOCK_ID, lock: HELD(), lockDomain: 'period-lock/guard', lockVerify: VERIFIER, now: NOW + 500 });
   ok('2101#2 撤销同样要求 cas → STORE_NOT_ATOMIC', rv.ok === false && rv.reason === 'STORE_NOT_ATOMIC');
 
   // CAS 竞态：读快照后、落盘前被他进程改写 ⇒ 本次 cas 必须失败（不再被后写覆盖）
@@ -306,7 +364,7 @@ function fresh() {
       return st2.cas(k, exp, next);
     },
   };
-  const rr = cl.consumeClearance(t2.token, { ...SCOPE, lockId: LOCK_ID, lock: HELD(), store: racing, now: NOW + 1000 });
+  const rr = cl.consumeClearance(t2.token, { ...SCOPE, lockId: LOCK_ID, lock: HELD(), store: racing, lockVerify: VERIFIER, now: NOW + 1000 });
   ok('2101#2 CAS 竞态（读-落盘间被他写者改动）→ CONSUME_RACE_REJECTED',
     rr.ok === false && rr.reason === 'CONSUME_RACE_REJECTED');
   ok('2101#2 竞态失败后台账未被标记为 consumed', st2.get('tok:' + t2.nonce).state === 'issued');
@@ -365,7 +423,95 @@ function fresh() {
     core._snapshotFingerprintV2({ ...base, rowCount: NaN }) === null);
 })();
 
-console.log('\n=== S1-8 clearance 非生产负例（Tom 第十轮 #1/#3/#4 + Tom 2101 #1/#2/#3/#4）===');
+// ---- Tom 第十三轮 #4：密钥版本 / 轮换 / 撤销 + 签发-消费同互斥域 ----
+(function () {
+  cl.clearTrustedSigners();
+  const r1 = cl.trustSigner('rita', 'key-v1', { now: NOW });
+  ok('2102#4 登记签发方返回首个 kid', r1.ok === true && r1.kid === 'k1');
+  const st = cl.makeStore();
+  const t1 = cl.issueClearance({ signer: 'rita', ...SCOPE, ttlMinutes: 5, store: st, now: NOW });
+  ok('2102#4 签发返回 kid=k1', t1.ok === true && t1.kid === 'k1');
+  // 轮换密钥 → k2（须显式传 now，使 k2 的 notBefore 落在测试固定时间轴上，否则默认取真实墙钟 ⇒ NOT_YET_VALID）
+  const rr = cl.rotateSignerKey('rita', 'key-v2', { now: NOW });
+  ok('2102#4 轮换返回新 kid=k2', rr.ok === true && rr.kid === 'k2');
+  // 旧令牌（k1）在 k1 未被撤销前仍可消费
+  const c1 = cl.consumeClearance(t1.token, { ...SCOPE, lockId: LOCK_ID, lock: HELD(), lockVerify: VERIFIER, store: st, now: NOW + 1000 });
+  ok('2102#4 旧版本令牌在撤销前仍可消费', c1.ok === true);
+  // 撤销 k1 ⇒ 旧令牌立即失效
+  const rv = cl.revokeSignerKey('rita', 'k1');
+  ok('2102#4 撤销 k1 成功', rv.ok === true && rv.revokedCount === 1);
+  const c2 = cl.consumeClearance(t1.token, { ...SCOPE, lockId: LOCK_ID, lock: HELD(), lockVerify: VERIFIER, store: st, now: NOW + 2000 });
+  ok('2102#4 撤销 k1 后旧令牌 → SIGNER_KEY_REVOKED（换版本即换签名空间）', c2.ok === false && c2.reason === 'SIGNER_KEY_REVOKED');
+  // k2 签发的令牌仍可用（签发与消费必须共用同一账本 store）
+  const st2 = cl.makeStore();
+  const t2 = cl.issueClearance({ signer: 'rita', ...SCOPE, ttlMinutes: 5, store: st2, now: NOW });
+  ok('2102#4 k2 签发 kid=k2', t2.ok === true && t2.kid === 'k2');
+  const c3 = cl.consumeClearance(t2.token, { ...SCOPE, lockId: LOCK_ID, lock: HELD(), lockVerify: VERIFIER, store: st2, now: NOW + 1000 });
+  ok('2102#4 k2 令牌可消费', c3.ok === true && c3.kid === 'k2');
+  cl.clearTrustedSigners();
+  cl.trustSigner('rita', SECRET, { now: NOW });
+})();
+
+// ---- Tom 第十三轮 #4：签发与消费必须同互斥域（跨域挪用的票据拒绝）----
+(function () {
+  trustDefault();
+  const st = cl.makeStore();
+  const t = cl.issueClearance({ signer: 'rita', ...SCOPE, lockDomain: 'period-lock/guard', ttlMinutes: 5, store: st, now: NOW });
+  ok('2102#4 签发记录 lockDomain', t.ok === true);
+  // 消费时声明别的域 ⇒ LOCK_DOMAIN_MISMATCH（令牌不可被挪用到别的互斥域）
+  const r = cl.consumeClearance(t.token, { ...SCOPE, lockDomain: 'some-other-domain', lockId: LOCK_ID, lock: HELD(), lockVerify: VERIFIER, store: st, now: NOW + 1000 });
+  ok('2102#4 消费域 ≠ 签发域 → LOCK_DOMAIN_MISMATCH', r.ok === false && r.reason === 'LOCK_DOMAIN_MISMATCH');
+  // 撤销同上
+  const rv = cl.revokeClearance(t.token, { store: st, lockId: LOCK_ID, lock: HELD(), lockDomain: 'some-other-domain', lockVerify: VERIFIER, now: NOW + 500 });
+  ok('2102#4 撤销域 ≠ 签发域 → LOCK_DOMAIN_MISMATCH', rv.ok === false && rv.reason === 'LOCK_DOMAIN_MISMATCH');
+})();
+
+// ---- Tom 第十三轮 #4：reconcileUnknown 禁止自动重放 ----
+(function () {
+  const r = cl.reconcileUnknown({ jobId: 'J9', rows: [{ row: 2, uuid: 'U-1', keeperRow: 3, requestHash: 'sha256:req-1' }], journalRead: () => [] });
+  ok('2102#4 reconcileUnknown replayAllowed=false（明令禁止自动重放）', r.replayAllowed === false && r.autoRetry === false);
+  ok('2102#4 ledgerState 登记为 UNKNOWN（不得推断为已写）', r.requires[0].ledgerState === 'UNKNOWN');
+})();
+
+// ---- Tom 第十三轮 #3：V3 指纹（四份快照 + readSeq + 底稿/源绑定）----
+(function () {
+  const base = {
+    targetSpreadsheetId: '1Pi5u9fEXXXXXXXX', targetSheetName: 'DB_工时流水', action: 'softDelGuarded',
+    jobId: 'J1', batchId: 'B1', masterVersion: 'V1', baselineVersion: 'BASE-1',
+    baselineSourceId: 'SRC-1', baselineSourceKind: 'master-baseline',
+    rowCount: 2, rowSetDigestV2: 'sha256:rs',
+    readSeq: 'R1', targetRowsFingerprint: 'sha256:tgt', targetRowCount: 2,
+    keeperSpreadsheetId: '1Keeper', keeperSheetName: 'keeper', keeperRowsFingerprint: 'sha256:kp',
+    sourceSnapshotFingerprint: 'sha256:src', draftSnapshotFingerprint: 'sha256:dft',
+  };
+  const fp1 = core._snapshotFingerprintV3(base);
+  ok('2102#3 V3 形态为 sha256:<64hex>', /^sha256:[0-9a-f]{64}$/.test(String(fp1)));
+  ok('2102#3 V3 随 targetRowsFingerprint 变化（目标实际内容绑定）', core._snapshotFingerprintV3({ ...base, targetRowsFingerprint: 'sha256:tgt2' }) !== fp1);
+  ok('2102#3 V3 随 keeperRowsFingerprint 变化（keeper 实际内容绑定）', core._snapshotFingerprintV3({ ...base, keeperRowsFingerprint: 'sha256:kp2' }) !== fp1);
+  ok('2102#3 V3 随 sourceSnapshotFingerprint 变化（源快照绑定）', core._snapshotFingerprintV3({ ...base, sourceSnapshotFingerprint: 'sha256:src2' }) !== fp1);
+  ok('2102#3 V3 随 draftSnapshotFingerprint 变化（底稿绑定）', core._snapshotFingerprintV3({ ...base, draftSnapshotFingerprint: 'sha256:dft2' }) !== fp1);
+  ok('2102#3 V3 随 readSeq 变化（原子读取序号绑定）', core._snapshotFingerprintV3({ ...base, readSeq: 'R2' }) !== fp1);
+  ok('2102#3 V3 缺任一字段 → null（不得回退旧版）', core._snapshotFingerprintV3({ ...base, targetRowsFingerprint: '' }) === null);
+
+  // 四份快照形态 + 原子一致 + baseline 可追溯 helper
+  const snaps = {
+    targetSnapshot: { fingerprint: 'sha256:tgt', readSeq: 'R1', lockId: 'L1', spreadsheetId: '1P', sheetName: 'DB_工时流水', rowCount: 2 },
+    keeperSnapshot: { fingerprint: 'sha256:kp', readSeq: 'R1', lockId: 'L1', spreadsheetId: '1K', sheetName: 'kp', rowCount: 2 },
+    sourceSnapshot: { fingerprint: 'sha256:src', readSeq: 'R1', lockId: 'L1', spreadsheetId: '1M', sheetName: 'master', rowCount: 100 },
+    draftSnapshot: { fingerprint: 'sha256:dft', readSeq: 'R1', lockId: 'L1', spreadsheetId: '1D', sheetName: 'draft', rowCount: 50 },
+  };
+  ok('2102#3 _snapshotShapeOk 合法快照 → ok', core._snapshotShapeOk(snaps.targetSnapshot, 'L1').ok === true);
+  ok('2102#3 _snapshotShapeOk lockId 不符 → SNAP_LOCKID_MISMATCH', core._snapshotShapeOk(snaps.targetSnapshot, 'OTHER').ok === false);
+  ok('2102#3 _snapshotShapeOk 缺 fingerprint → SNAP_FINGERPRINT_MISSING', core._snapshotShapeOk({ readSeq: 'R1', lockId: 'L1', spreadsheetId: '1P', sheetName: 's', rowCount: 2 }, 'L1').ok === false);
+  ok('2102#3 _readSeqAtomic 四份 readSeq 一致 → true', core._readSeqAtomic(snaps) === true);
+  ok('2102#3 _readSeqAtomic 不一致 → false', core._readSeqAtomic(Object.assign({}, snaps, { keeperSnapshot: Object.assign({}, snaps.keeperSnapshot, { readSeq: 'R2' }) })) === false);
+  const bt = core._baselineTraceOk({ value: 'BASE-1', sourceId: 'SRC-1', sourceKind: 'master-baseline', readSeq: 'R1', snapshotFingerprint: 'sha256:src' }, 'R1', 'sha256:src');
+  ok('2102#3 _baselineTraceOk 合法 → ok', bt.ok === true && bt.value === 'BASE-1' && bt.sourceId === 'SRC-1');
+  ok('2102#3 _baselineTraceOk 缺 sourceId → BASELINE_SOURCEID_MISSING', core._baselineTraceOk({ value: 'BASE-1', sourceKind: 'x', readSeq: 'R1', snapshotFingerprint: 'sha256:src' }, 'R1', 'sha256:src').ok === false);
+  ok('2102#3 _baselineTraceOk readSeq 不符 → BASELINE_READSEQ_MISMATCH', core._baselineTraceOk({ value: 'BASE-1', sourceId: 'SRC-1', sourceKind: 'x', readSeq: 'R9', snapshotFingerprint: 'sha256:src' }, 'R1', 'sha256:src').ok === false);
+})();
+
+console.log('\n=== S1-8 clearance 非生产负例（Tom 第十轮 #1/#3/#4 + Tom 2101 #1/#2/#3/#4 + Tom 2102 #1/#2/#3/#4）===');
 console.log('结果：' + pass + ' PASS / ' + fail + ' FAIL');
 assert.strictEqual(fail, 0, 'clearance negative suite must be all-pass');
 process.exit(fail === 0 ? 0 : 1);

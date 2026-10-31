@@ -179,6 +179,119 @@ function _snapshotFingerprintV2(o) {
   }));
 }
 
+// ---- Tom 2026-10-30 18:21:56Z 第十三轮 #3 追加：V3 指纹 + 四份快照形态 + 原子性 + baseline 可追溯 ----
+// V3 在 V2 基础上再把【四份真实快照的内容指纹 / 读取序号 readSeq / 底稿与源绑定】纳入，
+// 直接回应 Tom 「当前 hash 不能自动证明目标和 keeper 的实际完整内容、或两表原子一致」。
+function _snapshotFingerprintV3(o) {
+  o = o || {};
+  var req = {
+    targetSpreadsheetId: o.targetSpreadsheetId,
+    targetSheetName: o.targetSheetName,
+    action: o.action,
+    jobId: o.jobId,
+    batchId: o.batchId,
+    masterVersion: o.masterVersion,
+    baselineVersion: o.baselineVersion,
+    baselineSourceId: o.baselineSourceId,
+    baselineSourceKind: o.baselineSourceKind,
+    rowCount: o.rowCount,
+    rowSetDigestV2: o.rowSetDigestV2,
+    readSeq: o.readSeq,
+    targetRowsFingerprint: o.targetRowsFingerprint,
+    targetRowCount: o.targetRowCount,
+    keeperSpreadsheetId: o.keeperSpreadsheetId,
+    keeperSheetName: o.keeperSheetName,
+    keeperRowsFingerprint: o.keeperRowsFingerprint,
+    sourceSnapshotFingerprint: o.sourceSnapshotFingerprint,
+    draftSnapshotFingerprint: o.draftSnapshotFingerprint,
+  };
+  var keys = ['targetSpreadsheetId', 'targetSheetName', 'action', 'jobId', 'batchId',
+    'masterVersion', 'baselineVersion', 'baselineSourceId', 'baselineSourceKind',
+    'rowCount', 'rowSetDigestV2', 'readSeq', 'targetRowsFingerprint', 'targetRowCount',
+    'keeperSpreadsheetId', 'keeperSheetName', 'keeperRowsFingerprint',
+    'sourceSnapshotFingerprint', 'draftSnapshotFingerprint'];
+  for (var i = 0; i < keys.length; i++) {
+    var v = req[keys[i]];
+    if (v === null || v === undefined || v === '') return null;   // 任一缺值 ⇒ 拒绝
+    if (typeof v === 'number' && !isFinite(v)) return null;
+  }
+  return _sdSha256(JSON.stringify({
+    alg: 'snapshot-v3',
+    targetSpreadsheetId: String(req.targetSpreadsheetId),
+    targetSheetName: String(req.targetSheetName),
+    action: String(req.action),
+    jobId: String(req.jobId),
+    batchId: String(req.batchId),
+    masterVersion: String(req.masterVersion),
+    baselineVersion: String(req.baselineVersion),
+    baselineSourceId: String(req.baselineSourceId),
+    baselineSourceKind: String(req.baselineSourceKind),
+    rowCount: Number(req.rowCount),
+    rowSetDigestV2: String(req.rowSetDigestV2),
+    readSeq: String(req.readSeq),
+    targetRowsFingerprint: String(req.targetRowsFingerprint),
+    targetRowCount: Number(req.targetRowCount),
+    keeperSpreadsheetId: String(req.keeperSpreadsheetId),
+    keeperSheetName: String(req.keeperSheetName),
+    keeperRowsFingerprint: String(req.keeperRowsFingerprint),
+    sourceSnapshotFingerprint: String(req.sourceSnapshotFingerprint),
+    draftSnapshotFingerprint: String(req.draftSnapshotFingerprint),
+  }));
+}
+
+// 四份快照（target/keeper/source/draft）形态校验：必须返回 { fingerprint, readSeq, lockId,
+//   spreadsheetId, sheetName, rowCount }，且 lockId 必须等于本批次当前持有的锁 id
+//   （⇒ 这些快照取自【同一次锁内读取】，而非调用方自报或历史遗留）。
+function _snapshotShapeOk(snap, lockIdNow) {
+  if (!snap || typeof snap !== 'object') return { ok: false, reason: 'SNAP_NOT_OBJECT' };
+  if (typeof snap.fingerprint !== 'string' || !snap.fingerprint) return { ok: false, reason: 'SNAP_FINGERPRINT_MISSING' };
+  if (snap.readSeq === null || snap.readSeq === undefined || String(snap.readSeq) === '') return { ok: false, reason: 'SNAP_READSEQ_MISSING' };
+  if (String(snap.lockId) !== String(lockIdNow)) return { ok: false, reason: 'SNAP_LOCKID_MISMATCH' };
+  if (typeof snap.spreadsheetId !== 'string' || !snap.spreadsheetId) return { ok: false, reason: 'SNAP_SPREADSHEET_MISSING' };
+  if (typeof snap.sheetName !== 'string' || !snap.sheetName) return { ok: false, reason: 'SNAP_SHEET_MISSING' };
+  if (typeof snap.rowCount !== 'number' || !isFinite(snap.rowCount) || snap.rowCount < 0) return { ok: false, reason: 'SNAP_ROWCOUNT_BAD' };
+  return {
+    ok: true,
+    snap: {
+      fingerprint: String(snap.fingerprint),
+      readSeq: String(snap.readSeq),
+      lockId: String(snap.lockId),
+      spreadsheetId: String(snap.spreadsheetId),
+      sheetName: String(snap.sheetName),
+      rowCount: Number(snap.rowCount),
+    },
+  };
+}
+
+// 四份快照的 readSeq 必须完全一致 ⇒ 证明它们来自【同一次原子读取】（同一锁区内一次性读到的）。
+function _readSeqAtomic(snaps) {
+  if (!snaps || typeof snaps !== 'object') return false;
+  var names = ['targetSnapshot', 'keeperSnapshot', 'sourceSnapshot', 'draftSnapshot'];
+  var seq = null;
+  for (var i = 0; i < names.length; i++) {
+    var s = snaps[names[i]];
+    if (!s || s.readSeq === undefined || s.readSeq === null) return false;
+    if (seq === null) seq = String(s.readSeq);
+    else if (seq !== String(s.readSeq)) return false;
+  }
+  return seq !== null;
+}
+
+// baselineVersion 可追溯校验（Tom 第十三轮 #3 乙）：除 value 非空外，还要求
+//   sourceId / sourceKind 非空（可溯源）、readSeq 与本次读取一致（同锁区）、
+//   snapshotFingerprint 与本次【源快照】指纹一致（绑定读取快照）。任一不符即拒绝。
+function _baselineTraceOk(raw, readSeq, sourceFingerprint) {
+  if (!raw || typeof raw !== 'object') return { ok: false, reason: 'BASELINE_STRUCT_MISSING' };
+  if (typeof raw.value === 'undefined' || raw.value === null || String(raw.value) === '') return { ok: false, reason: 'BASELINE_VALUE_MISSING' };
+  if (typeof raw.sourceId !== 'string' || !raw.sourceId) return { ok: false, reason: 'BASELINE_SOURCEID_MISSING' };
+  if (typeof raw.sourceKind !== 'string' || !raw.sourceKind) return { ok: false, reason: 'BASELINE_SOURCEKIND_MISSING' };
+  if (String(raw.readSeq) !== String(readSeq)) return { ok: false, reason: 'BASELINE_READSEQ_MISMATCH' };
+  if (typeof raw.snapshotFingerprint !== 'string' || String(raw.snapshotFingerprint) !== String(sourceFingerprint)) {
+    return { ok: false, reason: 'BASELINE_SNAPSHOT_MISMATCH' };
+  }
+  return { ok: true, value: String(raw.value), sourceId: String(raw.sourceId), sourceKind: String(raw.sourceKind) };
+}
+
 // 结构化校验（输入形态 + 逐行 + keeper 图）；返回 {error} 或 {rows}
 function _validateInput(e, deps) {
   var p = e.parameter || {};
@@ -365,24 +478,69 @@ function tsSoftDelGuardedCore(e, deps) {
       //   · 指纹 V1 仅哈希 master.version ⇒ 换个目标/换批仍可能同指纹，令牌可被挪用到别的写目标；
       //   · rowSetDigest V1 只含 (row:uuid:keeperRow) ⇒ 不绑定逐行内容，改行内容仍可过。
       //   现一律改用 V2；任一项缺值/非法 → 整批拒绝（CLEARANCE_*_UNKNOWN，fail-closed）。
+      // Tom 2102 #3（本轮新增，共三小项，逐项对应下方注释 甲/乙/丙）：
+      //   甲）「当前 hash 是请求身份及版本字段的摘要，不能自动证明目标和 keeper 的实际完整内容
+      //        或两表原子一致」⇒ 新增四份【真实快照】读取依赖并把各自内容指纹纳入 V3：
+      //          deps.targetSnapshot()  —— 规范目标表/页当前完整内容的 hereby 指纹
+      //          deps.keeperSnapshot()  —— keeper 表/页当前完整内容的 hereby 指纹
+      //          deps.sourceSnapshot()  —— 源（主库全量）快照指纹
+      //          deps.draftSnapshot()   —— 底稿完整快照指纹
+      //        四份都必须返回 { fingerprint, readSeq, lockId }，且 readSeq 必须一致、
+      //        lockId 必须等于本批次当前持有的锁 id ⇒ 证明它们取自【同一次锁内读取】（原子一致）。
+      //   乙）「baselineVersion 不能凭猜测指定属性，应由真实服务端权威源在锁内取得、可追溯、
+      //        与读取快照绑定，未知或漂移拒绝」⇒ deps.baselineVersion() 现在必须返回**可追溯结构**
+      //        { value, sourceId, sourceKind, readSeq, snapshotFingerprint }；除 value 非空外，
+      //        还要求 sourceId/sourceKind 非空（可溯源）、readSeq 与本次读取一致（同锁区）、
+      //        snapshotFingerprint 与本次源快照指纹一致（绑定读取快照），任一不符即拒绝。
+      //   丙）作用域要素扩充：表与页身份、动作、job/batch、读取范围与规范化版本。
       var _rsDigest = _rowSetDigestV2Of(rows);
       if (!_rsDigest) {
         return _res(false, { error: 'CLEARANCE_ROWSET_UNKNOWN', batchId: batchId, jobId: jobId });
       }
-      if (typeof deps.targetIdentity !== 'function' || typeof deps.baselineVersion !== 'function') {
-        return _res(false, { error: 'CLEARANCE_SCOPE_DEP_MISSING', batchId: batchId, jobId: jobId });
+      var _scopeDeps = ['targetIdentity', 'baselineVersion', 'targetSnapshot', 'keeperSnapshot',
+        'sourceSnapshot', 'draftSnapshot'];
+      for (var _sd = 0; _sd < _scopeDeps.length; _sd++) {
+        if (typeof deps[_scopeDeps[_sd]] !== 'function') {
+          return _res(false, { error: 'CLEARANCE_SCOPE_DEP_MISSING', missing: _scopeDeps[_sd], batchId: batchId, jobId: jobId });
+        }
       }
       var _tgt = null;
       try { _tgt = deps.targetIdentity(); } catch (te) { _tgt = null; }
       if (!_tgt || String(_tgt.spreadsheetId || '') === '' || String(_tgt.sheetName || '') === '') {
         return _res(false, { error: 'CLEARANCE_TARGET_UNKNOWN', batchId: batchId, jobId: jobId });
       }
-      var _baseVer = null;
-      try { _baseVer = deps.baselineVersion(); } catch (be) { _baseVer = null; }
-      if (String(_baseVer || '') === '') {
-        return _res(false, { error: 'CLEARANCE_BASELINE_UNKNOWN', batchId: batchId, jobId: jobId });
+      // 甲：四份快照形态 + 原子一致（同 readSeq 且 lockId == 本批次当前锁）
+      var _lockIdNow = _lock ? String(_lock.id || '') : '';
+      if (!_lockIdNow) {
+        return _res(false, { error: 'CLEARANCE_LOCK_ID_UNKNOWN', batchId: batchId, jobId: jobId });
       }
-      var _fp = _snapshotFingerprintV2({
+      var _snaps = {}, _snapErr = null;
+      var _snapNames = ['targetSnapshot', 'keeperSnapshot', 'sourceSnapshot', 'draftSnapshot'];
+      for (var _sn = 0; _sn < _snapNames.length; _sn++) {
+        var _nm = _snapNames[_sn];
+        var _sr = null;
+        try { _sr = deps[_nm](); } catch (se) { _sr = null; }
+        var _chk = _snapshotShapeOk(_sr, _lockIdNow);
+        if (!_chk.ok) { _snapErr = { dep: _nm, reason: _chk.reason }; break; }
+        _snaps[_nm] = _chk.snap;
+      }
+      if (_snapErr) {
+        return _res(false, { error: 'CLEARANCE_SNAPSHOT_INVALID', dep: _snapErr.dep, reason: _snapErr.reason,
+          batchId: batchId, jobId: jobId });
+      }
+      if (!_readSeqAtomic(_snaps)) {
+        return _res(false, { error: 'CLEARANCE_READ_NOT_ATOMIC', detail: '四份快照的 readSeq 不一致（非同一次锁内读取）',
+          batchId: batchId, jobId: jobId });
+      }
+      // 乙：baselineVersion 可追溯 + 绑定本次读取快照
+      var _baseRaw = null;
+      try { _baseRaw = deps.baselineVersion(); } catch (be) { _baseRaw = null; }
+      var _bt = _baselineTraceOk(_baseRaw, _snaps.sourceSnapshot.readSeq, _snaps.sourceSnapshot.fingerprint);
+      if (!_bt.ok) {
+        return _res(false, { error: 'CLEARANCE_BASELINE_' + _bt.reason, batchId: batchId, jobId: jobId });
+      }
+      var _baseVer = _bt.value;
+      var _fp = _snapshotFingerprintV3({
         targetSpreadsheetId: _tgt.spreadsheetId,
         targetSheetName: _tgt.sheetName,
         action: 'softDelGuarded',
@@ -390,8 +548,18 @@ function tsSoftDelGuardedCore(e, deps) {
         batchId: batchId,
         masterVersion: master.version,
         baselineVersion: _baseVer,
+        baselineSourceId: _bt.sourceId,
+        baselineSourceKind: _bt.sourceKind,
         rowCount: rows.length,
         rowSetDigestV2: _rsDigest,
+        readSeq: _snaps.targetSnapshot.readSeq,
+        targetRowsFingerprint: _snaps.targetSnapshot.fingerprint,
+        targetRowCount: _snaps.targetSnapshot.rowCount,
+        keeperSpreadsheetId: _snaps.keeperSnapshot.spreadsheetId,
+        keeperSheetName: _snaps.keeperSnapshot.sheetName,
+        keeperRowsFingerprint: _snaps.keeperSnapshot.fingerprint,
+        sourceSnapshotFingerprint: _snaps.sourceSnapshot.fingerprint,
+        draftSnapshotFingerprint: _snaps.draftSnapshot.fingerprint,
       });
       if (!_fp) {
         return _res(false, { error: 'CLEARANCE_FINGERPRINT_UNKNOWN', batchId: batchId, jobId: jobId });
@@ -400,9 +568,11 @@ function tsSoftDelGuardedCore(e, deps) {
         var _raw = deps.isClearance(clearanceToken, rows, {
           jobId: jobId, rows: rows, rowSetDigest: _rsDigest, snapshotFingerprint: _fp, lock: _lock,
           // Tom 2101 #2：锁 **id 必填**（与句柄一致）+ 声明锁域（防止别处的锁句柄被当成本期锁）
-          lockId: _lock ? _lock.id : null,
+          lockId: _lockIdNow,
           lockDomain: 'period-lock/guard',
-          scopeVersion: 'v2', rowsCount: rows.length,
+          // Tom 2102 #2：必须带上服务端锁登记表校验器 —— 只验签不足以证明"当前持锁"
+          lockVerify: (typeof deps.lockVerify === 'function') ? deps.lockVerify : null,
+          scopeVersion: 'v3', rowsCount: rows.length,
           masterVersion: master.version, baselineVersion: _baseVer,
           targetSpreadsheetId: _tgt.spreadsheetId, targetSheetName: _tgt.sheetName,
         });
@@ -410,6 +580,39 @@ function tsSoftDelGuardedCore(e, deps) {
         clearanceOk = _clearanceStrictOk(_raw);
         if (!clearanceOk) {
           _clearanceReason = (typeof _raw === 'object' && _raw && _raw.reason) ? String(_raw.reason) : 'REJECTED';
+        } else {
+          // ===== Tom 2102 #1：形态过了 ≠ 账本真消费了 ⇒ 必须与 journal 绑定 =====
+          // 要求：签发者(signer)、密钥版本(kid)、nonce、jobId、作用域指纹、账本消费事实
+          //       六者在【同一锁区】落到 journal；任一缺失/异常/不一致 ⇒ 零写。
+          var _nonce = _raw.nonce, _signer = _raw.signer, _kid = _raw.kid, _tokJob = _raw.jobId;
+          if (typeof _nonce !== 'string' || !_nonce) {
+            clearanceOk = false; _clearanceReason = 'CLEARANCE_BINDING_NONCE_MISSING';
+          } else if (typeof _signer !== 'string' || !_signer) {
+            clearanceOk = false; _clearanceReason = 'CLEARANCE_BINDING_SIGNER_MISSING';
+          } else if (String(_tokJob || '') !== String(jobId)) {
+            clearanceOk = false; _clearanceReason = 'CLEARANCE_BINDING_JOB_MISMATCH';
+          } else {
+            var _bindOk = false;
+            try {
+              _bindOk = deps.journalAppend({
+                jobId: jobId, subBatchId: batchId, itemId: 0, requestHash: null,
+                state: 'CLEARANCE_CONSUMED', uuid: null, reason: null, keeperRow: null,
+                clearance: {
+                  nonce: _nonce, signer: _signer, kid: String(_kid || ''),
+                  jobId: String(jobId), batchId: String(batchId),
+                  rowSetDigestV2: _rsDigest, snapshotFingerprintV3: _fp,
+                  lockId: _lockIdNow, lockDomain: 'period-lock/guard',
+                  rowsCount: rows.length, consumedAt: _raw.consumedAt == null ? null : _raw.consumedAt,
+                },
+                ts: Date.now(),
+              });
+            } catch (bje) { _bindOk = false; }
+            if (_bindOk !== true) {
+              // 账本消费无法落到 journal ⇒ 视同未授权（零写），不得因为"形态过了"就放行
+              clearanceOk = false;
+              _clearanceReason = 'CLEARANCE_BINDING_LOG_FAILED';
+            }
+          }
         }
       } catch (cErr) {
         // #2：异常 fail-closed —— 判定异常视同未授权，且仍在 finally 保护区内（锁必被释放）。
@@ -871,6 +1074,10 @@ module.exports = {
   _rowSetDigestOf: _rowSetDigestOf,   // V1（已弃用，仅供对照/迁移测试）
   _rowSetDigestV2Of: _rowSetDigestV2Of,
   _snapshotFingerprintV2: _snapshotFingerprintV2,
+  _snapshotFingerprintV3: _snapshotFingerprintV3,   // Tom 第十三轮 #3 甲/丙
+  _snapshotShapeOk: _snapshotShapeOk,               // Tom 第十三轮 #3 甲
+  _readSeqAtomic: _readSeqAtomic,                   // Tom 第十三轮 #3 甲
+  _baselineTraceOk: _baselineTraceOk,               // Tom 第十三轮 #3 乙
   VERSION: VERSION,
   ROW_KEYS: ROW_KEYS, TOP_KEYS: TOP_KEYS
 };

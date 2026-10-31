@@ -34,11 +34,11 @@ function mkTmp(tag) {
 
 function issueInto(dir, tag) {
   cl.clearTrustedSigners();
-  cl.trustSigner('rita', SECRET);
+  cl.trustSigner('rita', SECRET, { now: NOW });
   cl._setDefaultSecret(SECRET);
   const store = fsStore.makeFileStore(dir);
   const scope = { jobId: 'JP_' + tag, rowSetDigest: 'sha256:rsd-' + tag, snapshotFingerprint: 'sha256:fp-' + tag };
-  const r = cl.issueClearance({ signer: 'rita', ...scope, ttlMinutes: 5, store, now: NOW });
+  const r = cl.issueClearance({ signer: 'rita', ...scope, lockDomain: 'period-lock/guard', ttlMinutes: 5, store, now: NOW });
   assert.strictEqual(r.ok, true, 'issue must succeed: ' + JSON.stringify(r));
   return { token: r.token, nonce: r.nonce, scope: scope, store: store };
 }

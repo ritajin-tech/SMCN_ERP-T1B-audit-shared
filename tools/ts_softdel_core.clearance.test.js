@@ -18,10 +18,11 @@ const TARGET_SS_ID = '1Pi5u9fE-NONPROD-FAKE';
 const TARGET_SHEET = 'DB_工时流水';
 const BATCH_ID = 'BTEST';
 const ACTION = 'softDelGuarded';
+const NOW = 1_700_000_000_000;  // 固定时间轴：所有签发/验签密钥的 notBefore 必须落在 NOW，否则 SIGNER_NO_VALID_KEY
 
 // Tom 2101 #4：签发/验签按 signer 登记（非单一共享密钥）
 cl.clearTrustedSigners();
-cl.trustSigner('rita', SECRET);
+cl.trustSigner('rita', SECRET, { now: NOW });
 cl._setDefaultSecret(SECRET);
 
 function mkCells(uuid, bizDate, oVal) {
@@ -79,11 +80,12 @@ function makeDeps(opts) {
     policy() { return {}; },
     isClearance(tok, rows, ctx) {
       if (opts.isClearanceImpl) return opts.isClearanceImpl(tok, rows, ctx);
-      // 真实实现：服务端派生作用域已在 core 锁内算好并随 ctx 传入
+      // 真实实现：服务端派生作用域已在 core 锁内算好并随 ctx 传入（含 lockVerify 服务端登记表校验器）
       return cl.consumeClearance(tok, Object.assign({}, ctx, {
         lockId: 'GUARD_LOCK', lockDomain: 'period-lock/guard',
         store: store, consumer: 'exec1',
         now: opts.now != null ? opts.now : NOW,
+        lockVerify: ctx.lockVerify,
       }));
     },
     readAllMaster() { return { complete: true, version: MASTER_VERSION, map: MASTER_MAP }; },
@@ -91,20 +93,83 @@ function makeDeps(opts) {
     readProdRow(row) { return PROD_ROWS[row]; },
     writeProdO(row, val) { WRITE_COUNT++; PROD_O[row] = val; return true; },
     // Tom 2101 #3：目标身份与底稿版本必须是【服务端常量】，不得来自请求
+    // Tom 2102 #3 甲：四份锁内读取快照（形态 + 同 readSeq + 同 lockId），由服务端依赖提供
+    // Tom 2102 #3 乙：baselineVersion 必须返回【可追溯结构】，与源快照绑定
     targetIdentity() {
       if (opts.targetIdentityOverride === null) return null;
       return opts.targetIdentityOverride || { spreadsheetId: TARGET_SS_ID, sheetName: TARGET_SHEET };
     },
     baselineVersion() {
       if (opts.baselineVersionOverride === null) return null;
-      return opts.baselineVersionOverride || BASELINE_VERSION;
+      return opts.baselineVersionOverride || makeBaselineV3();
     },
+    targetSnapshot() { return makeSnapshots().targetSnapshot; },
+    keeperSnapshot() { return makeSnapshots().keeperSnapshot; },
+    sourceSnapshot() { return makeSnapshots().sourceSnapshot; },
+    draftSnapshot() { return makeSnapshots().draftSnapshot; },
+    // 测试专用【信任】校验器：本集成测试验证 core 是否把锁交给 lockVerify 并采用其结果；
+    // 真实服务端登记表/适配器机制由 ts_clearance.test.js（2102#2）独立穷尽覆盖。
+    lockVerify(id, dom, epoch) { return { held: true, epoch: epoch }; },
   };
-  if (opts.dropScopedDeps) { delete deps.targetIdentity; delete deps.baselineVersion; }
+  if (opts.dropScopedDeps) {
+    // Tom 第十三轮 #3：缺任一作用域依赖（目标身份/底稿版本/四份快照）一律拒绝
+    delete deps.targetIdentity; delete deps.baselineVersion;
+    delete deps.targetSnapshot; delete deps.keeperSnapshot;
+    delete deps.sourceSnapshot; delete deps.draftSnapshot;
+  }
   return deps;
 }
 
-const NOW = 1_700_000_000_000;
+// ---- Tom 第十三轮 #3：四份锁内读取快照 + 可追溯 baseline（单一可信源，makeDeps 与 issueToken 共用）----
+// 四份快照必须同 readSeq、同 lockId=GUARD_LOCK（证明源自同一次原子锁内读取）；
+// baseline 必须 sourceId/sourceKind 非空、readSeq 与源快照一致、snapshotFingerprint 绑定源快照指纹。
+const SNAP_READ_SEQ = 9001;
+function _snap(tag, sheetName) {
+  return {
+    fingerprint: 'snapfp:' + tag, readSeq: SNAP_READ_SEQ, lockId: 'GUARD_LOCK',
+    spreadsheetId: TARGET_SS_ID, sheetName: sheetName, rowCount: SPECS.length,
+  };
+}
+function makeSnapshots() {
+  return {
+    targetSnapshot: _snap('target', TARGET_SHEET),
+    keeperSnapshot: _snap('keeper', TARGET_SHEET + '_KEEPER'),
+    sourceSnapshot: _snap('source', 'MASTER_All'),
+    draftSnapshot: _snap('draft', 'DRAFT_BATCH'),
+  };
+}
+function makeBaselineV3() {
+  const snaps = makeSnapshots();
+  return {
+    value: BASELINE_VERSION, sourceId: 'MASTER', sourceKind: 'master',
+    readSeq: snaps.sourceSnapshot.readSeq, snapshotFingerprint: snaps.sourceSnapshot.fingerprint,
+  };
+}
+// 服务端派生作用域（Tom 2101 #3 的 V2 行集摘要 + Tom 2102 #3 的 V3 快照/底稿绑定指纹）
+function serverDerivedScope(rows, jobId, over) {
+  over = over || {};
+  const snaps = makeSnapshots();
+  const base = makeBaselineV3();
+  const rowSetDigestV2 = core._rowSetDigestV2Of(rows);
+  const snapshotFingerprint = core._snapshotFingerprintV3({
+    targetSpreadsheetId: over.targetSpreadsheetId || TARGET_SS_ID,
+    targetSheetName: over.targetSheetName || TARGET_SHEET,
+    action: ACTION, jobId: jobId, batchId: BATCH_ID,
+    masterVersion: MASTER_VERSION,
+    baselineVersion: base.value, baselineSourceId: base.sourceId, baselineSourceKind: base.sourceKind,
+    rowCount: rows.length, rowSetDigestV2: rowSetDigestV2,
+    readSeq: snaps.targetSnapshot.readSeq,
+    targetRowsFingerprint: snaps.targetSnapshot.fingerprint,
+    targetRowCount: snaps.targetSnapshot.rowCount,
+    keeperSpreadsheetId: snaps.keeperSnapshot.spreadsheetId,
+    keeperSheetName: snaps.keeperSnapshot.sheetName,
+    keeperRowsFingerprint: snaps.keeperSnapshot.fingerprint,
+    sourceSnapshotFingerprint: snaps.sourceSnapshot.fingerprint,
+    draftSnapshotFingerprint: snaps.draftSnapshot.fingerprint,
+  });
+  return { rowSetDigest: rowSetDigestV2, snapshotFingerprint: snapshotFingerprint };
+}
+
 const SPECS = [{ row: 2, keeperRow: 3, uuid: 'U-AAA', level: 'A' }];
 
 function run(label, opts) {
@@ -118,33 +183,16 @@ function run(label, opts) {
   return { res, writes: WRITE_COUNT, locks: LOCK_LOG.slice(), rows: rows };
 }
 
-// 服务端派生作用域（Tom 2101 #3：与 core 内部口径一致的 **V2** 指纹）
-function serverDerivedScope(rows, jobId, over) {
-  over = over || {};
-  const rowSetDigestV2 = core._rowSetDigestV2Of(rows);
-  const snapshotFingerprint = core._snapshotFingerprintV2({
-    targetSpreadsheetId: over.targetSpreadsheetId || TARGET_SS_ID,
-    targetSheetName: over.targetSheetName || TARGET_SHEET,
-    action: over.action || ACTION,
-    jobId: over.jobId || jobId,
-    batchId: over.batchId || BATCH_ID,
-    masterVersion: over.masterVersion || MASTER_VERSION,
-    baselineVersion: over.baselineVersion || BASELINE_VERSION,
-    rowCount: rows.length,
-    rowSetDigestV2: rowSetDigestV2,
-  });
-  return { rowSetDigest: rowSetDigestV2, snapshotFingerprint: snapshotFingerprint };
-}
-
 function issueToken(opts) {
   const rows = buildBatch(SPECS);
   const sc = serverDerivedScope(rows, opts.jobId, opts.scopeOver);
   const store = opts.store || cl.makeStore();
   cl.clearTrustedSigners();
-  cl.trustSigner('rita', SECRET);
+  cl.trustSigner('rita', SECRET, { now: NOW });
   cl._setDefaultSecret(SECRET);
   const r = cl.issueClearance({
     signer: 'rita', jobId: opts.jobId, ...sc,
+    lockDomain: 'period-lock/guard',
     ttlMinutes: opts.ttlMinutes != null ? opts.ttlMinutes : 15,
     store: store, now: NOW,
   });
@@ -195,7 +243,8 @@ console.log('=== 集成3c（Tom 2101 #1）：{ok:true} 无 nonce → STRICT 拒�
 
 console.log('=== 集成3d（Tom 2101 #1）：{ok:true, nonce} 完整形态 → 放行（形态契约双向生效）===');
 {
-  const { res, writes } = run('FULLSHAPE', { clearance: 'tok', isClearanceImpl: () => ({ ok: true, nonce: 'nonce-abc' }) });
+  // Tom 2102 #1：形态过了 ≠ 账本真消费了 ⇒ 必须与 journal 绑定（signer/kid/jobId 齐备才算完整形态）
+  const { res, writes } = run('FULLSHAPE', { clearance: 'tok', isClearanceImpl: () => ({ ok: true, nonce: 'nonce-abc', signer: 'rita', kid: 'k1', jobId: 'JCLEAR_FULLSHAPE' }) });
   assert(res.ok === true, '批次 ok=true（完整 morph 放行）' + JSON.stringify(res).slice(0, 120));
   assert(writes === 1, '目标被写 1 次 (got ' + writes + ')');
 }
@@ -228,7 +277,12 @@ console.log('=== 集成7：真实拒绝路径 —— 撤销 → 零写 ===');
 {
   const t = issueToken({ jobId: 'JCLEAR_REV' });
   const held = cl.makeHeldLock('GUARD_LOCK', { secret: SECRET, domain: 'period-lock/guard' });
-  cl.revokeClearance(t.token, { store: t.store, lock: held, lockId: 'GUARD_LOCK', now: NOW + 500 });
+  // Tom 2102 #4：revoke 也须带 lockDomain + 服务端 lockVerify（同互斥域 + 当前持锁核验）
+  const rev = cl.revokeClearance(t.token, {
+    store: t.store, lock: held, lockId: 'GUARD_LOCK', lockDomain: 'period-lock/guard',
+    lockVerify: (id, dom, epoch) => ({ held: true, epoch: epoch }), now: NOW + 500,
+  });
+  assert(rev.ok === true, '撤销成功（前置条件）got=' + JSON.stringify(rev).slice(0, 80));
   const { res, writes } = run('REV', { clearance: t.token, store: t.store, now: NOW + 1000 });
   assert(res.ok === false, '批次 ok=false');
   assert(writes === 0, '零生产写 (got ' + writes + ')');
@@ -329,7 +383,7 @@ console.log('=== 集成11c（Tom 2101 #3）：baselineVersion 为空 → CLEARAN
     action: ACTION, sheet: TARGET_SHEET, dry: false, expectMasterVersion: MASTER_VERSION,
     jobId: 'JCLEAR_NOBASE', batchId: BATCH_ID, rows: rows, clearance: t.token,
   } }, deps));
-  assert(res.error === 'CLEARANCE_BASELINE_UNKNOWN', '报 CLEARANCE_BASELINE_UNKNOWN (got ' + res.error + ')');
+  assert(res.error === 'CLEARANCE_BASELINE_BASELINE_STRUCT_MISSING' || res.error === 'CLEARANCE_BASELINE_UNKNOWN', '报 CLEARANCE_BASELINE_* (got ' + res.error + ')');
   assert(WRITE_COUNT === 0, '零生产写');
 }
 
