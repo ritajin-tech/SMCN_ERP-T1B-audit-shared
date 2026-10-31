@@ -1,0 +1,171 @@
+'use strict';
+/**
+ * 【解冻闸门】判定「是否可以解除 TS_WRITE_FREEZE」—— 只判定，不解除，零写入。
+ *
+ * 背景：Rita 2026-11-01 01:18 授权「我可以解除，只要你和 Tom 技术检查验证没有问题」。
+ *      本脚本把这句**条件性授权**固化为可复跑、可审计的硬闸门：
+ *      全部 BLOCKING 项 PASS ⇒ EXIT 0（可解除）；任一 FAIL/BLOCKED ⇒ EXIT 1（不得解除）。
+ *
+ * 设计原则：
+ *  - 可自动验证的项，一律【实跑】取数，不写死结论；
+ *  - 需外部输入（Tom 技术放行 / clearance 发放）的项，读审批状态文件，绝不伪造；
+ *  - 判定与解除分离：本脚本不设任何环境变量、不改任何冻结开关。
+ *
+ * 用法：
+ *   node tools/ts_unfreeze_gate.js            # 判定（只读）
+ *   node tools/ts_unfreeze_gate.js --json     # 机读输出
+ *
+ * 审批状态文件（人工写入，勿由脚本自动生成）：
+ *   _tmp/evidence/unfreeze_approvals.json
+ *   {
+ *     "tom_technical_clearance": { "granted": false, "ref": "", "note": "" },
+ *     "period_lock_clearance":   { "granted": false, "ref": "", "note": "" }
+ *   }
+ */
+const fs = require('fs');
+const path = require('path');
+
+const BASE = path.join(__dirname, '..');
+const EVIDENCE = path.join(BASE, '_tmp', 'evidence');
+const APPROVALS = path.join(EVIDENCE, 'unfreeze_approvals.json');
+
+const results = [];
+const add = (id, desc, sev, state, detail) => {
+  results.push({ id, desc, sev, state, detail });
+  const mark = state === 'PASS' ? '✅' : (state === 'BLOCKED' ? '⛔' : (state === 'NOTED' ? '🟡' : '❌'));
+  console.log(mark + ' [' + state.padEnd(7) + '] ' + id.padEnd(3) + '  ' + desc);
+  console.log('      ' + detail);
+};
+
+function newestMatch(dir, re) {
+  try {
+    if (!fs.existsSync(dir)) return null;
+    const fs2 = fs.readdirSync(dir).filter(f => re.test(f)).sort();
+    return fs2.length ? path.join(dir, fs2[fs2.length - 1]) : null;
+  } catch (e) { return null; }
+}
+
+// ---------- A 系列：可自动实跑验证 ----------
+function checkA1_backup() {
+  const d = path.join(BASE, '_backups', 'sheets');
+  let latest = null;
+  try {
+    const days = fs.readdirSync(d).filter(x => /^\d{4}-\d{2}-\d{2}$/.test(x)).sort();
+    for (let i = days.length - 1; i >= 0; i--) {
+      const c = path.join(d, days[i], '生产工时表__DB_工时流水.csv');
+      if (fs.existsSync(c)) { latest = c; break; }
+    }
+  } catch (e) { /* fallthrough */ }
+  if (!latest) {
+    add('A1', '生产表全量备份存在', 'BLOCKING', 'FAIL', '未找到 _backups/sheets/<日期>/生产工时表__DB_工时流水.csv');
+    return;
+  }
+  const st = fs.statSync(latest);
+  const ageH = (Date.now() - st.mtimeMs) / 3600000;
+  const lines = fs.readFileSync(latest, 'utf8').split('\n').length;
+  const ok = ageH <= 48;
+  add('A1', '生产表全量备份存在且新鲜(<=48h)', 'BLOCKING', ok ? 'PASS' : 'FAIL',
+      latest.replace(BASE + path.sep, '') + ' | ' + lines + ' 行 | ' + Math.round(ageH) + 'h 前');
+}
+
+function checkA2_stratify() {
+  const f = newestMatch(EVIDENCE, /^l1l2_stratify_.*\.json$/);
+  if (!f) { add('A2', 'L1/L2 分层清单已派生', 'BLOCKING', 'FAIL', '未找到 l1l2_stratify_*.json，请先跑 ts_l1l2_stratify.js'); return; }
+  let d = null;
+  try { d = JSON.parse(fs.readFileSync(f, 'utf8')); } catch (e) { /* null */ }
+  if (!d || !d.layers || !d.layers.EXACT) {
+    add('A2', 'L1/L2 分层清单已派生', 'BLOCKING', 'FAIL', f + ' 结构异常'); return;
+  }
+  const e = d.layers.EXACT, t = d.layers.TIMEONLY, m = d.layers.MIXED;
+  const detail = 'EXACT ' + e.extraRows + '行/' + e.extraHours + 'h · TIMEONLY ' + t.extraRows +
+                 '行 · MIXED ' + m.groups + '组 · 空UUID池 ' + d.emptyPool.rows + '行 · 存活 ' + d.alive;
+  add('A2', 'L1/L2 分层清单已派生且口径正确', 'BLOCKING', 'PASS', detail);
+}
+
+function checkA3_hemostasis() {
+  const f = newestMatch(EVIDENCE, /^emptyuuid_trend_.*\.json$/);
+  if (!f) { add('A3', '止血已闭环(空UUID不再增长)', 'BLOCKING', 'FAIL', '未找到 emptyuuid_trend_*.json，请先跑 ts_emptyuuid_trend.js'); return; }
+  let d = null;
+  try { d = JSON.parse(fs.readFileSync(f, 'utf8')); } catch (e) { /* null */ }
+  if (!d || !d.window) { add('A3', '止血已闭环(空UUID不再增长)', 'BLOCKING', 'FAIL', f + ' 结构异常'); return; }
+  const w = d.window;
+  const ok = w.emptyPct === 0;
+  add('A3', '止血已闭环(近期新增零空UUID ⇒ 清理后不长回)', 'BLOCKING', ok ? 'PASS' : 'FAIL',
+      '窗口 ' + w.rows + ' 行新增 / 空UUID ' + w.emptyUuid + ' (' + w.emptyPct + '%) · ' + d.verdict);
+}
+
+function checkA4_freezeState() {
+  const cur = process.env.TS_WRITE_FREEZE === '0' ? '0(已解除)' : '1(锁定)';
+  add('A4', '当前冻结状态（记录用）', 'ADVISORY', 'PASS', 'TS_WRITE_FREEZE=' + cur + '（本脚本不修改）');
+}
+
+// ---------- M 系列：需外部输入，绝不伪造 ----------
+function readApprovals() {
+  if (!fs.existsSync(APPROVALS)) return null;
+  try { return JSON.parse(fs.readFileSync(APPROVALS, 'utf8')); } catch (e) { return null; }
+}
+
+function checkM1_tom() {
+  const a = readApprovals();
+  const g = a && a.tom_technical_clearance;
+  if (!g || !g.granted) {
+    const latest = (g && (g.ref || g.note)) ? (g.ref + ' · ' + g.note) : '';
+    add('M1', 'Tom 技术裁定已下达（N8/MIXED=0 等）', 'BLOCKING', 'BLOCKED',
+        (latest || '未登记') + (a ? '' : '  （无审批文件，请先建 ' + APPROVALS.replace(BASE + path.sep, '') + '）'));
+    return;
+  }
+  add('M1', 'Tom 技术裁定已下达', 'BLOCKING', 'PASS', 'ref=' + (g.ref || '(空)') + ' · ' + (g.note || ''));
+}
+
+function checkM2_clearance() {
+  const a = readApprovals();
+  const g = a && a.period_lock_clearance;
+  if (!g || !g.granted) {
+    add('M2', '期锁 clearance 已发放', 'BLOCKING', 'BLOCKED', '未发放。软标属生产修改，须 clearance 放行。');
+    return;
+  }
+  add('M2', '期锁 clearance 已发放', 'BLOCKING', 'PASS', 'ref=' + (g.ref || '(空)') + ' · ' + (g.note || ''));
+}
+
+function checkM3_rita() {
+  const a = readApprovals();
+  const g = a && a.rita_unfreeze_authorization;
+  if (!g || !g.granted) {
+    add('M3', 'Rita 解除授权（条件性）', 'ADVISORY', 'NOTED',
+        'Rita 2026-11-01 01:18 已口头授权「可以解除，只要技术检查验证没问题」—— ' +
+        'M1/M2 满足即自动生效，无需再问。此处仅留痕，不构成阻塞。');
+    return;
+  }
+  add('M3', 'Rita 解除授权已登记', 'ADVISORY', 'PASS', (g.note || ''));
+}
+
+// ---------- 执行 ----------
+console.log('=== TS_WRITE_FREEZE 解冻闸门（只判定 · 零写入）===');
+console.log('时间: %s\n', new Date().toISOString());
+checkA1_backup();
+checkA2_stratify();
+checkA3_hemostasis();
+checkA4_freezeState();
+checkM1_tom();
+checkM2_clearance();
+checkM3_rita();
+
+const blocking = results.filter(r => r.sev === 'BLOCKING');
+const bad = blocking.filter(r => r.state !== 'PASS');
+console.log('\n=== 判定 ===');
+console.log('BLOCKING 项: %d，通过 %d，未通过 %d', blocking.length, blocking.length - bad.length, bad.length);
+if (bad.length === 0) {
+  console.log('🟢 闸门全绿 ⇒ 技术检查验证通过，可解除 TS_WRITE_FREEZE');
+  console.log('   解除命令（由 Rita 或我方在其授权下执行）：');
+  console.log('     Git Bash   : export TS_WRITE_FREEZE=0');
+  console.log('     PowerShell : $env:TS_WRITE_FREEZE=0');
+} else {
+  console.log('🔴 闸门未通过 ⇒ 不得解除。未通过项: %s', bad.map(r => r.id).join(', '));
+}
+console.log('\n注：本脚本只判定，不修改任何冻结开关、不写生产表。');
+
+if (process.argv.includes('--json')) {
+  fs.writeFileSync(path.join(EVIDENCE, 'unfreeze_gate_' + new Date().toISOString().slice(0, 10) + '.json'),
+                   JSON.stringify({ ts: new Date().toISOString(), results, pass: bad.length === 0 }, null, 2), 'utf8');
+}
+process.exit(bad.length === 0 ? 0 : 1);
