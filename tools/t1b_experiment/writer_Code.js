@@ -1,13 +1,12 @@
 /**
- * T1-B 阶段B 非生产实验 · 写者项目（模拟 W3 无锁独立写者 / W4 新项目）
+ * T1-B 阶段B 非生产实验 · 写者项目（模拟 W3 无锁独立写者 / W4 新项目）v4
  * 与 writerB 为两个"独立 script 项目"（不同 scriptId），用于实证跨项目锁语义。
  * 仅读写传入的隔离测试表 ssId；不读主库/生产表；不充当任何正式填报入口。
  *
- * v3 修订（响应 Tom 09:51Z 静态复核）：
- *  #1 runOwn=OWN 负对照（写者自身锁，跨项目不互斥，复现漏洞）；runShared=CENTRAL 正例（集中锁，跨项目互斥）
- *  #2 释放状态透传：RELEASED 仅当 release.ok；否则记 RELEASE_FAIL，绝不伪造成功
- *  #3 setfreeze 走 guardedWriteFreeze（与受保护写同一协调域）
- *  #4 日志写入独立 log sheet + execId 关联；业务写（ACQUIRED）在受保护区间内
+ * v4 修订（响应 Tom 10:51Z）：
+ *  #1 OWN 负对照 = 写者本地持自身 getScriptLock 做受保护写（ACQUIRED/RELEASED 在锁内本地记录），跨项目不互斥，复现漏洞；
+ *     CENTRAL 正例 = 受保护写整体 funnel 进集中锁端点（端点内真正持锁+闸+写+释放，权威日志含单调 fencing 令牌），跨项目互斥。
+ *  #2 释放/结果透传：CENTRAL 模式下 released 由集中端点 finally 真实决定；writer 据其记 OK/REJECTED/FAIL，绝不伪造。
  */
 var SSID = 'REPLACE_SSID';
 var LOCKER_URL = 'REPLACE_LOCKER_URL'; // 集中锁端点部署 URL（非生产）；配置前 CENTRAL 模式返回 LOCKER_URL_NOT_CONFIGURED
@@ -16,27 +15,18 @@ function _execId() { return Utilities.getUuid(); }
 
 function runTest(ssId, writerName, sleepMs, mode) {
   var eid = _execId();
-  var sheet = SpreadsheetApp.openById(ssId).getSheets()[0];
   var start = new Date();
-  var handleMode = (mode === 'OWN') ? 'OWN' : 'CENTRAL'; // OWN = 负对照；CENTRAL = 正例
-  // 真实受保护写路径：锁 + 冻结闸 + 业务写（ACQUIRED 即模拟一次受保护写）同域（guardedWrite 内）
-  var r = SharedLockLib.guardedWrite(ssId, 't1b-exp-guard', function () {
-    var seq = sheet.getLastRow();
-    SharedLockLib.appendLog(ssId, [eid, start.toISOString(), writerName, handleMode, 'ACQUIRED', 1, 'seq=' + seq]);
-    Utilities.sleep(sleepMs || 4000);
-    return { seq: seq };
-  }, handleMode, LOCKER_URL);
+  var handleMode = (mode === 'OWN') ? 'OWN' : 'CENTRAL';
+  // OWN：写者本地持自身锁做受保护写（ACQUIRED/RELEASED 在锁内本地记录）
+  // CENTRAL：受保护写整体 funnel 进集中端点（端点内持锁+闸+写+释放，权威日志含 fencing 令牌）
+  var r = SharedLockLib.guardedWrite(ssId, 't1b-exp-guard', eid, writerName, sleepMs || 4000, handleMode, LOCKER_URL, 'write');
   var end = new Date();
-  // #2 释放状态透传：仅 release.ok 才记 RELEASED；释放失败/未知记 RELEASE_FAIL（不伪造）；未取得锁/冻结拒写记 REJECTED
-  var rel = r.release;
-  if (r.ok && rel && rel.released) {
-    SharedLockLib.appendLog(ssId, [eid, end.toISOString(), writerName, handleMode, 'RELEASED', 1, 'released']);
-  } else if (r.ok) {
-    SharedLockLib.appendLog(ssId, [eid, end.toISOString(), writerName, handleMode, 'RELEASE_FAIL', 0, JSON.stringify(rel || {})]);
-  } else {
-    SharedLockLib.appendLog(ssId, [eid, end.toISOString(), writerName, handleMode, 'REJECTED', 0, r.reason]);
-  }
-  return { writer: writerName, acquired: r.ok, mode: handleMode, reason: r.reason, release: rel, execId: eid,
+  // #2 释放/结果透传，不伪造
+  var rel = r.released;
+  var status = r.ok ? 'OK' : ((r.reason === 'PERIOD_LOCKED' || r.reason === 'UNKNOWN_REJECT') ? 'REJECTED' : 'FAIL');
+  SharedLockLib.appendLog(ssId, [eid, end.toISOString(), writerName, handleMode, status, r.ok ? 1 : 0,
+    'reason=' + (r.reason || '') + ' fence=' + (r.fencing || '') + ' rel=' + rel]);
+  return { writer: writerName, acquired: r.ok, mode: handleMode, reason: r.reason, fencing: r.fencing, released: rel, execId: eid,
            start: start.toISOString(), end: end.toISOString() };
 }
 
@@ -47,7 +37,10 @@ function guardTest(ssId) {
 }
 
 function setFreeze(ssId, val) { return SharedLockLib.guardedWriteFreeze(ssId, val, LOCKER_URL); }
-function register(ssId, name, mode) { return SharedLockLib.guardedRegister(ssId, name, mode || 'CENTRAL', LOCKER_URL); }
+function register(ssId, name, mode) {
+  var eid = _execId();
+  return SharedLockLib.guardedWrite(ssId, 't1b-exp-guard', eid, name, 0, mode || 'CENTRAL', LOCKER_URL, 'register');
+}
 
 function doGet(e) {
   var p = e.parameter || {};
@@ -76,5 +69,5 @@ function doGet(e) {
   return ContentService.createTextOutput('bad mode');
 }
 
-function runOwn() { runTest(SSID, 'writerTrig', 4000, 'OWN'); }        // 负对照：自身锁，跨项目不互斥（复现漏洞 N2）
-function runShared() { runTest(SSID, 'writerTrig', 4000, 'CENTRAL'); } // 正例：集中锁，跨项目互斥（E2 验证 N1）
+function runOwn() { runTest(SSID, 'writerTrig', 4000, 'OWN'); }        // 负对照：本地自身锁，跨项目不互斥（复现漏洞 N2）
+function runShared() { runTest(SSID, 'writerTrig', 4000, 'CENTRAL'); } // 正例：集中锁端点内真正持锁（E2 验证 N1）
