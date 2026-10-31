@@ -1,47 +1,34 @@
 /**
- * T1-B 阶段B 非生产实验 · 共享锁库 / 集中锁协调器（E2/E3 落地原型）v8
+ * T1-B 阶段B 非生产实验 · 共享锁库 / 集中锁协调器（E2/E3 落地原型）v9
  * 被 writerA / writerB 两个独立项目共同引用；集中锁端点(deploy 为 web app)即本文件部署。
  *
  * v7 修订（响应 Tom 12:26Z 第7轮静态复核 5 条）：核心——把【数据分类账】设为 fence 排序与准入的
  *   唯一权威源，B1 控制格降级为纯展示缓存（永不参与准入决策）；补齐请求身份绑定 + 持久完整索引
  *   + 单表原子注册 + 只读对账(UNKNOWN 阻断) + 独立核验后才解锁。
- *  #1 幂等/身份绑定（Tom 7-1）：_ledgerHasEid 仅扫 200 行且只比 eid → 改为 _ledgerLookup 全表扫描
- *     （持久完整索引；生产须持久化哈希索引，非生产全表即完整索引）+ 请求身份绑定（writer|domain|eid|kind|payload）。
- *     同身份重放 → 返回【原始凭据】(原 fence/seq，不重算)；同 eid 不同内容 → EID_CONTENT_CONFLICT 拒写；
- *     覆盖 >200 行 / 冲突 / 并发重放负例。
- *  #2 fence 决策源（Tom 7-2）：_nextFence 原损坏时回退 B1 或 0 → 改为【仅从数据分类账最大 fence 重算】
- *     （_ledgerMaxFence），区分首初始化(空账本→1)与损坏(有行→按账本重算，绝不静默归 0)；B1 仅展示，
- *     损坏/落后不影响准入。未知状态阻断（_ledgerBlocked）。
- *  #3 准入不依赖 B1 + 崩溃窗口阻断（Tom 7-3）：_guardCore 原先用 B1 判断再 append，crashsim 允许 B1 落后
- *     且不阻断后续写 → 改为准入全部基于权威账本；新增 _ledgerBlocked（CRASH_PENDING / NaN / 缺口任一即阻断写），
- *     崩溃窗口不再自动放行；appendRow 原子性由单表单 appendRow 保证；目标侧拒旧写 = 单调 fence 条件写。
- *  #4 注册单表原子（Tom 7-4）：原 register 先写 data 后写 registry 两步易留部分状态 → 改为【单次 appendRow
- *     同时承载 data + registry 标记(kind='register')】，消除跨表双写；registry 由 _regLookup 从账本派生，
- *     不再有"两步中断/重试跳过修复"问题；单次 append 即证明该写完整。
- *  #5 对账只读 + 独立核验解锁（Tom 7-5）：reconcileLedger 改为【只读诊断】，绝不自动改缓存/自动升级为 PASS；
- *     保留 UNKNOWN 并 needsIndependentVerification；新增 reconcileResolve（须 token）仅在独立核验后修复缓存；
- *     畸形行标记不静默跳过。release 失败 / 端点鉴权 / ACL / 目标侧 fencing / 真实隔离仍为运行时+治理实证（待授权环境）。
  *
- * v8 修订（响应 Tom 21:51Z 第8轮 3 条）：
- *  #1 账本完整性 fail-closed（Tom 8-1）：_ledgerBlocked / reconcileLedger 原 seen[f] 只记存在性、重复 fence 不报错
- *     -> 新增【重复 fence(DUP) / 零值 fence(ZERO) / 非法状态(BADSTATUS)】检测，均 fail-closed 阻断/标记；
- *     验收覆盖 重复/缺口/畸形/零值/非法状态 五类异常。
- *  #2 独立核验令牌真证据绑定（Tom 8-2）：reconcileResolve 原仅判 token 非空 -> 改为【HMAC 签名结构化令牌】
- *     （approver|verifier|maxf|ts|sig），核验：签名有效 / 批准者≠复核者(职责分离) / 24h 新鲜度 / 账本状态绑定；
- *     不匹配或 TEST_TOKEN 等任意字符串一律 RESOLVE_TOKEN_INVALID 拒（字符串≠核验证明）；通过后才写 B1 并留处置记录；
- *     新增 buildResolveToken（供授权工具链，密钥绝不入仓）+ _dispositionSheet 处置留痕。
- *  #3 目标侧条件写/防绕过/隔离权限/释放失败/故障恢复：属【授权隔离环境实证】项（Tom 8-3），代码侧已含单调 fence 条件写
- *     + 资源绑定 RESOURCE_BINDING_REJECT 防绕过 + 端点真实释放记录；运行实证仍须 Rita 签 §5 授权环境后由独立核验人跑通。
+ * v8 修订（响应 Tom 21:51Z 第8轮 3 条）：账本完整性 fail-closed（DUP/ZERO/BADSTATUS）+ HMAC 签名令牌
+ *   职责分离 + 24h 新鲜度 + 账本状态绑定 + 负例拒 TEST_TOKEN。
+ *
+ * v9 修订（响应 Tom 22:22Z 第9轮 3 条）：
+ *  #1 签名令牌真证据绑定增强（Tom 9-1）：原仅绑 maxf+时间 → 现绑【资源 ID + 完整账本状态摘要(digest)
+ *     + 处置依据(basis) + 一次性 nonce】，并拒绝【未来时间戳】(时间上界)；核验覆盖 跨资源 / 同 maxf
+ *     内容变化 / 未来时间 / 重放 四类负例（RESOURCE_MISMATCH / DIGEST_MISMATCH / FUTURE / 伪造 sig）。
+ *  #2 CRASH_PENDING 授权处置 & 恢复闭环 + 幂等（Tom 9-2）：原 unknown 直接拒、CRASH_PENDING 无恢复路径、
+ *     写缓存后再写处置有中断窗口 → 现：仅 CRASH_PENDING(无畸形/缺口) 经签名令牌授权后翻 COMMITTED(恢复崩溃写)；
+ *     真实损坏(malformed/gaps)仍阻断；处置记录按 (maxLedger,nonce) 幂等（崩溃重试不双写）；全程在集中锁内
+ *     + 审计留痕 + 失败 fail-closed（令牌无效绝不写）。
+ *  #3 目标侧条件写/防绕过/隔离权限/释放失败/故障恢复：属【授权隔离环境实证】项（Tom 9-3），代码侧已含单调 fence
+ *     条件写 + 资源绑定 RESOURCE_BINDING_REJECT + 端点真实释放记录；运行实证仍须 Rita 已签 §5 授权环境后由独立核验人跑通。
  *
  * 纯非生产；不读主库/生产表；仅操作授权隔离测试表。
- * 部署红线：LOCKER_URL / ALLOWED_SSID 均为 REPLACE_* 占位；未配置前 CENTRAL 返回 NOT_CONFIGURED；正式运行须由有权方部署并填 URL/ID。
+ * 部署红线：LOCKER_URL / ALLOWED_SSID / RESOLVE_SECRET 均为 REPLACE_* 占位；未配置前 CENTRAL 返回 NOT_CONFIGURED；
+ *   正式运行须由有权方部署并填 URL/ID/SECRET。
  */
 var SHARED_LOCK_DOMAIN = 't1b-exp-guard';
 var FREEZE_ON = 1, FREEZE_OFF = 0, FREEZE_UNKNOWN = -1;
 var ALLOWED_SSID = 'REPLACE_SSID'; // 集中锁协调器资源绑定：仅允许授权隔离测试表
 var RESOLVE_SECRET = 'REPLACE_VERIFY_SECRET'; // 独立核验令牌签名密钥；仅由有权方在授权环境配置，绝不入仓
-// v8 #2 合法账本状态白名单（COMMITTED/CRASH_PENDING/REPLAYED 之外皆为非法状态，fail-closed）
-var VALID_STATUS = ['COMMITTED', 'CRASH_PENDING', 'REPLAYED'];
+var VALID_STATUS = ['COMMITTED', 'CRASH_PENDING', 'REPLAYED']; // 合法账本状态白名单（之外皆非法，fail-closed）
 
 // ---------------- v6 #2 严格整数解析（整数/范围/溢出/读取错误 一律失败） ----------------
 function _parseIntStrict(v, min, max) {
@@ -72,6 +59,18 @@ function _logSheet(ssId) {
   if (!sh) { sh = book.insertSheet(name); sh.appendRow(['execId', 'ts', 'writer', 'mode', 'event', 'ok', 'detail']); }
   return sh;
 }
+function _dispositionSheet(ssId) {
+  var book = _book(ssId), name = 't1b_exp_disposition';
+  var sh = book.getSheetByName(name);
+  if (!sh) { sh = book.insertSheet(name); sh.appendRow(['ts', 'approver', 'verifier', 'maxLedger', 'action', 'basis', 'nonce']); }
+  return sh;
+}
+function _nonceSheet(ssId) {
+  var book = _book(ssId), name = 't1b_exp_nonce';
+  var sh = book.getSheetByName(name);
+  if (!sh) { sh = book.insertSheet(name); sh.appendRow(['nonce', 'ts', 'approver', 'verifier', 'maxLedger']); }
+  return sh;
+}
 
 // ---------------- v7 #2 权威 fence 源 = 数据分类账最大 fence（B1 仅展示，永不参与决策）----------------
 function _ledgerMaxFence(ssId) {
@@ -93,8 +92,23 @@ function _nextFence(ssId, domain) {
   return maxF + 1;
 }
 
+// ---------------- v9 #1 完整账本状态摘要（绑定进令牌，同 maxf 内容变化亦检）----------------
+function _ledgerDigest(ssId) {
+  var sh = _dataSheet(ssId), last = sh.getLastRow();
+  var parts = ['n' + last];
+  if (last > 1) {
+    var fc = sh.getRange(2, 7, last - 1, 1).getValues();
+    var sc = sh.getRange(2, 9, last - 1, 1).getValues();
+    for (var i = 0; i < fc.length; i++) {
+      var f = _parseIntStrict(fc[i][0], 0, 9007199254740991);
+      parts.push((f === null ? 'X' : f) + '|' + String(sc[i][0] || ''));
+    }
+  }
+  var data = parts.join('#');
+  return Utilities.computeDigest(Utilities.DigestAlgorithm.SHA_256, data); // 确定性摘要，非密；绑定账本状态
+}
+
 // ---------------- v7 #1 持久完整索引 + 请求身份绑定（替代原 _ledgerHasEid 仅扫 200 行只比 eid）----------------
-// identity = writer|domain|eid|kind|payload；全表扫描 = 完整索引；命中返回【原始凭据】(原 fence/seq)
 function _ledgerLookup(ssId, identity, eid) {
   var sh = _dataSheet(ssId), last = sh.getLastRow();
   if (last <= 1) return { found: false, conflict: false };
@@ -279,9 +293,8 @@ function reconcileLedger(ssId) {
   // v7 #5：DO NOT setValue B1 / DO NOT auto-upgrade to PASS；保留 UNKNOWN 并要求独立核验
   return { maxLedger: maxF, gaps: gaps, pending: pending, malformed: malformed, unknown: unknown, reconciled: false, needsIndependentVerification: unknown };
 }
-// v8 #2 独立核验令牌：结构化 + HMAC 签名 + 职责分离 + 新鲜度 + 账本状态绑定 + 负例
-// 令牌格式 approver|verifier|maxf|ts|sig ；sig = HMAC_SHA256(RESOLVE_SECRET, approver|verifier|maxf|ts)
-// 批准者(approver)=Rita/有权方；独立复核者(verifier)=Tom 指定的独立核验人；二者不得为同一人。
+
+// v9 #1 HMAC + 令牌构造/核验（资源 + 摘要 + basis + nonce + 时间上下界 + 职责分离 + 账本/digest 绑定）
 function _hmacHex(secret, data) {
   var sig = Utilities.computeHmacSha256Signature(data, secret);
   var h = '';
@@ -289,43 +302,78 @@ function _hmacHex(secret, data) {
   return h;
 }
 // 供【授权工具链】（非本仓代码）在有 SECRET 的授权环境内生成令牌；本仓只做核验，绝不内置密钥
-function buildResolveToken(approver, verifier, maxf, ts, secret) {
-  var body = approver + '|' + verifier + '|' + maxf + '|' + ts;
+// 令牌 = approver|verifier|resourceId|maxf|digest|basis|nonce|ts|sig（9 段）
+function buildResolveToken(approver, verifier, resourceId, maxf, digest, basis, nonce, ts, secret) {
+  var body = approver + '|' + verifier + '|' + resourceId + '|' + maxf + '|' + digest + '|' + basis + '|' + nonce + '|' + ts;
   return body + '|' + _hmacHex(secret, body);
 }
-function _verifyResolveToken(token, currentMaxF) {
+function _verifyResolveToken(token, currentMaxF, ssId) {
   if (!token) return { ok: false, reason: 'RESOLVE_TOKEN_REQUIRED' };
   var parts = String(token).split('|');
-  if (parts.length !== 5) return { ok: false, reason: 'RESOLVE_TOKEN_MALFORMED' };
-  var approver = parts[0], verifier = parts[1], maxf = parts[2], ts = parts[3], sig = parts[4];
-  // 负例：TEST_TOKEN / 空 / 任意非 HMAC 字符串 -> 一律拒（字符串≠核验证明）
-  if (!approver || !verifier || !maxf || !ts || !sig) return { ok: false, reason: 'RESOLVE_TOKEN_INVALID' };
+  if (parts.length !== 9) return { ok: false, reason: 'RESOLVE_TOKEN_MALFORMED' };
+  var approver = parts[0], verifier = parts[1], resourceId = parts[2], maxf = parts[3], digest = parts[4], basis = parts[5], nonce = parts[6], ts = parts[7], sig = parts[8];
+  if (!approver || !verifier || !resourceId || !maxf || !digest || !basis || !nonce || !ts || !sig) return { ok: false, reason: 'RESOLVE_TOKEN_INVALID' };
   if (!RESOLVE_SECRET || RESOLVE_SECRET.indexOf('REPLACE') === 0) return { ok: false, reason: 'RESOLVE_SECRET_NOT_CONFIGURED' };
-  var body = approver + '|' + verifier + '|' + maxf + '|' + ts;
-  if (_hmacHex(RESOLVE_SECRET, body) !== sig) return { ok: false, reason: 'RESOLVE_TOKEN_INVALID' };
+  var body = approver + '|' + verifier + '|' + resourceId + '|' + maxf + '|' + digest + '|' + basis + '|' + nonce + '|' + ts;
+  if (_hmacHex(RESOLVE_SECRET, body) !== sig) return { ok: false, reason: 'RESOLVE_TOKEN_INVALID' }; // 伪造/字符串 ≠ 核验证明
   if (approver === verifier) return { ok: false, reason: 'RESOLVE_SEPARATION_DUTY_VIOLATED' }; // 批准者≠独立复核者
   var t = _parseIntStrict(ts, 0, 9007199254740991);
-  if (t === null || Date.now() - t > 86400000) return { ok: false, reason: 'RESOLVE_TOKEN_EXPIRED' }; // 24h 新鲜度
+  if (t === null) return { ok: false, reason: 'RESOLVE_TOKEN_INVALID' };
+  var now = Date.now();
+  if (t > now + 600000) return { ok: false, reason: 'RESOLVE_TOKEN_FUTURE' };   // v9 #1 拒绝未来时间戳（时间上界）
+  if (now - t > 86400000) return { ok: false, reason: 'RESOLVE_TOKEN_EXPIRED' }; // v9 #1 24h 新鲜度（时间下界）
+  if (resourceId !== ALLOWED_SSID) return { ok: false, reason: 'RESOLVE_RESOURCE_MISMATCH' }; // v9 #1 跨资源负例
   var mf = _parseIntStrict(maxf, 1, 9007199254740991);
-  if (mf === null || mf !== currentMaxF) return { ok: false, reason: 'RESOLVE_LEDGER_MISMATCH' }; // 核验者须看当前状态
-  return { ok: true, approver: approver, verifier: verifier, maxf: mf };
+  if (mf === null || mf !== currentMaxF) return { ok: false, reason: 'RESOLVE_LEDGER_MISMATCH' }; // v9 #1 账本状态绑定(maxf)
+  var dg = _ledgerDigest(ssId);
+  if (dg !== digest) return { ok: false, reason: 'RESOLVE_DIGEST_MISMATCH' }; // v9 #1 完整账本摘要绑定（同 maxf 内容变化亦拒）
+  return { ok: true, approver: approver, verifier: verifier, maxf: mf, nonce: nonce, basis: basis };
 }
-function _dispositionSheet(ssId) {
-  var book = _book(ssId), name = 't1b_exp_disposition';
-  var sh = book.getSheetByName(name);
-  if (!sh) { sh = book.insertSheet(name); sh.appendRow(['ts', 'approver', 'verifier', 'maxLedger', 'action', 'note']); }
-  return sh;
+function _nonceUsed(ssId, nonce) {
+  var sh = _nonceSheet(ssId), last = sh.getLastRow();
+  if (last <= 1) return false;
+  var nc = sh.getRange(2, 1, last - 1, 1).getValues();
+  for (var i = 0; i < nc.length; i++) { if (String(nc[i][0]) === String(nonce)) return true; }
+  return false;
 }
+function _markNonceUsed(ssId, nonce, approver, verifier, maxLedger) {
+  _nonceSheet(ssId).appendRow([nonce, new Date().toISOString(), approver || '', verifier || '', maxLedger || '']);
+}
+function _dispositionExists(ssId, maxLedger, nonce) {
+  var sh = _dispositionSheet(ssId), last = sh.getLastRow();
+  if (last <= 1) return false;
+  var mc = sh.getRange(2, 4, last - 1, 1).getValues(); // maxLedger
+  var nc = sh.getRange(2, 7, last - 1, 1).getValues(); // nonce
+  for (var i = 0; i < mc.length; i++) { if (String(mc[i][0]) === String(maxLedger) && String(nc[i][0]) === String(nonce)) return true; }
+  return false;
+}
+// v9 #2 CRASH_PENDING 授权处置：翻为 COMMITTED（恢复崩溃写）；真实损坏不动
+function _flipCrashPendingToCommitted(ssId) {
+  var sh = _dataSheet(ssId), last = sh.getLastRow();
+  if (last <= 1) return 0;
+  var sc = sh.getRange(2, 9, last - 1, 1).getValues();
+  var n = 0;
+  for (var i = 0; i < sc.length; i++) {
+    if (String(sc[i][0] || '') === 'CRASH_PENDING') { sh.getRange(i + 2, 9).setValue('COMMITTED'); n++; }
+  }
+  return n;
+}
+// v9 #2 恢复闭环：CRASH_PENDING(无畸形/缺口) 经签名令牌授权后翻 COMMITTED 并刷新缓存；全程集中锁内 + 审计 + 幂等 + 失败 fail-closed
 function reconcileResolve(ssId, token) {
-  // v7 #5 + v8 #2：ONLY after 经签名令牌证明的独立核验；令牌须嵌 批准者≠复核者 + 账本状态 + 时效；
-  //   修复缓存(写 B1) 仅在此步、且仅在令牌核验通过后发生；全过程留处置记录（谁/何时/依据/动作）。
   var r = reconcileLedger(ssId);
-  if (r.unknown) return { ok: false, reason: 'STILL_UNKNOWN_BLOCKED', report: r };
-  var v = _verifyResolveToken(token, r.maxLedger);
-  if (!v.ok) return { ok: false, reason: v.reason }; // 未通过核验 -> 绝不修复缓存（fail-closed）
-  _sheet(ssId).getRange('B1').setValue(r.maxLedger);
-  _dispositionSheet(ssId).appendRow([new Date().toISOString(), v.approver, v.verifier, r.maxLedger, 'RESOLVED', 'ledger reconciled & cache refreshed by signed independent verification']);
-  return { ok: true, cache: r.maxLedger, maxLedger: r.maxLedger, approver: v.approver, verifier: v.verifier };
+  var onlyPending = (r.pending.length > 0 && r.malformed.length === 0 && r.gaps.length === 0);
+  if (r.unknown && !onlyPending) return { ok: false, reason: 'STILL_UNKNOWN_BLOCKED', report: r }; // 真实损坏仍阻断
+  var v = _verifyResolveToken(token, r.maxLedger, ssId);
+  if (!v.ok) return { ok: false, reason: v.reason }; // 令牌无效 -> 绝不写（fail-closed）
+  // v9 #2 幂等：同 (maxLedger,nonce) 已处置 -> 安全重试（崩溃窗口恢复），不双写处置记录
+  if (_dispositionExists(ssId, r.maxLedger, v.nonce)) return { ok: true, cache: r.maxLedger, maxLedger: r.maxLedger, idempotent: true, approver: v.approver, verifier: v.verifier };
+  if (_nonceUsed(ssId, v.nonce)) return { ok: true, cache: r.maxLedger, maxLedger: r.maxLedger, idempotent: true, approver: v.approver, verifier: v.verifier };
+  // 授权处置 & 恢复闭环：仅 CRASH_PENDING -> 翻 COMMITTED（恢复崩溃写）
+  var flipped = onlyPending ? _flipCrashPendingToCommitted(ssId) : 0;
+  _sheet(ssId).getRange('B1').setValue(r.maxLedger); // 刷新展示缓存（仅核验通过后）
+  _dispositionSheet(ssId).appendRow([new Date().toISOString(), v.approver, v.verifier, r.maxLedger, (onlyPending ? 'RECOVERED' : 'RESOLVED'), v.basis, v.nonce]);
+  _markNonceUsed(ssId, v.nonce, v.approver, v.verifier, r.maxLedger);
+  return { ok: true, cache: r.maxLedger, maxLedger: r.maxLedger, approver: v.approver, verifier: v.verifier, recoveredPending: onlyPending, flipped: flipped };
 }
 
 // ---------------- 集中锁协调器端点（部署为 web app；两写者 funnel 进同一部署）----------------
@@ -353,7 +401,7 @@ function doGuard_(e) {
     } else if (p.op === 'reconcile') {
       result = reconcileLedger(ssId); // v7 #5 只读诊断
     } else if (p.op === 'resolve') {
-      result = reconcileResolve(ssId, token); // v7 #5 独立核验后解锁
+      result = reconcileResolve(ssId, token); // v9 #2 授权恢复闭环（集中锁内）
     } else if (p.op === 'register') {
       // v7 #4 注册统一校验：经 _guardCore（guardCheck + 身份绑定 + 单调 fence + 单表原子写）
       var rc = _guardCore(ssId, p, eid, writer, 'register', released, fence, seq);
