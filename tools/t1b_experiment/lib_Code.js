@@ -357,6 +357,63 @@ function _dispositionExists(ssId, maxLedger, nonce) {
   for (var i = 0; i < mc.length; i++) { if (String(mc[i][0]) === String(maxLedger) && String(nc[i][0]) === String(nonce)) return true; }
   return false;
 }
+// v12 #1 新增（响应 Tom 15:51Z 第12轮）：处置记录升级为完整记录（目标行/阶段/原请求摘要），并新增“仅恢复指定目标行”的翻转占用
+//   disposition 列：1=ts 2=approver 3=verifier 4=maxLedger 5=action 6=basis 7=nonce 8=targetRows(JSON) 9=stage 10=digestAtRequest
+function _dispositionRecord(ssId, maxLedger, nonce) {
+  var sh = _dispositionSheet(ssId), last = sh.getLastRow();
+  if (last <= 1) return null;
+  var vals = sh.getRange(2, 1, last - 1, 10).getValues();
+  for (var i = 0; i < vals.length; i++) {
+    var row = vals[i];
+    if (String(row[3]) === String(maxLedger) && String(row[6]) === String(nonce)) {
+      return { ts: row[0], approver: row[1], verifier: row[2], maxLedger: row[3], action: row[4], basis: row[5], nonce: row[6],
+               targetRows: String(row[7] || ''), stage: String(row[8] || ''), digestAtRequest: String(row[9] || ''), rowIndex: i + 2 };
+    }
+  }
+  return null;
+}
+function _updateDispositionStage(ssId, rowIndex, stage) {
+  _dispositionSheet(ssId).getRange(rowIndex, 9).setValue(stage);
+}
+function _pendingRowIdxs(ssId) {
+  var sh = _dataSheet(ssId), last = sh.getLastRow(), out = [];
+  if (last <= 1) return out;
+  var sc = sh.getRange(2, 9, last - 1, 1).getValues();
+  for (var i = 0; i < sc.length; i++) { if (String(sc[i][0] || '') === 'CRASH_PENDING') out.push(i + 2); }
+  return out;
+}
+// v12 #1 仅翻转【本次令牌授权涵盖的目标行】（非全表所有 pending）——响应 Tom“授权涵盖现在的 pending”
+function _flipPendingRows(ssId, rowIdxs) {
+  var sh = _dataSheet(ssId), n = 0;
+  for (var i = 0; i < rowIdxs.length; i++) {
+    var rn = _parseIntStrict(rowIdxs[i], 2, 9007199254740991);
+    if (rn === null) continue;
+    if (String(sh.getRange(rn, 9).getValue() || '') === 'CRASH_PENDING') { sh.getRange(rn, 9).setValue('COMMITTED'); n++; }
+  }
+  return n;
+}
+// v12 #1 签名真实性与角色核验（与“当前账本摘要比对”分离，响应 Tom 第12轮）：
+//   仅验 HMAC 签名 + 结构 + 新鲜度 + 资源 + 职责分离；【不】校当前账本摘要（该比对与持久化的原请求摘要进行）
+function _verifyTokenCrypto(token, ssId) {
+  if (!token) return { ok: false, reason: 'RESOLVE_TOKEN_REQUIRED' };
+  var p = String(token).split('|');
+  if (p.length !== 9) return { ok: false, reason: 'RESOLVE_TOKEN_MALFORMED' };
+  var approver = p[0], verifier = p[1], resourceId = p[2], maxf = p[3], digest = p[4], basis = p[5], nonce = p[6], ts = p[7], sig = p[8];
+  if (!approver || !verifier || !resourceId || !maxf || !digest || !basis || !nonce || !ts || !sig) return { ok: false, reason: 'RESOLVE_TOKEN_INVALID' };
+  if (!RESOLVE_SECRET || RESOLVE_SECRET.indexOf('REPLACE') === 0) return { ok: false, reason: 'RESOLVE_SECRET_NOT_CONFIGURED' };
+  var body = approver + '|' + verifier + '|' + resourceId + '|' + maxf + '|' + digest + '|' + basis + '|' + nonce + '|' + ts;
+  if (_hmacHex(RESOLVE_SECRET, body) !== sig) return { ok: false, reason: 'RESOLVE_TOKEN_INVALID' }; // 伪造签名
+  if (approver === verifier) return { ok: false, reason: 'RESOLVE_SEPARATION_DUTY_VIOLATED' };      // 角色/职责分离
+  var t = _parseIntStrict(ts, 0, 9007199254740991);
+  if (t === null) return { ok: false, reason: 'RESOLVE_TOKEN_INVALID' };
+  var now = Date.now();
+  if (t > now + 600000) return { ok: false, reason: 'RESOLVE_TOKEN_FUTURE' };
+  if (now - t > 86400000) return { ok: false, reason: 'RESOLVE_TOKEN_EXPIRED' };
+  if (resourceId !== ALLOWED_SSID) return { ok: false, reason: 'RESOLVE_RESOURCE_MISMATCH' };        // 跨资源
+  var mf = _parseIntStrict(maxf, 1, 9007199254740991);
+  if (mf === null) return { ok: false, reason: 'RESOLVE_TOKEN_INVALID' };
+  return { ok: true, approver: approver, verifier: verifier, resourceId: resourceId, maxf: mf, digest: digest, basis: basis, nonce: nonce, ts: t };
+}
 // v9 #2 CRASH_PENDING 授权处置：翻为 COMMITTED（恢复崩溃写）；真实损坏不动
 function _flipCrashPendingToCommitted(ssId) {
   var sh = _dataSheet(ssId), last = sh.getLastRow();
@@ -393,34 +450,54 @@ function reconcileResolve(ssId, token) {
   var r = reconcileLedger(ssId);
   var onlyPending = (r.pending.length > 0 && r.malformed.length === 0 && r.gaps.length === 0);
   if (r.unknown && !onlyPending) return { ok: false, reason: 'STILL_UNKNOWN_BLOCKED', report: r }; // 真实损坏仍阻断
-  // v11 #1（响应 Tom 15:22Z 第11轮 383–404）：幂等短路前先校验令牌结构完整性 + 当前请求 nonce 一致性，
-  //   不再“只凭可解析 maxf/nonce”返回成功；若审计/nonce 已落但 pending 仍 CRASH_PENDING（上次在 appendRow/标记后、翻转前崩溃），
-  //   则【补完翻转】而非误报成功——杜绝“已审计却未解阻→重试短路成功→仍阻塞且误报”。
-  //   注：dispositionExists/nonceUsed=true 仅发生在 _verifyResolveToken 通过（下方 396–397）之后，故“审计已落”即“曾持有效签名令牌”的代理证据。
-  var ts0 = _tokenStruct(token);
-  if (ts0 && ts0.nonce && ts0.maxf) {
-    var mf0 = _parseIntStrict(ts0.maxf, 1, 9007199254740991);
-    if (mf0 !== null && (_dispositionExists(ssId, mf0, ts0.nonce) || _nonceUsed(ssId, ts0.nonce))) {
-      if (onlyPending && _hasCrashPending(ssId)) {
-        // 审计已落但解阻未完成：补完翻转（审计记录即“曾持有效令牌”的代理证据，等价签名已验一次）
-        var flipped0 = _flipCrashPendingToCommitted(ssId);
-        _sheet(ssId).getRange('B1').setValue(r.maxLedger);
-        return { ok: true, cache: r.maxLedger, maxLedger: r.maxLedger, approver: ts0.approver, verifier: ts0.verifier, recoveredPending: true, flipped: flipped0, note: 'audit-present-completed-flip-on-retry' };
-      }
-      // 审计已落且解阻已完成（或无 pending 需翻）：真正幂等成功
-      return { ok: true, cache: r.maxLedger, maxLedger: r.maxLedger, idempotent: true, approver: ts0.approver, verifier: ts0.verifier, note: 'audit-present-flip-confirmed' };
+  // v12 #1（响应 Tom 15:51Z 第12轮）：【先验签与角色核验】再做任何历史记录/幂等判定——
+  //   历史记录只能证明过去有过一次已验证操作，不能证明【当前请求持有该签名】或【授权涵盖现在的 pending】。
+  //   并把“签名真实性+身份”与“当前账本摘要比对”分离：后者改用持久化的原请求摘要（rec.digestAtRequest），
+  //   从而绕开“状态翻转改变摘要 -> 原令牌在摘要校验处被拒”的死结，同时保留签名真实性前置。
+  var v = _verifyTokenCrypto(token, ssId);
+  if (!v.ok) return { ok: false, reason: v.reason }; // 伪造签名/过期/未来时间/跨资源/职责不分 -> fail-closed
+  // Tom #1：“nonceUsed 分支甚至只查 nonce” -> 记录按 (maxLedger, nonce) 取完整记录；
+  //   nonce 存在但不属该 maxf 范围 -> 借用旧 nonce RESOLVE_NONCE_SCOPE_MISMATCH
+  var rec = _dispositionRecord(ssId, v.maxf, v.nonce);
+  if (!rec && _nonceUsed(ssId, v.nonce)) return { ok: false, reason: 'RESOLVE_NONCE_SCOPE_MISMATCH' };
+  if (rec) {
+    // Tom #1：“再与持久保存的完整原请求摘要...匹配”
+    if (rec.digestAtRequest && rec.digestAtRequest !== v.digest) return { ok: false, reason: 'RECOVER_DIGEST_MISMATCH' };
+    var targets = [];
+    try { targets = JSON.parse(rec.targetRows || '[]'); } catch (e) { targets = []; }
+    var pendNow = _pendingRowIdxs(ssId);
+    var toFlip = [], extra = [];
+    for (var i = 0; i < pendNow.length; i++) {
+      var hit = false;
+      for (var j = 0; j < targets.length; j++) { if (String(targets[j]) === String(pendNow[i])) hit = true; }
+      if (hit) toFlip.push(pendNow[i]); else extra.push(pendNow[i]);
     }
+    // Tom #1：“对已完成的操作只回读可信记录”（不翻转、不重写审计）
+    if (String(rec.stage) === 'CACHED' && toFlip.length === 0) {
+      return { ok: true, cache: r.maxLedger, maxLedger: r.maxLedger, idempotent: true, approver: rec.approver, verifier: rec.verifier, note: 'reread-trusted-record' };
+    }
+    // Tom #1：“未完成则按状态机仅恢复对应目标”——extra = 本次令牌未涵盖的新 pending，不翻，须另领新令牌
+    var flipped = 0;
+    if (String(rec.stage) === 'DISPOSED') { flipped = _flipPendingRows(ssId, toFlip); _updateDispositionStage(ssId, rec.rowIndex, 'FLIPPED'); }
+    _sheet(ssId).getRange('B1').setValue(r.maxLedger);
+    _updateDispositionStage(ssId, rec.rowIndex, 'CACHED');
+    return { ok: true, cache: r.maxLedger, maxLedger: r.maxLedger, approver: rec.approver, verifier: rec.verifier,
+             recoveredPending: true, flipped: flipped, authorizedTargets: targets.length, flippedTargets: toFlip.length,
+             newPendingOutsideScope: extra.length, note: 'stage-machine-scoped-recovery' };
   }
-  // v11 #1 全量令牌核验（摘要绑定【解阻前状态】，此时尚未翻状态，摘要仍匹配当前账本）
-  var v = _verifyResolveToken(token, r.maxLedger, ssId);
-  if (!v.ok) return { ok: false, reason: v.reason }; // 令牌无效 -> 绝不写（fail-closed）
-  // v11 #1 审计先于解阻：先落处置记录 + 标 nonce，再翻 COMMITTED（解阻）
-  _dispositionSheet(ssId).appendRow([new Date().toISOString(), v.approver, v.verifier, r.maxLedger, (onlyPending ? 'RECOVERED' : 'RESOLVED'), v.basis, v.nonce]);
+  // 首次处理：仍需与【当前】账本状态绑定（maxf + 当前摘要）
+  if (v.maxf !== r.maxLedger) return { ok: false, reason: 'RESOLVE_LEDGER_MISMATCH' };
+  var dg0 = _ledgerDigest(ssId);
+  if (dg0 !== v.digest) return { ok: false, reason: 'RESOLVE_DIGEST_MISMATCH' };
+  var pend0 = _pendingRowIdxs(ssId);
+  _dispositionSheet(ssId).appendRow([new Date().toISOString(), v.approver, v.verifier, r.maxLedger, (onlyPending ? 'RECOVERED' : 'RESOLVED'), v.basis, v.nonce, JSON.stringify(pend0), 'DISPOSED', dg0]);
   _markNonceUsed(ssId, v.nonce, v.approver, v.verifier, r.maxLedger);
-  // v11 #1 解阻（仅 CRASH_PENDING -> 翻 COMMITTED）；翻本身幂等（已 COMMITTED 再翻计 0）；至此“解阻 ⇔ 已审计”
-  var flipped = onlyPending ? _flipCrashPendingToCommitted(ssId) : 0;
-  _sheet(ssId).getRange('B1').setValue(r.maxLedger); // 刷新展示缓存（仅核验+审计通过后）
-  return { ok: true, cache: r.maxLedger, maxLedger: r.maxLedger, approver: v.approver, verifier: v.verifier, recoveredPending: onlyPending, flipped: flipped };
+  var flipped0 = onlyPending ? _flipPendingRows(ssId, pend0) : 0;
+  var lastRow = _dispositionSheet(ssId).getLastRow();
+  _updateDispositionStage(ssId, lastRow, 'FLIPPED');
+  _sheet(ssId).getRange('B1').setValue(r.maxLedger);
+  _updateDispositionStage(ssId, lastRow, 'CACHED');
+  return { ok: true, cache: r.maxLedger, maxLedger: r.maxLedger, approver: v.approver, verifier: v.verifier, recoveredPending: onlyPending, flipped: flipped0 };
 }
 
 // ---------------- 集中锁协调器端点（部署为 web app；两写者 funnel 进同一部署）----------------
