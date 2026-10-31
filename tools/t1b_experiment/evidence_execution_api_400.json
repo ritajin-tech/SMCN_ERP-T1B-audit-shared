@@ -1,0 +1,44 @@
+{
+  "captured_at": "2026-10-31T08:10:13.175445Z",
+  "purpose": "Tom 07:51 要求：保留脱敏状态码/响应错误详情/项目部署及调用身份和配置，以实证 Execution API 可用性",
+  "calling_identity": {
+    "email": "rita.jin@spacematrix.com",
+    "scope": "email profile https://www.googleapis.com/auth/cloud-platform https://www.googleapis.com/auth/drive.file https://www.googleapis.com/auth/drive.metadata.readonly https://www.googleapis.com/auth/logging.read https://www.googleapis.com/auth/script.deployments https://www.googleapis.com/auth/script.projects https://www.googleapis.com/auth/script.webapp.deploy https://www.googleapis.com/auth/service.management https://www.googleapis.com/auth/userinfo.email https://www.googleapis.com/auth/userinfo.profile openid",
+    "expires_in": "3599",
+    "note": "调用身份=上述 Google 账号（clasp OAuth token 持有者），即三个实验项目的创建/部署者"
+  },
+  "execution_api_call": {
+    "endpoint": "https://script.googleapis.com/v1/scripts/1z9mLKlMF654FlqJQGRELirJftEX-9UQ4DHyKWez5Dk-ytvb4t13UQIZe:run",
+    "method": "POST",
+    "function": "runTest",
+    "http_status": 400,
+    "response_body": "{\n  \"error\": {\n    \"code\": 400,\n    \"message\": \"Request contains an invalid argument.\",\n    \"status\": \"INVALID_ARGUMENT\"\n  }\n}\n"
+  },
+  "project_deployments": {
+    "LIB": [
+      {
+        "deploymentId": "AKfycbwlEopJ0c3YKlYxmHmfxT-31r5HW6RhhwAehJ0C8x4",
+        "description": null,
+        "versionNumber": null,
+        "readOnly": true
+      }
+    ],
+    "A": [
+      {
+        "deploymentId": "AKfycbwsttkJNge8f1LftYV58wg_YohIiLnp3bMOLtRZsFc9",
+        "description": null,
+        "versionNumber": null,
+        "readOnly": true
+      }
+    ],
+    "B": [
+      {
+        "deploymentId": "AKfycbxheyKJ74uj-sAJLN6ZyUDthk4up3OnHp2_nFG1pN0",
+        "description": null,
+        "versionNumber": null,
+        "readOnly": true
+      }
+    ]
+  },
+  "deployment_note": "三个项目各 1 条默认 head 只读部署（API 不可删，详见梳理文档 §9）；本实验从未创建可匿名调用的 web app 端点（无 entryPointType/access 配置），净零入口链接成立。"
+}
