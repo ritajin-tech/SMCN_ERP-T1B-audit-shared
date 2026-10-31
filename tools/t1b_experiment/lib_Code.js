@@ -1,5 +1,5 @@
 /**
- * T1-B 阶段B 非生产实验 · 共享锁库 / 集中锁协调器（E2/E3 落地原型）v9
+ * T1-B 阶段B 非生产实验 · 共享锁库 / 集中锁协调器（E2/E3 落地原型）v10
  * 被 writerA / writerB 两个独立项目共同引用；集中锁端点(deploy 为 web app)即本文件部署。
  *
  * v7 修订（响应 Tom 12:26Z 第7轮静态复核 5 条）：核心——把【数据分类账】设为 fence 排序与准入的
@@ -19,6 +19,16 @@
  *     + 审计留痕 + 失败 fail-closed（令牌无效绝不写）。
  *  #3 目标侧条件写/防绕过/隔离权限/释放失败/故障恢复：属【授权隔离环境实证】项（Tom 9-3），代码侧已含单调 fence
  *     条件写 + 资源绑定 RESOURCE_BINDING_REJECT + 端点真实释放记录；运行实证仍须 Rita 已签 §5 授权环境后由独立核验人跑通。
+ *
+ * v10 修订（响应 Tom 22:51Z 第10轮 3 条）：
+ *  #1 恢复流程闭合（Tom 10-1/10-2）：原 reconcileResolve 先翻 COMMITTED(解阻)再写审计/标 nonce，中间故障可能“解阻却缺审计”；
+ *     且状态翻转改变摘要，原令牌重试在摘要校验处被拒不达幂等判据。→ 改为【可恢复持久状态机】：审计处置+标 nonce 先于解阻；
+ *     崩溃重试先按 (maxf,nonce) 查审计短路在摘要重校验之前；令牌摘要绑定解阻前状态，单次解阻仍需有效令牌，重试靠审计幂等而非令牌重放。
+ *     实现 _tokenStruct + 重排 reconcileResolve。
+ *  #2 诚实界定资源绑定≠调用方鉴权（Tom 10-3）：RESOURCE_BINDING_REJECT 是【目标/目的地】校验非【调用方身份】认证；
+ *     REPLAY_TOKEN_MISSING 仅观测钩子，不据其声称“防绕过”。
+ *  #3 目标侧拒旧写/权限隔离/释放失败/恢复端到端：仍属【授权隔离环境实证】项（Tom 10-实证），代码侧已含 STALE_FENCE_REJECT +
+ *     资源绑定 + RELEASED/RELEASE_FAIL + 状态机恢复；运行实证须 Rita 已签 §5 授权环境后由独立核验人跑通。
  *
  * 纯非生产；不读主库/生产表；仅操作授权隔离测试表。
  * 部署红线：LOCKER_URL / ALLOWED_SSID / RESOLVE_SECRET 均为 REPLACE_* 占位；未配置前 CENTRAL 返回 NOT_CONFIGURED；
@@ -358,21 +368,39 @@ function _flipCrashPendingToCommitted(ssId) {
   }
   return n;
 }
-// v9 #2 恢复闭环：CRASH_PENDING(无畸形/缺口) 经签名令牌授权后翻 COMMITTED 并刷新缓存；全程集中锁内 + 审计 + 幂等 + 失败 fail-closed
+// v10 #1 可恢复持久状态机（响应 Tom 22:51Z 第10轮 10-1/10-2）：审计先于解阻 + 幂等短路在摘要重校验之前
+// 设计要点：
+//  · 解阻（翻 COMMITTED）必须在【审计处置记录已落 + nonce 已标记】之后 -> “解阻 ⇔ 已审计”二态一致
+//  · 崩溃重试：先按令牌结构取 (maxf,nonce) 查审计/nonce 是否已落（无需密钥解析），已落则直接幂等成功，
+//    短路在【摘要重校验】之前，避免“状态翻转改变摘要 -> 原令牌在摘要校验处被拒 -> 幂等判据到不了”的死结
+//  · 令牌摘要绑定【解阻前状态】；单次解阻仍需有效令牌；重试靠审计幂等而非令牌重放
+function _tokenStruct(token) {
+  if (!token) return null;
+  var parts = String(token).split('|');
+  if (parts.length !== 9) return null;
+  return { approver: parts[0], verifier: parts[1], resourceId: parts[2], maxf: parts[3], digest: parts[4], basis: parts[5], nonce: parts[6], ts: parts[7], sig: parts[8] };
+}
 function reconcileResolve(ssId, token) {
   var r = reconcileLedger(ssId);
   var onlyPending = (r.pending.length > 0 && r.malformed.length === 0 && r.gaps.length === 0);
   if (r.unknown && !onlyPending) return { ok: false, reason: 'STILL_UNKNOWN_BLOCKED', report: r }; // 真实损坏仍阻断
+  // v10 #1 幂等短路：先按令牌结构取 (maxf,nonce) 查审计/nonce 是否已落（不校验签名，查的是“上次是否已审计”）
+  var ts0 = _tokenStruct(token);
+  if (ts0 && ts0.nonce) {
+    var mf0 = _parseIntStrict(ts0.maxf, 1, 9007199254740991);
+    if (mf0 !== null && (_dispositionExists(ssId, mf0, ts0.nonce) || _nonceUsed(ssId, ts0.nonce))) {
+      return { ok: true, cache: r.maxLedger, maxLedger: r.maxLedger, idempotent: true, approver: ts0.approver, verifier: ts0.verifier, note: 'audit-present-before-digest-reverify' };
+    }
+  }
+  // v10 #1 全量令牌核验（摘要绑定【解阻前状态】，此时尚未翻状态，摘要仍匹配当前账本）
   var v = _verifyResolveToken(token, r.maxLedger, ssId);
   if (!v.ok) return { ok: false, reason: v.reason }; // 令牌无效 -> 绝不写（fail-closed）
-  // v9 #2 幂等：同 (maxLedger,nonce) 已处置 -> 安全重试（崩溃窗口恢复），不双写处置记录
-  if (_dispositionExists(ssId, r.maxLedger, v.nonce)) return { ok: true, cache: r.maxLedger, maxLedger: r.maxLedger, idempotent: true, approver: v.approver, verifier: v.verifier };
-  if (_nonceUsed(ssId, v.nonce)) return { ok: true, cache: r.maxLedger, maxLedger: r.maxLedger, idempotent: true, approver: v.approver, verifier: v.verifier };
-  // 授权处置 & 恢复闭环：仅 CRASH_PENDING -> 翻 COMMITTED（恢复崩溃写）
-  var flipped = onlyPending ? _flipCrashPendingToCommitted(ssId) : 0;
-  _sheet(ssId).getRange('B1').setValue(r.maxLedger); // 刷新展示缓存（仅核验通过后）
+  // v10 #1 审计先于解阻：先落处置记录 + 标 nonce，再翻 COMMITTED（解阻）
   _dispositionSheet(ssId).appendRow([new Date().toISOString(), v.approver, v.verifier, r.maxLedger, (onlyPending ? 'RECOVERED' : 'RESOLVED'), v.basis, v.nonce]);
   _markNonceUsed(ssId, v.nonce, v.approver, v.verifier, r.maxLedger);
+  // v10 #1 解阻（仅 CRASH_PENDING -> 翻 COMMITTED）；翻本身幂等（已 COMMITTED 再翻计 0）；至此“解阻 ⇔ 已审计”
+  var flipped = onlyPending ? _flipCrashPendingToCommitted(ssId) : 0;
+  _sheet(ssId).getRange('B1').setValue(r.maxLedger); // 刷新展示缓存（仅核验+审计通过后）
   return { ok: true, cache: r.maxLedger, maxLedger: r.maxLedger, approver: v.approver, verifier: v.verifier, recoveredPending: onlyPending, flipped: flipped };
 }
 
@@ -384,9 +412,11 @@ function doGuard_(e) {
   var domain = p.domain || SHARED_LOCK_DOMAIN;
   var ssId = p.ssId || ALLOWED_SSID;
   if (ssId !== ALLOWED_SSID) return ContentService.createTextOutput(JSON.stringify({ ok: false, reason: 'RESOURCE_BINDING_REJECT', released: false }));
-  // v7 #5 端点鉴权重放占位：要求显式 token（非生产允许空，但记录 REPLAY_TOKEN_MISSING 供独立观察者核证）
+  // v10 #3 诚实界定（响应 Tom 22:51Z 第10轮 10-3）：资源绑定(RESOURCE_BINDING_REJECT) 仅约束“写入目标必须是授权隔离表”，
+  //   是【目标/目的地】校验，NOT【调用方身份】认证；调用方身份依赖部署访问控制（仅授权编辑器可调），属部署期属性而非代码属性。
+  //   REPLAY_TOKEN_MISSING 仅作独立观察者观测钩子，不构成鉴权，也不据此声称“防绕过”。
   var token = p.token || '';
-  if (!token && p.op !== 'reconcile' && p.op !== 'resolve') _logSheet(ssId).appendRow([p.eid || Utilities.getUuid(), new Date().toISOString(), p.writer || 'writerX', 'CENTRAL', 'REPLAY_TOKEN_MISSING', 0, 'op=' + (p.op || 'write')]);
+  if (!token && p.op !== 'reconcile' && p.op !== 'resolve') _logSheet(ssId).appendRow([p.eid || Utilities.getUuid(), new Date().toISOString(), p.writer || 'writerX', 'CENTRAL', 'REPLAY_TOKEN_MISSING', 0, 'op=' + (p.op || 'write') + ' note=observation-hook-not-auth']);
   var lock = LockService.getScriptLock(); // 本集中部署自身锁域 —— 两写者 funnel 进此域 -> 真正互斥
   var ok = false;
   try { ok = lock.tryLock(_parseIntStrict(p.hold, 1, 600000) || 30000); } catch (err) {}
