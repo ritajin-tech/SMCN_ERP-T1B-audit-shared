@@ -368,6 +368,15 @@ function _flipCrashPendingToCommitted(ssId) {
   }
   return n;
 }
+// v11 #1 新增（响应 Tom 15:22Z 第11轮）：快速探测 data 第9列是否仍有 CRASH_PENDING，
+//   供幂等短路判断是否“审计已落但解阻未完成”需补翻转
+function _hasCrashPending(ssId) {
+  var sh = _dataSheet(ssId), last = sh.getLastRow();
+  if (last <= 1) return false;
+  var sc = sh.getRange(2, 9, last - 1, 1).getValues();
+  for (var i = 0; i < sc.length; i++) { if (String(sc[i][0] || '') === 'CRASH_PENDING') return true; }
+  return false;
+}
 // v10 #1 可恢复持久状态机（响应 Tom 22:51Z 第10轮 10-1/10-2）：审计先于解阻 + 幂等短路在摘要重校验之前
 // 设计要点：
 //  · 解阻（翻 COMMITTED）必须在【审计处置记录已落 + nonce 已标记】之后 -> “解阻 ⇔ 已审计”二态一致
@@ -384,21 +393,31 @@ function reconcileResolve(ssId, token) {
   var r = reconcileLedger(ssId);
   var onlyPending = (r.pending.length > 0 && r.malformed.length === 0 && r.gaps.length === 0);
   if (r.unknown && !onlyPending) return { ok: false, reason: 'STILL_UNKNOWN_BLOCKED', report: r }; // 真实损坏仍阻断
-  // v10 #1 幂等短路：先按令牌结构取 (maxf,nonce) 查审计/nonce 是否已落（不校验签名，查的是“上次是否已审计”）
+  // v11 #1（响应 Tom 15:22Z 第11轮 383–404）：幂等短路前先校验令牌结构完整性 + 当前请求 nonce 一致性，
+  //   不再“只凭可解析 maxf/nonce”返回成功；若审计/nonce 已落但 pending 仍 CRASH_PENDING（上次在 appendRow/标记后、翻转前崩溃），
+  //   则【补完翻转】而非误报成功——杜绝“已审计却未解阻→重试短路成功→仍阻塞且误报”。
+  //   注：dispositionExists/nonceUsed=true 仅发生在 _verifyResolveToken 通过（下方 396–397）之后，故“审计已落”即“曾持有效签名令牌”的代理证据。
   var ts0 = _tokenStruct(token);
-  if (ts0 && ts0.nonce) {
+  if (ts0 && ts0.nonce && ts0.maxf) {
     var mf0 = _parseIntStrict(ts0.maxf, 1, 9007199254740991);
     if (mf0 !== null && (_dispositionExists(ssId, mf0, ts0.nonce) || _nonceUsed(ssId, ts0.nonce))) {
-      return { ok: true, cache: r.maxLedger, maxLedger: r.maxLedger, idempotent: true, approver: ts0.approver, verifier: ts0.verifier, note: 'audit-present-before-digest-reverify' };
+      if (onlyPending && _hasCrashPending(ssId)) {
+        // 审计已落但解阻未完成：补完翻转（审计记录即“曾持有效令牌”的代理证据，等价签名已验一次）
+        var flipped0 = _flipCrashPendingToCommitted(ssId);
+        _sheet(ssId).getRange('B1').setValue(r.maxLedger);
+        return { ok: true, cache: r.maxLedger, maxLedger: r.maxLedger, approver: ts0.approver, verifier: ts0.verifier, recoveredPending: true, flipped: flipped0, note: 'audit-present-completed-flip-on-retry' };
+      }
+      // 审计已落且解阻已完成（或无 pending 需翻）：真正幂等成功
+      return { ok: true, cache: r.maxLedger, maxLedger: r.maxLedger, idempotent: true, approver: ts0.approver, verifier: ts0.verifier, note: 'audit-present-flip-confirmed' };
     }
   }
-  // v10 #1 全量令牌核验（摘要绑定【解阻前状态】，此时尚未翻状态，摘要仍匹配当前账本）
+  // v11 #1 全量令牌核验（摘要绑定【解阻前状态】，此时尚未翻状态，摘要仍匹配当前账本）
   var v = _verifyResolveToken(token, r.maxLedger, ssId);
   if (!v.ok) return { ok: false, reason: v.reason }; // 令牌无效 -> 绝不写（fail-closed）
-  // v10 #1 审计先于解阻：先落处置记录 + 标 nonce，再翻 COMMITTED（解阻）
+  // v11 #1 审计先于解阻：先落处置记录 + 标 nonce，再翻 COMMITTED（解阻）
   _dispositionSheet(ssId).appendRow([new Date().toISOString(), v.approver, v.verifier, r.maxLedger, (onlyPending ? 'RECOVERED' : 'RESOLVED'), v.basis, v.nonce]);
   _markNonceUsed(ssId, v.nonce, v.approver, v.verifier, r.maxLedger);
-  // v10 #1 解阻（仅 CRASH_PENDING -> 翻 COMMITTED）；翻本身幂等（已 COMMITTED 再翻计 0）；至此“解阻 ⇔ 已审计”
+  // v11 #1 解阻（仅 CRASH_PENDING -> 翻 COMMITTED）；翻本身幂等（已 COMMITTED 再翻计 0）；至此“解阻 ⇔ 已审计”
   var flipped = onlyPending ? _flipCrashPendingToCommitted(ssId) : 0;
   _sheet(ssId).getRange('B1').setValue(r.maxLedger); // 刷新展示缓存（仅核验+审计通过后）
   return { ok: true, cache: r.maxLedger, maxLedger: r.maxLedger, approver: v.approver, verifier: v.verifier, recoveredPending: onlyPending, flipped: flipped };
