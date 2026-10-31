@@ -1,12 +1,12 @@
 /**
- * T1-B 阶段B 非生产实验 · 写者项目（模拟 W3 无锁独立写者 / W4 新项目）v4
+ * T1-B 阶段B 非生产实验 · 写者项目（模拟 W3 无锁独立写者 / W4 新项目）v5
  * 与 writerB 为两个"独立 script 项目"（不同 scriptId），用于实证跨项目锁语义。
  * 仅读写传入的隔离测试表 ssId；不读主库/生产表；不充当任何正式填报入口。
  *
- * v4 修订（响应 Tom 10:51Z）：
- *  #1 OWN 负对照 = 写者本地持自身 getScriptLock 做受保护写（ACQUIRED/RELEASED 在锁内本地记录），跨项目不互斥，复现漏洞；
- *     CENTRAL 正例 = 受保护写整体 funnel 进集中锁端点（端点内真正持锁+闸+写+释放，权威日志含单调 fencing 令牌），跨项目互斥。
- *  #2 释放/结果透传：CENTRAL 模式下 released 由集中端点 finally 真实决定；writer 据其记 OK/REJECTED/FAIL，绝不伪造。
+ * v5 修订（响应 Tom 11:22Z）：
+ *  #1 释放/结果透传：CENTRAL 模式下 released 由集中端点 finally 真实决定；本文件据其记 OK/REJECTED/FAIL，绝不伪造；
+ *      OWN 负对照的 released 亦由 guardedWriteOwn 的 finally 真实决定（见 lib v5）。
+ *  #3 真实注册：register 经 guardedWrite(kind='register') -> 集中端点 op=register，在锁内真实写注册记录（非仅记 kind）。
  */
 var SSID = 'REPLACE_SSID';
 var LOCKER_URL = 'REPLACE_LOCKER_URL'; // 集中锁端点部署 URL（非生产）；配置前 CENTRAL 模式返回 LOCKER_URL_NOT_CONFIGURED
@@ -17,11 +17,11 @@ function runTest(ssId, writerName, sleepMs, mode) {
   var eid = _execId();
   var start = new Date();
   var handleMode = (mode === 'OWN') ? 'OWN' : 'CENTRAL';
-  // OWN：写者本地持自身锁做受保护写（ACQUIRED/RELEASED 在锁内本地记录）
-  // CENTRAL：受保护写整体 funnel 进集中端点（端点内持锁+闸+写+释放，权威日志含 fencing 令牌）
+  // OWN：写者本地持自身锁做受保护写（ACQUIRED/RELEASED 在锁内本地记录），跨项目不互斥，复现漏洞；
+  // CENTRAL：受保护写整体 funnel 进集中端点（端点内真正持锁+闸+真实写+释放，权威日志含单调 fencing 令牌），跨项目互斥。
   var r = SharedLockLib.guardedWrite(ssId, 't1b-exp-guard', eid, writerName, sleepMs || 4000, handleMode, LOCKER_URL, 'write');
   var end = new Date();
-  // #2 释放/结果透传，不伪造
+  // 释放/结果透传，不伪造
   var rel = r.released;
   var status = r.ok ? 'OK' : ((r.reason === 'PERIOD_LOCKED' || r.reason === 'UNKNOWN_REJECT') ? 'REJECTED' : 'FAIL');
   SharedLockLib.appendLog(ssId, [eid, end.toISOString(), writerName, handleMode, status, r.ok ? 1 : 0,
@@ -39,6 +39,7 @@ function guardTest(ssId) {
 function setFreeze(ssId, val) { return SharedLockLib.guardedWriteFreeze(ssId, val, LOCKER_URL); }
 function register(ssId, name, mode) {
   var eid = _execId();
+  // kind='register' -> 集中端点 op=register，锁内真实写注册记录（#3 真实注册）
   return SharedLockLib.guardedWrite(ssId, 't1b-exp-guard', eid, name, 0, mode || 'CENTRAL', LOCKER_URL, 'register');
 }
 
@@ -65,6 +66,10 @@ function doGet(e) {
   if (p.mode === 'guard') {
     var v = guardTest(sid);
     return ContentService.createTextOutput(v);
+  }
+  if (p.mode === 'register') {
+    var rr = register(sid, p.name || 'writerX', p.lockMode || 'CENTRAL');
+    return ContentService.createTextOutput(JSON.stringify(rr));
   }
   return ContentService.createTextOutput('bad mode');
 }
