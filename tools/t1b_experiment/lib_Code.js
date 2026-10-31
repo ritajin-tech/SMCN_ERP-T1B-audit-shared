@@ -359,15 +359,35 @@ function _dispositionExists(ssId, maxLedger, nonce) {
 }
 // v12 #1 新增（响应 Tom 15:51Z 第12轮）：处置记录升级为完整记录（目标行/阶段/原请求摘要），并新增“仅恢复指定目标行”的翻转占用
 //   disposition 列：1=ts 2=approver 3=verifier 4=maxLedger 5=action 6=basis 7=nonce 8=targetRows(JSON) 9=stage 10=digestAtRequest
+// v13 #1 目标行严格解析（响应 Tom 16:21Z 第13轮）：解析失败【不再默认为空数组】，返回 null 交由调用方 fail-closed。
+//   “JSON 解析失败被默认为空”会让一份损坏记录表现为“本次令牌授权范围为空”，从而什么都不翻却返回成功。
+function _parseRowList(s) {
+  if (!s) return null;
+  var arr;
+  try { arr = JSON.parse(s); } catch (e) { return null; }
+  if (Object.prototype.toString.call(arr) !== '[object Array]') return null;
+  var out = [];
+  for (var i = 0; i < arr.length; i++) {
+    var n = _parseIntStrict(arr[i], 2, 9007199254740991);
+    if (n === null) return null; // 任一元素非合法行号 -> 整份目标列表不可信 -> 全份拒绝
+    out.push(n);
+  }
+  return out;
+}
+// v13 #1 目标行身份/内容摘要：把“目标行集合”本身也绑定到密钥摘要，防止记录里的 targetRows 被事后增减
+function _rowListDigest(arr) {
+  return _hmacHex(RESOLVE_SECRET, 'targets:' + JSON.stringify(arr));
+}
 function _dispositionRecord(ssId, maxLedger, nonce) {
   var sh = _dispositionSheet(ssId), last = sh.getLastRow();
   if (last <= 1) return null;
-  var vals = sh.getRange(2, 1, last - 1, 10).getValues();
+  var vals = sh.getRange(2, 1, last - 1, 11).getValues();
   for (var i = 0; i < vals.length; i++) {
     var row = vals[i];
     if (String(row[3]) === String(maxLedger) && String(row[6]) === String(nonce)) {
       return { ts: row[0], approver: row[1], verifier: row[2], maxLedger: row[3], action: row[4], basis: row[5], nonce: row[6],
-               targetRows: String(row[7] || ''), stage: String(row[8] || ''), digestAtRequest: String(row[9] || ''), rowIndex: i + 2 };
+               targetRows: String(row[7] || ''), stage: String(row[8] || ''), digestAtRequest: String(row[9] || ''),
+               targetDigest: String(row[10] || ''), rowIndex: i + 2 };
     }
   }
   return null;
@@ -461,10 +481,25 @@ function reconcileResolve(ssId, token) {
   var rec = _dispositionRecord(ssId, v.maxf, v.nonce);
   if (!rec && _nonceUsed(ssId, v.nonce)) return { ok: false, reason: 'RESOLVE_NONCE_SCOPE_MISMATCH' };
   if (rec) {
-    // Tom #1：“再与持久保存的完整原请求摘要...匹配”
-    if (rec.digestAtRequest && rec.digestAtRequest !== v.digest) return { ok: false, reason: 'RECOVER_DIGEST_MISMATCH' };
-    var targets = [];
-    try { targets = JSON.parse(rec.targetRows || '[]'); } catch (e) { targets = []; }
+    // v13 #1（响应 Tom 16:21Z 第13轮）【恢复记录完整性 fail-closed】：以下任一不成立即阻断，绝不降级放行。
+    //   Tom 原文 4 条逐一对应：① 摘要缺失可跳过匹配 ② JSON 解析失败默认空 ③ 未知 stage 仍走刷新缓存并标 CACHED
+    //   ④ CACHED 分支可在存在范围外 pending 时直接返回成功而不报告该状态。
+    // ① 持久记录摘要【必须存在且匹配】（原写法 rec.digestAtRequest && ... 会让摘要缺失直接跳过比对）
+    if (!rec.digestAtRequest) return { ok: false, reason: 'RECOVER_RECORD_DIGEST_MISSING' };
+    if (rec.digestAtRequest !== v.digest) return { ok: false, reason: 'RECOVER_DIGEST_MISMATCH' };
+    // ② 目标行【必须存在、可严格解析、且与密钥摘要一致】（原写法 catch->[] 使损坏记录表现为“授权范围为空”却返回成功）
+    if (!rec.targetRows) return { ok: false, reason: 'RECOVER_TARGETS_MISSING' };
+    var targets = _parseRowList(rec.targetRows);
+    if (targets === null) return { ok: false, reason: 'RECOVER_TARGETS_MALFORMED' };
+    if (!rec.targetDigest) return { ok: false, reason: 'RECOVER_TARGET_DIGEST_MISSING' };
+    if (rec.targetDigest !== _rowListDigest(targets)) return { ok: false, reason: 'RECOVER_TARGET_DIGEST_MISMATCH' };
+    // ② 补：回显身份必须与【当前令牌身份】一致——防止持他人 nonce 命中记录后回显他人 approver/verifier
+    if (rec.approver !== v.approver || rec.verifier !== v.verifier) return { ok: false, reason: 'RECOVER_IDENTITY_MISMATCH' };
+    // ③ stage 白名单（原写法只判 'CACHED'/'DISPOSED'，未知 stage 会落到“刷新缓存+标 CACHED” -> 损坏记录被误报成功）
+    var st = String(rec.stage || '');
+    if (st !== 'DISPOSED' && st !== 'FLIPPED' && st !== 'CACHED') {
+      return { ok: false, reason: 'RESOLVE_STAGE_UNKNOWN', stage: st === '' ? '(empty)' : st };
+    }
     var pendNow = _pendingRowIdxs(ssId);
     var toFlip = [], extra = [];
     for (var i = 0; i < pendNow.length; i++) {
@@ -472,25 +507,49 @@ function reconcileResolve(ssId, token) {
       for (var j = 0; j < targets.length; j++) { if (String(targets[j]) === String(pendNow[i])) hit = true; }
       if (hit) toFlip.push(pendNow[i]); else extra.push(pendNow[i]);
     }
-    // Tom #1：“对已完成的操作只回读可信记录”（不翻转、不重写审计）
-    if (String(rec.stage) === 'CACHED' && toFlip.length === 0) {
-      return { ok: true, cache: r.maxLedger, maxLedger: r.maxLedger, idempotent: true, approver: rec.approver, verifier: rec.verifier, note: 'reread-trusted-record' };
+    // ④ 范围外 pending 处理原则（Tom“显示阻断或清晰的部分完成，不得作为整体恢复成功”）：
+    //    extra>0 ⇒ 本次令牌未涵盖 ⇒ 【不刷 B1 缓存】（刷 B1 即声明“整体已最新”，属误报）且【不推进 stage 到 CACHED】，
+    //    返回 complete:false + partial:true 并如实列出范围外行，须另领新令牌覆盖后重跑。
+    if (st === 'CACHED') {
+      if (toFlip.length > 0) {
+        // 记录声称已完成，但仍有【范围内】目标处于 CRASH_PENDING -> 记录与真实状态不一致 -> fail-closed 阻断待人工
+        return { ok: false, reason: 'RECOVER_STATE_INCONSISTENT', pendingInScope: toFlip.length, stage: st };
+      }
+      if (extra.length > 0) {
+        return { ok: true, complete: false, partial: true, idempotent: true, cacheRefreshed: false,
+                 cache: r.maxLedger, maxLedger: r.maxLedger, approver: rec.approver, verifier: rec.verifier,
+                 outOfScopeCount: extra.length, outOfScopeRows: extra.slice(0, 50),
+                 note: 'scope-external-pending-partial-not-complete' };
+      }
+      return { ok: true, complete: true, idempotent: true, cacheRefreshed: true, cache: r.maxLedger, maxLedger: r.maxLedger,
+               approver: rec.approver, verifier: rec.verifier, note: 'reread-trusted-record' };
     }
-    // Tom #1：“未完成则按状态机仅恢复对应目标”——extra = 本次令牌未涵盖的新 pending，不翻，须另领新令牌
+    // st === DISPOSED（尚未翻）或 FLIPPED（已翻待收尾）：仅翻【本次令牌授权涵盖 ∩ 当前 pending】的目标行
     var flipped = 0;
-    if (String(rec.stage) === 'DISPOSED') { flipped = _flipPendingRows(ssId, toFlip); _updateDispositionStage(ssId, rec.rowIndex, 'FLIPPED'); }
+    if (st === 'DISPOSED') { flipped = _flipPendingRows(ssId, toFlip); _updateDispositionStage(ssId, rec.rowIndex, 'FLIPPED'); }
+    if (extra.length > 0) {
+      // 有范围外 pending：不刷 B1、不标 CACHED —— 保持“部分完成”可被下次重跑接着推进
+      return { ok: true, complete: false, partial: true, cacheRefreshed: false, cache: r.maxLedger, maxLedger: r.maxLedger,
+               approver: rec.approver, verifier: rec.verifier, recoveredPending: true, flipped: flipped,
+               authorizedTargets: targets.length, flippedTargets: toFlip.length,
+               outOfScopeCount: extra.length, outOfScopeRows: extra.slice(0, 50),
+               note: 'stage-machine-scoped-recovery-partial' };
+    }
+    // 范围内全部翻转完成 -> 收尾：刷缓存 + 标 CACHED（至此“更新 B1 ⇔ 范围内已全部解阻且已审计”）
     _sheet(ssId).getRange('B1').setValue(r.maxLedger);
     _updateDispositionStage(ssId, rec.rowIndex, 'CACHED');
-    return { ok: true, cache: r.maxLedger, maxLedger: r.maxLedger, approver: rec.approver, verifier: rec.verifier,
-             recoveredPending: true, flipped: flipped, authorizedTargets: targets.length, flippedTargets: toFlip.length,
-             newPendingOutsideScope: extra.length, note: 'stage-machine-scoped-recovery' };
+    return { ok: true, complete: true, partial: false, cacheRefreshed: true, cache: r.maxLedger, maxLedger: r.maxLedger,
+             approver: rec.approver, verifier: rec.verifier, recoveredPending: true, flipped: flipped,
+             authorizedTargets: targets.length, flippedTargets: toFlip.length, outOfScopeCount: 0,
+             note: 'stage-machine-scoped-recovery-complete' };
   }
   // 首次处理：仍需与【当前】账本状态绑定（maxf + 当前摘要）
   if (v.maxf !== r.maxLedger) return { ok: false, reason: 'RESOLVE_LEDGER_MISMATCH' };
   var dg0 = _ledgerDigest(ssId);
   if (dg0 !== v.digest) return { ok: false, reason: 'RESOLVE_DIGEST_MISMATCH' };
   var pend0 = _pendingRowIdxs(ssId);
-  _dispositionSheet(ssId).appendRow([new Date().toISOString(), v.approver, v.verifier, r.maxLedger, (onlyPending ? 'RECOVERED' : 'RESOLVED'), v.basis, v.nonce, JSON.stringify(pend0), 'DISPOSED', dg0]);
+  // v13 #1 首写即落目标行摘要（第 11 列），供重试时做“目标行身份/内容”严格比对
+  _dispositionSheet(ssId).appendRow([new Date().toISOString(), v.approver, v.verifier, r.maxLedger, (onlyPending ? 'RECOVERED' : 'RESOLVED'), v.basis, v.nonce, JSON.stringify(pend0), 'DISPOSED', dg0, _rowListDigest(pend0)]);
   _markNonceUsed(ssId, v.nonce, v.approver, v.verifier, r.maxLedger);
   var flipped0 = onlyPending ? _flipPendingRows(ssId, pend0) : 0;
   var lastRow = _dispositionSheet(ssId).getLastRow();
