@@ -1,0 +1,839 @@
+{
+ "ts": "2026-11-02T01:32:03.355388",
+ "reason": "制度口径：2026-10-15 起日历假只进主库请假页；生产表请假行为历史遗留且已被主库同人同日覆盖",
+ "rows": [
+  {
+   "row": "6795",
+   "name": "April Xu",
+   "date": "2026-05-01",
+   "hours": "8",
+   "covered": "1"
+  },
+  {
+   "row": "6886",
+   "name": "Jerry Fu",
+   "date": "2026-07-24",
+   "hours": "8",
+   "covered": "1"
+  },
+  {
+   "row": "6887",
+   "name": "Shirley Lin",
+   "date": "2026-06-01",
+   "hours": "8",
+   "covered": "1"
+  },
+  {
+   "row": "6888",
+   "name": "Shirley Lin",
+   "date": "2026-06-29",
+   "hours": "8",
+   "covered": "1"
+  },
+  {
+   "row": "6889",
+   "name": "Shirley Lin",
+   "date": "2026-06-30",
+   "hours": "8",
+   "covered": "1"
+  },
+  {
+   "row": "6890",
+   "name": "Shirley Lin",
+   "date": "2026-07-01",
+   "hours": "8",
+   "covered": "1"
+  },
+  {
+   "row": "6891",
+   "name": "Shirley Lin",
+   "date": "2026-07-02",
+   "hours": "8",
+   "covered": "1"
+  },
+  {
+   "row": "6893",
+   "name": "Milo Zhou",
+   "date": "2026-04-03",
+   "hours": "3",
+   "covered": "1"
+  },
+  {
+   "row": "6898",
+   "name": "Aien Sheng",
+   "date": "2026-04-22",
+   "hours": "3",
+   "covered": "1"
+  },
+  {
+   "row": "6905",
+   "name": "June Feng",
+   "date": "2026-05-08",
+   "hours": "5",
+   "covered": "1"
+  },
+  {
+   "row": "6906",
+   "name": "Milo Zhou",
+   "date": "2026-05-11",
+   "hours": "8",
+   "covered": "1"
+  },
+  {
+   "row": "6909",
+   "name": "Jerry Fu",
+   "date": "2026-05-19",
+   "hours": "3",
+   "covered": "1"
+  },
+  {
+   "row": "6912",
+   "name": "Jerry Fu",
+   "date": "2026-05-22",
+   "hours": "3",
+   "covered": "1"
+  },
+  {
+   "row": "6915",
+   "name": "June Feng",
+   "date": "2026-05-29",
+   "hours": "3",
+   "covered": "1"
+  },
+  {
+   "row": "6916",
+   "name": "Vivian Ye",
+   "date": "2026-05-29",
+   "hours": "3",
+   "covered": "1"
+  },
+  {
+   "row": "6919",
+   "name": "June Feng",
+   "date": "2026-06-03",
+   "hours": "3",
+   "covered": "1"
+  },
+  {
+   "row": "6921",
+   "name": "June Feng",
+   "date": "2026-06-09",
+   "hours": "3",
+   "covered": "1"
+  },
+  {
+   "row": "6922",
+   "name": "Allen Zhang",
+   "date": "2026-06-11",
+   "hours": "3",
+   "covered": "1"
+  },
+  {
+   "row": "6930",
+   "name": "Vivian Ye",
+   "date": "2026-07-01",
+   "hours": "5",
+   "covered": "1"
+  },
+  {
+   "row": "6933",
+   "name": "Juliet Zhao",
+   "date": "2026-07-03",
+   "hours": "5",
+   "covered": "1"
+  },
+  {
+   "row": "6935",
+   "name": "June Feng",
+   "date": "2026-07-13",
+   "hours": "8",
+   "covered": "1"
+  },
+  {
+   "row": "6938",
+   "name": "Ryan Jiang",
+   "date": "2026-07-24",
+   "hours": "8",
+   "covered": "1"
+  },
+  {
+   "row": "6940",
+   "name": "Aien Sheng",
+   "date": "2026-07-30",
+   "hours": "8",
+   "covered": "1"
+  },
+  {
+   "row": "7342",
+   "name": "Vivian Ye",
+   "date": "2026-08-03",
+   "hours": "8",
+   "covered": "1"
+  },
+  {
+   "row": "7343",
+   "name": "Vivian Ye",
+   "date": "2026-08-04",
+   "hours": "8",
+   "covered": "1"
+  },
+  {
+   "row": "7344",
+   "name": "Juliet Zhao",
+   "date": "2026-08-03",
+   "hours": "8",
+   "covered": "1"
+  },
+  {
+   "row": "7345",
+   "name": "Juliet Zhao",
+   "date": "2026-08-04",
+   "hours": "8",
+   "covered": "1"
+  },
+  {
+   "row": "7346",
+   "name": "Juliet Zhao",
+   "date": "2026-08-05",
+   "hours": "8",
+   "covered": "1"
+  },
+  {
+   "row": "7347",
+   "name": "Juliet Zhao",
+   "date": "2026-08-06",
+   "hours": "8",
+   "covered": "1"
+  },
+  {
+   "row": "7348",
+   "name": "Juliet Zhao",
+   "date": "2026-08-07",
+   "hours": "8",
+   "covered": "1"
+  },
+  {
+   "row": "7349",
+   "name": "Aien Sheng",
+   "date": "2026-08-03",
+   "hours": "8",
+   "covered": "1"
+  },
+  {
+   "row": "7350",
+   "name": "Aien Sheng",
+   "date": "2026-08-04",
+   "hours": "8",
+   "covered": "1"
+  },
+  {
+   "row": "7351",
+   "name": "Allen Zhang",
+   "date": "2026-08-03",
+   "hours": "3",
+   "covered": "1"
+  },
+  {
+   "row": "7352",
+   "name": "Ying Zhu",
+   "date": "2026-08-04",
+   "hours": "5",
+   "covered": "1"
+  },
+  {
+   "row": "7353",
+   "name": "Kian Guo",
+   "date": "2026-08-05",
+   "hours": "3",
+   "covered": "1"
+  },
+  {
+   "row": "7354",
+   "name": "Christopher M. Tengco",
+   "date": "2026-08-12",
+   "hours": "8",
+   "covered": "1"
+  },
+  {
+   "row": "7355",
+   "name": "Jerry Fu",
+   "date": "2026-08-14",
+   "hours": "8",
+   "covered": "1"
+  },
+  {
+   "row": "7356",
+   "name": "Juliet Zhao",
+   "date": "2026-08-14",
+   "hours": "8",
+   "covered": "1"
+  },
+  {
+   "row": "7357",
+   "name": "April Xu",
+   "date": "2026-08-17",
+   "hours": "8",
+   "covered": "1"
+  },
+  {
+   "row": "7358",
+   "name": "Ying Zhu",
+   "date": "2026-08-17",
+   "hours": "8",
+   "covered": "1"
+  },
+  {
+   "row": "7359",
+   "name": "Ying Zhu",
+   "date": "2026-08-18",
+   "hours": "8",
+   "covered": "1"
+  },
+  {
+   "row": "7360",
+   "name": "Ying Zhu",
+   "date": "2026-08-19",
+   "hours": "8",
+   "covered": "1"
+  },
+  {
+   "row": "7361",
+   "name": "Ying Zhu",
+   "date": "2026-08-20",
+   "hours": "8",
+   "covered": "1"
+  },
+  {
+   "row": "7362",
+   "name": "Ying Zhu",
+   "date": "2026-08-21",
+   "hours": "8",
+   "covered": "1"
+  },
+  {
+   "row": "7363",
+   "name": "Lucia Lau",
+   "date": "2026-08-20",
+   "hours": "8",
+   "covered": "1"
+  },
+  {
+   "row": "7364",
+   "name": "Ryan Jiang",
+   "date": "2026-08-21",
+   "hours": "8",
+   "covered": "1"
+  },
+  {
+   "row": "7365",
+   "name": "April Xu",
+   "date": "2026-08-25",
+   "hours": "5",
+   "covered": "1"
+  },
+  {
+   "row": "7366",
+   "name": "Fiona Huang",
+   "date": "2026-08-26",
+   "hours": "8",
+   "covered": "1"
+  },
+  {
+   "row": "7367",
+   "name": "Fiona Huang",
+   "date": "2026-08-27",
+   "hours": "8",
+   "covered": "1"
+  },
+  {
+   "row": "7368",
+   "name": "Fiona Huang",
+   "date": "2026-08-28",
+   "hours": "8",
+   "covered": "1"
+  },
+  {
+   "row": "7369",
+   "name": "Shirley Lin",
+   "date": "2026-08-26",
+   "hours": "5",
+   "covered": "1"
+  },
+  {
+   "row": "7370",
+   "name": "Kian Guo",
+   "date": "2026-08-28",
+   "hours": "8",
+   "covered": "1"
+  },
+  {
+   "row": "7371",
+   "name": "Jacqueline Qin",
+   "date": "2026-08-28",
+   "hours": "8",
+   "covered": "1"
+  },
+  {
+   "row": "7372",
+   "name": "Eric Hu",
+   "date": "2026-08-28",
+   "hours": "8",
+   "covered": "1"
+  },
+  {
+   "row": "7373",
+   "name": "Aien Sheng",
+   "date": "2026-08-28",
+   "hours": "3",
+   "covered": "1"
+  },
+  {
+   "row": "7374",
+   "name": "Lucia Lau",
+   "date": "2026-08-31",
+   "hours": "8",
+   "covered": "1"
+  },
+  {
+   "row": "11182",
+   "name": "Allen Zhang",
+   "date": "2026-09-02",
+   "hours": "8",
+   "covered": "1"
+  },
+  {
+   "row": "11183",
+   "name": "Milo Zhou",
+   "date": "2026-09-02",
+   "hours": "8",
+   "covered": "1"
+  },
+  {
+   "row": "11184",
+   "name": "Kian Guo",
+   "date": "2026-09-03",
+   "hours": "8",
+   "covered": "1"
+  },
+  {
+   "row": "11185",
+   "name": "Leo Li",
+   "date": "2026-09-03",
+   "hours": "8",
+   "covered": "1"
+  },
+  {
+   "row": "11186",
+   "name": "Juliet Zhao",
+   "date": "2026-09-04",
+   "hours": "5",
+   "covered": "1"
+  },
+  {
+   "row": "11187",
+   "name": "Leo Li",
+   "date": "2026-09-07",
+   "hours": "8",
+   "covered": "1"
+  },
+  {
+   "row": "11188",
+   "name": "April Xu",
+   "date": "2026-09-11",
+   "hours": "8",
+   "covered": "1"
+  },
+  {
+   "row": "11189",
+   "name": "Milo Zhou",
+   "date": "2026-09-14",
+   "hours": "8",
+   "covered": "1"
+  },
+  {
+   "row": "11190",
+   "name": "Lucia Lau",
+   "date": "2026-09-14",
+   "hours": "1",
+   "covered": "1"
+  },
+  {
+   "row": "11191",
+   "name": "Vivian Ye",
+   "date": "2026-09-16",
+   "hours": "8",
+   "covered": "1"
+  },
+  {
+   "row": "11192",
+   "name": "Lucia Lau",
+   "date": "2026-09-17",
+   "hours": "4",
+   "covered": "1"
+  },
+  {
+   "row": "11193",
+   "name": "Allen Zhang",
+   "date": "2026-09-18",
+   "hours": "8",
+   "covered": "1"
+  },
+  {
+   "row": "11194",
+   "name": "Lucia Lau",
+   "date": "2026-09-21",
+   "hours": "8",
+   "covered": "1"
+  },
+  {
+   "row": "11195",
+   "name": "Lucia Lau",
+   "date": "2026-09-22",
+   "hours": "8",
+   "covered": "1"
+  },
+  {
+   "row": "11196",
+   "name": "Lucia Lau",
+   "date": "2026-09-23",
+   "hours": "8",
+   "covered": "1"
+  },
+  {
+   "row": "11197",
+   "name": "Lucia Lau",
+   "date": "2026-09-24",
+   "hours": "8",
+   "covered": "1"
+  },
+  {
+   "row": "11198",
+   "name": "Lucia Lau",
+   "date": "2026-09-28",
+   "hours": "8",
+   "covered": "1"
+  },
+  {
+   "row": "11199",
+   "name": "Lucia Lau",
+   "date": "2026-09-29",
+   "hours": "8",
+   "covered": "1"
+  },
+  {
+   "row": "11200",
+   "name": "Lucia Lau",
+   "date": "2026-09-30",
+   "hours": "8",
+   "covered": "1"
+  },
+  {
+   "row": "11201",
+   "name": "Yichan Yao",
+   "date": "2026-09-22",
+   "hours": "8",
+   "covered": "1"
+  },
+  {
+   "row": "11202",
+   "name": "Yichan Yao",
+   "date": "2026-09-23",
+   "hours": "8",
+   "covered": "1"
+  },
+  {
+   "row": "11203",
+   "name": "Yichan Yao",
+   "date": "2026-09-24",
+   "hours": "8",
+   "covered": "1"
+  },
+  {
+   "row": "11204",
+   "name": "Vivian Ye",
+   "date": "2026-09-23",
+   "hours": "8",
+   "covered": "1"
+  },
+  {
+   "row": "11205",
+   "name": "Vivian Ye",
+   "date": "2026-09-24",
+   "hours": "8",
+   "covered": "1"
+  },
+  {
+   "row": "11206",
+   "name": "Vivian Ye",
+   "date": "2026-09-28",
+   "hours": "8",
+   "covered": "1"
+  },
+  {
+   "row": "11207",
+   "name": "Vivian Ye",
+   "date": "2026-09-29",
+   "hours": "8",
+   "covered": "1"
+  },
+  {
+   "row": "11208",
+   "name": "Vivian Ye",
+   "date": "2026-09-30",
+   "hours": "8",
+   "covered": "1"
+  },
+  {
+   "row": "11209",
+   "name": "Milo Zhou",
+   "date": "2026-09-24",
+   "hours": "8",
+   "covered": "1"
+  },
+  {
+   "row": "11210",
+   "name": "June Feng",
+   "date": "2026-09-24",
+   "hours": "3",
+   "covered": "1"
+  },
+  {
+   "row": "11211",
+   "name": "Jerry Fu",
+   "date": "2026-09-24",
+   "hours": "5",
+   "covered": "1"
+  },
+  {
+   "row": "11212",
+   "name": "Jacqueline Qin",
+   "date": "2026-09-28",
+   "hours": "8",
+   "covered": "1"
+  },
+  {
+   "row": "11213",
+   "name": "Jacqueline Qin",
+   "date": "2026-09-29",
+   "hours": "8",
+   "covered": "1"
+  },
+  {
+   "row": "11214",
+   "name": "Jacqueline Qin",
+   "date": "2026-09-30",
+   "hours": "8",
+   "covered": "1"
+  },
+  {
+   "row": "11215",
+   "name": "Yichan Yao",
+   "date": "2026-09-28",
+   "hours": "8",
+   "covered": "1"
+  },
+  {
+   "row": "11216",
+   "name": "Yichan Yao",
+   "date": "2026-09-29",
+   "hours": "8",
+   "covered": "1"
+  },
+  {
+   "row": "11217",
+   "name": "Yichan Yao",
+   "date": "2026-09-30",
+   "hours": "8",
+   "covered": "1"
+  },
+  {
+   "row": "11218",
+   "name": "Jerry Fu",
+   "date": "2026-09-29",
+   "hours": "8",
+   "covered": "1"
+  },
+  {
+   "row": "11219",
+   "name": "Jerry Fu",
+   "date": "2026-09-30",
+   "hours": "8",
+   "covered": "1"
+  },
+  {
+   "row": "11220",
+   "name": "April Xu",
+   "date": "2026-09-30",
+   "hours": "4",
+   "covered": "1"
+  },
+  {
+   "row": "11221",
+   "name": "Jacqueline Qin",
+   "date": "2026-10-08",
+   "hours": "8",
+   "covered": "1"
+  },
+  {
+   "row": "11222",
+   "name": "Jacqueline Qin",
+   "date": "2026-10-09",
+   "hours": "8",
+   "covered": "1"
+  },
+  {
+   "row": "11223",
+   "name": "Allen Zhang",
+   "date": "2026-10-08",
+   "hours": "8",
+   "covered": "1"
+  },
+  {
+   "row": "11224",
+   "name": "Allen Zhang",
+   "date": "2026-10-09",
+   "hours": "8",
+   "covered": "1"
+  },
+  {
+   "row": "11225",
+   "name": "Ying Zhu",
+   "date": "2026-10-10",
+   "hours": "5",
+   "covered": "1"
+  },
+  {
+   "row": "11226",
+   "name": "Kian Guo",
+   "date": "2026-10-14",
+   "hours": "8",
+   "covered": "1"
+  },
+  {
+   "row": "11227",
+   "name": "Ying Zhu",
+   "date": "2026-10-16",
+   "hours": "8",
+   "covered": "1"
+  },
+  {
+   "row": "11228",
+   "name": "Jerry Fu",
+   "date": "2026-10-16",
+   "hours": "8",
+   "covered": "1"
+  },
+  {
+   "row": "11229",
+   "name": "Lucia Lau",
+   "date": "2026-10-16",
+   "hours": "8",
+   "covered": "1"
+  },
+  {
+   "row": "11230",
+   "name": "Ryan Jiang",
+   "date": "2026-10-19",
+   "hours": "8",
+   "covered": "1"
+  },
+  {
+   "row": "11231",
+   "name": "Ryan Jiang",
+   "date": "2026-10-20",
+   "hours": "8",
+   "covered": "1"
+  },
+  {
+   "row": "11232",
+   "name": "Ryan Jiang",
+   "date": "2026-10-21",
+   "hours": "8",
+   "covered": "1"
+  },
+  {
+   "row": "11233",
+   "name": "Ryan Jiang",
+   "date": "2026-10-22",
+   "hours": "8",
+   "covered": "1"
+  },
+  {
+   "row": "11234",
+   "name": "Ryan Jiang",
+   "date": "2026-10-23",
+   "hours": "8",
+   "covered": "1"
+  },
+  {
+   "row": "11235",
+   "name": "Fiona Huang",
+   "date": "2026-10-19",
+   "hours": "5",
+   "covered": "1"
+  },
+  {
+   "row": "11236",
+   "name": "Fiona Huang",
+   "date": "2026-10-20",
+   "hours": "8",
+   "covered": "1"
+  },
+  {
+   "row": "11237",
+   "name": "Fiona Huang",
+   "date": "2026-10-21",
+   "hours": "8",
+   "covered": "1"
+  },
+  {
+   "row": "11238",
+   "name": "Fiona Huang",
+   "date": "2026-10-22",
+   "hours": "8",
+   "covered": "1"
+  },
+  {
+   "row": "11239",
+   "name": "Eric Hu",
+   "date": "2026-10-22",
+   "hours": "3",
+   "covered": "1"
+  },
+  {
+   "row": "11240",
+   "name": "Jerry Fu",
+   "date": "2026-10-22",
+   "hours": "3",
+   "covered": "1"
+  },
+  {
+   "row": "11241",
+   "name": "Milo Zhou",
+   "date": "2026-10-23",
+   "hours": "8",
+   "covered": "1"
+  },
+  {
+   "row": "11242",
+   "name": "April Xu",
+   "date": "2026-10-28",
+   "hours": "8",
+   "covered": "1"
+  },
+  {
+   "row": "11243",
+   "name": "Aien Sheng",
+   "date": "2026-11-09",
+   "hours": "8",
+   "covered": "1"
+  },
+  {
+   "row": "11244",
+   "name": "Aien Sheng",
+   "date": "2026-11-10",
+   "hours": "8",
+   "covered": "1"
+  }
+ ]
+}

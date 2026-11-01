@@ -1,0 +1,32 @@
+{
+ "tag": "AFTER",
+ "ts": "2026-11-01T17:33:55.899Z",
+ "sheet": "DB_工时流水",
+ "ssid": "1Pi5u9fEawgp7yICWPMMyQCT_LbwTZthQDW-H05xYdVI",
+ "requested": 119,
+ "read": 119,
+ "complete": true,
+ "failedPages": 0,
+ "oTrue": 119,
+ "oEmpty": 0,
+ "pmap": {
+  "Rita Jin": 119
+ },
+ "samples": [
+  {
+   "row": 6795,
+   "O": true,
+   "P": "Rita Jin"
+  },
+  {
+   "row": 6886,
+   "O": true,
+   "P": "Rita Jin"
+  },
+  {
+   "row": 6887,
+   "O": true,
+   "P": "Rita Jin"
+  }
+ ]
+}

@@ -1,0 +1,32 @@
+{
+ "tag": "BEFORE",
+ "ts": "2026-11-01T17:32:56.331Z",
+ "sheet": "DB_工时流水",
+ "ssid": "1Pi5u9fEawgp7yICWPMMyQCT_LbwTZthQDW-H05xYdVI",
+ "requested": 119,
+ "read": 119,
+ "complete": true,
+ "failedPages": 0,
+ "oTrue": 0,
+ "oEmpty": 119,
+ "pmap": {
+  "(空)": 119
+ },
+ "samples": [
+  {
+   "row": 6795,
+   "O": "",
+   "P": ""
+  },
+  {
+   "row": 6886,
+   "O": "",
+   "P": ""
+  },
+  {
+   "row": 6887,
+   "O": "",
+   "P": ""
+  }
+ ]
+}
