@@ -1,0 +1,168 @@
+{
+  "ts": "2026-11-01T13:55:19.928Z",
+  "scope": "DB_工时流水 live 只读",
+  "layers": {
+    "EXACT": {
+      "groups": 1340,
+      "extraRows": 1340,
+      "extraHours": 3645,
+      "samples": [
+        {
+          "uuid": "023fbcdf-c6d3-4cdc-9ce1-…",
+          "copies": 2,
+          "rows": [
+            4143,
+            7549
+          ],
+          "firstRow": 4143,
+          "submitDates": [
+            "2026-04-03T08:43:20.000Z",
+            "2026-04-03T08:43:20.000Z"
+          ],
+          "rawDiff": false
+        },
+        {
+          "uuid": "f0008d94-5431-407b-acda-…",
+          "copies": 2,
+          "rows": [
+            4146,
+            7552
+          ],
+          "firstRow": 4146,
+          "submitDates": [
+            "2026-04-03T09:26:56.000Z",
+            "2026-04-03T09:26:56.000Z"
+          ],
+          "rawDiff": false
+        },
+        {
+          "uuid": "73edc598-e7ed-4232-86ca-…",
+          "copies": 2,
+          "rows": [
+            4148,
+            7554
+          ],
+          "firstRow": 4148,
+          "submitDates": [
+            "2026-04-07T02:37:08.000Z",
+            "2026-04-07T02:37:08.000Z"
+          ],
+          "rawDiff": false
+        }
+      ],
+      "rawDiffTotal": 0,
+      "rawDiffGroups": [],
+      "rawDiffGroupsSchema": "uuid(完整String), copies(Number), rows(Number[]), firstSubmit(String), rawDiffCols(Number[]=与基准组原始字节不一致的列索引 A=0..N-1)",
+      "rawDiffCount": 0
+    },
+    "TIMEONLY": {
+      "groups": 227,
+      "extraRows": 227,
+      "extraHours": 401.5,
+      "samples": [
+        {
+          "uuid": "d3dcedd4-694a-4a94-b0c7-…",
+          "copies": 2,
+          "rows": [
+            4141,
+            7547
+          ],
+          "firstRow": 4141,
+          "submitDates": [
+            "2026-08-03T04:16:18.000Z",
+            "2026-04-02T07:36:57.000Z"
+          ],
+          "rawDiff": true
+        },
+        {
+          "uuid": "0c609e1b-f11b-4eed-a54c-…",
+          "copies": 2,
+          "rows": [
+            4142,
+            7548
+          ],
+          "firstRow": 4142,
+          "submitDates": [
+            "2026-08-03T04:16:18.000Z",
+            "2026-04-02T07:38:11.000Z"
+          ],
+          "rawDiff": true
+        },
+        {
+          "uuid": "08765ba9-2b14-4755-9be3-…",
+          "copies": 2,
+          "rows": [
+            4144,
+            7550
+          ],
+          "firstRow": 4144,
+          "submitDates": [
+            "2026-08-03T04:16:19.000Z",
+            "2026-04-03T08:46:30.000Z"
+          ],
+          "rawDiff": true
+        }
+      ]
+    },
+    "MIXED": {
+      "groups": 0,
+      "extraRows": 0,
+      "extraHours": 0,
+      "samples": []
+    }
+  },
+  "emptyPool": {
+    "rows": 5221,
+    "hours": 22657,
+    "pctOfAlive": 47
+  },
+  "notes": [],
+  "contentFingerprint": {
+    "sampleRows": [
+      2,
+      5691,
+      11380
+    ],
+    "matched": true,
+    "scope": "sampling-3-rows",
+    "note": "采样观察：仅对 3 个分层采样行做读后二次请求逐格比对；可证【这些采样行】读取期间未被原地改写。不能据此断言全表未改或 23 页同版本——非采样行原地修改后恢复、O 列(col14)变更均可能漏检（循环仅比较 A:N）。全表一致性应以服务端不可变快照/修订标识为准，本脚本未持有该标识。"
+  },
+  "readIntegrity": {
+    "complete": true,
+    "pageCount": 23,
+    "expectedRows": 11379,
+    "readRows": 11379,
+    "failedPages": 0,
+    "shortPages": 0,
+    "snapshotConsistent": true,
+    "snapBefore": {
+      "lastRow": 11380,
+      "at": "2026-11-01T13:55:28.808Z"
+    },
+    "snapAfter": {
+      "lastRow": 11380,
+      "at": "2026-11-01T13:56:50.653Z"
+    },
+    "elapsedMs": 98089
+  },
+  "comparisonBasis": "逐单元格 trim 后的 col0..13 归一化值（非原始字节）；col14 软标列不参与内容比对。已对归一化 EXACT 组附加原始(未 trim)二次核验。",
+  "totalRowsRead": 11379,
+  "softDeleted": 268,
+  "alive": 11111,
+  "aliveHours": 43431.5,
+  "rawDiffNote": "rawDiffTotal = 全部 EXACT 组中原始(未trim)字节不一致的组数（全量累计，非采样）；rawDiffGroups 为完整逐组映射（含完整 UUID 与差异列 rawDiffCols），供逐行处置审计；samples(前3组)仅为人工抽查视图，不代表全体。",
+  "reconcile": {
+    "oldUuidDupGroups": 1568,
+    "oldUuidExtraRows": 6787,
+    "newUuidDupGroups": 1567,
+    "newUuidExtraRows": 1567,
+    "emptyPoolContaminationRows": 5220,
+    "note": "旧口径把空 UUID 聚成 (EMPTY) 单组并计入冗余；本口径已剥离。两数不可混用。"
+  },
+  "verdict": {
+    "可交付L1": "1340 行 / 3645 h（逐列全同，保留任一副本业务等价；原始字节一致性见 rawDiff 标注）",
+    "待裁定L2_TIMEONLY": "227 行 / 401.5 h（仅录入时间不同，须裁定保留哪条）",
+    "绝不动_MIXED": "0 行 / 0 h",
+    "绝不动_EMPTY": "5221 行 / 22657 h（UUID 空，无法建立同一性）"
+  }
+}

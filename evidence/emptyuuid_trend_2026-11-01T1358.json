@@ -1,0 +1,131 @@
+{
+  "ts": "2026-11-01T13:58:44.135Z",
+  "lastRow": 11380,
+  "alive": 11111,
+  "windowDays": 14,
+  "cutoff": "2026-10-16",
+  "timeCaliber": "col0 = 提交日期(submit-date)，非写入时间(write-time)；空UUID占比仅反映该口径，不能证明写入时间，亦不能单独排除未来并发重放/旁路",
+  "byDay": [
+    {
+      "date": "2026-10-16",
+      "rows": 14,
+      "emptyUuid": 0,
+      "emptyPct": 0,
+      "hours": 72.5
+    },
+    {
+      "date": "2026-10-17",
+      "rows": 3,
+      "emptyUuid": 0,
+      "emptyPct": 0,
+      "hours": 8
+    },
+    {
+      "date": "2026-10-18",
+      "rows": 1,
+      "emptyUuid": 0,
+      "emptyPct": 0,
+      "hours": 9
+    },
+    {
+      "date": "2026-10-19",
+      "rows": 26,
+      "emptyUuid": 0,
+      "emptyPct": 0,
+      "hours": 98
+    },
+    {
+      "date": "2026-10-20",
+      "rows": 16,
+      "emptyUuid": 0,
+      "emptyPct": 0,
+      "hours": 64
+    },
+    {
+      "date": "2026-10-21",
+      "rows": 34,
+      "emptyUuid": 0,
+      "emptyPct": 0,
+      "hours": 152
+    },
+    {
+      "date": "2026-10-22",
+      "rows": 37,
+      "emptyUuid": 0,
+      "emptyPct": 0,
+      "hours": 188
+    },
+    {
+      "date": "2026-10-23",
+      "rows": 60,
+      "emptyUuid": 0,
+      "emptyPct": 0,
+      "hours": 294.5
+    },
+    {
+      "date": "2026-10-24",
+      "rows": 63,
+      "emptyUuid": 0,
+      "emptyPct": 0,
+      "hours": 462
+    },
+    {
+      "date": "2026-10-25",
+      "rows": 4,
+      "emptyUuid": 0,
+      "emptyPct": 0,
+      "hours": 8
+    },
+    {
+      "date": "2026-10-26",
+      "rows": 12,
+      "emptyUuid": 0,
+      "emptyPct": 0,
+      "hours": 32
+    },
+    {
+      "date": "2026-10-27",
+      "rows": 44,
+      "emptyUuid": 0,
+      "emptyPct": 0,
+      "hours": 142
+    },
+    {
+      "date": "2026-10-28",
+      "rows": 24,
+      "emptyUuid": 0,
+      "emptyPct": 0,
+      "hours": 56
+    },
+    {
+      "date": "2026-10-29",
+      "rows": 23,
+      "emptyUuid": 0,
+      "emptyPct": 0,
+      "hours": 68
+    },
+    {
+      "date": "2026-10-30",
+      "rows": 27,
+      "emptyUuid": 0,
+      "emptyPct": 0,
+      "hours": 101
+    }
+  ],
+  "window": {
+    "rows": 388,
+    "emptyUuid": 0,
+    "emptyPct": 0
+  },
+  "complete": true,
+  "verdictType": "OBSERVATION_ONLY",
+  "verdict": "【观察】窗口内零空 UUID ⇒ 仅就「提交日期口径」看，空 UUID 为历史遗留、漏洞当前未再触发；此结论不能单独证写入已止血，亦不能排除并发重放/旁路（须独立验证，见 caveats）",
+  "caveats": [
+    "本观察仅基于 col0=提交日期(submit-date)口径，非写入时间(write-time)，亦非服务端修订标识；",
+    "写入事件独立验证：需查阅 _TS_WRITE_LOG / 服务端写入审计，确认窗口内无新增空UUID写入（当前写日志仅含汇总计数，无逐行UUID，待补齐）；",
+    "写者清单交叉：生产表仅 2 插入点 submitBatch(Code.gs:464)/tsAppendRows(RemoteActions.gs:127)，均经 _plGuardedInsert(PeriodLockGuard.gs:479)，须确认二者查重均覆盖空UUID；",
+    "并发/旁路负例：RemoteActions.gs:96-105 查重 exist{} 在期锁 :127 之外（并发窗口），须修复并附并发重放负例；空UUID旁路（uid为空不查重）须由期锁 clearance + 扩展查重封堵。"
+  ],
+  "caveatsStatus": "OPEN",
+  "independentlyVerified": false
+}
