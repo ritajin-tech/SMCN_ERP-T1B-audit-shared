@@ -18,6 +18,12 @@
  *   ② rawDiff 全组累计：原 rawDiffCount 由 L.EXACT.samples.filter(...) 计算，samples 最多 3 组 ⇒ 不代表全部 EXACT。
  *      v3 改为遍历全部 dupGroups 时累计 rawDiffTotal，并输出逐组可核查标识/行号/摘要(rawDiffGroups)，非仅前 3 组。
  *
+ * v4（2026-11-01 回应 Tom 05:32 复核①②）：
+ *   ① 内容指纹降级为采样观察：原 note「证读取期间表未被原地改写」过度断言——仅对 N 个采样行重读比对 A:N，
+ *      非采样行原地修改后恢复、O 列(col14)变化均可能漏检，不能断言全表未改或 23 页同版本。
+ *      v4 改为 scope=sampling-N-rows + note 明确采样边界；全表一致性应以服务端不可变快照/修订标识为准（本脚本未持有该标识）。
+ *   ② rawDiffGroups 完整化：去掉前 20 组上限、不截断 UUID，附字段/类型口径(schema)，供逐行处置完整审计。
+ *
  * 与旧诊断（diag_cleanup_20261101.js）的关键差异【修正已知缺陷】：
  *   旧版第 135 行 `const k = r.uuid || '(EMPTY)'` 把全部空 UUID 行聚成一个组，
  *   使其被计入 dupGroups 且贡献 ~5000 行 extraRows —— 那不是「同 UUID 重放」，是聚合假象。
@@ -134,9 +140,11 @@ function abort(partial) {
     abort({ reason: '读取期间表被改写(读前/读后总行数不一致)', snapBefore, snapAfter });
   }
 
-  // v3（回应 Tom 02:28 复核①）：服务端内容指纹二次核验
-  //   snapshotConsistent 仅比行数；中途「原地改值 / 删后补行」行数不变则漏报。
-  //   读完后再向服务端请求分层采样行的原始(未trim)内容逐格比对，任一指纹行变化 ⇒ 读取期间表被改写 ⇒ 中止。
+  // v4（回应 Tom 05:32 复核①）：内容指纹降级为【采样观察】
+  //   v3 的 note「证读取期间表未被原地改写」过度断言：本循环仅对 N 个采样行重读比对 A:N，
+  //   非采样行原地修改后恢复、O 列(col14)变化均可能漏检，不能断言全表未改或 23 页同版本。
+  //   故 v4 改为 scope=sampling-N-rows 的采样观察，并显式声明边界；全表一致性应以服务端不可变快照/修订标识为准（本脚本未持有该标识）。
+  //   若任一采样行指纹变化 ⇒ 仍中止（采样内仍可捕获部分原地改写）。
   const fingerIdx = [0, Math.floor(all.length / 2), all.length - 1]
     .filter((v, i, a) => a.indexOf(v) === i && all[v]);
   const fingerSamples = fingerIdx.map(i => ({ row: all[i].row, raw: all[i].cellsRaw.slice() }));
@@ -153,7 +161,11 @@ function abort(partial) {
   if (fingerMismatch) {
     abort({ reason: '读取期间表被原地改写(内容指纹不一致)', snapBefore, snapAfter, fingerMismatch, fingerSamples: fingerSamples.map(s => s.row) });
   }
-  out.contentFingerprint = { sampleRows: fingerSamples.map(s => s.row), matched: true, note: '读后分层采样行原始内容与服务端二次请求逐格一致，可证读取期间表未被原地改写' };
+  out.contentFingerprint = { sampleRows: fingerSamples.map(s => s.row), matched: true,
+    scope: 'sampling-' + fingerSamples.length + '-rows',
+    note: '采样观察：仅对 ' + fingerSamples.length + ' 个分层采样行做读后二次请求逐格比对；可证【这些采样行】读取期间未被原地改写。' +
+          '不能据此断言全表未改或 23 页同版本——非采样行原地修改后恢复、O 列(col14)变更均可能漏检（循环仅比较 A:N）。' +
+          '全表一致性应以服务端不可变快照/修订标识为准，本脚本未持有该标识。' };
 
   const alive = all.filter(r => !r.soft);
   out.readIntegrity = { complete: true, pageCount: pagePlan.length, expectedRows: lastBefore - 1,
@@ -178,7 +190,7 @@ function abort(partial) {
   });
   const dupGroups = [...byUuid.values()].filter(g => g.length > 1);
 
-  const L = { EXACT: { groups: 0, extraRows: 0, extraHours: 0, samples: [], rawDiffTotal: 0, rawDiffGroups: [] },
+  const L = { EXACT: { groups: 0, extraRows: 0, extraHours: 0, samples: [], rawDiffTotal: 0, rawDiffGroups: [], rawDiffGroupsSchema: 'uuid(完整String), copies(Number), rows(Number[]), firstSubmit(String), rawDiffCols(Number[]=与基准组原始字节不一致的列索引 A=0..N-1)' },
               TIMEONLY: { groups: 0, extraRows: 0, extraHours: 0, samples: [] },
               MIXED: { groups: 0, extraRows: 0, extraHours: 0, samples: [] } };
 
@@ -187,13 +199,14 @@ function abort(partial) {
     const base = gs[0].cells;
     const baseRaw = gs[0].cellsRaw;
     let onlyCol0Diff = true, anyDiff = false, rawDiff = false;
+    const rawDiffCols = [];
     for (let i = 1; i < gs.length; i++) {
       for (let k = 0; k < NCOL; k++) {
         if (gs[i].cells[k] !== base[k]) {
           anyDiff = true;
           if (k !== 0) onlyCol0Diff = false;
         }
-        if (gs[i].cellsRaw[k] !== baseRaw[k]) rawDiff = true; // 原始(未trim)不一致
+        if (gs[i].cellsRaw[k] !== baseRaw[k]) { rawDiff = true; if (!rawDiffCols.includes(k)) rawDiffCols.push(k); } // 原始(未trim)不一致
       }
     }
     let kind;
@@ -209,17 +222,20 @@ function abort(partial) {
         rows: gs.map(x => x.row), firstRow: gs[0].row, submitDates: gs.map(x => x.cells[0]),
         rawDiff });
     }
-    // v3（回应 Tom 02:28 复核②）：rawDiff 全组累计，输出逐组可核查标识，非仅前 3 组 samples
+    // v4（回应 Tom 05:32 复核②）：rawDiffGroups 完整化——去前 20 组上限、不截断 UUID，附完整字段/类型口径
     if (kind === 'EXACT' && rawDiff) {
       L.EXACT.rawDiffTotal++;
-      if (L.EXACT.rawDiffGroups.length < 20) {
-        L.EXACT.rawDiffGroups.push({ uuid: gs[0].uuid.slice(0, 24) + '…', copies: gs.length, rows: gs.map(x => x.row) });
-      }
+      L.EXACT.rawDiffGroups.push({ uuid: gs[0].uuid, copies: gs.length, rows: gs.map(x => x.row),
+        firstSubmit: gs[0].cells[0], rawDiffCols });
     }
   }
   for (const k of Object.keys(L)) L[k].extraHours = Math.round(L[k].extraHours * 100) / 100;
   // v3：rawDiff 计数改为遍历全部 EXACT 组累计（rawDiffTotal），不再只用前 3 组 samples
   L.EXACT.rawDiffCount = L.EXACT.rawDiffTotal;
+  // v4（回应 Tom 05:32 复核②）：口径说明，避免把「采样统计」误读为「全表证明」
+  out.rawDiffNote = 'rawDiffTotal = 全部 EXACT 组中原始(未trim)字节不一致的组数（全量累计，非采样）；' +
+    'rawDiffGroups 为完整逐组映射（含完整 UUID 与差异列 rawDiffCols），供逐行处置审计；' +
+    'samples(前3组)仅为人工抽查视图，不代表全体。';
 
   // 5) 与旧口径对照
   let oldExtra = 0, oldGroups = 0;

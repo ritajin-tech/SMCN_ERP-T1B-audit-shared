@@ -1,5 +1,5 @@
 {
-  "ts": "2026-11-01T03:00:36.704Z",
+  "ts": "2026-11-01T05:57:32.237Z",
   "lastRow": 11380,
   "alive": 11111,
   "windowDays": 14,
@@ -125,5 +125,7 @@
     "写入事件独立验证：需查阅 _TS_WRITE_LOG / 服务端写入审计，确认窗口内无新增空UUID写入（当前写日志仅含汇总计数，无逐行UUID，待补齐）；",
     "写者清单交叉：生产表仅 2 插入点 submitBatch(Code.gs:464)/tsAppendRows(RemoteActions.gs:127)，均经 _plGuardedInsert(PeriodLockGuard.gs:479)，须确认二者查重均覆盖空UUID；",
     "并发/旁路负例：RemoteActions.gs:96-105 查重 exist{} 在期锁 :127 之外（并发窗口），须修复并附并发重放负例；空UUID旁路（uid为空不查重）须由期锁 clearance + 扩展查重封堵。"
-  ]
+  ],
+  "caveatsStatus": "OPEN",
+  "independentlyVerified": false
 }

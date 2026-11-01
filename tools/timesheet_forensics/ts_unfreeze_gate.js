@@ -87,12 +87,13 @@ function checkA2_stratify() {
 
 function checkA3_hemostasis() {
   const f = newestMatch(EVIDENCE, /^emptyuuid_trend_.*\.json$/);
-  if (!f) { add('A3', '止血已闭环(空UUID不再增长)', 'BLOCKING', 'FAIL', '未找到 emptyuuid_trend_*.json，请先跑 ts_emptyuuid_trend.js'); return; }
+  if (!f) { add('A3', '止血观察(空UUID趋势)', 'ADVISORY', 'NOTED', '未找到 emptyuuid_trend_*.json，请先跑 ts_emptyuuid_trend.js'); return; }
   let d = null;
   try { d = JSON.parse(fs.readFileSync(f, 'utf8')); } catch (e) { /* null */ }
-  if (!d || !d.window) { add('A3', '止血已闭环(空UUID不再增长)', 'BLOCKING', 'FAIL', f + ' 结构异常'); return; }
-  if (d.complete !== true) { add('A3', '止血已闭环(空UUID不再增长)', 'BLOCKING', 'FAIL', f + ' 未标记 complete===true（缺失或不完整读取），结论不可信'); return; }
-  // v3（回应 Tom 02:28 复核④）：除 complete 外校验样本数/范围/来源/新鲜度
+  if (!d || !d.window) { add('A3', '止血观察(空UUID趋势)', 'ADVISORY', 'NOTED', f + ' 结构异常'); return; }
+  if (d.complete !== true) { add('A3', '止血观察(空UUID趋势)', 'ADVISORY', 'NOTED', f + ' 未标记 complete===true（缺失或不完整读取），结论不可信'); return; }
+  // v4（回应 Tom 05:32 复核④）：A3 降级为【观察项 ADVISORY】——零空UUID仅反映提交日期口径采样，
+  //   不能证写入止血、不能排除并发重放/旁路，故不再作为 BLOCKING PASS 推进解冻（真实阻断见 A5）。
   const freshMs = d.ts ? (Date.now() - new Date(d.ts).getTime()) : Infinity;
   const freshH = freshMs / 3600000;
   const freshOk = isFinite(freshMs) && freshMs >= 0 && freshH <= 24 * 7;
@@ -102,13 +103,32 @@ function checkA3_hemostasis() {
     if (!Array.isArray(d.byDay) || d.byDay.length === 0) miss.push('byDay缺失/空');
     if (!d.timeCaliber) miss.push('timeCaliber缺失');
     if (!freshOk) miss.push('证据超期(' + Math.round(freshH) + 'h>168h)');
-    add('A3', '止血已闭环(空UUID不再增长)', 'BLOCKING', 'FAIL', f + ' 元数据校验未过：' + miss.join(' / '));
+    add('A3', '止血观察(空UUID趋势)', 'ADVISORY', 'NOTED', f + ' 元数据校验未过：' + miss.join(' / '));
     return;
   }
   const w = d.window;
-  const ok = w.emptyPct === 0;
-  add('A3', '止血已闭环(近期新增零空UUID ⇒ 清理后不长回)', 'BLOCKING', ok ? 'PASS' : 'FAIL',
-      '窗口 ' + w.rows + ' 行新增 / 空UUID ' + w.emptyUuid + ' (' + w.emptyPct + '%) · 仅提交日期口径，并发重放/旁路仍须独立验证 · ' + d.verdict);
+  let st = w.emptyPct === 0 ? 'PASS' : 'NOTED';
+  let det = '窗口 ' + w.rows + ' 行新增 / 空UUID ' + w.emptyUuid + ' (' + w.emptyPct + '%) · 仅提交日期口径采样，并发重放/旁路仍须独立验证（见 A5） · ' + d.verdict;
+  if (w.rows === 0) { st = 'NOTED'; det = '零样本窗口（' + w.rows + ' 行），无法判定空UUID是否增长——观察项，不得据此推进解冻。'; }
+  add('A3', '止血观察：近期新增零空UUID（仅提交日期口径采样，非止血闭环证明）', 'ADVISORY', st, det);
+}
+
+// ---------- A5：写者清单 + 旁路证据（BLOCKING，待 Tom 还复/独立验证） ----------
+function checkA5_writer_bypass() {
+  const f = path.join(EVIDENCE, 'writer_bypass_evidence.json');
+  if (!fs.existsSync(f)) {
+    add('A5', '写者清单 + 旁路证据完整（submitBatch/tsAppendRows 查重覆盖空UUID + 并发窗口修复 + 旁路封堵）', 'BLOCKING', 'BLOCKED',
+        '未找到 writer_bypass_evidence.json（待 Tom 还复 W 系列 / 独立验证补齐）。零样本、伪造来源、遗漏旁路均须拒绝；' +
+        '当前无证据 ⇒ 不得据此推进解冻。生产表仅 2 插入点 submitBatch(Code.gs:464)/tsAppendRows(RemoteActions.gs:127)，' +
+        '均经 _plGuardedInsert(PeriodLockGuard.gs:479)；须确认二者查重均覆盖空UUID，且 RemoteActions.gs:96-105 并发窗口已修复。');
+    return;
+  }
+  let d = null; try { d = JSON.parse(fs.readFileSync(f, 'utf8')); } catch (e) { /* null */ }
+  if (!d || !d.verified || !d.sources || !Array.isArray(d.sources) || d.sources.length === 0) {
+    add('A5', '写者清单 + 旁路证据完整', 'BLOCKING', 'BLOCKED', f + ' 结构异常或来源缺失（须含 sources[]: 来源/版本/时间/样本一致；零样本与遗漏旁路应拒绝）');
+    return;
+  }
+  add('A5', '写者清单 + 旁路证据完整', 'BLOCKING', 'PASS', '来源 ' + d.sources.length + ' 项，verified=' + !!d.verified);
 }
 
 function checkA4_freezeState() {
@@ -167,6 +187,7 @@ checkA1_backup();
 checkA2_stratify();
 checkA3_hemostasis();
 checkA4_freezeState();
+checkA5_writer_bypass();
 checkM1_tom();
 checkM2_clearance();
 checkM3_rita();

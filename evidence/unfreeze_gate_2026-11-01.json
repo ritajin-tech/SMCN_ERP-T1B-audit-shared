@@ -1,12 +1,12 @@
 {
-  "ts": "2026-11-01T03:01:03.911Z",
+  "ts": "2026-11-01T05:57:56.898Z",
   "results": [
     {
       "id": "A1",
       "desc": "生产表全量备份存在且新鲜(<=48h)",
       "sev": "BLOCKING",
       "state": "PASS",
-      "detail": "_backups\\sheets\\2026-11-01\\生产工时表__DB_工时流水.csv | 11405 行 | 3h 前"
+      "detail": "_backups\\sheets\\2026-11-01\\生产工时表__DB_工时流水.csv | 11405 行 | 6h 前"
     },
     {
       "id": "A2",
@@ -17,10 +17,10 @@
     },
     {
       "id": "A3",
-      "desc": "止血已闭环(近期新增零空UUID ⇒ 清理后不长回)",
-      "sev": "BLOCKING",
+      "desc": "止血观察：近期新增零空UUID（仅提交日期口径采样，非止血闭环证明）",
+      "sev": "ADVISORY",
       "state": "PASS",
-      "detail": "窗口 388 行新增 / 空UUID 0 (0%) · 仅提交日期口径，并发重放/旁路仍须独立验证 · 【观察】窗口内零空 UUID ⇒ 仅就「提交日期口径」看，空 UUID 为历史遗留、漏洞当前未再触发；此结论不能单独证写入已止血，亦不能排除并发重放/旁路（须独立验证，见 caveats）"
+      "detail": "窗口 388 行新增 / 空UUID 0 (0%) · 仅提交日期口径采样，并发重放/旁路仍须独立验证（见 A5） · 【观察】窗口内零空 UUID ⇒ 仅就「提交日期口径」看，空 UUID 为历史遗留、漏洞当前未再触发；此结论不能单独证写入已止血，亦不能排除并发重放/旁路（须独立验证，见 caveats）"
     },
     {
       "id": "A4",
@@ -28,6 +28,13 @@
       "sev": "ADVISORY",
       "state": "PASS",
       "detail": "TS_WRITE_FREEZE=1(锁定)（本脚本不修改）；远端权威冻结源为期锁 PeriodLockGuard，本项仅为本地记录，不证明远端冻结真实状态"
+    },
+    {
+      "id": "A5",
+      "desc": "写者清单 + 旁路证据完整（submitBatch/tsAppendRows 查重覆盖空UUID + 并发窗口修复 + 旁路封堵）",
+      "sev": "BLOCKING",
+      "state": "BLOCKED",
+      "detail": "未找到 writer_bypass_evidence.json（待 Tom 还复 W 系列 / 独立验证补齐）。零样本、伪造来源、遗漏旁路均须拒绝；当前无证据 ⇒ 不得据此推进解冻。生产表仅 2 插入点 submitBatch(Code.gs:464)/tsAppendRows(RemoteActions.gs:127)，均经 _plGuardedInsert(PeriodLockGuard.gs:479)；须确认二者查重均覆盖空UUID，且 RemoteActions.gs:96-105 并发窗口已修复。"
     },
     {
       "id": "M1",

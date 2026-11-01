@@ -146,6 +146,10 @@ const isSoftDel = v => ['TRUE', 'true', '✔', '1'].includes(String(v || '').tri
     '写者清单交叉：生产表仅 2 插入点 submitBatch(Code.gs:464)/tsAppendRows(RemoteActions.gs:127)，均经 _plGuardedInsert(PeriodLockGuard.gs:479)，须确认二者查重均覆盖空UUID；',
     '并发/旁路负例：RemoteActions.gs:96-105 查重 exist{} 在期锁 :127 之外（并发窗口），须修复并附并发重放负例；空UUID旁路（uid为空不查重）须由期锁 clearance + 扩展查重封堵。'
   ];
+  // v4（回应 Tom 05:32 复核③）：诚实标注——上述 4 项独立验证均为我方尚未闭环项，本方未独立验证，仅为对方(我方)报告；
+  //   须待 Tom 还复 W 系列或独立验证补齐并写入 writer_bypass_evidence.json 后方可闭合（对应解冻闸门 A5）。
+  out.caveatsStatus = 'OPEN';
+  out.independentlyVerified = false;
 
   const outdir = path.join(__dirname, '..', '_tmp', 'evidence');
   fs.mkdirSync(outdir, { recursive: true });
