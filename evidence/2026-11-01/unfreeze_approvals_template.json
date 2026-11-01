@@ -1,0 +1,30 @@
+{
+  "_说明": "M1 结构化技术裁定模板（对应 M1_Technical_Acceptance.md）。由 Tom 技术确认或 Rita 据 Tom 确认记录后填写。granted 一律由人工依据实证置 true，脚本/AI 绝不自动生成或伪造。ref 必须可回溯（邮件 msg_id / GitHub commit / 文档路径）。",
+  "tom_technical_clearance": {
+    "granted": false,
+    "ref": "",
+    "note": "",
+    "criteria": [
+      {"id":"C1_data_baseline",      "confirm":false, "evidence":"", "ref":"", "note":"1,340 EXACT + 227 TIMEONLY 候选集是否正确"},
+      {"id":"C2_identity_contract",   "confirm":false, "evidence":"", "ref":"", "note":"同UUID+字段一致=同业务记录（verify_mapping.js L3）"},
+      {"id":"C3_retention_basis",     "confirm":false, "evidence":"", "ref":"", "note":"每个 SAFE 有 keeperRow 业务依据"},
+      {"id":"C4_writer_enumeration",  "confirm":false, "evidence":"", "ref":"", "note":"仅2业务插入点、均经 _plGuardedInsert（W4_writer_enumeration.md）"},
+      {"id":"C5_bypass_block",        "confirm":false, "evidence":"", "ref":"", "note":"旁路封堵方案 (a)强化迁移 / (b)范围化 二选一"},
+      {"id":"C6_recovery_idempotent", "confirm":false, "evidence":"", "ref":"", "note":"软标幂等 + ts_recover 一键回滚（recovery_idempotency_drill.js + 快照）"},
+      {"id":"C7_editA_fix",           "confirm":false, "evidence":"", "ref":"", "note":"lockPreWrite 锁内重读消除重放（concurrency_test_harness.js v2 + gas_test_EditA_real.gs）"}
+    ],
+    "fix_track": [
+      {"id":"C8_editB_crossproject",  "confirm":false, "evidence":"", "ref":"", "note":"跨项目互斥真实实证（gas_test_EditB_crossproject.gs，并行不阻塞 M1）"}
+    ]
+  },
+  "period_lock_clearance": {
+    "granted": false,
+    "ref": "",
+    "note": "期锁 clearance 未发放。软标属生产修改，须 Rita 签发放行。"
+  },
+  "rita_unfreeze_authorization": {
+    "granted": true,
+    "ref": "对话 2026-11-01 01:18 + 07:48 重申",
+    "note": "Rita 条件性授权：「我可以解除，只要你和 Tom 技术检查验证没有问题」。"
+  }
+}
