@@ -30,6 +30,36 @@
       "sha256": "e5c13d2878468853aaad15d21d7daaba921d62806d9a35d4d2e25b28e9366cc8",
       "sha1": "86674d3b579e582776a70ce17766ae0f29cdb635",
       "size": 2079
+    },
+    {
+      "file": "verify_mapping.js",
+      "sha256": "bd232f811fe63a469573727236e2c588b3a244edcf0699a40dd8ea7c9d3b1f98",
+      "sha1": "559d297d00c92c5abc08227f89056d924274bc8d",
+      "size": 6659
+    },
+    {
+      "file": "concurrency_test_harness.js",
+      "sha256": "4706f90598053be474b92ac76c100aae60a83d25f9d36a3d49a0492078e81d10",
+      "sha1": "4767f9271934f9901e1873a43ed66ec3d3fff45a",
+      "size": 5769
+    },
+    {
+      "file": "VERIFY_GUIDE.md",
+      "sha256": "ab8417ef17511de899091e4196e5e1a66e3a3895c8d9f74001af1354b61b0e11",
+      "sha1": "a81e54284dc862e71af4b0dc05fca98f543c93cf",
+      "size": 5730
+    },
+    {
+      "file": "fix_T1-B_concurrency_window.md",
+      "sha256": "ef19d4ab3fa73450254d81f817328e566c3d29d9c493572f4533918be815e8aa",
+      "sha1": "daeccb95c2722a5d238b56dc065536bde5538736",
+      "size": 6850
+    },
+    {
+      "file": "MANIFEST.md",
+      "sha256": "0de49bcadae6ffb6180c9f1c55be4485cd1083ffc77fb72beb82a46a5f25a976",
+      "sha1": "078a65bdabc07776bbb11e400ebc19b0e5e94f53",
+      "size": 6732
     }
   ],
   "csvHeader": "类别,UUID,base计数,候选行(row),保留对象行(keeperRow),targetHash,keeperHash,哈希一致(同值),hasBase,baseHash"

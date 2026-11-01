@@ -1,0 +1,45 @@
+{
+  "purpose": "T1-B 全量核验包 · 邮件可核验附件（完整文件在共享仓 commit b67f818 evidence/2026-11-01/）",
+  "csvGzipSha1": "b0aa3b138054580f1fe88414fa0b63fc167b6964",
+  "fileDigests": [
+    {
+      "file": "T1-B_候选保留映射_可核查_2026-11-01.csv",
+      "sha256": "d517d4d86ebc9179ebca04da31225aba084126cae3e57a9fc090bd3b372d07f6",
+      "sha1": "b85a6848b12bf7116d576ee6b81ab946d40854fa",
+      "size": 321815
+    },
+    {
+      "file": "prod_scan_LIVE_2026-11-01-14-56-27.json",
+      "sha256": "bc10d2ddf780987ae3429e18cc80417ef257ccb06a0c36f6458811466d554dbc",
+      "sha1": "d98bc8fdcd27cc29ab64b050b5774f763044c300",
+      "size": 1841281
+    },
+    {
+      "file": "base_候选0824_LIVE_2026-11-01-14-57-15.csv",
+      "sha256": "51bc7a6535f97ceee32381649a01e0697a9bea05fbdf34b0d6edcc7624c85c0b",
+      "sha1": "ebadb4447f66dfe42a455037b124973453f0207c",
+      "size": 1317748
+    },
+    {
+      "file": "controlled_audit_EXACT_ALL_2026-11-01.json",
+      "sha256": "586a12b3b350de23256202d33a8691a71a0a6e9d491727d25218dc0b6de172cf",
+      "sha1": "4275bbc5baf611a46ca813c3398dd5ed30e4572a",
+      "size": 684196
+    },
+    {
+      "file": "build_mapping.js",
+      "sha256": "e5c13d2878468853aaad15d21d7daaba921d62806d9a35d4d2e25b28e9366cc8",
+      "sha1": "86674d3b579e582776a70ce17766ae0f29cdb635",
+      "size": 2079
+    }
+  ],
+  "csvHeader": "类别,UUID,base计数,候选行(row),保留对象行(keeperRow),targetHash,keeperHash,哈希一致(同值),hasBase,baseHash",
+  "sample5Rows": [
+    "SAFE,023fbcdf-c6d3-4cdc-9ce1-33bd83958690,1,7549,4143,sha256:f115f509b154781d8a1de64b2b168c41ecf9b0aacf1c47c40a974f6e35afba5f,sha256:f115f509b154781d8a1de64b2b168c41ecf9b0aacf1c47c40a974f6e35afba5f,YES,true,sha256:751c24f32291fc460d0e49883e645c6f30359b830bc560dfb09192ec03f9423e",
+    "SAFE,f0008d94-5431-407b-acda-afb34250f5d2,1,7552,4146,sha256:df1fea90e3bbd71009477a70d3ac73581ed08a348e5af1b7669fa2b1af0b8a2a,sha256:df1fea90e3bbd71009477a70d3ac73581ed08a348e5af1b7669fa2b1af0b8a2a,YES,true,sha256:21e3f75ad89eb1824bcb811c8412187d91c1d048ae2f489dec6054e75352fb29",
+    "SAFE,73edc598-e7ed-4232-86ca-22b87c2c64b3,1,7554,4148,sha256:6dce84c92507f965c8226cd2386aaa0c32a7ba1cb79abcf0755b37c807a9a3ab,sha256:6dce84c92507f965c8226cd2386aaa0c32a7ba1cb79abcf0755b37c807a9a3ab,YES,true,sha256:4453f06771c740528c0fbe5e8575f8940883738ba55d4992a2cd2ffa1517a46d",
+    "SAFE,0c8c0355-d782-4863-b565-22881225d45c,1,7555,4149,sha256:b1f5bde97e07474ea09941bfc1ad376fc3d611da04d4657631dd81d59c075fa2,sha256:b1f5bde97e07474ea09941bfc1ad376fc3d611da04d4657631dd81d59c075fa2,YES,true,sha256:a368f5bdff5deceeb545cfc82119a5835752234c9a0ab447a6fd6e644ee9a49c",
+    "SAFE,aaf1d329-ef45-49e6-807d-07230f54c598,1,7557,4151,sha256:68c044c82a3e11943ff5b30497967b1320e1dcf9c8e61932102fb73e523d5827,sha256:68c044c82a3e11943ff5b30497967b1320e1dcf9c8e61932102fb73e523d5827,YES,true,sha256:0751eff9074b15744b891539fa01996d8433d3dd76182f2c78eb958a9abf8724"
+  ],
+  "verifyCmd": "node evidence/2026-11-01/verify_mapping.js   # L3 源快照重算 1340/1340 PASS"
+}
