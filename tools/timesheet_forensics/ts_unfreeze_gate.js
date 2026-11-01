@@ -208,6 +208,20 @@ function checkM3_rita() {
   add('M3', 'Rita 解除授权已登记', 'ADVISORY', 'PASS', (g.note || ''));
 }
 
+// ---------- M0：Rita 直接裁定 M1（owner ruling，INFO 级，不影响 EXIT） ----------
+function checkM0_owner_ruling() {
+  const a = readApprovals();
+  const g = a && a.rita_owner_m1_ruling;
+  if (!g || !g.granted) {
+    add('M0', 'Rita 直接裁定 M1（owner ruling）', 'ADVISORY', 'NOTED',
+        '未登记 owner 裁定。默认走 Tom 技术裁定闸门（M1 BLOCKED）。');
+    return;
+  }
+  add('M0', 'Rita 直接裁定 M1（owner ruling，数据层基线接受）', 'ADVISORY', 'PASS',
+      'ref=' + (g.ref || '(空)') + ' · ' + (g.note || '') +
+      ' ｜ 仅 owner 对技术评估基线的裁定，不替代 M2 期锁 clearance 与 TS_WRITE_FREEZE，不解除 EXIT=1。');
+}
+
 // ---------- 执行 ----------
 console.log('=== TS_WRITE_FREEZE 解冻闸门（只判定 · 零写入）===');
 console.log('时间: %s\n', new Date().toISOString());
@@ -222,6 +236,7 @@ checkA5_writer_bypass();
 checkM1_tom();
 checkM2_clearance();
 checkM3_rita();
+checkM0_owner_ruling();
 
 const blocking = results.filter(r => r.sev === 'BLOCKING');
 const bad = blocking.filter(r => r.state !== 'PASS');

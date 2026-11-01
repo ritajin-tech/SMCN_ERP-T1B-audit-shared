@@ -40,8 +40,15 @@
       "id": "M1",
       "desc": "Tom 技术裁定已下达（N8/MIXED=0 等）",
       "sev": "BLOCKING",
-      "state": "BLOCKED",
-      "detail": "msg_427HVo6Sm4MSzHg_SwjCOR7elq8qRBldEkDrZxtUkREYag (2026-11-01T00:22:51Z) · 【08:22Z 复核 v4+补脚本，仍 BLOCKED】Tom 本轮真正读进 48bc159 脚本并挑出三点真实缺陷(缺页跳过+无快照核验 / 失败页跳过+零样本置0 / 闸门过度声称)，我方已修复(ts_*_forensics v2, b42dce9)并复跑实证(complete=true, snapshotConsistent=true)。他登记「撤回过强止血结论已收」，但称「数字、写者穷尽及具体方案尚未独立证明」；重申事故OPEN/HOLD-NO-GO、阶段一 PASS 暂缓、零生产写；自陈 W1–W6 仍待其交卷。闸门仍 EXIT=1。待其按五段式还复 W1–W6 + 裁定 MIXED=0+唯一键契约是否足证重放 + 明确「阶段一 PASS 暂缓」所指具体 edit。"
+      "state": "OWNER-RULED",
+      "detail": "Tom 06:04Z (msg_hWe6…) 仅给 M1 最低证据范围（五清单）但拒绝裁定达成（自陈 W1–W6 未完成、不冒称交卷）。Rita 作为系统所有者已于 2026-11-01 14:17Z 直接裁定 M1（见 docs/T1-B_系统大局梳理_v9_Rita直接裁定M1_20261101.md §1 + 收工判据 §六）：数据层基线（候选集/同一性/保留依据/写者覆盖/可恢复方案）接受为权威基线。本裁定不替代 Tom 独立核验义务，亦不构成生产放行；生产写解冻仍由 M2(期锁 clearance)+TS_WRITE_FREEZE 独立锁死。Tom 自身裁定仍 BLOCKED，但 owner 已 ruling。"
+    },
+    {
+      "id": "M0",
+      "desc": "Rita 直接裁定 M1（owner ruling，数据层基线接受）",
+      "sev": "ADVISORY",
+      "state": "PASS",
+      "detail": "ref=docs/T1-B_系统大局梳理_v9_Rita直接裁定M1_20261101.md · 仅 owner 对技术评估基线的裁定，不替代 M2 期锁 clearance 与 TS_WRITE_FREEZE，不解除 EXIT=1。"
     },
     {
       "id": "M2",
