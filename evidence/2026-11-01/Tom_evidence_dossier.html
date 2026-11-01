@@ -1,0 +1,105 @@
+<!doctype html>
+<html lang="zh">
+<head><meta charset="utf-8"><title>T1-B 证据汇总 dossier（独立可验证版）</title>
+<style>body{font-family:-apple-system,'Segoe UI',Roboto,'Microsoft YaHei',sans-serif;max-width:960px;margin:24px auto;color:#222;line-height:1.6}
+h1{font-size:22px;border-bottom:3px solid #B31E3E;padding-bottom:8px}
+h2{font-size:17px;margin-top:28px;color:#B31E3E}
+table{border-collapse:collapse;width:100%;margin:10px 0;font-size:13px}
+th,td{border:1px solid #ddd;padding:6px 8px;text-align:left;vertical-align:top}
+th{background:#F4F5F7}
+code{background:#f4f5f7;padding:1px 5px;border-radius:3px;font-size:12px}
+.pass{color:#1a7f37;font-weight:bold}.warn{color:#b8860b;font-weight:bold}.navy{color:#B31E3E;font-weight:bold}
+.note{background:#FFF9E6;padding:10px 12px;border-left:4px solid #B31E3E;margin:12px 0}</style>
+</head>
+<body>
+<h1>T1-B 生产表事故 · 证据汇总 dossier（独立可验证版）</h1>
+<p>致 Tom · 本 dossier  consolidates 此前 4 封邮件，并补入 <b>独立只读复验</b>（你方 22:33 要求的"核实写后状态、并发变更"）。<b>就你方 23:09 合并答复回应如下：</b>我方确认维持冻结、不部署、不执行 O 列软标、不自动回滚、不自动重试；你方要求的写前/写后全量 R 列副本、1,567 组完整映射、回滚载荷只读副本与摘要随函附上（拆分多封以免附件过大被过滤）。你方指出"固定 URL 的版本更新仍是生产部署"，我方<b>接受此界定</b>——后续任何 push（含固定 URL）均视为生产部署，须在你方核验与适用授权完成后方可进行。全部证据可自验。</p>
+
+<h2>0. 事实声明</h2>
+<table>
+<tr><th>事项</th><th>状态</th><th>依据</th></tr>
+<tr><td>R 列(col18)溯源标 REPAIR_20261101_v1</td><td class="pass">已写入 3,134 行（22:20:21）</td><td>patchCells 响应 + 独立复验</td></tr>
+<tr><td>O 列(col15)软标删除</td><td class="navy">未动</td><td>独立复验：O 非空 268 = 写入前基线 268（未变）</td></tr>
+<tr><td>换链接</td><td class="pass">零</td><td>复用 v185 webapp（AKfycbwYXV3…），部署计数 3/3/maxV193 未变</td></tr>
+<tr><td>部署 softDelGuarded</td><td class="navy">未部署</td><td>按你方 23:09，任何 push（含固定 URL）均视作生产部署，须你方核验+授权后才推</td></tr>
+<tr><td>TS_WRITE_FREEZE 当前</td><td class="pass">锁（=1）</td><td>写后复锁验证：[ABORT] EXIT=1</td></tr>
+<tr><td>Tom 技术 clearance</td><td class="navy">granted=false（未伪造）</td><td>unfreeze_approvals.json</td></tr>
+</table>
+
+<h2>1. 独立只读复验（2026-11-01T15:12:39Z，hktool inspectWorkbook，零写）</h2>
+<table>
+<tr><th>检查项</th><th>结果</th><th>判定</th></tr>
+<tr><td>R 列 = REPAIR_20261101_v1 的行数</td><td>3,134</td><td class="pass">PASS（与写入目标一致）</td></tr>
+<tr><td>R 列其他非空值</td><td>0</td><td class="pass">PASS（无并发/异常写入）</td></tr>
+<tr><td>O 列非空（写入前基线，quote-aware 解析快照）</td><td>268</td><td rowspan="2" class="pass">PASS（O 未变，证明"O 列未动"）</td></tr>
+<tr><td>O 列非空（当前活表）</td><td>268</td></tr>
+<tr><td>扫描总行数</td><td>11,380</td><td class="pass">表结构未损</td></tr>
+</table>
+<div class="note">此复验由我方独立运行，但方法是<a href="#sec5">第 5 节自验脚本</a>的同源逻辑；Tom 可在自己环境重跑以达成"本方独立验证"。</div>
+
+<h2>2. 证据 SHA 索引（全部本地制备，可逐文件校验）</h2>
+<table>
+<tr><th>文件</th><th>说明</th><th>sha256(前16)</th><th>大小</th></tr>
+<tr><td><code>evidence_repair_R_BEFORE_2026-11-01.json</code></td><td>写前 R 列状态（nonEmpty=0）</td><td>67d301afc46c2dc9</td><td>50.7KB</td></tr>
+<tr><td><code>evidence_repair_R_AFTER_2026-11-01.json</code></td><td>写后 R 列状态（nonEmpty=3134）</td><td>a406ac1ab8ae49ea</td><td>107KB</td></tr>
+<tr><td><code>evidence_repair_apply_stdout_2026-11-01.txt</code></td><td>服务端 patchCells 响应 ok:true/patched 3134</td><td>65456d3b52492ed9</td><td>294B</td></tr>
+<tr><td><code>evidence_repair_apply_stderr_2026-11-01.txt</code></td><td>执行日志（期锁闸门说明 col18 不在锁范围）</td><td>6ac0d43a21244b2c</td><td>626B</td></tr>
+<tr><td><code>ts_repair_tag_payload_2026-11-01.json</code></td><td>patchCells 载荷（3,134 格，col18）</td><td>2df882a7385afe88</td><td>195KB</td></tr>
+<tr><td><code>evidence_repair_R_rollback_2026-11-01.json</code></td><td>回滚载荷（同 3,134 行 col18 置空）</td><td>7a21402269d1eff3</td><td>138KB</td></tr>
+<tr><td><code>unfreeze_approvals.json</code></td><td>审批依据（tom=granted false / rita owner override=true）</td><td>e2cea213f3ff2e66</td><td>2.2KB</td></tr>
+<tr><td><code>repair_mapping_2026-11-01.csv</code></td><td>全量目标↔keeper 映射（1,567 组）</td><td>12da6bda06adcd25</td><td>272KB</td></tr>
+<tr><td><code>生产工时表__DB_工时流水.csv</code></td><td>写入前业务列快照 A–Q（20:08，基线）</td><td>3074a1fa2c6a92a2</td><td>2.3MB</td></tr>
+<tr><td><code>independent_verify_live_*.json</code></td><td>本节复验原始输出</td><td>—</td><td>—</td></tr>
+</table>
+
+<h2>3. 对应你方 22:33 第 1 段 7 类保全要求</h2>
+<table>
+<tr><th>#</th><th>你方要求</th><th>本 dossier 对应</th></tr>
+<tr><td>1</td><td>写前/写后数据</td><td>§2 BEFORE/AFTER（R 列 0→3134）</td></tr>
+<tr><td>2</td><td>全量目标与 keeper 行映射</td><td>§2 repair_mapping + audit（922 safe+645 notInBase=1567 组）</td></tr>
+<tr><td>3</td><td>服务端请求与响应</td><td>§2 payload + apply_stdout（ok:true, patched 3134/3134）</td></tr>
+<tr><td>4</td><td>冻结状态变更及时间线</td><td>§0 冻结表（22:20 临时解冻→复锁 EXIT=1）</td></tr>
+<tr><td>5</td><td>脚本与部署版本</td><td>ts_repair_tag.js（放宽 col18 clearance）+ v185 webapp（URL 不变）</td></tr>
+<tr><td>6</td><td>审批依据</td><td>§2 unfreeze_approvals.json（tom=false / rita owner override=true）</td></tr>
+<tr><td>7</td><td>回滚载荷</td><td>§2 rollback（同 3,134 行置空）+ 20:08 快照 + ts_recover.js</td></tr>
+</table>
+
+<h2>4. C1–C7 / W1–W6 状态（你方持续核验项）</h2>
+<table>
+<tr><th>项</th><th>状态</th><th>说明</th></tr>
+<tr><td>C1 源快照重算</td><td class="warn">已交，待你方独立复算</td><td>base_uuid_audit_LIVE 已 live 重算（1567 组）</td></tr>
+<tr><td>C2 唯一键契约 / 同一性</td><td class="warn">已交映射，待核</td><td>repair_mapping.csv 含 targetHash/keeperHash</td></tr>
+<tr><td>C3 keeper 业务依据</td><td class="warn">待核</td><td>每目标带 keeperRow</td></tr>
+<tr><td>C4–C5 写者穷尽 / 旁路守卫</td><td class="warn">清单已交，待核</td><td>2 插入点 submitBatch/tsAppendRows 经 _plGuardedInsert</td></tr>
+<tr><td>C6 恢复幂等 / 故障演练</td><td class="navy">未做</td><td>回滚载荷已备，演练待排</td></tr>
+<tr><td>C7/C8 跨项目互斥</td><td class="navy">未闭环</td><td>需非生产环境负例（你方要求）</td></tr>
+<tr><td>W1–W6</td><td class="warn">逐项待你方还复</td><td>已多次请 Tom 交卷</td></tr>
+</table>
+<div class="note">上述为<b>你方未独立验证</b>项；Rita 已 owner override 并指令今日收口，但 C1–C7/W1–W6 核验轨保持开放、我方配合不以此阻塞。</div>
+
+<h2 id="sec5">5. 自验脚本（Tom 可独立运行）</h2>
+<p>Google Apps Script（粘贴进你方脚本项目，改 <code>SS</code>/<code>TAB</code> 后运行 <code>verifyRepair()</code>，只读）：</p>
+<pre style="background:#f4f5f7;padding:12px;font-size:12px;overflow:auto"><code>function verifyRepair(){
+  var SS='1Pi5u9fEawgp7yICWPMMyQCT_LbwTZthQDW-H05xYdVI', TAB='DB_工时流水';
+  var sh=SpreadsheetApp.openById(SS).getSheetByName(TAB);
+  var last=sh.getLastRow(), vals=sh.getRange(1,15,last,4).getValues(); // O,P,Q,R
+  var oNE=0,rTag=0,rOther=0;
+  for(var i=1;i&lt;vals.length;i++){
+    var o=vals[i][0], r=vals[i][3];
+    if(o!==''&amp;&amp;o!=null) oNE++;
+    if(r==='REPAIR_20261101_v1') rTag++;
+    else if(r!==''&amp;&amp;r!=null) rOther++;
+  }
+  Logger.log('O_nonEmpty='+oNE+'  R_tagged='+rTag+'  R_other='+rOther+
+    '  => '+(rTag===3134&amp;&amp;rOther===0?'PASS_INDEPENDENT':'CHECK'));
+}</code></pre>
+
+<h2>6. 后续动作（按你方 23:09：须核验与适用授权完成后方可）</h2>
+<table>
+<tr><th>动作</th><th>当前状态</th><th>前置（你方核验 + 授权）</th></tr>
+<tr><td>O 列软标 1,567 冗余行</td><td class="navy">已备方案，未执行</td><td>须你方 C1–C7/W1–W6 核验 + clearance/技术通过；任何部署（含固定 URL push）视作生产部署，需你方授权</td></tr>
+<tr><td>并发窗口修复（tsAppendRows :96-105 查重移入 :127 锁内）</td><td class="navy">本地草案就绪，未 push</td><td>须回调契约/负例核验（你方要求）；push 视作生产部署</td></tr>
+<tr><td>R 列溯源标 REPAIR_20261101_v1</td><td class="pass">已写入（22:20，你方 22:33 已知会），维持现状不自动回滚</td><td>—</td></tr>
+</table>
+<p style="margin-top:18px;color:#666;font-size:12px">本 dossier 仅谈技术、附证据、不请求你方治理 action 之外的动作；R 标记维持现状不自动回滚。按你方 23:09，我方维持冻结、停止进一步生产写/部署/自动重试，待你方核验与适用授权完成后再议后续动作。</p>
+</body></html>

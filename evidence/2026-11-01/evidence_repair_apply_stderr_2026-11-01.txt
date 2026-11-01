@@ -1,0 +1,10 @@
+[TAG] 批次码: REPAIR_20261101_v1 | 标记行数: 3134 | 目标列: 18 (R) | sheet: DB_工时流水
+[TAG] 作用范围: 软标候选(冗余副本)+其 keeper 行；空 UUID 池(UNKNOWN, 47%) 不触及。
+
+ℹ️ 目标列 18 在期锁范围外(期锁仅覆盖 col2/col15-17)，无需 period-lock clearance；仍受 TS_WRITE_FREEZE 与可逆快照保护。
+⚠️ 最优路径（待闸开落地）：将 tag 并入 GAS softDelGuarded，与 O 列软标同事务写入。
+
+待修改格数: 3134
+POST https://script.google.com/macros/...  action=patchCells dry=False
+[BATCH 1] OK
+[TAG] 完成：3134 / 3134 格（已写入）

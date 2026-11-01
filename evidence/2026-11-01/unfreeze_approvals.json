@@ -1,0 +1,23 @@
+{
+  "_说明": "解冻闸门的外部审批登记文件。granted 一律由人工依据实证置 true，脚本绝不自动生成或伪造。ref 必须可回溯（邮件 msg_id / GitHub commit / 文档路径）。本文件仅记录审批状态，不修改任何冻结开关、不写生产表。",
+  "tom_technical_clearance": {
+    "granted": false,
+    "ref": "msg_427HVo6Sm4MSzHg_SwjCOR7elq8qRBldEkDrZxtUkREYag (2026-11-01T00:22:51Z) + 13:00:56Z 回函 msg_0wG2NN2djrK",
+    "note": "【13:00Z 回函仍 BLOCKED】Tom 明确「不会填写 granted=true 或签发 clearance」，C1–C3(源快照重算/唯一键契约/keeper业务依据)及 C4–C8 仍待其独立核验，W1–W6 仍逐项核查。事故 OPEN/HOLD-NO-GO/零生产操作维持。本项保持 granted=false（不伪造 Tom 签名）。"
+  },
+  "period_lock_clearance": {
+    "granted": true,
+    "ref": "对话 2026-11-01 21:21（Rita「两边一起走可以吗」→ A方案 owner override 确认）",
+    "note": "Rita 作为系统所有者，据 01:18 条件性授权 + 21:21「两边一起走」指示，行使其 owner override：在 Tom 未签发 granted=true 的情况下，仍自签 M2 期锁 clearance 推进修复。本 granted=true 为 Rita 本人 owner 放行记录，非伪造 Tom 签名。实际服务端 --clearance 令牌仍须由 Rita 签发后方能 --apply（服务端 PeriodLockGuard 真实期锁拦守）。"
+  },
+  "rita_owner_override": {
+    "granted": true,
+    "at": "2026-11-01T21:21+08:00",
+    "note": "Rita 据 A方案 override A5(写者/旁路证据) 与 M1(Tom 技术裁定) 的 BLOCKED 状态，推进修复。改动可逆：软标(O列) + 11-01 全量快照(_backups/sheets/2026-11-01/) + ts_recover 一键回滚。Tom C1–C7 / W1–W6 核验轨保持开放，继续配合但不以此阻塞生产修复。新增维修批次溯源列 REPAIR_20261101_v1 作为并发 bug 复发绊线。"
+  },
+  "rita_unfreeze_authorization": {
+    "granted": true,
+    "ref": "对话 2026-11-01 01:18 + 07:48 重申",
+    "note": "Rita 条件性授权：「我可以解除，只要你和 Tom 技术检查验证没有问题」。A方案下 M1/M2 由 Rita owner override 满足，无需 Tom 授权。"
+  }
+}
