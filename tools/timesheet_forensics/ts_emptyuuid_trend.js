@@ -6,6 +6,12 @@
  *       —— uid 为空时【不做查重】，直接写入。故空 UUID 行可无限重复。
  *       若近期新增行仍大量为空 UUID ⇒ 漏洞活跃 ⇒ 清完还会长回来，不得解冻。
  *
+ * v2（2026-11-01 回应 Tom 08:22 复核）：针对其证据边界补强：
+ *   ① 不完整读取拒绝结论：任一页失败/短页 → incomplete=true，不下结论、emptyPct 置 null，process.exit(1)。
+ *   ② 零样本：窗口内无样本 → emptyPct 置 null，verdict 明确「无法判定」，不输出 0%。
+ *   ③ 时间口径声明：col0 为「提交日期」(submit-date)，非写入时间(write-time)；空 UUID 占比只反映
+ *      提交日期口径，不能单独证明写入时间，也不能证明未来不会重放（并发重放/旁路仍须独立验证）。
+ *
  * 输出：按提交日(近 N 日)统计 新增行数 / 空UUID行数 / 空UUID占比 / 工时。
  * 用法：node tools/ts_emptyuuid_trend.js [days=14]
  */
@@ -52,7 +58,7 @@ async function getRange(ssId, sheet, a1) {
     if (r && r.values && r.values.length) return r.values;
     await new Promise(res => setTimeout(res, 1200 * (i + 1)));
   }
-  return [];
+  return null;
 }
 const normDate = v => {
   if (!v) return '';
@@ -65,15 +71,22 @@ const isSoftDel = v => ['TRUE', 'true', '✔', '1'].includes(String(v || '').tri
 (async () => {
   const days = parseInt(process.argv[2] || '14', 10);
   const m1 = await get('inspectWorkbook', { ssId: TS_ID, sheet: PROD_TAB, mode: 'values', a1: 'A1:A12000' });
-  let last = 0;
-  if (m1 && m1.values) { last = m1.values.length; while (last > 0 && !String((m1.values[last - 1] || [])[0] || '').trim()) last--; }
+  function trimLast(vals) {
+    let n = vals ? vals.length : 0;
+    while (n > 0 && !String((vals[n - 1] || [])[0] || '').trim()) n--;
+    return n;
+  }
+  const last = m1 && m1.values ? trimLast(m1.values) : 0;
   if (!last) { console.error('无法确定总行数'); process.exit(1); }
 
   const CH = 500, all = [];
+  let failedPages = 0, shortPages = 0;
   for (let s = 2; s <= last; s += CH) {
     const e = Math.min(s + CH - 1, last);
     const v = await getRange(TS_ID, PROD_TAB, 'A' + s + ':O' + e);
-    if (!v.length) continue;
+    if (!v) { failedPages++; continue; }
+    const expected = e - s + 1;
+    if (v.length !== expected) { shortPages++; continue; }
     for (let i = 0; i < v.length; i++) {
       const r = v[i] || [];
       if (isSoftDel(r[14])) continue;              // 只看存活行
@@ -85,6 +98,15 @@ const isSoftDel = v => ['TRUE', 'true', '✔', '1'].includes(String(v || '').tri
   }
   process.stderr.write('\n');
 
+  if (failedPages > 0 || shortPages > 0) {
+    const outdir = path.join(__dirname, '..', '_tmp', 'evidence');
+    fs.mkdirSync(outdir, { recursive: true });
+    const pf = path.join(outdir, 'emptyuuid_trend_' + new Date().toISOString().slice(0, 10) + '.partial.json');
+    fs.writeFileSync(pf, JSON.stringify({ incomplete: true, failedPages, shortPages }, null, 2), 'utf8');
+    console.error('ABORT: 读取不完整（失败页 ' + failedPages + ' / 短页 ' + shortPages + '），已写 ' + pf);
+    process.exit(1);
+  }
+
   const dates = all.map(r => r.date).filter(Boolean).sort();
   const cutoff = dates[dates.length - 1]
     ? new Date(new Date(dates[dates.length - 1]).getTime() - days * 86400000).toISOString().slice(0, 10)
@@ -95,18 +117,24 @@ const isSoftDel = v => ['TRUE', 'true', '✔', '1'].includes(String(v || '').tri
     const o = byDay.get(r.date); o.total++; o.hours += r.hours; if (!r.uuid) o.emptyUuid++;
   } });
 
-  const out = { ts: new Date().toISOString(), lastRow: last, alive: all.length, windowDays: days, cutoff, byDay: [] };
+  const out = { ts: new Date().toISOString(), lastRow: last, alive: all.length, windowDays: days, cutoff,
+                timeCaliber: 'col0 = 提交日期(submit-date)，非写入时间(write-time)；空UUID占比仅反映该口径，不能证明写入时间，亦不能单独排除未来并发重放/旁路', byDay: [] };
   let wTot = 0, wEmpty = 0;
   [...byDay.keys()].sort().forEach(d => {
     const o = byDay.get(d); wTot += o.total; wEmpty += o.emptyUuid;
     out.byDay.push({ date: d, rows: o.total, emptyUuid: o.emptyUuid,
-                     emptyPct: Math.round(o.emptyUuid / o.total * 1000) / 10,
+                     emptyPct: o.total ? Math.round(o.emptyUuid / o.total * 1000) / 10 : null,
                      hours: Math.round(o.hours * 100) / 100 });
   });
-  out.window = { rows: wTot, emptyUuid: wEmpty, emptyPct: wTot ? Math.round(wEmpty / wTot * 1000) / 10 : 0 };
-  out.verdict = out.window.emptyPct === 0
-    ? '窗口内零空 UUID ⇒ 空 UUID 为历史遗留，漏洞未再触发'
-    : '窗口内仍有 ' + out.window.emptyPct + '% 空 UUID ⇒ 漏洞活跃，清完还会长回来';
+
+  out.window = { rows: wTot, emptyUuid: wEmpty,
+                 emptyPct: wTot ? Math.round(wEmpty / wTot * 1000) / 10 : null };
+  out.complete = true;
+  out.verdict = wTot === 0
+    ? '窗口内无样本（' + wTot + ' 行），无法判定空UUID是否仍在增长'
+    : (out.window.emptyPct === 0
+        ? '窗口内零空 UUID ⇒ 空 UUID 为历史遗留，漏洞当前未再触发（注：仅提交日期口径，并发重放/旁路仍须独立验证）'
+        : '窗口内仍有 ' + out.window.emptyPct + '% 空 UUID ⇒ 漏洞活跃，清完还会长回来');
 
   const outdir = path.join(__dirname, '..', '_tmp', 'evidence');
   fs.mkdirSync(outdir, { recursive: true });

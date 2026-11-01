@@ -88,15 +88,17 @@ function checkA3_hemostasis() {
   let d = null;
   try { d = JSON.parse(fs.readFileSync(f, 'utf8')); } catch (e) { /* null */ }
   if (!d || !d.window) { add('A3', '止血已闭环(空UUID不再增长)', 'BLOCKING', 'FAIL', f + ' 结构异常'); return; }
+  if (d.complete === false) { add('A3', '止血已闭环(空UUID不再增长)', 'BLOCKING', 'FAIL', f + ' 标记为不完整读取(部分页失败)，结论不可信'); return; }
   const w = d.window;
   const ok = w.emptyPct === 0;
   add('A3', '止血已闭环(近期新增零空UUID ⇒ 清理后不长回)', 'BLOCKING', ok ? 'PASS' : 'FAIL',
-      '窗口 ' + w.rows + ' 行新增 / 空UUID ' + w.emptyUuid + ' (' + w.emptyPct + '%) · ' + d.verdict);
+      '窗口 ' + w.rows + ' 行新增 / 空UUID ' + w.emptyUuid + ' (' + w.emptyPct + '%) · 仅提交日期口径，并发重放/旁路仍须独立验证 · ' + d.verdict);
 }
 
 function checkA4_freezeState() {
   const cur = process.env.TS_WRITE_FREEZE === '0' ? '0(已解除)' : '1(锁定)';
-  add('A4', '当前冻结状态（记录用）', 'ADVISORY', 'PASS', 'TS_WRITE_FREEZE=' + cur + '（本脚本不修改）');
+  add('A4', 'Rita 侧冻结开关状态（本地进程环境记录，非远端权威）', 'ADVISORY', 'PASS',
+      'TS_WRITE_FREEZE=' + cur + '（本脚本不修改）；远端权威冻结源为期锁 PeriodLockGuard，本项仅为本地记录，不证明远端冻结真实状态');
 }
 
 // ---------- M 系列：需外部输入，绝不伪造 ----------
@@ -142,6 +144,9 @@ function checkM3_rita() {
 // ---------- 执行 ----------
 console.log('=== TS_WRITE_FREEZE 解冻闸门（只判定 · 零写入）===');
 console.log('时间: %s\n', new Date().toISOString());
+console.log('⚠️ 声明：本闸门是 Rita 的内部预检（preflight），仅核验「自动可验证项 + 审批文件状态」。');
+console.log('   EXIT=0 表示「全部自动预检通过」，【不等于】Tom 技术放行 / 期锁 clearance / 任何授权；');
+console.log('   本脚本不修改任何冻结开关、不写生产表、不替代任何外部审批。\n');
 checkA1_backup();
 checkA2_stratify();
 checkA3_hemostasis();

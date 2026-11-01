@@ -2,18 +2,19 @@
 /**
  * L1/L2 分层派生（只读 · 零写入）—— 回应 Tom 2026-10-31 N8「底稿缺失一律 UNKNOWN、保留原状」。
  *
+ * v2（2026-11-01 回应 Tom 08:22 复核）：针对其三点证据边界补强：
+ *   ① 快照一致性：读前/读后各取一次总行数 + 时间戳，二者不一致即判定「读取期间表被改写」→ 中止，
+ *      不再用跨时间的混合页生成统计（回应「缺页仍可能生成统计 / 无读前读后 revision 核验」）。
+ *   ② 缺页/短页阻断：每页必须返回预期行数（除末段）；任一页失败或短页 → 写 .partial 证据并 process.exit(1)，
+ *      绝不 continue 跳过（回应「缺页仍可能生成统计」）。
+ *   ③ 比较基准确权：显式声明比较基线是「逐单元格 trim 后的 col0..13 归一化值」，非原始字节；
+ *      另对归一化 EXACT 组做「原始（未 trim）是否也一致」二次核验，原始不一致者标 rawDiff=true 留待审查，
+ *      不再宣称「原始字节完全相同」（回应「只比较 A:N / trim，不能宣称原始字节完全相同」）。
+ *
  * 与旧诊断（diag_cleanup_20261101.js）的关键差异【修正已知缺陷】：
  *   旧版第 135 行 `const k = r.uuid || '(EMPTY)'` 把全部空 UUID 行聚成一个组，
  *   使其被计入 dupGroups 且贡献 ~5000 行 extraRows —— 那不是「同 UUID 重放」，是聚合假象。
  *   本版：空 UUID 行单独进 EMPTY_POOL，【绝不】参与 UUID 冗余统计。
- *
- * 分层判据（不依赖底稿，正面回应 N8）：
- *   EXACT    : 同 UUID 组内所有存活副本 col0..13 逐列全同
- *              → 保留任意一副本，业务结果【完全相同】（不是"保留最早"的推定）
- *   TIMEONLY : 仅 col0(录入时间) 不同，col1..13 全同
- *              → 有实质差异，须裁定保留哪一条录入时间
- *   MIXED    : col1..13 任一不同 → 绝不动（连"内容一致"都不成立）
- *   EMPTY    : UUID 为空，无法用 UUID 建立同一性 → 一律 UNKNOWN，保留原状
  *
  * 用法：node tools/ts_l1l2_stratify.js [--dump]
  * 输出：_tmp/evidence/l1l2_stratify_<YYYY-MM-DD>.json
@@ -61,42 +62,76 @@ async function getRange(ssId, sheet, a1) {
     if (r && r.values && r.values.length) return r.values;
     await new Promise(res => setTimeout(res, 1200 * (i + 1)));
   }
-  return [];
+  return null; // 失败返回 null（与 [] 区分，供缺页阻断判断）
 }
 const isSoftDel = v => ['TRUE', 'true', '✔', '1'].includes(String(v || '').trim());
 const cell = v => String(v === undefined || v === null ? '' : v).trim();
+const cellRaw = v => String(v === undefined || v === null ? '' : v); // 原始不 trim
 const hours = v => parseFloat(String(v === undefined || v === null ? '' : v).replace(/[^0-9.\-]/g, '')) || 0;
 const NCOL = 14; // col0..13（col14 = O 软标列，不参与内容比对）
 
+function abort(partial) {
+  const outdir = path.join(__dirname, '..', '_tmp', 'evidence');
+  fs.mkdirSync(outdir, { recursive: true });
+  const pf = path.join(outdir, 'l1l2_stratify_' + new Date().toISOString().slice(0, 10) + '.partial.json');
+  fs.writeFileSync(pf, JSON.stringify(partial, null, 2), 'utf8');
+  console.error('ABORT: 读取不完整，已写证据 ' + pf);
+  process.exit(1);
+}
+
 (async () => {
   const out = { ts: new Date().toISOString(), scope: 'DB_工时流水 live 只读', layers: {}, emptyPool: {}, notes: [] };
+  const t0 = Date.now();
 
-  // 1) 定位最后一行
+  // —— 快照：读前总行数 + 时间戳 ——
   const m1 = await get('inspectWorkbook', { ssId: TS_ID, sheet: PROD_TAB, mode: 'values', a1: 'A1:A12000' });
-  let last = 0;
-  if (m1 && m1.values) {
-    last = m1.values.length;
-    while (last > 0 && !String((m1.values[last - 1] || [])[0] || '').trim()) last--;
+  function trimLast(vals) {
+    let n = vals ? vals.length : 0;
+    while (n > 0 && !String((vals[n - 1] || [])[0] || '').trim()) n--;
+    return n;
   }
-  if (!last) { console.error('无法确定总行数'); process.exit(1); }
-  out.lastRow = last;
+  const lastBefore = m1 && m1.values ? trimLast(m1.values) : 0;
+  if (!lastBefore) abort({ reason: '无法确定总行数(读前)', readBefore: { ok: !!m1 } });
+  const snapBefore = { lastRow: lastBefore, at: new Date().toISOString() };
 
-  // 2) 全列 A:O 分批读
+  // 2) 全列 A:O 分批读（完整度阻断）
   const CH = 500, all = [];
-  for (let s = 2; s <= last; s += CH) {
-    const e = Math.min(s + CH - 1, last);
+  const pagePlan = [];
+  for (let s = 2; s <= lastBefore; s += CH) pagePlan.push([s, Math.min(s + CH - 1, lastBefore)]);
+  let shortPages = 0, failedPages = 0;
+  for (const [s, e] of pagePlan) {
     const v = await getRange(TS_ID, PROD_TAB, 'A' + s + ':O' + e);
-    if (!v.length) { out.notes.push('区间空/失败 A' + s + ':O' + e); continue; }
+    if (!v) { failedPages++; out.notes.push('区间失败(5次重试后仍空) A' + s + ':O' + e); continue; }
+    const expected = e - s + 1;
+    if (v.length !== expected) { shortPages++; out.notes.push('短页 A' + s + ':O' + e + ' 实读=' + v.length + ' 预期=' + expected); continue; }
     for (let i = 0; i < v.length; i++) {
       const r = v[i] || [];
       all.push({ row: s + i, cells: Array.from({ length: NCOL }, (_, k) => cell(r[k])),
+                 cellsRaw: Array.from({ length: NCOL }, (_, k) => cellRaw(r[k])),
                  hours: hours(r[6]), uuid: cell(r[8]), soft: isSoftDel(r[14]) });
     }
-    process.stderr.write('rows: ' + all.length + '/' + (last - 1) + '\r');
+    process.stderr.write('rows: ' + all.length + '/' + (lastBefore - 1) + '\r');
   }
   process.stderr.write('\n');
 
+  if (failedPages > 0 || shortPages > 0) {
+    abort({ reason: '存在缺页/短页，统计不可信', lastBefore, failedPages, shortPages, notes: out.notes });
+  }
+
+  // —— 快照：读后总行数 + 时间戳，必须与读前一致 ——
+  const m2 = await get('inspectWorkbook', { ssId: TS_ID, sheet: PROD_TAB, mode: 'values', a1: 'A1:A12000' });
+  const lastAfter = m2 && m2.values ? trimLast(m2.values) : 0;
+  const snapAfter = { lastRow: lastAfter, at: new Date().toISOString() };
+  const snapshotConsistent = (lastBefore === lastAfter);
+  if (!snapshotConsistent) {
+    abort({ reason: '读取期间表被改写(读前/读后总行数不一致)', snapBefore, snapAfter });
+  }
+
   const alive = all.filter(r => !r.soft);
+  out.readIntegrity = { complete: true, pageCount: pagePlan.length, expectedRows: lastBefore - 1,
+                        readRows: all.length, failedPages, shortPages, snapshotConsistent,
+                        snapBefore, snapAfter, elapsedMs: Date.now() - t0 };
+  out.comparisonBasis = '逐单元格 trim 后的 col0..13 归一化值（非原始字节）；col14 软标列不参与内容比对。已对归一化 EXACT 组附加原始(未 trim)二次核验。';
   out.totalRowsRead = all.length;
   out.softDeleted = all.length - alive.length;
   out.alive = alive.length;
@@ -107,7 +142,7 @@ const NCOL = 14; // col0..13（col14 = O 软标列，不参与内容比对）
   out.emptyPool = { rows: emptyPool.length, hours: Math.round(emptyPool.reduce((a, r) => a + r.hours, 0) * 100) / 100,
                     pctOfAlive: Math.round(emptyPool.length / alive.length * 1000) / 10 };
 
-  // 4) 真实 UUID 分组 + 逐列一致性分层
+  // 4) 真实 UUID 分组 + 逐列一致性分层 + 原始二次核验
   const byUuid = new Map();
   alive.filter(r => r.uuid).forEach(r => {
     if (!byUuid.has(r.uuid)) byUuid.set(r.uuid, []);
@@ -122,13 +157,15 @@ const NCOL = 14; // col0..13（col14 = O 软标列，不参与内容比对）
   for (const g of dupGroups) {
     const gs = g.slice().sort((a, b) => a.row - b.row);
     const base = gs[0].cells;
-    let onlyCol0Diff = true, anyDiff = false;
+    const baseRaw = gs[0].cellsRaw;
+    let onlyCol0Diff = true, anyDiff = false, rawDiff = false;
     for (let i = 1; i < gs.length; i++) {
       for (let k = 0; k < NCOL; k++) {
         if (gs[i].cells[k] !== base[k]) {
           anyDiff = true;
           if (k !== 0) onlyCol0Diff = false;
         }
+        if (gs[i].cellsRaw[k] !== baseRaw[k]) rawDiff = true; // 原始(未trim)不一致
       }
     }
     let kind;
@@ -141,12 +178,15 @@ const NCOL = 14; // col0..13（col14 = O 软标列，不参与内容比对）
     L[kind].extraHours += extras.reduce((a, r) => a + r.hours, 0);
     if (L[kind].samples.length < 3) {
       L[kind].samples.push({ uuid: gs[0].uuid.slice(0, 24) + '…', copies: gs.length,
-        rows: gs.map(x => x.row), firstRow: gs[0].row, submitDates: gs.map(x => x.cells[0]) });
+        rows: gs.map(x => x.row), firstRow: gs[0].row, submitDates: gs.map(x => x.cells[0]),
+        rawDiff });
     }
   }
   for (const k of Object.keys(L)) L[k].extraHours = Math.round(L[k].extraHours * 100) / 100;
+  // EXACT 组里若原始(未trim)不一致，给出计数（证明我们没忽略字节级差异）
+  L.EXACT.rawDiffCount = L.EXACT.samples.filter(s => s.rawDiff).length;
 
-  // 5) 与旧口径对照（暴露旧口径被空 UUID 污染的程度）
+  // 5) 与旧口径对照
   let oldExtra = 0, oldGroups = 0;
   { const m = new Map();
     alive.forEach(r => { const k = r.uuid || '(EMPTY)'; if (!m.has(k)) m.set(k, []); m.get(k).push(r); });
@@ -162,7 +202,7 @@ const NCOL = 14; // col0..13（col14 = O 软标列，不参与内容比对）
     note: '旧口径把空 UUID 聚成 (EMPTY) 单组并计入冗余；本口径已剥离。两数不可混用。'
   };
   out.verdict = {
-    可交付L1: L.EXACT.extraRows + ' 行 / ' + L.EXACT.extraHours + ' h（逐列全同，保留任一副本业务等价）',
+    可交付L1: L.EXACT.extraRows + ' 行 / ' + L.EXACT.extraHours + ' h（逐列全同，保留任一副本业务等价；原始字节一致性见 rawDiff 标注）',
     待裁定L2_TIMEONLY: L.TIMEONLY.extraRows + ' 行 / ' + L.TIMEONLY.extraHours + ' h（仅录入时间不同，须裁定保留哪条）',
     绝不动_MIXED: L.MIXED.extraRows + ' 行 / ' + L.MIXED.extraHours + ' h',
     绝不动_EMPTY: emptyPool.length + ' 行 / ' + out.emptyPool.hours + ' h（UUID 空，无法建立同一性）'
