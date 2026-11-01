@@ -1,0 +1,29 @@
+=== TS_WRITE_FREEZE 解冻闸门（只判定 · 零写入）===
+时间: 2026-11-01T07:21:23.201Z
+
+⚠️ 声明：本闸门是 Rita 的内部预检（preflight），仅核验「自动可验证项 + 审批文件状态」。
+   EXIT=0 表示「全部自动预检通过」，【不等于】Tom 技术放行 / 期锁 clearance / 任何授权；
+   本脚本不修改任何冻结开关、不写生产表、不替代任何外部审批。
+
+✅ [PASS   ] A1   生产表全量备份存在且新鲜(<=48h)
+      _backups\sheets\2026-11-01\生产工时表__DB_工时流水.csv | 11405 行 | 1h 前
+✅ [PASS   ] A2   L1/L2 分层清单已派生且口径正确
+      EXACT 1340行/3645h · TIMEONLY 227行 · MIXED 0组 · 空UUID池 5221行 · 存活 11111
+✅ [PASS   ] A3   止血观察：近期新增零空UUID（仅提交日期口径采样，非止血闭环证明）
+      窗口 388 行新增 / 空UUID 0 (0%) · 仅提交日期口径采样，并发重放/旁路仍须独立验证（见 A5） · 【观察】窗口内零空 UUID ⇒ 仅就「提交日期口径」看，空 UUID 为历史遗留、漏洞当前未再触发；此结论不能单独证写入已止血，亦不能排除并发重放/旁路（须独立验证，见 caveats）
+✅ [PASS   ] A4   Rita 侧冻结开关状态（本地进程环境记录，非远端权威）
+      TS_WRITE_FREEZE=1(锁定)（本脚本不修改）；远端权威冻结源为期锁 PeriodLockGuard，本项仅为本地记录，不证明远端冻结真实状态
+⛔ [BLOCKED] A5   写者清单 + 旁路证据完整（submitBatch/tsAppendRows 查重覆盖空UUID + 并发窗口修复 + 旁路封堵）
+      未找到 writer_bypass_evidence.json（待 Tom 还复 W 系列 / 独立验证补齐）。零样本、伪造来源、遗漏旁路均须拒绝；当前无证据 ⇒ 不得据此推进解冻。生产表仅 2 插入点 submitBatch(Code.gs:464)/tsAppendRows(RemoteActions.gs:127)，均经 _plGuardedInsert(PeriodLockGuard.gs:479)；须确认二者查重均覆盖空UUID，且 RemoteActions.gs:96-105 并发窗口已修复。
+⛔ [BLOCKED] M1   Tom 技术裁定已下达（N8/MIXED=0 等）
+      msg_427HVo6Sm4MSzHg_SwjCOR7elq8qRBldEkDrZxtUkREYag (2026-11-01T00:22:51Z) · 【08:22Z 复核 v4+补脚本，仍 BLOCKED】Tom 本轮真正读进 48bc159 脚本并挑出三点真实缺陷(缺页跳过+无快照核验 / 失败页跳过+零样本置0 / 闸门过度声称)，我方已修复(ts_*_forensics v2, b42dce9)并复跑实证(complete=true, snapshotConsistent=true)。他登记「撤回过强止血结论已收」，但称「数字、写者穷尽及具体方案尚未独立证明」；重申事故OPEN/HOLD-NO-GO、阶段一 PASS 暂缓、零生产写；自陈 W1–W6 仍待其交卷。闸门仍 EXIT=1。待其按五段式还复 W1–W6 + 裁定 MIXED=0+唯一键契约是否足证重放 + 明确「阶段一 PASS 暂缓」所指具体 edit。
+⛔ [BLOCKED] M2   期锁 clearance 已发放
+      未发放。软标属生产修改，须 clearance 放行。
+✅ [PASS   ] M3   Rita 解除授权已登记
+      Rita 条件性授权：「我可以解除，只要你和 Tom 技术检查验证没有问题」。已登记为 granted=true；实际放行由 M1(Tom 技术裁定)+M2(期锁 clearance) 满足后闸门 EXIT=0 触发，无需再问 Rita。
+
+=== 判定 ===
+BLOCKING 项: 5，通过 2，未通过 3
+🔴 闸门未通过 ⇒ 不得解除。未通过项: A5, M1, M2
+
+注：本脚本只判定，不修改任何冻结开关、不写生产表。
