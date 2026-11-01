@@ -6,6 +6,9 @@
  *       —— uid 为空时【不做查重】，直接写入。故空 UUID 行可无限重复。
  *       若近期新增行仍大量为空 UUID ⇒ 漏洞活跃 ⇒ 清完还会长回来，不得解冻。
  *
+ * v3（2026-11-01 回应 Tom 02:28 复核③）：verdict 收敛为「观察结果」，并显式列出仍须独立验证项
+ *   （写入事件 / 写者清单 / 并发·旁路负例），不再以零空UUID单独证止血或排除旁路。
+ *
  * v2（2026-11-01 回应 Tom 08:22 复核）：针对其证据边界补强：
  *   ① 不完整读取拒绝结论：任一页失败/短页 → incomplete=true，不下结论、emptyPct 置 null，process.exit(1)。
  *   ② 零样本：窗口内无样本 → emptyPct 置 null，verdict 明确「无法判定」，不输出 0%。
@@ -130,11 +133,19 @@ const isSoftDel = v => ['TRUE', 'true', '✔', '1'].includes(String(v || '').tri
   out.window = { rows: wTot, emptyUuid: wEmpty,
                  emptyPct: wTot ? Math.round(wEmpty / wTot * 1000) / 10 : null };
   out.complete = true;
+  // v3（回应 Tom 02:28 复核③）：verdict 收敛为「观察结果」，不再单独证止血或排除旁路
+  out.verdictType = 'OBSERVATION_ONLY';
   out.verdict = wTot === 0
-    ? '窗口内无样本（' + wTot + ' 行），无法判定空UUID是否仍在增长'
+    ? '【观察】窗口内无样本（' + wTot + ' 行），无法判定空UUID是否仍在增长'
     : (out.window.emptyPct === 0
-        ? '窗口内零空 UUID ⇒ 空 UUID 为历史遗留，漏洞当前未再触发（注：仅提交日期口径，并发重放/旁路仍须独立验证）'
-        : '窗口内仍有 ' + out.window.emptyPct + '% 空 UUID ⇒ 漏洞活跃，清完还会长回来');
+        ? '【观察】窗口内零空 UUID ⇒ 仅就「提交日期口径」看，空 UUID 为历史遗留、漏洞当前未再触发；此结论不能单独证写入已止血，亦不能排除并发重放/旁路（须独立验证，见 caveats）'
+        : '【观察】窗口内仍有 ' + out.window.emptyPct + '% 空 UUID ⇒ 漏洞活跃，清完还会长回来');
+  out.caveats = [
+    '本观察仅基于 col0=提交日期(submit-date)口径，非写入时间(write-time)，亦非服务端修订标识；',
+    '写入事件独立验证：需查阅 _TS_WRITE_LOG / 服务端写入审计，确认窗口内无新增空UUID写入（当前写日志仅含汇总计数，无逐行UUID，待补齐）；',
+    '写者清单交叉：生产表仅 2 插入点 submitBatch(Code.gs:464)/tsAppendRows(RemoteActions.gs:127)，均经 _plGuardedInsert(PeriodLockGuard.gs:479)，须确认二者查重均覆盖空UUID；',
+    '并发/旁路负例：RemoteActions.gs:96-105 查重 exist{} 在期锁 :127 之外（并发窗口），须修复并附并发重放负例；空UUID旁路（uid为空不查重）须由期锁 clearance + 扩展查重封堵。'
+  ];
 
   const outdir = path.join(__dirname, '..', '_tmp', 'evidence');
   fs.mkdirSync(outdir, { recursive: true });

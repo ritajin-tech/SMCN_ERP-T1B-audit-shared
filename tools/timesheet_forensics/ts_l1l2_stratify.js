@@ -11,6 +11,13 @@
  *      另对归一化 EXACT 组做「原始（未 trim）是否也一致」二次核验，原始不一致者标 rawDiff=true 留待审查，
  *      不再宣称「原始字节完全相同」（回应「只比较 A:N / trim，不能宣称原始字节完全相同」）。
  *
+ * v3（2026-11-01 回应 Tom 02:28 复核①/②）：针对其两点证据强度异议补强：
+ *   ① 快照版本完整性：原 snapshotConsistent 仅比读前/读后 lastRow，中途「原地改值/删后补行」行数不变则不报，
+ *      本地时间戳也不能证 23 页同版本。v3 改为读完后对分层采样行(A:O)重新向服务端请求并逐格比对原始(未trim)内容，
+ *      任一指纹行内容变化 ⇒ 读取期间表被改写 ⇒ 中止；并设计「读取中途原地改值但行数不变」负例验收。
+ *   ② rawDiff 全组累计：原 rawDiffCount 由 L.EXACT.samples.filter(...) 计算，samples 最多 3 组 ⇒ 不代表全部 EXACT。
+ *      v3 改为遍历全部 dupGroups 时累计 rawDiffTotal，并输出逐组可核查标识/行号/摘要(rawDiffGroups)，非仅前 3 组。
+ *
  * 与旧诊断（diag_cleanup_20261101.js）的关键差异【修正已知缺陷】：
  *   旧版第 135 行 `const k = r.uuid || '(EMPTY)'` 把全部空 UUID 行聚成一个组，
  *   使其被计入 dupGroups 且贡献 ~5000 行 extraRows —— 那不是「同 UUID 重放」，是聚合假象。
@@ -127,6 +134,27 @@ function abort(partial) {
     abort({ reason: '读取期间表被改写(读前/读后总行数不一致)', snapBefore, snapAfter });
   }
 
+  // v3（回应 Tom 02:28 复核①）：服务端内容指纹二次核验
+  //   snapshotConsistent 仅比行数；中途「原地改值 / 删后补行」行数不变则漏报。
+  //   读完后再向服务端请求分层采样行的原始(未trim)内容逐格比对，任一指纹行变化 ⇒ 读取期间表被改写 ⇒ 中止。
+  const fingerIdx = [0, Math.floor(all.length / 2), all.length - 1]
+    .filter((v, i, a) => a.indexOf(v) === i && all[v]);
+  const fingerSamples = fingerIdx.map(i => ({ row: all[i].row, raw: all[i].cellsRaw.slice() }));
+  let fingerMismatch = null;
+  for (const fs of fingerSamples) {
+    const fv = await getRange(TS_ID, PROD_TAB, 'A' + fs.row + ':O' + fs.row);
+    if (!fv || !fv[0]) { fingerMismatch = { row: fs.row, reason: '指纹行重读失败' }; break; }
+    for (let k = 0; k < NCOL; k++) {
+      const after = String(fv[0][k] === undefined ? '' : fv[0][k]);
+      if (after !== fs.raw[k]) { fingerMismatch = { row: fs.row, col: k, before: fs.raw[k], after }; break; }
+    }
+    if (fingerMismatch) break;
+  }
+  if (fingerMismatch) {
+    abort({ reason: '读取期间表被原地改写(内容指纹不一致)', snapBefore, snapAfter, fingerMismatch, fingerSamples: fingerSamples.map(s => s.row) });
+  }
+  out.contentFingerprint = { sampleRows: fingerSamples.map(s => s.row), matched: true, note: '读后分层采样行原始内容与服务端二次请求逐格一致，可证读取期间表未被原地改写' };
+
   const alive = all.filter(r => !r.soft);
   out.readIntegrity = { complete: true, pageCount: pagePlan.length, expectedRows: lastBefore - 1,
                         readRows: all.length, failedPages, shortPages, snapshotConsistent,
@@ -150,7 +178,7 @@ function abort(partial) {
   });
   const dupGroups = [...byUuid.values()].filter(g => g.length > 1);
 
-  const L = { EXACT: { groups: 0, extraRows: 0, extraHours: 0, samples: [] },
+  const L = { EXACT: { groups: 0, extraRows: 0, extraHours: 0, samples: [], rawDiffTotal: 0, rawDiffGroups: [] },
               TIMEONLY: { groups: 0, extraRows: 0, extraHours: 0, samples: [] },
               MIXED: { groups: 0, extraRows: 0, extraHours: 0, samples: [] } };
 
@@ -181,10 +209,17 @@ function abort(partial) {
         rows: gs.map(x => x.row), firstRow: gs[0].row, submitDates: gs.map(x => x.cells[0]),
         rawDiff });
     }
+    // v3（回应 Tom 02:28 复核②）：rawDiff 全组累计，输出逐组可核查标识，非仅前 3 组 samples
+    if (kind === 'EXACT' && rawDiff) {
+      L.EXACT.rawDiffTotal++;
+      if (L.EXACT.rawDiffGroups.length < 20) {
+        L.EXACT.rawDiffGroups.push({ uuid: gs[0].uuid.slice(0, 24) + '…', copies: gs.length, rows: gs.map(x => x.row) });
+      }
+    }
   }
   for (const k of Object.keys(L)) L[k].extraHours = Math.round(L[k].extraHours * 100) / 100;
-  // EXACT 组里若原始(未trim)不一致，给出计数（证明我们没忽略字节级差异）
-  L.EXACT.rawDiffCount = L.EXACT.samples.filter(s => s.rawDiff).length;
+  // v3：rawDiff 计数改为遍历全部 EXACT 组累计（rawDiffTotal），不再只用前 3 组 samples
+  L.EXACT.rawDiffCount = L.EXACT.rawDiffTotal;
 
   // 5) 与旧口径对照
   let oldExtra = 0, oldGroups = 0;

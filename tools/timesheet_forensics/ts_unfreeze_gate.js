@@ -11,6 +11,9 @@
  *  - 需外部输入（Tom 技术放行 / clearance 发放）的项，读审批状态文件，绝不伪造；
  *  - 判定与解除分离：本脚本不设任何环境变量、不改任何冻结开关。
  *
+ * v3（2026-11-01 回应 Tom 02:28 复核④）：A3 由「d.complete===false 才拒」改为「d.complete!==true 即拒」，
+ *   并追加样本数/范围/来源/新鲜度(≤7d)逐项校验；M1/M2 仍只读审批文件（权威记录），本脚本不替代、不伪造。
+ *
  * 用法：
  *   node tools/ts_unfreeze_gate.js            # 判定（只读）
  *   node tools/ts_unfreeze_gate.js --json     # 机读输出
@@ -88,7 +91,20 @@ function checkA3_hemostasis() {
   let d = null;
   try { d = JSON.parse(fs.readFileSync(f, 'utf8')); } catch (e) { /* null */ }
   if (!d || !d.window) { add('A3', '止血已闭环(空UUID不再增长)', 'BLOCKING', 'FAIL', f + ' 结构异常'); return; }
-  if (d.complete === false) { add('A3', '止血已闭环(空UUID不再增长)', 'BLOCKING', 'FAIL', f + ' 标记为不完整读取(部分页失败)，结论不可信'); return; }
+  if (d.complete !== true) { add('A3', '止血已闭环(空UUID不再增长)', 'BLOCKING', 'FAIL', f + ' 未标记 complete===true（缺失或不完整读取），结论不可信'); return; }
+  // v3（回应 Tom 02:28 复核④）：除 complete 外校验样本数/范围/来源/新鲜度
+  const freshMs = d.ts ? (Date.now() - new Date(d.ts).getTime()) : Infinity;
+  const freshH = freshMs / 3600000;
+  const freshOk = isFinite(freshMs) && freshMs >= 0 && freshH <= 24 * 7;
+  if (!d.lastRow || !Array.isArray(d.byDay) || d.byDay.length === 0 || !d.timeCaliber || !freshOk) {
+    const miss = [];
+    if (!d.lastRow) miss.push('lastRow缺失');
+    if (!Array.isArray(d.byDay) || d.byDay.length === 0) miss.push('byDay缺失/空');
+    if (!d.timeCaliber) miss.push('timeCaliber缺失');
+    if (!freshOk) miss.push('证据超期(' + Math.round(freshH) + 'h>168h)');
+    add('A3', '止血已闭环(空UUID不再增长)', 'BLOCKING', 'FAIL', f + ' 元数据校验未过：' + miss.join(' / '));
+    return;
+  }
   const w = d.window;
   const ok = w.emptyPct === 0;
   add('A3', '止血已闭环(近期新增零空UUID ⇒ 清理后不长回)', 'BLOCKING', ok ? 'PASS' : 'FAIL',

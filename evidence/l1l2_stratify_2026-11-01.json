@@ -1,5 +1,5 @@
 {
-  "ts": "2026-11-01T02:49:02.880Z",
+  "ts": "2026-11-01T02:57:21.176Z",
   "scope": "DB_工时流水 live 只读",
   "layers": {
     "EXACT": {
@@ -50,6 +50,8 @@
           "rawDiff": false
         }
       ],
+      "rawDiffTotal": 0,
+      "rawDiffGroups": [],
       "rawDiffCount": 0
     },
     "TIMEONLY": {
@@ -114,6 +116,15 @@
     "pctOfAlive": 47
   },
   "notes": [],
+  "contentFingerprint": {
+    "sampleRows": [
+      2,
+      5691,
+      11380
+    ],
+    "matched": true,
+    "note": "读后分层采样行原始内容与服务端二次请求逐格一致，可证读取期间表未被原地改写"
+  },
   "readIntegrity": {
     "complete": true,
     "pageCount": 23,
@@ -124,13 +135,13 @@
     "snapshotConsistent": true,
     "snapBefore": {
       "lastRow": 11380,
-      "at": "2026-11-01T02:49:10.054Z"
+      "at": "2026-11-01T02:57:30.998Z"
     },
     "snapAfter": {
       "lastRow": 11380,
-      "at": "2026-11-01T02:50:29.113Z"
+      "at": "2026-11-01T02:58:48.839Z"
     },
-    "elapsedMs": 86233
+    "elapsedMs": 95252
   },
   "comparisonBasis": "逐单元格 trim 后的 col0..13 归一化值（非原始字节）；col14 软标列不参与内容比对。已对归一化 EXACT 组附加原始(未 trim)二次核验。",
   "totalRowsRead": 11379,

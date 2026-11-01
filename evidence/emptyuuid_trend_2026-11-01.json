@@ -1,5 +1,5 @@
 {
-  "ts": "2026-11-01T02:52:01.475Z",
+  "ts": "2026-11-01T03:00:36.704Z",
   "lastRow": 11380,
   "alive": 11111,
   "windowDays": 14,
@@ -118,5 +118,12 @@
     "emptyPct": 0
   },
   "complete": true,
-  "verdict": "窗口内零空 UUID ⇒ 空 UUID 为历史遗留，漏洞当前未再触发（注：仅提交日期口径，并发重放/旁路仍须独立验证）"
+  "verdictType": "OBSERVATION_ONLY",
+  "verdict": "【观察】窗口内零空 UUID ⇒ 仅就「提交日期口径」看，空 UUID 为历史遗留、漏洞当前未再触发；此结论不能单独证写入已止血，亦不能排除并发重放/旁路（须独立验证，见 caveats）",
+  "caveats": [
+    "本观察仅基于 col0=提交日期(submit-date)口径，非写入时间(write-time)，亦非服务端修订标识；",
+    "写入事件独立验证：需查阅 _TS_WRITE_LOG / 服务端写入审计，确认窗口内无新增空UUID写入（当前写日志仅含汇总计数，无逐行UUID，待补齐）；",
+    "写者清单交叉：生产表仅 2 插入点 submitBatch(Code.gs:464)/tsAppendRows(RemoteActions.gs:127)，均经 _plGuardedInsert(PeriodLockGuard.gs:479)，须确认二者查重均覆盖空UUID；",
+    "并发/旁路负例：RemoteActions.gs:96-105 查重 exist{} 在期锁 :127 之外（并发窗口），须修复并附并发重放负例；空UUID旁路（uid为空不查重）须由期锁 clearance + 扩展查重封堵。"
+  ]
 }

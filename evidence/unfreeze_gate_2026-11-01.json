@@ -1,0 +1,55 @@
+{
+  "ts": "2026-11-01T03:01:03.911Z",
+  "results": [
+    {
+      "id": "A1",
+      "desc": "生产表全量备份存在且新鲜(<=48h)",
+      "sev": "BLOCKING",
+      "state": "PASS",
+      "detail": "_backups\\sheets\\2026-11-01\\生产工时表__DB_工时流水.csv | 11405 行 | 3h 前"
+    },
+    {
+      "id": "A2",
+      "desc": "L1/L2 分层清单已派生且口径正确",
+      "sev": "BLOCKING",
+      "state": "PASS",
+      "detail": "EXACT 1340行/3645h · TIMEONLY 227行 · MIXED 0组 · 空UUID池 5221行 · 存活 11111"
+    },
+    {
+      "id": "A3",
+      "desc": "止血已闭环(近期新增零空UUID ⇒ 清理后不长回)",
+      "sev": "BLOCKING",
+      "state": "PASS",
+      "detail": "窗口 388 行新增 / 空UUID 0 (0%) · 仅提交日期口径，并发重放/旁路仍须独立验证 · 【观察】窗口内零空 UUID ⇒ 仅就「提交日期口径」看，空 UUID 为历史遗留、漏洞当前未再触发；此结论不能单独证写入已止血，亦不能排除并发重放/旁路（须独立验证，见 caveats）"
+    },
+    {
+      "id": "A4",
+      "desc": "Rita 侧冻结开关状态（本地进程环境记录，非远端权威）",
+      "sev": "ADVISORY",
+      "state": "PASS",
+      "detail": "TS_WRITE_FREEZE=1(锁定)（本脚本不修改）；远端权威冻结源为期锁 PeriodLockGuard，本项仅为本地记录，不证明远端冻结真实状态"
+    },
+    {
+      "id": "M1",
+      "desc": "Tom 技术裁定已下达（N8/MIXED=0 等）",
+      "sev": "BLOCKING",
+      "state": "BLOCKED",
+      "detail": "msg_427HVo6Sm4MSzHg_SwjCOR7elq8qRBldEkDrZxtUkREYag (2026-11-01T00:22:51Z) · 【08:22Z 复核 v4+补脚本，仍 BLOCKED】Tom 本轮真正读进 48bc159 脚本并挑出三点真实缺陷(缺页跳过+无快照核验 / 失败页跳过+零样本置0 / 闸门过度声称)，我方已修复(ts_*_forensics v2, b42dce9)并复跑实证(complete=true, snapshotConsistent=true)。他登记「撤回过强止血结论已收」，但称「数字、写者穷尽及具体方案尚未独立证明」；重申事故OPEN/HOLD-NO-GO、阶段一 PASS 暂缓、零生产写；自陈 W1–W6 仍待其交卷。闸门仍 EXIT=1。待其按五段式还复 W1–W6 + 裁定 MIXED=0+唯一键契约是否足证重放 + 明确「阶段一 PASS 暂缓」所指具体 edit。"
+    },
+    {
+      "id": "M2",
+      "desc": "期锁 clearance 已发放",
+      "sev": "BLOCKING",
+      "state": "BLOCKED",
+      "detail": "未发放。软标属生产修改，须 clearance 放行。"
+    },
+    {
+      "id": "M3",
+      "desc": "Rita 解除授权已登记",
+      "sev": "ADVISORY",
+      "state": "PASS",
+      "detail": "Rita 条件性授权：「我可以解除，只要你和 Tom 技术检查验证没有问题」。已登记为 granted=true；实际放行由 M1(Tom 技术裁定)+M2(期锁 clearance) 满足后闸门 EXIT=0 触发，无需再问 Rita。"
+    }
+  ],
+  "pass": false
+}
