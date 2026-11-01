@@ -14,6 +14,9 @@
   - `concurrency_test_harness.js`（Edit A/B 并发重放负例 v2：A①-A④ + B 有效锁守卫，7 项测试）
   - `recovery_idempotency_drill.js`（W5 恢复幂等演练）
   - `W_requirements_evidence.md`（W1–W6 逐项证据对照 + 判定路径）
+  - `W4_writer_enumeration.md`（W4 写者穷尽枚举：8 项 file:line + 守卫/旁路分类 + (a)/(b) 闭环方案）
+  - `gas_test_EditA_real.gs`（**真实 GAS 部署**验证 Edit A：内嵌与生产逐字一致的 `_plGuardedInsert`/`_plAcquire`，在真实 LockService 下复现竞态）
+  - `gas_test_EditB_crossproject.gs`（**真实 GAS 部署**验证 Edit B：两独立项目 + 同表，document vs script lock 跨项目互斥对照，N1–N4 隔离实证可运行代码）
   - `_sdRowHash` 算法以 `tools/ts_softdel_norm.js` 为单一可信源，`verify_mapping.js` 内联逐字同文。
 
 ## 1 三级映射核验（L1/L2/L3）
@@ -105,9 +108,23 @@ node recovery_idempotency_drill.js
 4. 边界：测试锁超时（默认 30s）与异常释放（脚本抛错时锁是否如期释放，不残留死锁）；并验证 `_plAcquire` 在 `getDocumentLock()` 返回 null/无 `tryLock` 时抛 `PL_REJECT_NO_LOCK` 中止（见 `fix_T1-B_concurrency_window.md` §2 修订，已由 harness 测试6 验证）。
 5. 记录：每轮写入行数、唯一 UUID 数、锁等待/超时日志。
 
+**可运行代码（替代口头规范）**：`gas_test_EditB_crossproject.gs` 已把上述 N1–N4 落成可部署代码——部署到两个独立 GAS 项目（PA/PB，各设 `PROJECT_TAG`、`SHARED_SHEET_ID`），`USE_DOCUMENT_LOCK=true` 跑 `coordinator()` 制造并发 → `checkNoInterleave()` 应得 `NO_INTERLEAVE ✅`；改 `false`（getScriptLock）重跑应得 `INTERLEAVED ❌`（证明 script lock 跨项目无效）。超时实验：把 `WINDOW_MS` 调到 >30000 触发 tryLock 超时 → 抛 `PL_REJECT_NO_LOCK`（空锁 fail-closed 拒绝裸写）。
+
 交付物：上述 1–5 的数字与日志，作为 Edit B 的接受/驳回依据。
 
-> 责任切分：Edit B 的「方向+有效锁守卫」本方已给出并可进程内验证；「跨项目真实互斥」数字实证需审核方在自有 GAS 环境执行并回填，本方不替代。
+> 责任切分：Edit B 的「方向+有效锁守卫」本方已给出并可进程内验证；**「跨项目真实互斥」现已有可运行 .gs 代码（`gas_test_EditB_crossproject.gs`）**，需审核方在自有 GAS 环境部署两项目并回填 `checkNoInterleave` 结果。本方不替代执行，但已把门槛降到「复制代码→填 ID→跑函数」。
+
+## 3c W4 写者穷尽枚举（闭合 Tom 10:11「写者穷尽/旁路/共同守卫」）
+
+```bash
+cat W4_writer_enumeration.md   # 8 项写者 file:line + 守卫/旁路分类
+```
+
+核心：部署版 `finance_dss_backend` 写 `DB_工时流水` 的入口共 8 项——
+- 业务新增行 2 项（`submitBatch` Code.js:464、`tsAppendRows` RemoteActions.js:127）均经 `_plGuardedInsert`；**Edit A 竞态在 tsAppendRows（漏传 lockPreWrite）**。
+- 维护写者 3 项（`repairLegacyLeave`、`cleanupDuplicateLeavesInternal`、`tsPurgeSoftLeaves`/`purgeRows`）用 `getScriptLock` 绕过守卫，只动 O/P/Q 标记列、单例触发器运行，非业务双写源。
+- 部署版 `leave_sync.js` 写主库 MASTER_LEAVE_SHEET（不写 DB_工时流水）；`_dss_verify/leave_sync.js` 写 DB_工时流水但**未部署**。
+闭合方案：(b) 范围化——Edit B 只覆盖业务新增 #1/#2（推荐）；或 (a) 强化迁移维护写者进守卫（准后加固）。请 Tom 二选一裁定。
 
 ## 5 诚实边界（非缺口）
 

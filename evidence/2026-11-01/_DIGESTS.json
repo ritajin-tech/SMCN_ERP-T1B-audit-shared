@@ -72,6 +72,24 @@
       "sha256": "0de49bcadae6ffb6180c9f1c55be4485cd1083ffc77fb72beb82a46a5f25a976",
       "sha1": "078a65bdabc07776bbb11e400ebc19b0e5e94f53",
       "size": 6732
+    },
+    {
+      "file": "W4_writer_enumeration.md",
+      "sha256": "cbfbfc90b8ad1433f869dff4c084f1f27879d4e6cda569ce78eb50e5f309c369",
+      "sha1": "596f73bb58a573841ff896e886ecc191ee6943f1",
+      "size": 4641
+    },
+    {
+      "file": "gas_test_EditA_real.gs",
+      "sha256": "31efbf89fb540f2fe284e908d81213adbe0e33f6a93224fa5bcf5b30fd4053b7",
+      "sha1": "23802c21904b1d72619a639a2103b02d7bd8651a",
+      "size": 5538
+    },
+    {
+      "file": "gas_test_EditB_crossproject.gs",
+      "sha256": "4ba561ac94fd5bb20bc39db14b1673bfd8464e1677fdf439ea9c39f43b20ff21",
+      "sha1": "764cba2d30640df83a09df5c3b2b04b9100a1351",
+      "size": 5342
     }
   ],
   "csvHeader": "类别,UUID,base计数,候选行(row),保留对象行(keeperRow),targetHash,keeperHash,哈希一致(同值),hasBase,baseHash"
