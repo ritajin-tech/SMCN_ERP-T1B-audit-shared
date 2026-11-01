@@ -1,5 +1,5 @@
 {
-  "ts": "2026-11-01T01:17:30.926Z",
+  "ts": "2026-11-01T02:49:02.880Z",
   "scope": "DB_工时流水 live 只读",
   "layers": {
     "EXACT": {
@@ -124,13 +124,13 @@
     "snapshotConsistent": true,
     "snapBefore": {
       "lastRow": 11380,
-      "at": "2026-11-01T01:17:42.764Z"
+      "at": "2026-11-01T02:49:10.054Z"
     },
     "snapAfter": {
       "lastRow": 11380,
-      "at": "2026-11-01T01:19:27.457Z"
+      "at": "2026-11-01T02:50:29.113Z"
     },
-    "elapsedMs": 116529
+    "elapsedMs": 86233
   },
   "comparisonBasis": "逐单元格 trim 后的 col0..13 归一化值（非原始字节）；col14 软标列不参与内容比对。已对归一化 EXACT 组附加原始(未 trim)二次核验。",
   "totalRowsRead": 11379,
