@@ -11,7 +11,9 @@
   - `controlled_audit_EXACT_ALL_*.json`（审计 JSON：target/keeper/base 哈希）
   - `T1-B_候选保留映射_可核查_*.csv`（逐行候选↔保留映射）
   - `verify_mapping.js`（L1/L2/L3 源快照重算）
-  - `concurrency_test_harness.js`（Edit A 并发重放负例）
+  - `concurrency_test_harness.js`（Edit A/B 并发重放负例 v2：A①-A④ + B 有效锁守卫，7 项测试）
+  - `recovery_idempotency_drill.js`（W5 恢复幂等演练）
+  - `W_requirements_evidence.md`（W1–W6 逐项证据对照 + 判定路径）
   - `_sdRowHash` 算法以 `tools/ts_softdel_norm.js` 为单一可信源，`verify_mapping.js` 内联逐字同文。
 
 ## 1 三级映射核验（L1/L2/L3）
@@ -55,32 +57,41 @@ RESULT: PASS ✅
 
 你可在任意语言中照此重算任意一行的哈希，与 CSV/审计 JSON 中的值比对，确认脚本内联算法与「单一可信源」一致。
 
-## 3 Edit A 并发重放负例（证明根因 & 修复）
+## 3 Edit A/B 并发重放负例（证明根因 & 修复，v2：闭合 Tom 10:26 四项条件）
 
 ```bash
 cd evidence/2026-11-01
 node concurrency_test_harness.js
 ```
 
-预期输出：
+预期输出（节选）：
 
 ```
-=== T1-B 并发重放负例测试 (concurrency_test_harness) ===
---- 测试1：确定性交错（两并发写者，同批新 UUID A,B） ---
-  当前代码 → 行数 4 (期望 4 = 含 2 重复)
-  修复代码 → 行数 2 (期望 2 = 0 重复)
+--- 测试1：确定性交错 --- 当前 4 / 修复 2
   [当前代码] 50 并发写同 UUID → 写入行数 50，唯一UUID 1
   [修复(Edit A)] 50 并发写同 UUID → 写入行数 1，唯一UUID 1
---- 结论 ---
-  当前代码产生重复行(竞态存在): YES ✅
-  Edit A 修复消除重复(锁内重读): YES ✅
-
-RESULT: PASS ✅ (根因与修复均可复现)
+--- 测试3：两写者交错均经 _plGuardedInsert(lockPreWrite) --- 行数 3 唯一UUID 3
+--- 测试4：bizWrite 中途抛错后重试，不重复 --- caught=true 新增行 0 最终唯一UUID 1
+--- 测试5：空 UUID 行行为 --- 保留2/不入exist/候选排除 true
+--- 测试6：getDocumentLock 返回空 → 中止而非裸写 --- 阻止裸写 true
+RESULT: PASS ✅ (Edit A 四项条件 + Edit B 有效锁检查 全部可复现)
 ```
 
 **含义**：当前代码在锁外读 `exist`（对应 `RemoteActions.js:96-105`）后在锁内直接写锁外算好的 `toWrite`，两并发写者读到同一空 `exist` → 都判定可写 → 重复行。Edit A 传入 `lockPreWrite` 闭包，在锁内（`:490` 之后）重读 `exist` 并重判 `toWrite`，`bizWrite(:509)` 只写锁内重判后的行 → 消除重放。
 
-> 注：本脚本证明「进程内」锁语义（Edit A 充分）。**Edit B（`getScriptLock`→`getDocumentLock` 跨项目互斥）需要两个独立 GAS 项目 + 同表的真实实验**，Node 单进程无法证明。实验规范见 §4，属 Tom 此前点名的 N1–N4 / 跨项目互斥实证——由审核方在其环境执行。
+**测试 → Tom 10:26 条件映射**：测试1/2 = 根因 & 修复；测试3 = A② 实际写者均受同一守卫约束；测试4 = A④ 并发/失败负例；测试5 = A③ 空 UUID 行为；测试6 = B 运行上下文未返回有效锁 → fail-closed 中止。A① 回调契约由复刻 `_plGuardedInsert`（:494-498 `{rows,duplicates}`）在测试1/2/3 中一致调用验证。
+
+> 注：本脚本证明「进程内」锁语义（Edit A 充分）。**Edit B 跨项目互斥（document lock 在多项目下的真实互斥）需要两个独立 GAS 项目 + 同表的真实实验**，Node 单进程无法证明。实验规范见 §4，属 Tom 点名的 N1–N4 / 跨项目互斥实证——由审核方在其环境执行。Edit B 的「有效锁守卫」逻辑已由测试6 在进程内实跑验证。
+
+## 3b W5 恢复幂等演练
+
+```bash
+cd evidence/2026-11-01
+node recovery_idempotency_drill.js
+```
+
+预期：软标 1,340 行置 TRUE → 重跑一致 → 恢复清 FALSE → 再恢复仍空（幂等）。RESULT: PASS ✅。
+含义：软标=O 列 TRUE（幂等）、恢复=清 O 列（幂等）、整集重跑安全 → 一键恢复 rollback 成立（闭合 W5）。
 
 ## 4 Edit B 跨项目互斥实验规范（待审核方执行）
 
@@ -91,10 +102,12 @@ RESULT: PASS ✅ (根因与修复均可复现)
 1. 建两个独立 Apps Script 项目 P1、P2，均对生产表 `DB_工时流水` 做 `appendRows`（走 `_plGuardedInsert`）。
 2. 基线（复现缺陷）：P1/P2 用 `LockService.getScriptLock()`（当前 `PeriodLockGuard.js:260`），并发触发 → 观察是否出现重复行（预期：会，因 script lock 仅锁本脚本实例）。
 3. 修复（Edit B）：`:260` 改为 `LockService.getDocumentLock()`，重复实验 → 观察重复行是否消失（预期：消失，因 document lock 锁到文档级、跨所有写同表的脚本共享）。
-4. 边界：测试锁超时（默认 30s）与异常释放（脚本抛错时锁是否如期释放，不残留死锁）。
+4. 边界：测试锁超时（默认 30s）与异常释放（脚本抛错时锁是否如期释放，不残留死锁）；并验证 `_plAcquire` 在 `getDocumentLock()` 返回 null/无 `tryLock` 时抛 `PL_REJECT_NO_LOCK` 中止（见 `fix_T1-B_concurrency_window.md` §2 修订，已由 harness 测试6 验证）。
 5. 记录：每轮写入行数、唯一 UUID 数、锁等待/超时日志。
 
 交付物：上述 1–5 的数字与日志，作为 Edit B 的接受/驳回依据。
+
+> 责任切分：Edit B 的「方向+有效锁守卫」本方已给出并可进程内验证；「跨项目真实互斥」数字实证需审核方在自有 GAS 环境执行并回填，本方不替代。
 
 ## 5 诚实边界（非缺口）
 

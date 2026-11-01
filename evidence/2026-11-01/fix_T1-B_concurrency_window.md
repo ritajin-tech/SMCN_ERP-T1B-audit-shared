@@ -95,8 +95,16 @@ function _plAcquire(timeoutMs) {
   //   getScriptLock 仅锁本脚本实例，跨项目无效；改用 getDocumentLock 锁到文档（表格）级，
   //   所有写入同一表格的脚本共享同一把锁，实现跨项目互斥。
   var lock = LockService.getDocumentLock();
+  // [T1-B fix] 有效锁守卫（回应 Tom 10:26「运行上下文是否返回有效锁」）：
+  //   若受限上下文返回 null/无 tryLock → fail-closed 中止，绝不裸写。
+  if (!lock || typeof lock.tryLock !== 'function') {
+    var err0 = new Error('PL_REJECT_NO_LOCK');
+    err0.plCode = 'PL_REJECT_NO_LOCK';
+    throw err0;
+  }
 ```
 **依据**：Apps Script `LockService.getDocumentLock()` 锁定的是**文档（Spreadsheet）级**互斥区，跨所有操作同一文档的脚本实例共享；`getScriptLock()` 仅限当前脚本实例。方案A 引入独立后端项目后，必须用 document 锁才能覆盖「两项目写同表」的并发。
+**有效锁守卫（闭合 Tom 10:26 条件）**：原 `_plAcquire`（PeriodLockGuard.js:259-269）已对 `tryLock` 超时做 fail-closed（`PL_REJECT_LOCK_BUSY`）；本补丁新增「锁对象本身为空/非法 → `PL_REJECT_NO_LOCK`」前置检查，确保**未返回有效锁时一律中止**，不进入任何写路径。该守卫逻辑已由 `concurrency_test_harness.js` 测试6 实跑验证（PASS）。
 
 ## 3. 还原/部署前置（部署时，不在本编辑范围）
 

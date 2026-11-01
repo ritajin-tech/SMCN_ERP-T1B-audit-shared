@@ -39,21 +39,33 @@
     },
     {
       "file": "concurrency_test_harness.js",
-      "sha256": "4706f90598053be474b92ac76c100aae60a83d25f9d36a3d49a0492078e81d10",
-      "sha1": "4767f9271934f9901e1873a43ed66ec3d3fff45a",
-      "size": 5769
+      "sha256": "7fddca991f545d2bae15feb969d3170dc87bbc0bd339c03d923a940edadc7270",
+      "sha1": "ffa3f088aa2ebde9ffecfac2b67c88db375cbaf1",
+      "size": 11763
+    },
+    {
+      "file": "recovery_idempotency_drill.js",
+      "sha256": "a14828fe5fde09ad9cf59e115d5be9605ad5e6d37fa255c19c549807e6da0073",
+      "sha1": "6418f68dabbe60c6fe0310c2b747cb7d789fc735",
+      "size": 2388
+    },
+    {
+      "file": "W_requirements_evidence.md",
+      "sha256": "b0937048d66a0d1479b7abff6fd3ff804bdc998cdeed68bcc64cf032fd0bf8e2",
+      "sha1": "f6381deb3aa6c6b29d9ac1554ba413c94018e791",
+      "size": 6294
     },
     {
       "file": "VERIFY_GUIDE.md",
-      "sha256": "ab8417ef17511de899091e4196e5e1a66e3a3895c8d9f74001af1354b61b0e11",
-      "sha1": "a81e54284dc862e71af4b0dc05fca98f543c93cf",
-      "size": 5730
+      "sha256": "8c50c22ede6d37c45a8beeeacc5a3ef524ae0c5158e8d5be62db450dc52138f5",
+      "sha1": "bb3df53a5ce9c7708ba918d992a2f32686671ff6",
+      "size": 7285
     },
     {
       "file": "fix_T1-B_concurrency_window.md",
-      "sha256": "ef19d4ab3fa73450254d81f817328e566c3d29d9c493572f4533918be815e8aa",
-      "sha1": "daeccb95c2722a5d238b56dc065536bde5538736",
-      "size": 6850
+      "sha256": "9c9bf2c8d964ffbeb6d82708b3618f2e88a4f774a73787101738a44c93a64d8f",
+      "sha1": "1ddc5db693615c2f77df771c1da813e87460e4d0",
+      "size": 7612
     },
     {
       "file": "MANIFEST.md",
