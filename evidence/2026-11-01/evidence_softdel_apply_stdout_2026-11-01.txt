@@ -1,0 +1,8 @@
+{
+  "ok": true,
+  "action": "repairlegacyleave",
+  "version": "RT1.0",
+  "ts": "2026-11-01 23:53:39",
+  "message": "{\"ok\":true,\"dry\":false,\"mode\":\"repair\",\"requested\":1567,\"done\":1567,\"skipped\":0,\"ssid\":\"1Pi5u9fEawgp7yICWPMMyQCT_LbwTZthQDW-H05xYdVI\",\"sheet\":\"DB_工时流水\"}",
+  "_env": "ts_post/1"
+}
