@@ -1,0 +1,201 @@
+{
+ "extract_scope": {
+  "from_row": 1359,
+  "to_row": 1390,
+  "total_log_rows": 1390
+ },
+ "rows": [
+  {
+   "row": 1359,
+   "ts": "2026-10-29T00:18:18.000Z",
+   "act": "attendance_rebuild_live",
+   "detail": "实时重算「按月考勤」：552×32，月=12，人=44，备份=[OK] 按月考勤_重算前_20261029"
+  },
+  {
+   "row": 1360,
+   "ts": "2026-10-29T00:21:32.000Z",
+   "act": "master_views_live",
+   "detail": "实时重算「月度视图」：241 行；备份=[OK] 月度视图_重算前_20261029"
+  },
+  {
+   "row": 1361,
+   "ts": "2026-10-29T09:18:04.000Z",
+   "act": "friday_reminder_disabled",
+   "detail": "Rita 2026-10-15 指示停用；触发器保留，改 true 后自动恢复"
+  },
+  {
+   "row": 1362,
+   "ts": "2026-10-29T22:27:07.000Z",
+   "act": "leave_sync_master",
+   "detail": "追加 0 行到主库「请假」分页；跳过已存在 588 行；窗口 2026-04-01~2026-12-31；事件 254 个；无姓名 0 个"
+  },
+  {
+   "row": 1363,
+   "ts": "2026-10-30T00:03:11.000Z",
+   "act": "sync_prod_to_master",
+   "detail": "追加 23 行到主库底稿（68h）；起始行 5988；剔除 440"
+  },
+  {
+   "row": 1364,
+   "ts": "2026-10-30T00:11:55.000Z",
+   "act": "attendance_rebuild_live",
+   "detail": "实时重算「按月考勤」：552×32，月=12，人=44，备份=[OK] 按月考勤_重算前_20261030"
+  },
+  {
+   "row": 1365,
+   "ts": "2026-10-30T00:12:04.000Z",
+   "act": "master_views_live",
+   "detail": "实时重算「月度视图」：241 行；备份=[OK] 月度视图_重算前_20261030"
+  },
+  {
+   "row": 1366,
+   "ts": "2026-10-30T01:51:41.000Z",
+   "act": "friday_reminder_disabled",
+   "detail": "Rita 2026-10-15 指示停用；触发器保留，改 true 后自动恢复"
+  },
+  {
+   "row": 1367,
+   "ts": "2026-10-30T09:18:01.000Z",
+   "act": "friday_reminder_disabled",
+   "detail": "Rita 2026-10-15 指示停用；触发器保留，改 true 后自动恢复"
+  },
+  {
+   "row": 1368,
+   "ts": "2026-10-30T22:31:28.000Z",
+   "act": "leave_sync_master",
+   "detail": "追加 4 行到主库「请假」分页；跳过已存在 588 行；窗口 2026-04-01~2026-12-31；事件 257 个；无姓名 0 个"
+  },
+  {
+   "row": 1369,
+   "ts": "2026-10-31T00:03:24.000Z",
+   "act": "sync_prod_to_master",
+   "detail": "追加 27 行到主库底稿（101h）；起始行 6011；剔除 442"
+  },
+  {
+   "row": 1370,
+   "ts": "2026-10-31T00:11:57.000Z",
+   "act": "attendance_rebuild_live",
+   "detail": "实时重算「按月考勤」：552×32，月=12，人=44，备份=[OK] 按月考勤_重算前_20261031"
+  },
+  {
+   "row": 1371,
+   "ts": "2026-10-31T00:12:11.000Z",
+   "act": "master_views_live",
+   "detail": "实时重算「月度视图」：242 行；备份=[OK] 月度视图_重算前_20261031"
+  },
+  {
+   "row": 1372,
+   "ts": "2026-10-31T09:18:01.000Z",
+   "act": "friday_reminder_disabled",
+   "detail": "Rita 2026-10-15 指示停用；触发器保留，改 true 后自动恢复"
+  },
+  {
+   "row": 1373,
+   "ts": "2026-10-31T22:27:11.000Z",
+   "act": "leave_sync_master",
+   "detail": "追加 0 行到主库「请假」分页；跳过已存在 592 行；窗口 2026-04-01~2027-01-31；事件 257 个；无姓名 0 个"
+  },
+  {
+   "row": 1374,
+   "ts": "2026-11-01T00:03:26.000Z",
+   "act": "sync_prod_to_master",
+   "detail": "无新增，零写入；剔除 442 行"
+  },
+  {
+   "row": 1375,
+   "ts": "2026-11-01T00:18:19.000Z",
+   "act": "attendance_rebuild_live",
+   "detail": "实时重算「按月考勤」：552×32，月=12，人=44，备份=[OK] 按月考勤_重算前_20261101"
+  },
+  {
+   "row": 1376,
+   "ts": "2026-11-01T00:23:37.000Z",
+   "act": "master_views_live",
+   "detail": "实时重算「月度视图」：242 行；备份=[OK] 月度视图_重算前_20261101"
+  },
+  {
+   "row": 1377,
+   "ts": "2026-11-01T07:01:09.000Z",
+   "act": "patchCells(dry)",
+   "detail": "ss=1Pi5u9fEawgp7yICWPMMyQCT_LbwTZthQDW-H05xYdVI sheet=DB_工时流水 cells=4000 ranges=0 done=0"
+  },
+  {
+   "row": 1378,
+   "ts": "2026-11-01T07:01:13.000Z",
+   "act": "patchCells(dry)",
+   "detail": "ss=1Pi5u9fEawgp7yICWPMMyQCT_LbwTZthQDW-H05xYdVI sheet=DB_工时流水 cells=4000 ranges=0 done=0"
+  },
+  {
+   "row": 1379,
+   "ts": "2026-11-01T07:01:17.000Z",
+   "act": "patchCells(dry)",
+   "detail": "ss=1Pi5u9fEawgp7yICWPMMyQCT_LbwTZthQDW-H05xYdVI sheet=DB_工时流水 cells=3379 ranges=0 done=0"
+  },
+  {
+   "row": 1380,
+   "ts": "2026-11-01T09:18:03.000Z",
+   "act": "friday_reminder_disabled",
+   "detail": "Rita 2026-10-15 指示停用；触发器保留，改 true 后自动恢复"
+  },
+  {
+   "row": 1381,
+   "ts": "2026-11-01T14:07:34.000Z",
+   "act": "patchCells",
+   "detail": "ss=1Pi5u9fEawgp7yICWPMMyQCT_LbwTZthQDW-H05xYdVI sheet=DB_工时流水 cells=1 ranges=0 done=1"
+  },
+  {
+   "row": 1382,
+   "ts": "2026-11-01T14:07:49.000Z",
+   "act": "patchCells",
+   "detail": "ss=1Pi5u9fEawgp7yICWPMMyQCT_LbwTZthQDW-H05xYdVI sheet=DB_工时流水 cells=1 ranges=0 done=1"
+  },
+  {
+   "row": 1383,
+   "ts": "2026-11-01T14:20:33.000Z",
+   "act": "patchCells",
+   "detail": "ss=1Pi5u9fEawgp7yICWPMMyQCT_LbwTZthQDW-H05xYdVI sheet=DB_工时流水 cells=3134 ranges=0 done=3134"
+  },
+  {
+   "row": 1384,
+   "ts": "2026-11-01T15:51:18.000Z",
+   "act": "repairLegacyLeave:repair(dry)",
+   "detail": "ss=1Pi5u9fEawgp7yICWPMMyQCT_LbwTZthQDW-H05xYdVI sheet=DB_工时流水 rows=1 done=1 skipped=0"
+  },
+  {
+   "row": 1385,
+   "ts": "2026-11-01T15:52:12.000Z",
+   "act": "repairLegacyLeave:repair(dry)",
+   "detail": "ss=1Pi5u9fEawgp7yICWPMMyQCT_LbwTZthQDW-H05xYdVI sheet=DB_工时流水 rows=1567 done=1567 skipped=0"
+  },
+  {
+   "row": 1386,
+   "ts": "2026-11-01T15:53:44.000Z",
+   "act": "repairLegacyLeave:repair",
+   "detail": "ss=1Pi5u9fEawgp7yICWPMMyQCT_LbwTZthQDW-H05xYdVI sheet=DB_工时流水 rows=1567 done=1567 skipped=0"
+  },
+  {
+   "row": 1387,
+   "ts": "2026-11-01T17:33:07.000Z",
+   "act": "repairLegacyLeave:repair(dry)",
+   "detail": "ss=1Pi5u9fEawgp7yICWPMMyQCT_LbwTZthQDW-H05xYdVI sheet=DB_工时流水 rows=119 done=119 skipped=0"
+  },
+  {
+   "row": 1388,
+   "ts": "2026-11-01T17:33:19.000Z",
+   "act": "repairLegacyLeave:repair",
+   "detail": "ss=1Pi5u9fEawgp7yICWPMMyQCT_LbwTZthQDW-H05xYdVI sheet=DB_工时流水 rows=119 done=119 skipped=0"
+  },
+  {
+   "row": 1389,
+   "ts": "2026-11-01T17:41:19.000Z",
+   "act": "repairLegacyLeave:repair(dry)",
+   "detail": "ss=1Pi5u9fEawgp7yICWPMMyQCT_LbwTZthQDW-H05xYdVI sheet=DB_工时流水 rows=34 done=34 skipped=0"
+  },
+  {
+   "row": 1390,
+   "ts": "2026-11-01T17:41:29.000Z",
+   "act": "repairLegacyLeave:repair",
+   "detail": "ss=1Pi5u9fEawgp7yICWPMMyQCT_LbwTZthQDW-H05xYdVI sheet=DB_工时流水 rows=34 done=34 skipped=0"
+  }
+ ]
+}

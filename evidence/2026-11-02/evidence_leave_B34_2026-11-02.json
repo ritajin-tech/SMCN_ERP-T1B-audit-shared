@@ -1,0 +1,33 @@
+{
+ "tag": "B34",
+ "ts": "2026-11-01T17:40:51.911Z",
+ "sheet": "DB_工时流水",
+ "ssid": "1Pi5u9fEawgp7yICWPMMyQCT_LbwTZthQDW-H05xYdVI",
+ "requested": 34,
+ "read": 34,
+ "complete": true,
+ "failedPages": 0,
+ "oTrue": 0,
+ "oEmpty": 34,
+ "pmap": {
+  "(空)": 34
+ },
+ "samples": [
+  {
+   "row": 6892,
+   "O": "",
+   "P": ""
+  },
+  {
+   "row": 6894,
+   "O": "",
+   "P": ""
+  },
+  {
+   "row": 6895,
+   "O": "",
+   "P": ""
+  }
+ ]
+}
+// _TS_WRITE_LOG tail: [["2026-11-01T15:51:18.000Z","repairLegacyLeave:repair(dry)","ss=1Pi5u9fEawgp7yICWPMMyQCT_LbwTZthQDW-H05xYdVI sheet=DB_工时流水 rows=1 done=1 skipped=0"],["2026-11-01T15:52:12.000Z","repairLegacyLeave:repair(dry)","ss=1Pi5u9fEawgp7yICWPMMyQCT_LbwTZthQDW-H05xYdVI sheet=DB_工时流水 rows=1567 done=1567 skipped=0"],["2026-11-01T15:53:44.000Z","repairLegacyLeave:repair","ss=1Pi5u9fEawgp7yICWPMMyQCT_LbwTZthQDW-H05xYdVI sheet=DB_工时流水 rows=1567 done=1567 skipped=0"],["2026-11-01T17:33:07.000Z","repairLegacyLeave:repair(dry)","ss=1Pi5u9fEawgp7yICWPMMyQCT_LbwTZthQDW-H05xYdVI sheet=DB_工时流水 rows=119 done=119 skipped=0"],["2026-11-01T17:33:19.000Z","repairLegacyLeave:repair","ss=1Pi5u9fEawgp7yICWPMMyQCT_LbwTZthQDW-H05xYdVI sheet=DB_工时流水 rows=119 done=119 skipped=0"]]

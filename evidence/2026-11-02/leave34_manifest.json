@@ -1,0 +1,245 @@
+{
+ "ts": "2026-11-02T01:40:45.044203",
+ "reason": "Rita 2026-11-02 01:40 裁定：34 行未覆盖请假判定为已作废/陈旧；制度口径(Code.js:349-351) 2026-10-15 起日历假只进主库请假页，生产表请假行为历史遗留",
+ "authority": "owner ruling (Rita Jin)",
+ "rows": [
+  {
+   "row": "6892",
+   "name": "Lucia Lau",
+   "date": "2026-04-01",
+   "hours": "8",
+   "covered": "0"
+  },
+  {
+   "row": "6894",
+   "name": "Alvin Fang",
+   "date": "2026-04-09",
+   "hours": "8",
+   "covered": "0"
+  },
+  {
+   "row": "6895",
+   "name": "Cuenca Tang",
+   "date": "2026-04-10",
+   "hours": "8",
+   "covered": "0"
+  },
+  {
+   "row": "6896",
+   "name": "Joanne Jin",
+   "date": "2026-04-14",
+   "hours": "8",
+   "covered": "0"
+  },
+  {
+   "row": "6897",
+   "name": "Fiona Huang",
+   "date": "2026-04-15",
+   "hours": "8",
+   "covered": "0"
+  },
+  {
+   "row": "6899",
+   "name": "Aien Sheng",
+   "date": "2026-04-28",
+   "hours": "8",
+   "covered": "0"
+  },
+  {
+   "row": "6900",
+   "name": "Allen Zhang",
+   "date": "2026-04-30",
+   "hours": "8",
+   "covered": "0"
+  },
+  {
+   "row": "6901",
+   "name": "Jerry Fu",
+   "date": "2026-05-07",
+   "hours": "8",
+   "covered": "0"
+  },
+  {
+   "row": "6902",
+   "name": "Joanne Jin",
+   "date": "2026-05-07",
+   "hours": "8",
+   "covered": "0"
+  },
+  {
+   "row": "6903",
+   "name": "Juliet Zhao",
+   "date": "2026-05-07",
+   "hours": "8",
+   "covered": "0"
+  },
+  {
+   "row": "6904",
+   "name": "David Zhou",
+   "date": "2026-05-07",
+   "hours": "8",
+   "covered": "0"
+  },
+  {
+   "row": "6907",
+   "name": "Fiona Huang",
+   "date": "2026-05-13",
+   "hours": "8",
+   "covered": "0"
+  },
+  {
+   "row": "6908",
+   "name": "Allen Zhang",
+   "date": "2026-05-13",
+   "hours": "8",
+   "covered": "0"
+  },
+  {
+   "row": "6910",
+   "name": "Lucia Lau",
+   "date": "2026-05-19",
+   "hours": "8",
+   "covered": "0"
+  },
+  {
+   "row": "6911",
+   "name": "Allen Zhang",
+   "date": "2026-05-21",
+   "hours": "8",
+   "covered": "0"
+  },
+  {
+   "row": "6913",
+   "name": "June Feng",
+   "date": "2026-05-26",
+   "hours": "8",
+   "covered": "0"
+  },
+  {
+   "row": "6914",
+   "name": "Lucia Lau",
+   "date": "2026-05-26",
+   "hours": "8",
+   "covered": "0"
+  },
+  {
+   "row": "6917",
+   "name": "Shirley Lin",
+   "date": "2026-06-02",
+   "hours": "8",
+   "covered": "0"
+  },
+  {
+   "row": "6918",
+   "name": "Vivian Ye",
+   "date": "2026-06-02",
+   "hours": "8",
+   "covered": "0"
+  },
+  {
+   "row": "6920",
+   "name": "April Xu",
+   "date": "2026-06-09",
+   "hours": "8",
+   "covered": "0"
+  },
+  {
+   "row": "6923",
+   "name": "Lucia Lau",
+   "date": "2026-06-11",
+   "hours": "8",
+   "covered": "0"
+  },
+  {
+   "row": "6924",
+   "name": "Yichan Yao",
+   "date": "2026-06-23",
+   "hours": "8",
+   "covered": "0"
+  },
+  {
+   "row": "6925",
+   "name": "Fiona Huang",
+   "date": "2026-06-25",
+   "hours": "8",
+   "covered": "0"
+  },
+  {
+   "row": "6926",
+   "name": "June Feng",
+   "date": "2026-06-25",
+   "hours": "8",
+   "covered": "0"
+  },
+  {
+   "row": "6927",
+   "name": "Lucia Lau",
+   "date": "2026-06-25",
+   "hours": "8",
+   "covered": "0"
+  },
+  {
+   "row": "6928",
+   "name": "Jacqueline Qin",
+   "date": "2026-06-26",
+   "hours": "8",
+   "covered": "0"
+  },
+  {
+   "row": "6929",
+   "name": "Aien Sheng",
+   "date": "2026-07-01",
+   "hours": "8",
+   "covered": "0"
+  },
+  {
+   "row": "6931",
+   "name": "April Xu",
+   "date": "2026-07-03",
+   "hours": "8",
+   "covered": "0"
+  },
+  {
+   "row": "6932",
+   "name": "Christopher M. Tengco",
+   "date": "2026-07-09",
+   "hours": "8",
+   "covered": "0"
+  },
+  {
+   "row": "6934",
+   "name": "Kian Guo",
+   "date": "2026-07-16",
+   "hours": "8",
+   "covered": "0"
+  },
+  {
+   "row": "6936",
+   "name": "June Feng",
+   "date": "2026-07-14",
+   "hours": "8",
+   "covered": "0"
+  },
+  {
+   "row": "6937",
+   "name": "Allen Zhang",
+   "date": "2026-07-22",
+   "hours": "8",
+   "covered": "0"
+  },
+  {
+   "row": "6939",
+   "name": "Damon Ping",
+   "date": "2026-07-30",
+   "hours": "8",
+   "covered": "0"
+  },
+  {
+   "row": "6941",
+   "name": "Aien Sheng",
+   "date": "2026-07-31",
+   "hours": "8",
+   "covered": "0"
+  }
+ ]
+}

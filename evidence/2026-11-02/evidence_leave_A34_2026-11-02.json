@@ -1,0 +1,33 @@
+{
+ "tag": "A34",
+ "ts": "2026-11-01T17:41:44.503Z",
+ "sheet": "DB_工时流水",
+ "ssid": "1Pi5u9fEawgp7yICWPMMyQCT_LbwTZthQDW-H05xYdVI",
+ "requested": 34,
+ "read": 34,
+ "complete": true,
+ "failedPages": 0,
+ "oTrue": 34,
+ "oEmpty": 0,
+ "pmap": {
+  "Rita Jin": 34
+ },
+ "samples": [
+  {
+   "row": 6892,
+   "O": true,
+   "P": "Rita Jin"
+  },
+  {
+   "row": 6894,
+   "O": true,
+   "P": "Rita Jin"
+  },
+  {
+   "row": 6895,
+   "O": true,
+   "P": "Rita Jin"
+  }
+ ]
+}
+// _TS_WRITE_LOG tail: [["2026-11-01T15:53:44.000Z","repairLegacyLeave:repair","ss=1Pi5u9fEawgp7yICWPMMyQCT_LbwTZthQDW-H05xYdVI sheet=DB_工时流水 rows=1567 done=1567 skipped=0"],["2026-11-01T17:33:07.000Z","repairLegacyLeave:repair(dry)","ss=1Pi5u9fEawgp7yICWPMMyQCT_LbwTZthQDW-H05xYdVI sheet=DB_工时流水 rows=119 done=119 skipped=0"],["2026-11-01T17:33:19.000Z","repairLegacyLeave:repair","ss=1Pi5u9fEawgp7yICWPMMyQCT_LbwTZthQDW-H05xYdVI sheet=DB_工时流水 rows=119 done=119 skipped=0"],["2026-11-01T17:41:19.000Z","repairLegacyLeave:repair(dry)","ss=1Pi5u9fEawgp7yICWPMMyQCT_LbwTZthQDW-H05xYdVI sheet=DB_工时流水 rows=34 done=34 skipped=0"],["2026-11-01T17:41:29.000Z","repairLegacyLeave:repair","ss=1Pi5u9fEawgp7yICWPMMyQCT_LbwTZthQDW-H05xYdVI sheet=DB_工时流水 rows=34 done=34 skipped=0"]]

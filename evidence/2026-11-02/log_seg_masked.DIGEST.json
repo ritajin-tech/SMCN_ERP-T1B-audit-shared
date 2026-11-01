@@ -1,0 +1,31 @@
+{
+  "file": "log_seg_masked.json",
+  "source": "_TS_WRITE_LOG (生产表 ssid 1Pi5u9fEawgp7yICWPMMyQCT_LbwTZthQDW-H05xYdVI)",
+  "extraction": {
+    "tool": "hktool inspectWorkbook",
+    "mode": "values",
+    "range": "A:C",
+    "page_size": 300,
+    "lastRow_authority": "server meta.lastRow=1390",
+    "segment": "rows 1359-1390",
+    "rows": 32
+  },
+  "sanitization": {
+    "patterns": [
+      "email",
+      "token|key|secret|password|credential",
+      "AKfyc deploy URL"
+    ],
+    "raw_sha256": "64fecd0a62efc34a4dd078f8852702b0592bd6477a0a97819771581e11c6bcc0",
+    "masked_sha256": "64fecd0a62efc34a4dd078f8852702b0592bd6477a0a97819771581e11c6bcc0",
+    "note": "两哈希相同 = 该段扫描后无邮箱/令牌/密钥/人名，脱敏未改变任何字节。此处不宣称已做脱敏，只如实说明无可脱敏内容。"
+  },
+  "full_log_scan": {
+    "file": "ts_write_log_full.json",
+    "total_rows": 1390,
+    "chars": 213025,
+    "email_hits": 0,
+    "token_hits": 0,
+    "deploy_url_hits": 0
+  }
+}
