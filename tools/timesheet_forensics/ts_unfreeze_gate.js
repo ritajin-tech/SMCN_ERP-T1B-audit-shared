@@ -113,7 +113,7 @@ function checkA3_hemostasis() {
   add('A3', '止血观察：近期新增零空UUID（仅提交日期口径采样，非止血闭环证明）', 'ADVISORY', st, det);
 }
 
-// ---------- A5：写者清单 + 旁路证据（BLOCKING，待 Tom 还复/独立验证） ----------
+// ---------- A5：写者清单 + 旁路证据（BLOCKING，严格结构/类型校验，回应 Tom 06:04） ----------
 function checkA5_writer_bypass() {
   const f = path.join(EVIDENCE, 'writer_bypass_evidence.json');
   if (!fs.existsSync(f)) {
@@ -123,12 +123,43 @@ function checkA5_writer_bypass() {
         '均经 _plGuardedInsert(PeriodLockGuard.gs:479)；须确认二者查重均覆盖空UUID，且 RemoteActions.gs:96-105 并发窗口已修复。');
     return;
   }
-  let d = null; try { d = JSON.parse(fs.readFileSync(f, 'utf8')); } catch (e) { /* null */ }
-  if (!d || !d.verified || !d.sources || !Array.isArray(d.sources) || d.sources.length === 0) {
-    add('A5', '写者清单 + 旁路证据完整', 'BLOCKING', 'BLOCKED', f + ' 结构异常或来源缺失（须含 sources[]: 来源/版本/时间/样本一致；零样本与遗漏旁路应拒绝）');
-    return;
+  let d = null;
+  try { d = JSON.parse(fs.readFileSync(f, 'utf8')); }
+  catch (e) { add('A5', '写者清单 + 旁路证据完整', 'BLOCKING', 'BLOCKED', f + ' JSON 解析失败（伪造/损坏）：' + e.message); return; }
+  if (!d || typeof d !== 'object' || Array.isArray(d)) {
+    add('A5', '写者清单 + 旁路证据完整', 'BLOCKING', 'BLOCKED', f + ' 结构异常（非对象）'); return;
   }
-  add('A5', '写者清单 + 旁路证据完整', 'BLOCKING', 'PASS', '来源 ' + d.sources.length + ' 项，verified=' + !!d.verified);
+  // v5（回应 Tom 06:04）：verified 必须为可核验签名(sha256:/sig:)，简单布尔 true 拒绝（防 verified=true 伪造）
+  if (typeof d.verified !== 'string' || !/^(sha256:|sig:)/.test(d.verified)) {
+    add('A5', '写者清单 + 旁路证据完整', 'BLOCKING', 'BLOCKED', 'verified 必须为可核验签名(sha256:/sig:前缀)，简单布尔 true 拒绝（防伪造）'); return;
+  }
+  if (!Array.isArray(d.sources) || d.sources.length === 0) {
+    add('A5', '写者清单 + 旁路证据完整', 'BLOCKING', 'BLOCKED', 'sources 为空数组或缺失（零样本拒绝）'); return;
+  }
+  // 每个 source 严格结构/类型校验：绑定目标、来源版本、采集时间、样本数、完整性、覆盖范围、可核验摘要
+  const req = ['identity', 'version', 'collectedAt', 'sampleCount', 'completeness', 'coverage', 'verifiableDigest'];
+  for (let i = 0; i < d.sources.length; i++) {
+    const s = d.sources[i];
+    if (!s || typeof s !== 'object') { add('A5', '写者清单 + 旁路证据完整', 'BLOCKING', 'BLOCKED', 'sources[' + i + '] 为伪造来源（空对象/非对象），拒绝'); return; }
+    const miss = req.filter(k => !(k in s) || s[k] == null || s[k] === '');
+    if (miss.length) { add('A5', '写者清单 + 旁路证据完整', 'BLOCKING', 'BLOCKED', 'sources[' + i + '] 缺字段/空值：' + miss.join(',')); return; }
+    if (typeof s.sampleCount !== 'number' || s.sampleCount <= 0) { add('A5', '写者清单 + 旁路证据完整', 'BLOCKING', 'BLOCKED', 'sources[' + i + '] sampleCount 非正整数（零样本拒绝）'); return; }
+    if (typeof s.collectedAt !== 'string' || isNaN(Date.parse(s.collectedAt))) { add('A5', '写者清单 + 旁路证据完整', 'BLOCKING', 'BLOCKED', 'sources[' + i + '] collectedAt 非合法时间'); return; }
+    if (typeof s.verifiableDigest !== 'string' || !/^(sha256:|sig:)/.test(s.verifiableDigest)) { add('A5', '写者清单 + 旁路证据完整', 'BLOCKING', 'BLOCKED', 'sources[' + i + '] verifiableDigest 非可核验签名'); return; }
+  }
+  // 必须含并发负例 + 旁路封堵证据（缺路径/负例缺失分别阻断）
+  if (!Array.isArray(d.concurrencyNegativeExamples) || d.concurrencyNegativeExamples.length === 0) {
+    add('A5', '写者清单 + 旁路证据完整', 'BLOCKING', 'BLOCKED', '缺并发窗口负例(concurrencyNegativeExamples)，拒绝'); return;
+  }
+  if (!Array.isArray(d.bypassBlockEvidence) || d.bypassBlockEvidence.length === 0) {
+    add('A5', '写者清单 + 旁路证据完整', 'BLOCKING', 'BLOCKED', '缺旁路封堵证据(bypassBlockEvidence)，拒绝'); return;
+  }
+  // 完整写者范围（生产表仅 2 插入点）
+  if (!Array.isArray(d.writersCovered) || d.writersCovered.length < 2) {
+    add('A5', '写者清单 + 旁路证据完整', 'BLOCKING', 'BLOCKED', 'writersCovered 未覆盖全部写者(需≥2: submitBatch/tsAppendRows)，拒绝'); return;
+  }
+  add('A5', '写者清单 + 旁路证据完整（严格结构/类型校验通过）', 'BLOCKING', 'PASS',
+      '来源 ' + d.sources.length + ' 项，verified=' + d.verified.slice(0, 16) + '…，并发负例 ' + d.concurrencyNegativeExamples.length + '，旁路证据 ' + d.bypassBlockEvidence.length + '，写者覆盖 ' + d.writersCovered.length);
 }
 
 function checkA4_freezeState() {
