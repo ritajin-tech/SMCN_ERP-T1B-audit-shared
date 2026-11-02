@@ -1,0 +1,39 @@
+{
+  "title": "保全清单：生产表 119+34 行请假软删 写前/写后完整行值",
+  "ssid": "1Pi5u9fEawgp7yICWPMMyQCT_LbwTZthQDW-H05xYdVI",
+  "op_119": {
+    "rows": 119,
+    "batch_q": "2026-11-01T17:33:19.000Z",
+    "before_evidence_ts": "2026-11-01T17:32:56.331Z",
+    "after_evidence_ts": "2026-11-01T17:33:55.899Z",
+    "backup_source": "生产工时表__DB_工时流水.csv",
+    "backup_note": "2026-11-01 20:08 HKT 导出，早于软删，作为写前态"
+  },
+  "op_34": {
+    "rows": 34,
+    "batch_q": "2026-11-01T17:41:29.000Z",
+    "before_evidence_ts": "见 leave B34/A34 证据",
+    "after_evidence_ts": "2026-11-01T17:41:29Z",
+    "backup_source": "生产工时表__DB_工时流水.csv"
+  },
+  "total_rows": 153,
+  "covered_by_master": 119,
+  "not_covered_voided_by_owner": 34,
+  "softdel_columns": "O(15)=True, P(16)=Rita Jin, Q(17)=批次服务端时间戳",
+  "unchanged_columns": "A-N 与写前完全一致（软删仅改 O/P/Q）",
+  "acquisition": {
+    "backup_export": "2026-11-01T20:08:00+08:00",
+    "live_before_119": "2026-11-01T17:32:56.331Z",
+    "live_after_119": "2026-11-01T17:33:55.899Z",
+    "live_after_34": "2026-11-01T17:41:29Z",
+    "manifest_generated": "2026-11-02T01:07:36.091011Z"
+  },
+  "credentials_present": false,
+  "note": "本清单不含任何令牌/凭证/ScriptProperties 值；ssId 为被审生产表标识（非凭证）。",
+  "oct25_prior_history": "写日志显示同 153 行于 2026-10-25 经 r1331 repair(153)→r1333 undo(153)→r1336 repair(113)；Nov1 为本轮再次软删（r1388=119 / r1390=34），写前核验 oEmpty=119/34 证实 Nov1 操作前 O 为空。",
+  "q_timestamps_precise": {
+    "op_119": "2026-11-01T17:33:19.000Z",
+    "op_34": "2026-11-01T17:41:29.000Z",
+    "source": "ts_write_log_full.json r1388 / r1390 (repairLegacyLeave:repair apply)"
+  }
+}
