@@ -1,0 +1,13 @@
+{
+  "generated_utc": "2026-11-02T08:17:17.647949Z",
+  "note": "6 duplicate *_repaired files removed during white-screen fix (redeclaration SyntaxError cause). Originals preserved here for independent verification.",
+  "file_count": 6,
+  "files": {
+    "Code_repaired.js": "3490c8bd1f1fbd7c089c89db9bea3692fa1828baaccf667bcdf48edd3d9089ed",
+    "Index_repaired.html": "3038a62d929913e7b90f070536f7056e50af107f8e7bfb4d54692dde97013915",
+    "amy_indirect_cost_repaired.js": "63c0567635119c278d0846fe08e436bc71c66e72710fb9713d1ca193333ddbc1",
+    "leave_sync_repaired.js": "b1f633ccd94fe9cc47fcd8bd1e568404b2fc5ba83f2c2c51414cdda3f323cdc2",
+    "onOpen_repaired.js": "96ade18bc05ba336bac503f17b652d5b10d13ea82fbdbb9d21505116949b05e6",
+    "每天自动提醒_repaired.js": "f7e1cb28541b602b9e3cb820f4897464a84e03900ac1802e5fec27942cd60d7d"
+  }
+}

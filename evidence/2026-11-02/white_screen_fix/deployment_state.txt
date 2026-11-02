@@ -1,0 +1,11 @@
+clasp deployments (read-only, captured 2026-11-02 ~16:10 HKT)
+============================================================
+Found 3 deployments.
+- AKfycbwlxB2z9IDDo7pBv4sr0pu6-1ywvYBuRyqTwfjgl_o   @HEAD
+- AKfycbwYXV3VS3I59bVpUi9XBMClGsFkJ6l_NxPdQcysiXYe47-iONNMk6FIoI8VEXwYl-_2   @195
+- AKfycbzUyhyK-tqL7ypp2H2jZXNCMciEr2PJwhkZIg0bwV1OwV2C6D9RKJZhA4HpiUi6F5eF   @196
+
+User-facing official link (Rita issued 2026-10-26): AKfycbzUyhyK...  == @196
+Deployment count = 3  (unchanged from 2026-10-31 corrected state)
+No new user-facing link was created. The official URL is preserved at @196.
+The @195 and @HEAD deployments are pre-existing pinned/HEAD entries, not newly minted user links.

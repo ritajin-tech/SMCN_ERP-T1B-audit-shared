@@ -1,0 +1,25 @@
+{
+  "generated_utc": "2026-11-02T08:17:17.646572Z",
+  "source": "clasp pull of ts-manager scriptId 1FPAwV50... (dss) @196",
+  "file_count": 18,
+  "files": {
+    "Code.js": "cd4ca67ddc315b7c43c1cb6a9d84051392617902d6ba49e41daa7cd1d188a6d9",
+    "FixBDates.js": "1b1f98bbb8fd52ce9140a60b2a4a4723b4d3856267b594b8c2d783584a149fcb",
+    "Index.html": "13eade546a047b591eb01e18313918ad783d78d7baf17905de962eea4fe87067",
+    "PeriodLockGuard.js": "6e771841eb5d28e6ee4058082bc588b20f4c33adc6b464e1a297f749889c6cb6",
+    "PruneDead.js": "f81e1f5c059344f48768510e93a6b395fd5e0a9b2ed9fecd7fb63a50095910ff",
+    "RemoteActions.js": "81463a92804358629c1af46e7ab562cd7af8b85d8a50897b5dacb103e955aa7d",
+    "RemoteTrigger.js": "0f7cb43b2c31f9787adcf0b9bf937f463ca992909013978edff6dbd3a9926328",
+    "amy_indirect_cost.js": "f69d5e583f4d91e2b6185acee802d1806683901593ca9d84bb8c16529aac61ef",
+    "appsscript.json": "e7485992b05754d79da8feb5b16505adf94dcdd6fb7e155042f5fe6867bc1a20",
+    "leave_sync.js": "410e0e46110f292e3318c305ad40835a37bbfb9613c87cf64ea365b6b3b4e644",
+    "masterAttendanceLive.js": "714fb0fa4d32e0b6a86a916070ecb63455e9bff89bd9a854edf3905eb200326d",
+    "masterCreate.js": "a571132b60c0a5fe5d4e7ff15085c452981e32e79b928017ce281e2f1bdf1f19",
+    "masterException.js": "c2c8a7d4e616c3f6b39b18c3ff2faf113bb82a172d7cc936e09160334a54aac2",
+    "masterLeaves.js": "e4844cc7fa34ba2b7bd0386c8d9765884999c13bfaab918544866cb445072b4b",
+    "onOpen.js": "fc28eac2ce72ee023ceffbef51025ac33090ff6910c16c11e795b05eae6c9208",
+    "rebuildAttendance.js": "7b61b171bc9b83feb066bedbf906068981ed81d1ebc6c2a919d6542b84da6409",
+    "抓取设计脚本.js": "a85da049747d7dab2d0b41e75a77221f3e70fffaa159169c27e3909eacee8130",
+    "每天自动提醒.js": "7bfc0feb9c415ea9b713203c1a6fa73cd2e25b71ffb946d84d66a395c764a2b1"
+  }
+}

@@ -1,0 +1,26 @@
+PRECISE DIFF — white-screen fix (2026-11-02 ~15:09 HKT)
+============================================================
+Root cause: 6 duplicate "*_repaired" files (auto-repair-tool artifacts) redeclared
+const/function identifiers already present in the 18 canonical source files, causing a
+GAS compile-time SyntaxError -> employee-facing page white screen (would not load).
+
+Fix: delete the 6 duplicate *_repaired files; clasp push + `clasp deploy -i` in-place
+on the SAME deployment id, version @195 -> @196. URL AKfycbzUyhyK... unchanged.
+
+REMOVED (originals hashed in deleted_repaired_manifest.json):
+  - Code_repaired.js
+  - Index_repaired.html
+  - amy_indirect_cost_repaired.js
+  - leave_sync_repaired.js
+  - onOpen_repaired.js
+  - 每天自动提醒_repaired.js
+
+CANONICAL 18 SOURCE FILES: UNCHANGED in content (SHA256 in live_snapshot_manifest.json).
+  Code.js, FixBDates.js, Index.html, PeriodLockGuard.js, PruneDead.js, RemoteActions.js,
+  RemoteTrigger.js, amy_indirect_cost.js, appsscript.json, leave_sync.js,
+  masterAttendanceLive.js, masterCreate.js, masterException.js, masterLeaves.js,
+  onOpen.js, rebuildAttendance.js, 抓取设计脚本.js, 每天自动提醒.js
+
+NET EFFECT: 18 canonical files byte-identical before/after; only 6 dead duplicates removed.
+No T1-B write-entry logic (_plGuardedInsert / submitBatch / tsAppendRows) was modified.
+Freeze guard and period-lock semantics: UNCHANGED.
