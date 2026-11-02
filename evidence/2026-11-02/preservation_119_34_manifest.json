@@ -35,5 +35,49 @@
     "op_119": "2026-11-01T17:33:19.000Z",
     "op_34": "2026-11-01T17:41:29.000Z",
     "source": "ts_write_log_full.json r1388 / r1390 (repairLegacyLeave:repair apply)"
+  },
+  "field_provenance": {
+    "note_tom_demand": "应 Tom 09:54(北京) 函：逐字段标明 数据来源 / 实际采集时间 / 身份匹配方法 / 期间可能变化 / 缺失项。",
+    "columns": {
+      "A_N_business_1_14": {
+        "desc": "工时业务字段（uuid/日期/姓名/项目/阶段/工时/备注等，A–N = 第1–14列）",
+        "before_source": "生产表 20:08 HKT 快照 CSV（早于软删，作为写前态基准）",
+        "before_source_tight": "119 行另有 live_before 读 2026-11-01T17:32:56.331Z（距 op 仅 37s，更贴近写前瞬态）；34 行写前态取自 leave B34/A34 证据",
+        "after_source": "live_after 读 2026-11-01T17:33:55.899Z(119) / 17:41:29Z(34)；写后 A–N 与写前逐字符一致（软删仅改 O/P/Q）",
+        "collection_time": "备份导出 2026-11-01T20:08+08:00；live 17:32:56Z~17:41:29Z；清单生成 2026-11-02T01:07:36Z",
+        "identity_match": "按电子表格行号 + 姓名(C列) + 日期(B列) 三元校验（build_preservation.py 已对全部153行做 name 匹配，无 warns）",
+        "possible_changes_in_window": "20:08 备份与 17:33 操作间存在 ~2h25m 窗口；该窗口内若有新增/改动行，其写前态未被 20:08 快照覆盖（119 行已由 17:32:56Z live 读收紧至 37s 内缓解）；34 行窗口以 leave 证据时间为准",
+        "missing": "无操作原始返回载荷（仅写日志条目），写后值来自 live 读而非 op 自身回传；B 列日期为本地(UTC+8)显示，原始存储为 UTC，已在 build 脚本对齐"
+      },
+      "O_15_softdel_flag": {
+        "desc": "软删标记 = TRUE",
+        "before_source": "操作前为空（oEmpty=119/34 已证实 Nov1 操作前 O 为空）",
+        "after_source": "由 repairLegacyLeave 写入（RemoteActions.js:1045 写 [[true,OP,now]]）",
+        "collection_time": "op_119=17:33:19Z / op_34=17:41:29Z（ts_write_log r1388/r1390）",
+        "identity_match": "按行号映射到同一 A–N 业务行",
+        "possible_changes_in_window": "OP 列 (P) 与时间戳 (Q) 为同期写入，无独立变更窗口",
+        "missing": "无"
+      },
+      "P_16_operator": {
+        "desc": "操作人 = Rita Jin",
+        "before_source": "操作前为空",
+        "after_source": "repairLegacyLeave 固定写入 OP='Rita Jin'",
+        "collection_time": "同 O 列（随批次写入）",
+        "identity_match": "常量，非身份字段",
+        "possible_changes_in_window": "无",
+        "missing": "无"
+      },
+      "Q_17_timestamp": {
+        "desc": "软删时间戳（服务端）",
+        "before_source": "操作前为空",
+        "after_source": "ts_write_log_full.json r1388(119) / r1390(34) 精确批次时间",
+        "collection_time": "op_119=2026-11-01T17:33:19.000Z / op_34=2026-11-01T17:41:29.000Z",
+        "identity_match": "按写日志 entry 行号映射到批次",
+        "possible_changes_in_window": "无",
+        "missing": "写日志未记录 10-24 22:25 的 18 行越界写入（Edit E 待补审计），与本 153 行无关"
+      }
+    },
+    "retained_raw": "原始快照 _backups/sheets/2026-11-01/生产工时表__DB_工时流水.csv 与 ts_write_log_full.json 已保留在仓库 evidence/2026-11-02/，未删改",
+    "caveat_on_20h08": "20:08 备份是快照而非写入瞬态；其证明力已由 119 行 17:32:56Z live 读（距 op 37s）与 34 行 leave 证据补足。写后值来自 live 读而非 op 回传载荷——此为已知方法论边界，已在 v29 明示。"
   }
 }
