@@ -1,0 +1,23 @@
+{
+  "owner_ruled": "M2 v1 (commit 83bb1be)",
+  "executed_at": "2026-11-02T19:11:31.259Z",
+  "action": "pushed N3 ledger guard to live @HEAD (no link change)",
+  "official_deployment_id": "AKfycbzUyhyK-tqL7ypp2H2jZXNCMciEr2PJwhkZIg0bwV1OwV2C6D9RKJZhA4HpiUi6F5eF",
+  "url_preserved": "AKfycbzUyhyK @196 -> @197",
+  "deployments_count": 3,
+  "periodlockguard_bytes": 34002,
+  "ledger_key": "TS_WRITE_LEDGER",
+  "coverage": [
+    "_plGuardedInsert(W1/W4)",
+    "_plGuardedMutation(W2/W3)"
+  ],
+  "deferred": [
+    "_plGuardPatch(W5) requires caller tsPatchCells integration"
+  ],
+  "deviation": "requestId/payloadHash self-derived from payload (callers do not pass them)",
+  "red_lines": {
+    "no_link_change": true,
+    "deployments_unchanged_count": 3,
+    "zero_data_loss": true
+  }
+}
