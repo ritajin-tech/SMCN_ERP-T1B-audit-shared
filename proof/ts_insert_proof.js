@@ -1,8 +1,8 @@
 'use strict';
 /*
- * T1-B 幂等账本状态机 — 负例证明协议 (v44 M1 + v45 N1)
+ * T1-B 幂等账本状态机 — 负例证明协议 (v44 M1 + v45 N1 + v46 N2)
  * ---------------------------------------------------------------
- * 目的：把 Tom 22:32 要求的"须证明"与 15:27Z 的 N1 保守性要求转成可运行证据。
+ * 目的：把 Tom 22:32 的 M1、15:27Z 的 N1、16:17Z 的 N2 要求转成可运行证据。
  *  - 用 mocked GAS 全局（SpreadsheetApp / LockService / Utilities）在本地驱动真实写路径逻辑；
  *  - 先复现当前快照代码的 v42 故障窗口（业务写成功+账本落账失败→重试重复写入）；
  *  - 再证明 v43/v44 提案的"乐观预留 PENDING→DONE"状态机在全部故障窗口下不重复写入。
@@ -12,12 +12,11 @@
  */
 
 // ---------------- Mock GAS 全局 ----------------
-function makeWorld(faults) {
+function makeWorld(faults, sharedLedger, sharedSheet) {
   // faults: { businessWrite, pendingAppend, rereadPending, doneTransition, lockBusy }
   return {
-    ledger: new Map(),        // requestId -> { state:'PENDING'|'DONE', payloadHash }
-    sheetRows: [],            // 生产表“已落库”行（仅计数用于证明不重复）
-    attemptedUncertain: new Set(), // N1(15:27Z): 曾“预留 uncertain”的 requestId，后续一律 SUSPEND 不自动重尝
+    ledger: sharedLedger || new Map(),   // 耐久账本(requestId -> {state,payloadHash}); 跨进程重启仍由所有写者一致读取
+    sheetRows: sharedSheet || [],        // 生产表“已落库”行（耐久, 仅计数用于证明不重复）
     faults: Object.assign(
       { businessWrite: 'OK', pendingAppend: 'OK', rereadPending: true, doneTransition: 'OK', lockBusy: false },
       faults || {}
@@ -29,7 +28,12 @@ function ledgerLookup(w, requestId) { return w.ledger.get(requestId) || null; }
 
 function ledgerAppendPending(w, requestId, payloadHash) {
   // 返回 'OK' | 'UNCERTAIN'
-  if (w.faults.pendingAppend === 'UNCERTAIN') return 'UNCERTAIN';
+  if (w.faults.pendingAppend === 'UNCERTAIN') {
+    // N2(16:17Z): 不确定预留须耐久落账为 POISONED 标记(同一耐久账本, 所有写者一致读取),
+    // 进程崩溃/重启/并发下仍可被读到, 不依赖进程内集合。该写为已确认同步写(PropertiesService 语义)。
+    w.ledger.set(requestId, { state: POISONED, payloadHash });
+    return 'UNCERTAIN';
+  }
   w.ledger.set(requestId, { state: 'PENDING', payloadHash });
   return 'OK';
 }
@@ -77,15 +81,16 @@ function currentInsert(w, opts) {
 const PL_REJECT_REQUEST_ID_MISMATCH = 'PL_REJECT_REQUEST_ID_MISMATCH';
 const UNCERTAIN_PENDING_MANUAL = 'UNCERTAIN_PENDING_MANUAL';
 const SUSPEND = 'SUSPEND_NO_WRITE';
+const POISONED = 'UNCERTAIN_POISONED';
 
 function proposedInsert(w, opts) {
   if (!lockAcquire(w)) return { status: 'PL_REJECT_LOCK_BUSY', writes: 0 };
-  // N1 (Tom 15:27Z): 一次读取“缺失”不证明先前 uncertain 预留未生效；
-  // 凡本 requestId 曾“预留 uncertain”，视为未知、停重试、不自动重尝预留，等人工对账。
-  if (w.attemptedUncertain.has(opts.requestId)) {
-    return { status: SUSPEND, writes: 0, reason: 'N1_prior_uncertain_reservation' };
-  }
+  // N1(15:27Z)+N2(16:17Z): 不确定预留须“暂停并对账”, 且不因单次读取缺失自动重尝预留。
+  // 该状态耐久落于账本(POISONED), 跨进程崩溃/重启/并发由所有写者一致读取, 不依赖进程内集合。
   const e = ledgerLookup(w, opts.requestId);
+  if (e && e.state === POISONED) {
+    return { status: SUSPEND, writes: 0, reason: 'N2_prior_uncertain_reservation_poisoned' };
+  }
   if (e && e.state === 'DONE') {
     if (e.payloadHash === opts.payloadHash) return { status: 'REPLAY', writes: 0 };
     return { status: PL_REJECT_REQUEST_ID_MISMATCH, writes: 0 };
@@ -97,7 +102,7 @@ function proposedInsert(w, opts) {
   // absent → 先预留 PENDING
   const reserve = ledgerAppendPending(w, opts.requestId, opts.payloadHash);
   if (reserve === 'UNCERTAIN') {
-    w.attemptedUncertain.add(opts.requestId); // N1: 标记，后续调用一律 SUSPEND 不自动重尝
+    // ledgerAppendPending 已耐久落 POISONED；此处直接暂停, 不重尝预留、不写
     return { status: SUSPEND, writes: 0 }; // (c) 预留结果未知→不写
   }
   // (a) flush 后重读确认 PENDING 持久可见，方进业务写
@@ -177,19 +182,28 @@ console.log('\n=== B. 提案状态机 v43/v44 故障窗口证明 ===');
 }
 
 {
-  console.log('  (g) N1(15:27Z): 预留 uncertain 后即便重读"缺失"也不自动重尝预留 (防不确定预留稍后生效导致重复写)');
+  console.log('  (g) N1+N2: 预留 uncertain → 耐久 POISONED 落账 → 重试(同进程)读耐久账本见 POISONED → SUSPEND, 不重尝预留, 无写');
   const w = makeWorld({ pendingAppend: 'UNCERTAIN' });
-  const r = proposedInsert(w, opts()); // 预留 uncertain → SUSPEND
-  check('(g) 首预留 uncertain → SUSPEND, 0 写', r.status === SUSPEND && w.sheetRows.length === 0, JSON.stringify(r));
-  w.ledger.delete(opts().requestId); // 模拟“一次读取缺失”(即便服务端稍后让该预留可见)
-  const rr = proposedInsert(w, opts()); // 重试：attemptedUncertain 标记 → 仍 SUSPEND, 不重尝预留、不写
-  check('(g) 重试见"缺失"仍 SUSPEND, 不自动重尝预留, 无写', rr.status === SUSPEND && rr.writes === 0 && w.sheetRows.length === 0, JSON.stringify(rr));
+  const r = proposedInsert(w, opts()); // 预留 uncertain → 耐久 POISONED → SUSPEND
+  check('(g) 首预留 uncertain → 耐久 POISONED + SUSPEND, 0 写', r.status === SUSPEND && w.sheetRows.length === 0 && w.ledger.get('R1') && w.ledger.get('R1').state === POISONED, JSON.stringify(r));
+  const rr = proposedInsert(w, opts()); // 重试：读耐久账本见 POISONED → SUSPEND
+  check('(g) 重试读耐久账本见 POISONED → 仍 SUSPEND, 不重尝预留, 无写', rr.status === SUSPEND && rr.writes === 0 && w.sheetRows.length === 0, JSON.stringify(rr));
+}
+{
+  console.log('  (h) N2(16:17Z): 跨进程崩溃/重启 — 全新进程仅共享耐久账本+生产表(无进程内集合)仍读 POISONED → SUSPEND, 不重尝预留, 无写');
+  const w = makeWorld({ pendingAppend: 'UNCERTAIN' });
+  proposedInsert(w, opts()); // 首预留 uncertain → 耐久 POISONED
+  // 模拟进程崩溃重启：全新进程, 仅共享“耐久账本+生产表”(进程内集合不复存在)
+  const w2 = makeWorld({ pendingAppend: 'UNCERTAIN' }, w.ledger, w.sheetRows);
+  const rr = proposedInsert(w2, opts()); // 新进程读耐久账本 → 见 POISONED → SUSPEND
+  check('(h) 重启后新进程读耐久账本见 POISONED → 仍 SUSPEND, 不重尝预留, 无写', rr.status === SUSPEND && rr.writes === 0 && w2.sheetRows.length === 0, JSON.stringify(rr));
 }
 
 console.log('\n========================================');
 console.log('  结果: ' + pass + ' PASS / ' + fail + ' FAIL');
-console.log('  说明: (e)(f)(g) 直接对应 Tom 22:32 M1 / 15:27Z N1 的"业务写成功+落账失败"/"同ID异载荷"/"不确定预留不重尝"；');
+console.log('  说明: (e)(f)(g)(h) 直接对应 Tom 22:32 M1 / 15:27Z N1 / 16:17Z N2 的"业务写成功+落账失败"/"不确定预留不重尝"/"耐久跨进程poison"；');
 console.log('        (a)(c)(d) 覆盖 PENDING 持久可见 / 预留 uncertain / 锁失效；');
+console.log('        (g)(h) 证明确认: 不确定预留耐久落账本, 同进程+跨进程重启均读 POISONED 暂停, 不重尝预留不写；');
 console.log('        跨项目旁路(e in M1) 及全部入口/崩溃交错(H6/105) 需部署清单(实况枚举), 非本单测范畴, 标 OPEN。');
 console.log('========================================');
 process.exit(fail === 0 ? 0 : 1);
