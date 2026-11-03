@@ -1,0 +1,146 @@
+SAVED live content -> tools/evidence/live_content_2026-11-03T14-30-09-136Z.json  (fileCount=18)
+
+=== WRITE CALL SITES (non-read) ===
+total write-sites=31 | near-guard=0
+
+[Code]  sites=2
+  L130  * V4.3.62 POST 入口 —— 给「写入端哑管道」用（appendRows / patchCells）。
+  L132  * body: {"action":"appendRows","token":"SMCN-...","rows":[[...14列...],...]}
+
+[FixBDates]  sites=3
+  L2  * V4.3.80 受护栏的 B 列(业务日期)逐格还原 —— 只用单格 setValue(真实 Date)，避开巨型整块 setValues(已证本 Web App 静默不落盘)。
+  L3  * 经验：巨型整块 setValues(7594x26) 会让本次执行的写会话静默失效；单格 setValue 经验证可落盘(tsPatchCells 哨兵测试通过)。
+  L4  * 故本函数只做「读 I 列 UUID→行号(只读) → 逐格 setValue(new Date) 写 B → getDisplayValues 回读校验」，全程无巨型写。
+
+[leave_sync]  sites=2
+  L475  sheet.appendRow(['Project No', 'Module', 'Last Sync', 'Status', 'Last Error']);
+  L487  sheet.appendRow([pNo, module, now, status, errMsg || '']);
+
+[masterAttendanceLive]  sites=1
+  L263  // 各月天数不同（28/29/30/31）→ 行宽不齐，setValues 要求矩形，统一补到最大列数
+
+[onOpen]  sites=3
+  L1436  range.setValues(data);
+  L1498  dbSheet.deleteRow(futureRows[i].sheetRow);
+  L1504  logSheet.appendRow([new Date(), 'CLEANUP_FUTURE_ROWS', '🧹 物理删除 ' + deleted + ' 行未来日期脏数据（日期列 ' + (dateColIdx + 1) + '）']);
+
+[PeriodLockGuard]  sites=1
+  L394  sh.appendRow([Utilities.formatDate(new Date(), 'GMT+8', 'yyyy-MM-dd HH:mm:ss'),
+
+[rebuildAttendance]  sites=1
+  L37  // 确保表格足够大，避免 setValues 越界
+
+[RemoteActions]  sites=16
+  L22  appendRows:    function(e) { return tsAppendRows(e); },   // V4.3.62 写入端（幂等，恢复数据用）
+  L56  // 调用：POST <WEBAPP>  body: {"action":"appendRows","token":"...","rows":[[...14列...], ...]}
+  L71  sh.appendRow(['时间', '动作', '明细']);
+  L74  sh.appendRow([Utilities.formatDate(new Date(), 'GMT+8', 'yyyy-MM-dd HH:mm:ss'), action, detail]);
+  L120  _tsWriteLog('appendRows(dry=' + dry + ')', 'req=' + rows.length + ' wouldWrite=' + toWrite.length +
+  L139  _tsWriteLog('appendRows', 'req=' + rows.length + ' wrote=' + res.wrote + ' verified=' + res.verified +
+  L144  _tsWriteLog('appendRows(ERR)', String((err && err.message) || err));
+  L189  // V4.3.66：ranges 整块写入 —— 每项一次 setValues，避免上千次单格写的超时问题
+  L280  snap.appendRow(['日期', '总行数', '有效行', '总工时', '人数', '按人时数JSON']);
+  L284  snap.appendRow([d, data.length, live, Math.round(hours * 10) / 10, Object.keys(byName).length,
+  L519  rg.setValues(o.values || []);
+  L690  // 背景：历史上多次「全表重写 / setValues 到很靠后的行」在表尾留下 19,000+ 空行，
+  L775  *       → 先 setValues 写回保留行 → 再 deleteRows 删尾部多余行。先写回再删尾，中途失败原数据仍在。
+  L780  * 背景：9/12 一次 purgeRows 的「读全表 → 过滤 → setValues 整表写回 → deleteRows 删尾」把
+  L800  * 受保护的整表写回：setValues 之后自动校验并还原 B 列。
+  L869  * 「读保留行 → setValues 写回 → deleteRows 删尾」安全模式（中途失败原数据仍在）。
+
+[RemoteTrigger]  sites=2
+  L61  //   送给任何拿到 URL 的匿名请求者 —— 随后即可获得 readRange / appendRows / patchCells / purgeRows
+  L111  * 额外把解析后的 JSON body 挂在 e.postBody 上供动作函数读取（appendRows / patchCells 用）。
+
+=== look for tsAppendRows / submitBatch / DB_工时流水 insert ===
+  Code:L10  function getDbSheet() { return SpreadsheetApp.openById(TS_ID).getSheetByName('DB_工时流水'); }
+  Code:L380  * 背景（2026-09-11 事故）：submitBatch 自 5 月起把 D 列写死为空串 ""，
+  Code:L412  function submitBatch(token, tasks) {
+  Code:L464  return _plGuardedInsert({
+  Code:L550  * V4.3.5: 幂等清理 DB_工时流水 中重复的请假/休假记录。
+  Index:L211  <button type="button" id="batchSubBtn" onclick="submitBatch()">Submit / 提交</button>
+  Index:L274  Copy rows in Excel → tap Paste / 粘贴 → auto-parse into rows → tap Save / 保存 to bulk submit. Backend submitBatch ready. / 在 Excel 选好行复制 → 点「粘贴」→ 自动解析为多条 → 点「保存」批量
+  Index:L728  function submitBatch() {
+  Index:L740  .submitBatch(currentToken, payload);
+  Index:L1089  .submitBatch(currentToken, payload);
+  leave_sync:L14  *  ① 【列序错位】DB_工时流水 真实表头为
+  leave_sync:L40  // 2026-10-15 Rita 决定：请假同步目标从生产表(DB_工时流水)切换到主库(考勤表)，只追加不重写。
+  leave_sync:L73  *   ① 请假数据不再写入生产表 DB_工时流水（生产表只管工时填报）；
+  leave_sync:L336  *   判定依据：DB_工时流水 里出现过「手工填报」行的姓名即为名单成员。
+  masterAttendanceLive:L11  //   ① syncProdToMaster()      生产表(DB_工时流水) 新增 → 追加到主库底稿(工时_候选0824)（增量、幂等）
+  masterAttendanceLive:L25  var MAL_PROD_TAB = 'DB_工时流水';     // 生产表
+  onOpen:L5  *              扫描 DB_工时流水 B 列(Date) > 今天的行，OK_CANCEL 确认后物理删除
+  onOpen:L10  *        且表头行可能仍是 V4.2 遗留的 7 列短表头（与 submitBatch() 写入的 14 列数据行错位）。
+  onOpen:L21  *              ③ 加「🔍 时段诊断」菜单 —— 一键体检 DB_工时流水（空列数、重复组、表头原文）
+  onOpen:L26  *   - V4.3.50: 【工时链路总根因修复】refreshSheet3() 读 DB_工时流水 时列序错位一整格
+  onOpen:L29  *     【Sheet3 里从来没有过 DB_工时流水 的新打卡数据】，只剩 FY26 月度汇总。
+  onOpen:L42  *     ① DB_工时流水 日期范围 + 近14天每日行数(一眼看出数据停在哪天) + B列空日期行数
+  onOpen:L51  *      从 DB_工时流水 + FY26工时 拉真实口径记录（排除休假/OFF-WORK/未填/已删除），
+  onOpen:L52  *      其中 DB_工时流水 实际列为 A=录入时间/B=日期/C=姓名/D=阶段/E=项目编号/F=工时/G=备注/H=项目名/I=主管/O=是否删除。
+  onOpen:L66  *  - 按月份筛选作用在「DB_工时流水」表的 N 列（年月，格式 yyyy-MM）。
+  onOpen:L115  .addItem('时段诊断（DB_工时流水 体检报告）', 'diagnoseTimesheetColumns')
+  onOpen:L209  const tsSheet = SpreadsheetApp.openById(TS_ID).getSheetByName('DB_工时流水');
+  onOpen:L240  // V4.3.33: 刷新前先幂等清理 DB_工时流水里重复的系统同步请假记录，避免同步遗留记录被重复累加
+  onOpen:L253  const tsSheet = SpreadsheetApp.openById(TS_ID).getSheetByName('DB_工时流水');
+  onOpen:L466  //      【Sheet3 里从来没有过 DB_工时流水 的新打卡数据】，只剩 FY26 月度汇总。
+  onOpen:L468  //   2) FY26工时 (本表) —— 真实月度汇总, 补充 DB_工时流水 未覆盖的历史月份
+  onOpen:L471  // 去重: 按 "年月|项目编号|员工" 维度, DB_工时流水 已覆盖的月份不再用 FY26 汇总, 避免重复
+  onOpen:L476  // V4.3.53: DB_工时流水 列序探测器
+  onOpen:L481  // 更坑的是：表头行可能仍是 V4.2 遗留的短表头，而数据行已由 submitBatch() 按 14 列写入，
+  onOpen:L548  // 表头 (与 DB_工时流水 列序一致, 仅 A 改为"数据源"标签便于溯源)
+  onOpen:L560  // （V4.3.53: 表头不可信, 表头可能是 V4.2 遗留的 7 列短表头, 而数据行是 submitBatch() 写的 14 列）
+  onOpen:L584  const dbDupSig = {};    // V4.3.39: DB_工时流水 全签名去重: 日期|姓名|阶段|项目|工时 (剔除双录水分)
+  onOpen:L589  // 1. 读 DB_工时流水 (明细, 优先级最高)
+  onOpen:L592  const dbSheet = SpreadsheetApp.openById(TS_ID).getSheetByName('DB_工时流水');
+  onOpen:L639  rows.push(['DB_工时流水', date, englishName, (typeVal || '工时明细'), phase, projNo, hours, remark, uuidVal, projName]);
+  onOpen:L643  // 2. 读 FY26工时 / FY26折算后工时 (月度汇总, 补充 DB_工时流水 未覆盖的历史月份)
+  onOpen:L666  // 如果 DB_工时流水 已覆盖该项目+员工+月份, 跳过 FY26 汇总, 避免重复
+  onOpen:L718  '📂 来源: DB_工时流水 + FY26工时 (均为真实口径，FY26折算后工时不并入)\n' +
+  onOpen:L921  // DB_工时流水 被 T1-B 双录入膨胀后 Sheet3 重建变慢、长时持锁，会把所有批量提交挡在 5s 窗外（PL_REJECT_LOCK_BUSY）。
+  onOpen:L974  // 1. DB_工时流水 诊断
+  onOpen:L975  const dbSheet = SpreadsheetApp.openById(TS_ID).getSheetByName('DB_工时流水');
+  onOpen:L979  lines.push('【DB_工时流水】');
+  onOpen:L1107  lines.push('【DB_工时流水】找不到表');
+  onOpen:L1205  // V4.3.35 物理清理 DB_工时流水 中已软删除的记录
+  onOpen:L1249  '💡 DB_工时流水 和 Sheet3 重建都更轻快');
+  onOpen:L1259  * V4.3.52: 时段诊断 —— 一键体检 DB_工时流水 表
+  onOpen:L1266  const sheet = ss.getSheetByName('DB_工时流水');
+  onOpen:L1268  SpreadsheetApp.getUi().alert('DB_工时流水 不存在或为空');
+  onOpen:L1317  lines.push(['DB_工时流水 时段诊断报告', '']);
+  onOpen:L1354  let msg = '🔍 DB_工时流水 诊断报告\n\n';
+  onOpen:L1383  const sheet = ss.getSheetByName('DB_工时流水');
+  onOpen:L1385  SpreadsheetApp.getUi().alert('DB_工时流水 不存在或为空');
+  onOpen:L1448  * V4.3.54 (2026-09-02 15:08): 清理 DB_工时流水 表里日期 > 今天的行
+  onOpen:L1458  const dbSheet = SpreadsheetApp.openById(TS_ID).getSheetByName('DB_工时流水');
+  onOpen:L1460  ui.alert('❌ DB_工时流水 表不存在或没有数据行'); return;
+  onOpen:L1483  ui.alert('✅ 体检完成：DB_工时流水 没有未来日期的行（日期列 ' + (dateColIdx + 1) + '）'); return;
+  onOpen:L1490  '点击「确定」物理删除这些行（不可撤销！建议先导出 DB_工时流水 备份）。\n' +
+  onOpen:L1671  const sheet = ss.getSheetByName('DB_工时流水');
+  onOpen:L1672  if (!sheet) { ui.alert('找不到「DB_工时流水」表，请确认分页名称。'); return; }
+  onOpen:L1686  ui.alert('在 DB_工时流水表第一行找不到「年月」列。\n\n请在 N1 输入「年月」后重试（如果已在 N1 输入，请确保没有多余空格）。');
+  onOpen:L1703  const sheet = ss.getSheetByName('DB_工时流水');
+  PeriodLockGuard:L31  *  [审⑦] 错误透出（见集成源码）：tsAppendRows catch JSON 补 plCause；辅助
+  PeriodLockGuard:L59  *         抛出改用它构造 message——修掉 submitBatch / tsAppendRows 路径
+  PeriodLockGuard:L77  var PL_DB_SHEET = 'DB_工时流水';
+  PeriodLockGuard:L418  * 适用入口（v7 全覆盖）：submitBatch / tsAppendRows（经 _plGuardedInsert）、
+  PeriodLockGuard:L531  function _plGuardedInsert(opts) {
+  PeriodLockGuard:L580  // [审⑧-v7] 契约覆盖 submitBatch/tsAppendRows 路径：载荷进 message
+  PeriodLockGuard:L595  // [审⑧-v7] 契约覆盖 submitBatch/tsAppendRows 路径：载荷进 message
+  RemoteActions:L22  appendRows:    function(e) { return tsAppendRows(e); },   // V4.3.62 写入端（幂等，恢复数据用）
+  RemoteActions:L78  function tsAppendRows(e) {
+  RemoteActions:L85  var sheetName = String(p.sheet || body.sheet || 'DB_工时流水');
+  RemoteActions:L127  var res = _plGuardedInsert({
+  RemoteActions:L161  var sheetName = String(p.sheet || body.sheet || 'DB_工时流水');
+  RemoteActions:L174  // period-lock：仅 DB_工时流水 进 guard（M1 分列，B 列/O:Q 由 _plGuardPatch 判）；其他表不拦
+  RemoteActions:L264  var sh = SpreadsheetApp.openById(TS_ID).getSheetByName('DB_工时流水');
+  RemoteActions:L297  * 用法：?action=readRange&token=...&sheet=DB_工时流水&range=B1:I
+  RemoteActions:L302  var sheetName = String(p.sheet || 'DB_工时流水');
+  RemoteActions:L310  //   （DB_工时流水约 4 万行），既容易把 Web App 打到超时，回包也会大到被截断。
+  RemoteActions:L689  // V4.3.63 【表格膨胀自愈】删除 DB_工时流水 尾部的空白行
+  RemoteActions:L773  *       历史累计了 1,900+ 条已软删假条残留在 DB_工时流水里 —— 不进任何逻辑，但占行、看着乱。
+  RemoteActions:L1002  // 背景：DB_工时流水 里有一批「类型=休假 / 项目编号=OFF-WORK / 备注=系统同步请假 / UUID=LEAVE-」
+  RemoteActions:L1006  //   软删：?action=repairLegacyLeave&token=<REMOTE_TOKEN>&rows=6795,6796,...,11244[&sheet=DB_工时流水][&ssid=<id>][&op=Rita Jin][&dry=1]
+  RemoteActions:L1022  var sheetName = String(p.sheet || 'DB_工时流水');
+  RemoteActions:L1087  // 行为：读 DB_工时流水 前 N 行（A:O 15 列），逐行算 _plRowContentHash，返回统计。
+  RemoteActions:L1099  var sh = SpreadsheetApp.openById(TS_ID).getSheetByName('DB_工时流水');
+  RemoteActions:L1100  if (!sh) return JSON.stringify({ ok: false, error: 'sheet not found: DB_工时流水' });

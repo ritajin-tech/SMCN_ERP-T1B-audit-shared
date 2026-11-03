@@ -1,0 +1,50 @@
+
+=== A. 复现当前代码 v42 故障窗口（无账本）===
+  PASS  当前代码: 首次写=1
+  PASS  当前代码: 重试导致重复写入=2 (v42 真 bug)
+
+=== B. 提案状态机 v43/v44 故障窗口证明（happy + 幂等）===
+  PASS  happy: 写=1, DONE
+  PASS  重试幂等重放 不重写
+
+=== (a) PENDING 同步持久先于业务写 + 负例（账本写失败）===
+  PASS  (a) 负例: PENDING 写失败 → SUSPEND_LEDGER_IO, 0 写
+  PASS  (a) 预留 PENDING 同步落库且可见(业务写前)
+
+=== (c) 业务写结果本身未知 → 不进确定完成, 保留 PENDING 挂起, 0 写 ===
+  PASS  (c) 业务 uncertain → SUSPEND_PENDING, 0 写
+  PASS  (c) 账本仅 PENDING, 无第二不确定标记
+  PASS  (c) 重试读 PENDING → 仍 SUSPEND, 不重尝预留, 无写
+
+=== (d) 锁失效 → 不写不预留 ===
+  PASS  (d) lockBusy → PL_REJECT_LOCK_BUSY, 0 写
+
+=== (e) 业务写成功 + DONE 翻转不确定(崩溃在 PENDING→DONE 之间) → 重试不重复 (v42 bug 已修) ===
+  PASS  (e) 首写=1, 状态 SUSPEND_LEDGER_IO (PENDING 仍在)
+  PASS  (e) 账本仍为 PENDING (行已落库未翻 DONE)
+  PASS  (e) 重试读 PENDING → 挂起, 无重复写
+
+=== (f) 同键异载荷 → 拒绝 (防同 ID 不同载荷覆盖) ===
+  PASS  (f) 异载荷 → PL_REJECT_REQUEST_ID_MISMATCH
+
+=== (g) N1+N2+N3: 业务 uncertain → 保留 PENDING → 跨进程重启仍读 PENDING → SUSPEND, 不重尝预留, 无写 ===
+  PASS  (g) 业务 uncertain → PENDING + SUSPEND, 0 写
+  PASS  (g) 重启后新进程读耐久账本见 PENDING → 仍 SUSPEND, 不重尝预留, 无写
+
+=== (h) N3: 进程崩溃在 PENDING 写与业务写之间(账本写失败, 业务未执行) → 重启后无残留, 重新预留恰好一次 ===
+  PASS  (h)-1: PENDING 写失败 → SUSPEND_LEDGER_IO, 0 写 0 行
+  PASS  (h)-2: 重启后重新预留 → 写=1, DONE, 恰好一次
+  PASS  (h)-3: 再次重试 → REPLAY, 无重复
+
+=== (i) N3: DONE 翻转不确定(崩溃在业务写成功之后) → 行已落库, PENDING 仍在, 重试挂起, 人工对账翻 DONE, 无重复 ===
+  PASS  (i) 重试读 PENDING → 挂起, 行数仍=1 无重复
+  PASS  (i) 对账翻 DONE 后重试 → REPLAY, 无重复
+
+========================================
+  结果: 21 PASS / 0 FAIL
+  映射: (e)(f)(g)(h)(i) 直接对应 Tom 22:32 M1 / 15:27Z N1 / 16:17Z N2 / 16:57Z N3；
+        (a)(c)(d) 覆盖 PENDING 同步持久 / 业务 uncertain 挂起 / 锁失效；
+        (g)(h)(i) 证明 N3: 账本同步提交即抛(无不确定写) + 业务不确定即挂起PENDING,
+        跨进程重启/崩溃均读耐久 PENDING 挂起, 不重尝预留不写；
+        跨项目旁路 / 全部入口枚举 见 H6/105 清单(只读枚举固定版本), 本单测聚焦状态机。
+========================================
