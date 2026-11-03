@@ -1,0 +1,114 @@
+{
+  "capturedAt": "2026-11-03T14:07:13.751Z",
+  "fileCount": 18,
+  "files": [
+    {
+      "name": "amy_indirect_cost",
+      "type": "SERVER_JS",
+      "bytes": 5464,
+      "sha256": "f69d5e583f4d91e2"
+    },
+    {
+      "name": "appsscript",
+      "type": "JSON",
+      "bytes": 265,
+      "sha256": "e7485992b05754d7"
+    },
+    {
+      "name": "Code",
+      "type": "SERVER_JS",
+      "bytes": 29707,
+      "sha256": "cd4ca67ddc315b7c"
+    },
+    {
+      "name": "FixBDates",
+      "type": "SERVER_JS",
+      "bytes": 4168,
+      "sha256": "1b1f98bbb8fd52ce"
+    },
+    {
+      "name": "Index",
+      "type": "HTML",
+      "bytes": 104924,
+      "sha256": "13eade546a047b59"
+    },
+    {
+      "name": "leave_sync",
+      "type": "SERVER_JS",
+      "bytes": 25549,
+      "sha256": "410e0e46110f292e"
+    },
+    {
+      "name": "masterAttendanceLive",
+      "type": "SERVER_JS",
+      "bytes": 20052,
+      "sha256": "714fb0fa4d32e0b6"
+    },
+    {
+      "name": "masterCreate",
+      "type": "SERVER_JS",
+      "bytes": 6206,
+      "sha256": "a571132b60c0a5fe"
+    },
+    {
+      "name": "masterException",
+      "type": "SERVER_JS",
+      "bytes": 1107,
+      "sha256": "c2c8a7d4e616c3f6"
+    },
+    {
+      "name": "masterLeaves",
+      "type": "SERVER_JS",
+      "bytes": 5995,
+      "sha256": "e4844cc7fa34ba2b"
+    },
+    {
+      "name": "onOpen",
+      "type": "SERVER_JS",
+      "bytes": 92756,
+      "sha256": "fc28eac2ce72ee02"
+    },
+    {
+      "name": "PeriodLockGuard",
+      "type": "SERVER_JS",
+      "bytes": 34002,
+      "sha256": "28f6df75e67cd3e8"
+    },
+    {
+      "name": "PruneDead",
+      "type": "SERVER_JS",
+      "bytes": 2406,
+      "sha256": "f81e1f5c059344f4"
+    },
+    {
+      "name": "rebuildAttendance",
+      "type": "SERVER_JS",
+      "bytes": 37165,
+      "sha256": "7b61b171bc9b83fe"
+    },
+    {
+      "name": "RemoteActions",
+      "type": "SERVER_JS",
+      "bytes": 61235,
+      "sha256": "81463a9280435862"
+    },
+    {
+      "name": "RemoteTrigger",
+      "type": "SERVER_JS",
+      "bytes": 8650,
+      "sha256": "0f7cb43b2c31f978"
+    },
+    {
+      "name": "抓取设计脚本",
+      "type": "SERVER_JS",
+      "bytes": 2481,
+      "sha256": "a85da049747d7dab"
+    },
+    {
+      "name": "每天自动提醒",
+      "type": "SERVER_JS",
+      "bytes": 6078,
+      "sha256": "7bfc0feb9c415ea9"
+    }
+  ]
+}

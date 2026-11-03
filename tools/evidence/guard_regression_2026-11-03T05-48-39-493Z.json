@@ -1,0 +1,10 @@
+{
+  "generated_at": "2026-11-03T05:48:39.488Z",
+  "mode": "offline",
+  "pass": false,
+  "steps": [
+    "[2] 21/21 logic proof: FAIL (exit 1)",
+    "[1] live guard invariants: SKIPPED (offline mode)"
+  ],
+  "sha256": "86042d1d75a975d678c2af1b414e4e19f6de753cbdda8e683442f509fa93e92b"
+}

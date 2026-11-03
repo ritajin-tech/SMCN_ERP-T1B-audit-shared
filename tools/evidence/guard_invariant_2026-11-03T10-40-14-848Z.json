@@ -1,0 +1,57 @@
+{
+  "generated_at": "2026-11-03T10:40:10.868Z",
+  "checks": [
+    {
+      "name": "A1 _plGuardedInsert 存在",
+      "pass": true,
+      "detail": ""
+    },
+    {
+      "name": "A2 _plGuardedMutation 存在",
+      "pass": true,
+      "detail": ""
+    },
+    {
+      "name": "A3 _plGuardPatch 存在(W5覆盖)",
+      "pass": true,
+      "detail": ""
+    },
+    {
+      "name": "A4 _plAcquire 存在(锁)",
+      "pass": true,
+      "detail": ""
+    },
+    {
+      "name": "B1 账本读 _plLedgerGet 存在",
+      "pass": true,
+      "detail": ""
+    },
+    {
+      "name": "B2 账本写 _plLedgerSet 存在",
+      "pass": true,
+      "detail": ""
+    },
+    {
+      "name": "B3 预留/重放 _plLedgerReserveOrReplay 存在",
+      "pass": true,
+      "detail": ""
+    },
+    {
+      "name": "C1 requestId 自推导 _plDeriveRequestId 存在",
+      "pass": true,
+      "detail": ""
+    },
+    {
+      "name": "D1 去重账本检查邻近 _plGuardedInsert（不改写表前先查账本）",
+      "pass": true,
+      "detail": "4 处定义, 近旁含账本调用=true"
+    },
+    {
+      "name": "D2 先取锁再查账本（并发安全）",
+      "pass": true,
+      "detail": "近旁含锁原语=true"
+    }
+  ],
+  "source_bytes": 27023,
+  "sha256": "28f6df75e67cd3e800ed609c0e8546d4abd33733b9314f548a2ced242f8ec281"
+}

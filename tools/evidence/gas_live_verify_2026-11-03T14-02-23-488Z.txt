@@ -1,0 +1,39 @@
+access_token expiry: 2026-11-03T14:56:12.410Z | expired? false
+token still valid, no refresh needed
+
+=== DEPLOYMENTS ===
+count = 3
+  id=AKfycbwlxB2z9IDDo7pBv4sr0pu6-1ywvYBuRyqTwfjgl_o | v=undefined | url=undefined
+  id=AKfycbwYXV3VS3I59bVpUi9XBMClGsFkJ6l_NxPdQcysiXYe47-iONNMk6FIoI8VEXwYl-_2 | v=195 | url=undefined
+  id=AKfycbzUyhyK-tqL7ypp2H2jZXNCMciEr2PJwhkZIg0bwV1OwV2C6D9RKJZhA4HpiUi6F5eF | v=197 | url=undefined
+
+=== CONTENT FILES ===
+fileCount = 18
+  amy_indirect_cost (SERVER_JS) bytes=5464
+  appsscript (JSON) bytes=265
+  Code (SERVER_JS) bytes=29707
+  FixBDates (SERVER_JS) bytes=4168
+  Index (HTML) bytes=104924
+  leave_sync (SERVER_JS) bytes=25549
+  masterAttendanceLive (SERVER_JS) bytes=20052
+  masterCreate (SERVER_JS) bytes=6206
+  masterException (SERVER_JS) bytes=1107
+  masterLeaves (SERVER_JS) bytes=5995
+  onOpen (SERVER_JS) bytes=92756
+  PeriodLockGuard (SERVER_JS) bytes=34002
+  PruneDead (SERVER_JS) bytes=2406
+  rebuildAttendance (SERVER_JS) bytes=37165
+  RemoteActions (SERVER_JS) bytes=61235
+  RemoteTrigger (SERVER_JS) bytes=8650
+  抓取设计脚本 (SERVER_JS) bytes=2481
+  每天自动提醒 (SERVER_JS) bytes=6078
+
+--- PeriodLockGuard.js 锚点行号核查 (v47 提案锚定 pin412f3db: _plGuardedInsert:479-543 / _plGuardedMutation:411-473 / _plGuardPatch:557-619 / _plLedger*:70-183) ---
+  "_plGuardedInsert": line 11
+  "_plGuardedMutation": line 455
+  "_plGuardPatch": line 20
+  "_plAcquire": line 303
+  "TS_WRITE_FREEZE": NOT FOUND
+  "_plLedgerGet": line 262
+  "_plLedgerSet": line 270
+  total lines = 680

@@ -1,0 +1,10 @@
+{
+  "generated_at": "2026-11-03T05:48:39.015Z",
+  "mode": "full",
+  "pass": false,
+  "steps": [
+    "[2] 21/21 logic proof: FAIL (exit 1)",
+    "[1] live guard invariants: FAIL (exit 1)"
+  ],
+  "sha256": "e03d70322404d675ba3e971d3ecde5de1a011658cfb368378b559e8bc78822e1"
+}

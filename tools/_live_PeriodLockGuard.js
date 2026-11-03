@@ -256,6 +256,50 @@ function _plGuardCheckBatch(rows, dateOf, policy) {
 // 3. LockService 临界区（M8）+ 锁内重核 + 写完成边界
 // ============================================================
 
+
+// === T1-B N3 收敛：请求级耐久账本（owner-ruled M2 v1，不换链接 @HEAD 推送） ===
+var PL_LEDGER_KEY = 'TS_WRITE_LEDGER';
+function _plLedgerGet(requestId) {
+  try {
+    var raw = PropertiesService.getScriptProperties().getProperty(PL_LEDGER_KEY);
+    if (!raw) return null;
+    var m = JSON.parse(raw);
+    return (m && m[requestId]) ? m[requestId] : null;
+  } catch (e) { return null; }
+}
+function _plLedgerSet(requestId, state, payloadHash) {
+  var props = PropertiesService.getScriptProperties();
+  var m = {};
+  var raw = props.getProperty(PL_LEDGER_KEY);
+  if (raw) { try { m = JSON.parse(raw) || {}; } catch (e) { m = {}; } }
+  m[requestId] = {
+    state: state, payloadHash: payloadHash,
+    ts: Utilities.formatDate(new Date(), 'GMT+8', 'yyyy-MM-dd HH:mm:ss')
+  };
+  props.setProperty(PL_LEDGER_KEY, JSON.stringify(m)); // 同步提交即抛，无 uncertain 返回
+}
+function _plDeriveRequestId(seed) {
+  try {
+    var str = (typeof seed === 'string') ? seed : JSON.stringify(seed);
+    var digest = Utilities.computeDigest(Utilities.DigestAlgorithm.SHA_256, str);
+    return 'plr_' + Utilities.base64EncodeWebSafe(digest);
+  } catch (e) { return 'plr_fb_' + String(Math.abs(((seed || '') + '').length)); }
+}
+// 预留/重放/挂起：返回 {action:'replay'|'proceed'}，PENDING 抛 PL_SUSPEND_PENDING_INFLIGHT
+function _plLedgerReserveOrReplay(requestId, payloadHash) {
+  var led = _plLedgerGet(requestId);
+  if (led && led.state === 'DONE') {
+    if (led.payloadHash === payloadHash) return { action: 'replay' };
+    var em = new Error('PL_REJECT_REQUEST_ID_MISMATCH'); em.plCode = 'PL_REJECT_REQUEST_ID_MISMATCH'; throw em;
+  }
+  if (led && led.state === 'PENDING') {
+    var ep = new Error('PL_SUSPEND_PENDING_INFLIGHT'); ep.plCode = 'PL_SUSPEND_PENDING_INFLIGHT'; throw ep;
+  }
+  try { _plLedgerSet(requestId, 'PENDING', payloadHash); }
+  catch (le) { var el = new Error('PL_SUSPEND_LEDGER_IO'); el.plCode = 'PL_SUSPEND_LEDGER_IO'; el.plCause = String(le); throw el; }
+  return { action: 'proceed' };
+}
+
 function _plAcquire(timeoutMs) {
   var lock = LockService.getScriptLock();
   var got = false;
@@ -433,8 +477,16 @@ function _plGuardedMutation(opts) {
       e2.plCode = g.reason;
       throw e2;
     }
+    // [T1-B N3/owner-ruled M2] 请求级耐久账本：预留/重放/挂起（不换链接 @HEAD）
+    var _rid = opts.requestId || _plDeriveRequestId({ k: 'mut', u: opts.uuid, n: opts.newDateRaw });
+    var _ph = opts.payloadHash || _plDeriveRequestId({ k: 'mut-p', u: opts.uuid, n: opts.newDateRaw });
+    var _lr = _plLedgerReserveOrReplay(_rid, _ph);
+    if (_lr.action === 'replay') { return { wrote: 0, replay: true }; }
     enteredWrite = true;
     var result = opts.bizWrite(recheck, policy);
+    // [T1-B N3] 业务写成功 → 翻转 DONE
+    try { _plLedgerSet(_rid, 'DONE', _ph); }
+    catch (le) { logAttempted = true; var _ed = new Error('PL_SUSPEND_LEDGER_IO'); _ed.plCode = 'PL_SUSPEND_LEDGER_IO'; _ed.plCause = String((le && le.message) || le); throw _ed; }
     try {
       if (typeof SpreadsheetApp !== 'undefined' && SpreadsheetApp.flush) SpreadsheetApp.flush();
     } catch (fe) {
@@ -505,8 +557,16 @@ function _plGuardedInsert(opts) {
       e1.plCode = post.reason;
       throw e1;
     }
+    // [T1-B N3/owner-ruled M2] 请求级耐久账本：预留/重放/挂起（不换链接 @HEAD）
+    var _rid = opts.requestId || _plDeriveRequestId({ k: 'ins', r: opts.rows, d: opts.dateOf });
+    var _ph = opts.payloadHash || _plDeriveRequestId({ k: 'ins-p', r: opts.rows, d: opts.dateOf });
+    var _lr = _plLedgerReserveOrReplay(_rid, _ph);
+    if (_lr.action === 'replay') { return { wrote: 0, duplicates: duplicates, replay: true }; }
     enteredWrite = true;
     var result = opts.bizWrite(rows, policy);
+    // [T1-B N3] 业务写成功 → 翻转 DONE（同步提交即抛；失败=挂起，绝不翻重/绝不写第二标记）
+    try { _plLedgerSet(_rid, 'DONE', _ph); }
+    catch (le) { logAttempted = true; var _ed = new Error('PL_SUSPEND_LEDGER_IO'); _ed.plCode = 'PL_SUSPEND_LEDGER_IO'; _ed.plCause = String((le && le.message) || le); throw _ed; }
     try {
       if (typeof SpreadsheetApp !== 'undefined' && SpreadsheetApp.flush) SpreadsheetApp.flush();
     } catch (fe) {
