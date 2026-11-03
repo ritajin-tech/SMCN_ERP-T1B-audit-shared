@@ -1,0 +1,19 @@
+#!/bin/sh
+# T1-B 守卫回归闸门 — git pre-commit hook（R5）
+# 安装（一次性）： git config core.hooksPath tools/hooks
+# 作用：任何涉及 proof/ ts_insert_proof.js、tools/guard_*、code/ 的改动，
+#       提交前自动跑 21/21 逻辑 proof（offline，免网络）；失败则阻止提交。
+# 线上守卫不变量检查（需网络+令牌）由 CI/人工在部署前跑 guard_regression.js 全量。
+
+changed=$(git diff --cached --name-only 2>/dev/null)
+if echo "$changed" | grep -qE 'proof/ts_insert_proof\.js|tools/guard_|code/'; then
+  echo "[pre-commit] 检测到守卫相关改动，运行 21/21 逻辑 proof (offline)..."
+  node tools/guard_regression.js --offline
+  rc=$?
+  if [ $rc -ne 0 ]; then
+    echo "[pre-commit] ❌ 守卫 proof 失败，提交被阻止。请先修复 proof 或复核改动。"
+    exit 1
+  fi
+  echo "[pre-commit] ✅ 守卫 proof 通过。"
+fi
+exit 0

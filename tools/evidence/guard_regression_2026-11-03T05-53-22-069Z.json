@@ -1,0 +1,10 @@
+{
+  "generated_at": "2026-11-03T05:53:22.063Z",
+  "mode": "full",
+  "pass": true,
+  "steps": [
+    "[2] 21/21 logic proof: PASS",
+    "[1] live guard invariants: PASS"
+  ],
+  "sha256": "cb4a086fec083102dafc159d4eb8435699cd694061473ae891711072bb9a1a30"
+}
