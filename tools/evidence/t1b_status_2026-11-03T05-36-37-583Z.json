@@ -1,0 +1,35 @@
+{
+  "generated_at": "2026-11-03T05:36:37.579Z",
+  "scope": "T1-B 生产表收口后运行状态（只读自证）",
+  "scripts": {
+    "gas_live_verify": {
+      "ran_ok": true,
+      "deploy_count": "3",
+      "prod_url_present": true,
+      "period_lock_guard_bytes": "34002",
+      "file_count": "18",
+      "guard_functions": []
+    },
+    "ts_healthcheck": {
+      "ran_ok": true,
+      "webapp_http": 200,
+      "webapp_title": "TimeSheet Manager V4.0 RC",
+      "app_version": "4.3.73",
+      "srv_version": "4.3.73",
+      "guard_present": true,
+      "last_row": 11429,
+      "latest_submit": "2026-11-03T04:08:01.931Z",
+      "healthy": true
+    }
+  },
+  "checks": {
+    "link_unchanged": true,
+    "deploy_count_constant_3": true,
+    "guard_live": true,
+    "production_data_live": true
+  },
+  "integrity": {
+    "sha256": "849cada75ec61b2a4339d906f4cd88ea31f3538d74a958d30976ab5a9f456e92",
+    "note": "SHA256 over canonical JSON of this report (excluding integrity). 比对哈希即可确认审阅方所见即此事实。"
+  }
+}
