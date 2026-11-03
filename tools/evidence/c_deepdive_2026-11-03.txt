@@ -1,0 +1,39 @@
+C 深挖原始证据（ts-health 虚假告警根因）— 2026-11-03，全程只读、零写
+=====================================================================
+
+[1] DSS.url 数据探针返回 HTML 而非 JSON（根因）
+------------------------------------------------
+端点: https://script.google.com/macros/s/AKfycbwYXV3VS3I59bVpUi9XBMClGsFkJ6l_NxPdQcysiXYe47-iONNMk6FIoI8VEXwYl-_2/exec
+请求: ?action=readRange&token=<redacted>&ssid=1Pi5u9fE...&sheet=DB_工时流水&range=A10880:C10900&fmt=raw
+响应 STATUS: 200
+响应 BODY head:
+  <!DOCTYPE html><html><head><script nonce="dsN5deZSoFxkyWvAY_z7gQ">window['ppConfig'] = {productName: '26981ed0d57bbad37e728ff58134270c', deleteIsEnforced: false, sealIsEnforced: false, heartbeatRate: 0.5, periodicReportingRateMillis: 60000.0, disableAllReporting: false};...
+→ 这是 Google Apps Script 的 HTML 授权中/部署页，非 readRange 应返回的 JSON。
+→ ts_healthcheck.js 的 readRange() 中 JSON.parse 失败 → 恒返 [] → 判定"全空" → 误报"尾段读取失败"。
+
+[2] 独立通道 hktool 实测生产表完好（数据零丢失）
+------------------------------------------------
+命令: node tools/_hk_read.js 1Pi5u9fEawgp7yICWPMMyQCT_LbwTZthQDW-H05xYdVI DB_工时流水 A10880:C10900 values
+响应:
+  {"ok":true,"fn":"inspectWorkbook","ms":931,
+   "result":{"name":"工时打卡数据库","sheet":"DB_工时流水","range":"A10880:C10900",
+             "lastRow":11429,"lastCol":18,
+             "values":[["2026-10-12T03:36:44.000Z","2026-10-11T16:00:00.000Z","Jerry Fu"],
+                       ["2026-10-12T05:05:46.000Z","2026-10-12T16:00:00.000Z","Jerry Fu"], ...]}}
+→ 生产表末行 11429，10880+ 真实有数据。探针坏 ≠ 数据坏。
+
+[3] 修复后 ts_healthcheck.js 重跑结果（探针改走 hktool）
+------------------------------------------------------
+✅ 全部正常
+  Web App: HTTP 200 / TimeSheet Manager V4.0 RC
+  版本: 前端 4.3.73 / 服务端 4.3.73 / 护栏 在位
+  数据: 末行 11429 / 最新提交 2026-11-03T04:08:01.931Z (1.1h 前)
+→ 生产系统在线且持续接收提交（末行 11380→11429 增长）。修复仅改本地诊断脚本，未触生产/未换链接/未部署生产。
+
+[4] 部署与链接核验（红线）
+------------------------------------------------
+gas_live_verify.js 输出: count=3
+  AKfycbwlxB2z9...        (legacy)
+  AKfycbwYXV3... (v195)   (dss-backend，即坏掉的 DSS.url 探针)
+  AKfycbzUyhyK... (v197)  (生产工时表链接，未变)
+→ 生产链接 AKfycbzUyhyK 仍 @v197，部署恒 3，未换链接。PeriodLockGuard 34002B / 18 文件，守卫函数在线。
