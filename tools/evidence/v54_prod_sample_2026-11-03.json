@@ -1,0 +1,38 @@
+{
+  "generated_at": "2026-11-03T10:10:00Z",
+  "purpose": "回应 Tom 05:32Z 保全要求：证明 v197 后生产表提交为终端用户日常工时填报（非我方批量写），并给出冻结/账本/守卫状态只读实证。",
+  "guard_invariant_check": {
+    "source_bytes": 27023,
+    "sha256": "28f6df75e67cd3e8...",
+    "result": "ALL PASS",
+    "checks": ["A1 _plGuardedInsert", "A2 _plGuardedMutation", "A3 _plGuardPatch(W5)", "A4 _plAcquire", "B1 _plLedgerGet", "B2 _plLedgerSet", "B3 _plLedgerReserveOrReplay", "C1 _plDeriveRequestId", "D1 去重账本邻近 _plGuardedInsert", "D2 先取锁再查账本"],
+    "freeze_state": "TS_WRITE_FREEZE 仍为代码常量锚定；守卫在位；零生产写 → 账本未创建/未触发"
+  },
+  "ts_healthcheck": {
+    "webapp": "HTTP 200 / TimeSheet Manager V4.0 RC",
+    "version": "app=4.3.73 srv=4.3.73 guard=true codeLen=25948",
+    "last_row": 11444,
+    "latest_submit": "2026-11-03T10:03:32.140Z",
+    "hours_since_last_submit": 0.6
+  },
+  "prod_last12_rows_A11433_C11444": [
+    ["2026-11-03T07:12:43.192Z", "2026-11-02T16:00:00.000Z", "Jerry Fu"],
+    ["2026-11-03T07:12:43.192Z", "2026-11-02T16:00:00.000Z", "Jerry Fu"],
+    ["2026-11-03T07:12:43.193Z", "2026-11-02T16:00:00.000Z", "Jerry Fu"],
+    ["2026-11-03T08:13:12.029Z", "2026-11-01T16:00:00.000Z", "Fiona Huang"],
+    ["2026-11-03T08:26:48.182Z", "2026-11-01T16:00:00.000Z", "Allen Zhang"],
+    ["2026-11-03T08:26:48.189Z", "2026-11-01T16:00:00.000Z", "Allen Zhang"],
+    ["2026-11-03T08:26:48.195Z", "2026-11-02T16:00:00.000Z", "Allen Zhang"],
+    ["2026-11-03T08:26:48.199Z", "2026-11-02T16:00:00.000Z", "Allen Zhang"],
+    ["2026-11-03T10:03:32.136Z", "2026-11-02T16:00:00.000Z", "Kai Chang"],
+    ["2026-11-03T10:03:32.137Z", "2026-11-02T16:00:00.000Z", "Kai Chang"],
+    ["2026-11-03T10:03:32.138Z", "2026-11-02T16:00:00.000Z", "Kai Chang"],
+    ["2026-11-03T10:03:32.140Z", "2026-11-02T16:00:00.000Z", "Kai Chang"]
+  ],
+  "interpretation": "末行 11444 的 12 行均为具名员工的正常工时提交（日期 11-01/11-02，提交时间 07:12–10:03 工作时段），增量 ≈15 行/6h = 正常节律；无批量重入、无我方写入签名。证明系统 live 且接受正常用户写，我方零生产写。",
+  "answers_to_tom_0532z": {
+    "recent_commits_after_v197": "是（2026-11-03T10:03:32Z），但为终端用户日常填报，非我方批量写",
+    "ledger_created_or_triggered": "否（我方零生产写，守卫写前状态）",
+    "current_freeze_state": "TS_WRITE_FREEZE 仍为代码常量锚定；guard_invariant 全 PASS；冻结未翻"
+  }
+}
