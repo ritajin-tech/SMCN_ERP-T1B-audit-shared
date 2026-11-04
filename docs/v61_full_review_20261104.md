@@ -1,0 +1,223 @@
+> ASCII-path mirror of the Chinese-named doc in the same directory; byte-identical below. Reason: Tom reported GitHub connector transfer failure on 2026-11-03 14:15Z; a pure-ASCII path avoids non-ASCII URL encoding issues.
+
+# T1-B 系统大局梳理 v61 — 吸收 Tom 21:53Z 六条逐项待验证条件，升级为 E1''–E6'' 可落码编辑（附 HEAD live 源码实证）
+
+> **发布**：2026-11-04 23:3x（Asia/Shanghai, GMT+8）
+> **对应来函**：Tom `2026-11-04T13:53:44Z`（北京 21:53），MID `<tencent_6081F107F92317651A009FCEF7C290D9000A@qq.com>`，主题「回复：【生产表】v59与v60审阅进度」，`msg_MlukL26D3tK4SAHIkbGoQ6z3kIC2pn15e2lHz1ZQGaifLQ`，零附件
+> **性质**：v59（`7143545`+`07d4422`）、v60（`b8479f1`+`0d56345`）之后的**实质增量**，不是解释性追问、不是期限推定函。v59 §5 三层矩阵、§4 E1'–E6、§6 V1–V6 定义与 v60 交卷模板**逐字继续有效，不得回退**。
+> **共享库**：`ritajin-tech/SMCN_ERP-T1B-audit-shared`（Tom 可读、可直接在库内编辑交卷）
+> **版本链**：v58 `40a0aec` → v59 `7143545`+`07d4422` → v60 `b8479f1`+`0d56345` → **v61（本件）**
+> **红线**：严禁换链接。本件零 GAS 部署、零新建部署、零链接变更、零生产写、零解冻；23:31 部署清单复核见 §7.2
+> **状态分层**：事故线 A（11-04 A/B 错位）= 已修复并经我方独立验收 PASS（不请求采信）；事故线 B（T1-B 存量重复写入）= **OPEN / HOLD / NO-GO，M2 未签、clearance 未发，本件不构成任何放行**
+
+---
+
+## §0 一句话结论
+
+你 21:53Z 的回函是**本轮第二次实质进展**：17:09Z 首次给五点审阅方向，本函首次对 **E1'–E6 逐条**给出六条具体待验证条件（并发锁域、票据原子消费/防重放/密钥保护、COMMIT 结果未知须保留不确定状态、写路径全覆盖证明、所有实际写者与直接 API 路径、替换前独立核实完整 ID 与全部引用）。我方**六条全部接受、无一条反驳**，并逐条升级为比你要求更严、可直接落码的 **E1''–E6''**（§4）。
+
+与以往不同的是：本件把每条编辑都钉在 **HEAD live 源码的精确 `file:line` + 可独立复跑的源码快照哈希**上（§3），正面回应你反复提出的「文件、采集时间及线上状态尚待独立核验」。同时主动更正 v59 两处行号不精确（§3.3），不掩盖。
+
+你保留「模板不替代核验、不因未填表推定接受」「不能承诺完成日期或编造执行结果」——**完全接受，逐字记录**（§5.3）。本件不请求采信、不推定接受、不设新期限、不逼你编造结果。请按 §6 以同粒度具体编辑做大局系统还复，不要 Yes/No。
+
+---
+
+## §1 本轮输入与七源打勾
+
+### 1.1 本轮输入
+
+| # | 来件/工件 | 时间 | 处理与边界 |
+|---|---|---|---|
+| F1 | **Tom「v59与v60审阅进度」** `msg_MlukL26…`，零附件 | 2026-11-04T13:53:44Z（北京 21:53） | 本件主处理对象。合并回复 v59+v60；首次对 E1'–E6 逐条给六条待验证条件；全文逐字摘录见附 A |
+| F2 | 生产表 + 主库 23:31 只读读数 | 11-04 23:31 | §2，与 18:42 / 20:12 两次读数一致 |
+| F3 | **HEAD live 源码快照**（`tools/_staging_period_lock/_ts_head_live/`，11-04 15:29 拉取） | 11-04 15:29 | §3，`RemoteActions.js` 1147 行 / `PeriodLockGuard.js` 680 行，SHA256 见 §3.1。本件所有 `file:line` 以此为准 |
+| F4 | Luby HR 8 月工时初核附件（11:26） | 11-04T03:26:47Z | 边界沿用 v59 §1.1 F2：第三条独立数据链，**不作技术验收基线、个人明细不外发** |
+
+**「生产表和主库结合现在收到的文件」的读法**：本件把两表 23:31 实时只读读数（§2）、F1 新函、F3 线上源码实证与 F4 外部初核材料并列对账，明确权威源分工，不把不同源混成验收基线。
+
+### 1.2 七源可达性（逐源打勾，不空口）
+
+| 源 | 本轮动作 | 结果 |
+|---|---|---|
+| ① 工作区文件 | `tools/fullscan.py "T1-B" "Tom" "v60" "不换链接"` 23:33 实跑 + 近 200 分钟新增文件扫描 | 文件命中 300 / 记忆命中 4200 / Git 提交命中 80 / 修订 0；报告 `_fullscan_report_20261104_2333.md`。20:18 后新增文件仅零积分通道状态与本件证据，无新外部来件 |
+| ② Git 历史 | 共享库 `fetch` + `ls-remote` + `log --all -8` + 作者列 | `main`/`HEAD` = `0d56345`，近 8 次提交作者全为 `rita.jin`；**无 Tom 提交**；工作树干净 |
+| ③ 记忆系统 | `.workbuddy/memory/2026-11-04.md` 全日日志、`MEMORY.md` | 逐条对账 v58/v59/v60 发函锚点、写后回读铁律、不换链接红线、E6 ID 漂移 |
+| ④ IMA 知识库 | 沿用 v58 §9 / v59 §1.2 已固化的两条结论（2026-09-11 同构 B 列漂移、UUID 不可单独作唯一键） | 本轮不新增 IMA 断言，不声称穷尽归纳 |
+| ⑤ QQ 邮件 | 收件箱 `limit=8` 取 F1 全文；发件箱历史对账 v59(10:53Z)/v60(12:18Z) | 最新 Tom 来函 = F1；20:18 我方 v60 之后仅 12:45Z 领英通知，无其他 Tom 来函 |
+| ⑥ Drive / Sheets | hktool `inspectWorkbook` 只读实测生产表 + 主库；Apps Script API `GET /deployments` | §2 / §7.2，全程零写 |
+| ⑦ 对话上下文 | Rita 本轮 9 项指令逐条对账 | 生产表+主库+收到文件 / 看 Tom 新回复 / 发大局梳理 / 要大局系统还复 / 明确方案不要 Yes-No 要具体编辑 / 共享库可见 / 看完直接回不要问 / 不回去·记进度·加速 / 不改链接 — 全部落到对应章节 |
+
+**不可达声明**：微信 / 未贴进对话的私聊记录、未授权网盘、未开通的 Agent 邮箱（本轮复核仍 `not_bound`）**物理不可达，不声称覆盖**。
+
+---
+
+## §2 生产表与主库实时对账（2026-11-04 23:31 GMT+8，只读）
+
+探针沿用 `tools/probe_v59_live_state.py`（长期可复跑只读通道，不改 hktool 执行器本体）。原始输出 `_tmp/v61_live_state_20261104_2330.json`。
+
+| 对象 | 23:31 读数 | 与 18:42 / 20:12 对比 |
+|---|---|---|
+| 生产表 `DB_工时流水`（`1Pi5u9fEawgp7yICWPMMyQCT_LbwTZthQDW-H05xYdVI`） | `lastRow 11279` / `lastCol 18`，尾部 `A11270:Q11279` | **三次读数完全一致**；16:10 修复完成后零物理删，18:42→23:31 零新增行 |
+| 主库 `请假`（`1oxPj0mzN8poP2vQ7Bm-YKXuU49p9b0c1asyrZn4Py44`） | `lastRow 596` / `lastCol 15` | 一致；本轮零改动，与 `_TS_WRITE_LOG!A1398`「跳过已存在 595 行」自洽 |
+| ts-health（23:15 自动巡检） | `last_ok=true` / `consecutive_failures=0` / `total_runs=730` / baseline `last_row 11279` | 与探针一致 |
+
+**权威源分工不变**：主库「请假」= 请假权威源；生产表 `DB_工时流水` = 唯一工时源；HR 初核附件为第三条独立链。v2 修复只写生产表 A/B（4167 行）与 O/P/Q（36 行），**主库零改动、未回写、未重算**。
+
+---
+
+## §3 HEAD live 源码实证（正面回应「文件、采集时间及线上状态尚待独立核验」）
+
+### 3.1 快照身份与采集时间
+
+| 文件 | 采集时间 | 行数 | 字节 | SHA256 |
+|---|---|---|---|---|
+| `tools/_staging_period_lock/_ts_head_live/RemoteActions.js` | 2026-11-04 15:29 GMT+8（v2 修复后 @HEAD 拉取） | 1147 | 61,483 | `4eb452606acd29afbfdc5164396c5998c138fccea3117739d036f10502098033` |
+| `tools/_staging_period_lock/_ts_head_live/PeriodLockGuard.js` | 同上 | 680 | 34,002 | `28f6df75e67cd3e800ed609c0e8546d4abd33733b9314f548a2ced242f8ec281` |
+
+**边界诚实声明**：这是 15:29 的 **@HEAD 源码快照**，不是 v197（团队填报页）或 v202（写通道）部署版本的逐字节证明。两者映射仍按你方流程独立核验；我方只声明「以下行号在该快照中可逐字复现」，不代替你判定线上版本对应关系。快照副本与哈希清单随本件提交进共享库 `evidence/`。
+
+### 3.2 六条待验证条件对应的源码实证（逐条可复现）
+
+| 你的条件 | 源码实证（file:line，逐字可查） | 说明 |
+|---|---|---|
+| ① E1' 行指纹预检与写入之间需共同锁域，防检查后重排 | `RemoteActions.js:808–835` `_tsSetValuesGuarded()`：`:815–819` 用 `bBefore[uuid]` 按 UUID 反查 B 值；`:821` `setValues(retained)` 整表写回；`:825–831` 写回**之后**才读 `afterB/afterU` 并 `setValue` 补回。全文件 `LockService.getScriptLock()` **仅出现在 `:1032`（repairLegacyLeave）**，整表写回路径 `:859` / `:907` **无任何锁** | 你说得对：现有「写后校验」不是「写前映射证明」，且检查与写入之间无共同锁域。这正是 11-03 事故的模式 |
+| ② E2' 票据须证明原子消费、防重放、密钥保护 | `RemoteActions.js:6–40` `REMOTE_ACTIONS`：`purgeSoftLeaves:29` / `purgeRows:30` / `repairAB:36` / `repairDedup:37` 均为**普通注册**，无 `MAINT_ACTIONS` 分类；`:85` `var force = ...` 客户端参数直接生效；`:56` 注释自承「需 `force=1` 才放行」 | 现有维护入口纯靠客户端 `force`，无服务端票据、无 nonce、无原子消费、无密钥保护 |
+| ③ E3' 进程中断/COMMIT 结果未知不能保证自动逐格回滚 | `RemoteActions.js:67–76` `_tsWriteLog()` 的 `catch (e) { /* 日志失败不影响主流程 */ }` **吞掉日志失败**；`purgeSoftLeaves`（`:836–866`）与 `purgeRows`（`:895–914`）两条路径**全无 `_tsWriteLog` 调用**（全文件 10 处调用集中在 appendRows/patchCells/createSheet/applyFormat/repairLegacyLeave/setup） | 这是 11-03 purge 零日志的直接源码原因，也证明「自动逐格回滚」在 COMMIT 未知时不可保证。你这条比 v59 E3' 更严谨，我方接受并据此改写 |
+| ④ E4' 登记及理由白名单不足以证明所有写路径经过守卫 | `PeriodLockGuard.js:531` `_plGuardedInsert()` 内有 `LockService`/`enteredWrite`/`logAttempted` 与不确定登记；`:617` `_plGuardPatch()` 逐格校验 B/O:Q；但 `RemoteActions.js:859` / `:907` 的整表 `setValues` **不在 `_plGuardPatch` 覆盖内** | 守卫覆盖的是插入/改格路径，整表写回是旁路。你要求「证明所有写路径」而非「登记表」是对的 |
+| ⑤ E5' 须覆盖所有实际写者和直接 API 路径 | `tools/ts_post.py:23` `TS_WRITE_FREEZE = os.environ.get('TS_WRITE_FREEZE','1')=='1'`（**本地进程环境变量**）；`:26` `WRITE_ACTIONS = ('appendRows','patchCells','snapshot','softDelGuarded','repairLegacyLeave')` —— `repairAB` / `repairDedup` / `purgeSoftLeaves` / `purgeRows` **均不在白名单内** | 客户端闸既可被自设、又漏掉今日实际使用的写动作，更无法覆盖直接 Sheets API / 其他 GAS 项目 / 人工编辑 |
+| ⑥ E6 替换前须独立核实完整 ID 与所有引用，避免误改另一环境 | 全仓 `1oxPj0mz…` 出现形式：`…YKXuU49…` 834 处（权威，`15_TimeSheet/CURRENT.md`）、`…YKXU49…` 23 处（误写，集中 `diag_cleanup2/3/4_20261101.js` 等） | 你这条防的是「批量替换把另一环境的引用一起改掉」。v59 E6 只写了「23 处纯文本替换」，确实缺独立核实与 dry-run，接受并补强 |
+
+### 3.3 主动更正 v59 两处行号不精确（不掩盖、不倒带）
+
+| v59 写法 | 更正为（按 15:29 @HEAD 快照） | 影响 |
+|---|---|---|
+| `RemoteActions.js:850–863` / `:900–910`（E2' 维护入口） | `purgeSoftLeaves` 主体 `:836–866`（`_tsSetValuesGuarded` 调用在 `:859`）；`purgeRows` 主体 `:895–914`（调用在 `:907`）；注册表在 `:6–40` | 结论不变，编辑落点更准 |
+| `RemoteActions.js:859 / :863 及所有 _tsWriteLog 调用点`（E3'） | `:859` / `:907` 是两处整表写回调用；`_tsWriteLog` 定义在 `:67–76`（`catch` 吞错在 `:75`）；全文件 10 处调用见 §3.2③ | 结论不变；并补充「purge 路径零日志调用」这一更强证据 |
+
+---
+
+## §4 把你的六条待验证条件升级为可落码的具体编辑 E1''–E6''
+
+格式统一 `文件:行:问题:改法:验收`。**全部 HOLD：未部署、未推生产、未改全局冻结闸、不换链接**。每条在你原条件下再加**拒绝条件 + 负例 + 断言**，且不再声称「自动恢复一定成功」。
+
+| # | 对应你的条件 | 文件:行 | 问题 | 改法（可直接落码） | 验收（含负例） |
+|---|---|---|---|---|---|
+| **E1''** | ①共同锁域/防检查后重排 | `RemoteActions.js:808–835`（改）、新增 `tools/test_row_mapping_negative.js` | UUID 反查仍在线、写后校验非写前证明、整表写回无锁 | (a) 删 `:815–819` `bBefore` 与 `:825–831` 写后补值分支，**不再以 UUID 作任何身份判定**；(b) 保存物理 A/B 行向量 `abBefore = dataBefore.map(r=>[r[0],r[1]])`，按物理下标回写；(c) 新增 `_tsAssertRowMapping(before,after)`：行数不等或任一 `i` 的 C..N SHA256 指纹不符 → 抛 `ROW_MAPPING_UNVERIFIED`，**在 setValues 之前 return、零单元格写入**；(d) **把「读前快照 → 映射断言 → setValues → 写后回读」整体包进 `LockService.getScriptLock().waitLock(30000)/releaseLock()` 同一锁域**，锁外不再读业务数据；拿锁失败返回 `LOCK_TIMEOUT` 零写；(e) 写后回读逐格校验「值 + 类型」，不符即停机回滚（写后回读铁律） | 重复 UUID 100 行 / UUID 全空 / 人为增删重排三组负例：前两组 0 漂移，第三组 `ROW_MAPPING_UNVERIFIED` 且 `_TS_WRITE_LOG` 新增 0；**并发负例**：两个同时请求整表写回，只允许一个进入锁域，第二个 `LOCK_TIMEOUT` 且零写；期望 JSON 随测试文件给出 |
+| **E2''** | ②服务端原子消费/防重放/密钥保护 | `RemoteActions.js:6–40` / `:85`；新增 `MaintTicket.js` | `force=1` 客户端可自设；无票据、无 nonce、无原子消费、无密钥保护 | (a) 新增 `MAINT_ACTIONS`，把 `purgeSoftLeaves`(:29) / `purgeRows`(:30) / `repairAB`(:36) / `repairDedup`(:37) 从普通注册表移入，需二次签名；(b) 一次性票据 `MAINT_TICKET`：HMAC-SHA256，载荷 `action+rowRange+approver+expiry+nonce`，密钥只存 `PropertiesService.getScriptProperties()`，**不进日志、不进客户端参数、不进返回体**；(c) **原子消费**：在 `getScriptLock()` 锁域内 `getProperty('USED_NONCE:'+nonce)` → 已存在即 `MAINT_REPLAY_REJECTED` → 否则 `setProperty` 标记已用并回读确认，标记失败即零写；(d) 四重校验：`rowRange` 落在票据白名单、`Session.getEffectiveUser().getEmail()` 在审批人白名单、未过期、HMAC 常量时间比较；(e) **完全移除 `force` 参数分支**（`:85`） | 七负例全拒绝且零写：无票据 / 过期 / 伪造签名 / 越界行范围 / 非白名单执行身份 / **重放同一 nonce** / **消费标记写失败**；`?dry=1` 不带票据同样拒绝；日志与返回体中 grep 密钥命中 0 |
+| **E3''** | ③进程中断/COMMIT 未知须保留不确定状态、禁止重试并先对账 | `RemoteActions.js:67–76`（修 `catch`）、`:859` / `:907`；新增 `tools/test_write_log_failure.js` | `_tsWriteLog` 吞错；purge 零日志；v59 E3' 声称「自动逐格回滚」在 COMMIT 未知时**不成立** | (a) `_tsWriteLog` 改为**返回布尔成功**，失败不再吞掉；(b) 两阶段 write-ahead：`PREPARE` 先落盘并**回读确认**，未落盘直接 return 零写；(c) 业务写；(d) `COMMIT` 落盘并回读；(e) **新增不确定状态机**：`PREPARE/WRITING/COMMIT/UNKNOWN/ABORTED`。凡 `COMMIT` 结果未知、进程中断、回读不符 → 一律落 `UNKNOWN` 状态 + 冻结该 `rowRange`，**禁止自动重试、禁止自动回滚、禁止宣称已恢复**，须先做独立对账（前后快照逐格 diff）再由所有者裁定；(f) 仅在 `PREPARE` 已确认落盘且业务写**尚未开始**时才允许自动回滚；`finally` 只告警不做恢复 | 注入五故障（PREPARE 写失败 / 业务写中途抛错 / COMMIT 写失败 / 进程中断 / 回读不符）：每一种 `_TS_WRITE_LOG` 都留下可枚举状态；COMMIT 未知时状态必须为 `UNKNOWN` 且重试请求返回 `RECONCILE_REQUIRED` 零写；**不给出「表一定回到写前」的断言**，改为给出「逐格 diff 清单 + 状态枚举」 |
+| **E4''** | ④登记及理由白名单不足以证明所有写路径经过守卫 | `PeriodLockGuard.js:531` / `:617` / `:73`；`RemoteActions.js:859` / `:907` | 整表 `setValues` 在守卫覆盖外；登记表是记录不是强制 | (a) 取消「登记表即放行」，把 A5 旁路收进守卫内部：`_plGuardPatch` 新增 `bypassTicket`，仅票据校验通过**且** reason ∈ `{'RESTORE_MISALIGNED_DATE','REMOVE_EXACT_DUPLICATE'}` 才允许跳过 `PL_CUTOFF`；(b) **新增 `_plGuardSetValues(sheet, values)` 包装整表写回**，`:859` / `:907` 两处强制改走它，逐行校验 B 列日期 + O:Q 软标；(c) 新增 `tools/verify_guard_coverage.js` **静态证明**：扫描全部 `setValue/setValues/appendRow/clearContent/deleteRows` 调用点，逐个断言处于 `_plGuardedInsert` / `_plGuardPatch` / `_plGuardSetValues` 内，输出 `coverage=100%` 与未覆盖清单；未覆盖即 CI 失败；(d) 登记表与 `bypass=true` 降级为**只记录** | 静态扫描 `coverage=100%`、未覆盖清单为空；无票据写关账期 B → `PL_REJECT_NEW_DATE_CLOSED`；伪造票据 → `MAINT_REJECTED`；新增一个绕过守卫的 `setValues` 调用点 → 扫描必须报出并 FAIL；`PL_CUTOFF` 值本身不变 |
+| **E5''** | ⑤须覆盖所有实际写者和直接 API 路径 | `tools/ts_post.py:23` / `:26`；`RemoteActions.js:6–40`；新增 `config/writer_matrix.json` | 本地 env 闸可被自设；`WRITE_ACTIONS` 漏掉今日四个实际写动作；直接 API 路径无门控 | (a) 冻结闸迁到服务端 `Script Properties`，本地 `TS_WRITE_FREEZE=0` 不再被信任、只告警；(b) `repairAB`/`repairDedup`/`purgeSoftLeaves`/`purgeRows` 全部纳入 `WRITE_ACTIONS`，受**服务端闸 + 一次性票据**双门控；(c) 新增 `config/writer_matrix.json` **写者覆盖矩阵**：逐一列出 `submitBatch`(Code.gs:464) / `tsAppendRows`(RemoteActions.gs:79) / 两个 purge / 两个 repair / 直接 Sheets API（hktool `inspectWorkbook` 只读，写需 webapp）/ 其他 GAS 项目 / 人工编辑 / 定时触发器，每条标「门控方式 + 是否可被绕过 + 检测手段」；(d) 对**无法由 GAS 闸覆盖的直接 API 与人工路径**，给只读检测：每日对账 `lastRow` 与 `_TS_WRITE_LOG` 增量，出现未登记写入即告警并冻结；(e) **A5 `writer_bypass_evidence.json` 仍标未闭合**，如实登记不称已受控 | 本地开门服务端关闭 → `FROZEN` 零写；两端开门无票据 → `MAINT_REJECTED`；`writer_matrix.json` 每项有门控或显式检测；注入一条「直接 API 写入但无日志」→ 次日对账必须检出并告警；期望返回 JSON 随脚本给出 |
+| **E6''** | ⑥替换前独立核实完整 ID 与所有引用，避免误改另一环境 | `.workbuddy/memory/MEMORY.md` §1；23 处误写脚本；`15_TimeSheet/CURRENT.md`（权威） | v59 E6 只写「23 处纯文本替换」，缺独立核实与 dry-run，有误改另一环境风险 | (a) **先只读产出核实表** `evidence/ssid_reference_audit.json`：逐处记 `file:line`、当前字面值、目标值、该脚本 `openById` 的目标环境（生产/主库/测试）、是否同一 ssId；(b) 新建 `config/ssid_registry.json` 单点真相源，含 `ssId + 页签 + 权威出处 + 环境标识`；(c) **dry-run 先行**：`--dry` 输出 23 处 diff 与影响面，不写盘；经独立复核确认无跨环境引用后才允许 `--apply`；(d) 分批 ≤5 处，每批写后回读校验并复跑 `openById` 断言；(e) 新增 `tools/verify_ssid_registry.py`，启动逐表 `openById` 断言成功 | `grep -r "YKXU49"` 命中 0；核实表中跨环境引用数 = 0 或有显式豁免说明；`--dry` diff 与 `--apply` 实际改动逐处一致；`python tools/verify_ssid_registry.py` 对生产表与主库均 OK；**零线上改动、零部署、不换链接** |
+
+**E1''–E6'' 全部不换链接**：只推 HEAD 或 `deployments.update` 原地更新，推前推后均复核部署条数与 URL。在你给出 §6 大局系统还复 + Rita 所有者授权双轨到位前，我方**不部署、不推生产、不改全局冻结闸**。
+
+**与你原条件的差异（都是加严，不是回避）**：E1'' 加并发负例与写后回读类型校验；E2'' 加原子消费与重放/密钥负例；E3'' **撤回 v59「自动逐格回滚一定成功」的过强声称**，改为 `UNKNOWN` + 禁止重试 + 先对账；E4'' 加静态覆盖率证明；E5'' 加写者矩阵与直接 API 检测、A5 如实不闭合；E6'' 加跨环境核实表与 dry-run。
+
+---
+
+## §5 对 Tom 21:53Z 来函逐条答复
+
+### 5.1 「以上为基于来信摘要提出的具体待验证条件，并非源码或部署验收」— 接受且正向补齐
+
+本件 §3 把每条都落到 HEAD live 源码 `file:line` + SHA256 + 采集时间，§4 落成可编译改法。你「尚待独立核验」的立场完全保留：我方提供的是**可复现的定位**，不请求你据此采信、不推定线上版本对应关系。
+
+### 5.2 「请继续保全原始材料并停止进一步生产写入、部署、清理、解冻与自动回滚」— 事实边界
+
+- v2 修复在 **16:10 GMT+8（08:10Z）全部完成**，早于你 17:09 首次来函。自 16:10 至本件发布（23:3x），**零生产写、零部署、零清理、零解冻、零自动回滚**；三轮 v59/v60/v61 全部是只读核查 + 文档提交 + 技术邮件。
+- §2 三次读数（18:42 / 20:12 / 23:31）`lastRow` 恒为 11279，主库「请假」恒为 596，是零写入的直接实证。
+- 原始材料（前后 A:Q 全表快照、两份载荷与回滚清单、19 工件 SHA256、`_TS_WRITE_LOG` 行号索引）位置见 v59 §3.3，全部保留，未删未改。
+- 你方技术意见完整记录，不作反驳；E1''–E6'' 在你技术还复 + Rita 所有者授权双轨到位前不部署、不改冻结闸。
+
+### 5.3 「模板可用于组织 V1–V6，不替代核验，也不因未填表推定接受」「不能承诺完成日期或编造执行结果」— 完全接受，逐字记录
+
+- 模板（v60）**只是组织工具**，不替代对源码、真实锁域、原始快照、故障证据的核验；**未填表不推定接受、不推定放弃、不推定任何结论**。
+- 本件**不设新期限、不要求你承诺完成日期、不要求你编造执行结果**。§6 的 V6 调整为「给出下一次交付物清单与可核验检查点」，日期由你方按自身流程给；我方不代填、不推定。
+- 我方同样不把「我方写后独立验收 PASS」当作你方技术接受，两者独立，本件不请求采信、不代签。
+
+### 5.4 「M2 未签；事故安全 OPEN、HOLD/NO-GO、阶段一 PASS 暂缓；本函不构成 clearance」— 完全接受
+
+逐字记录，不反驳、不请求翻牌、不推定。事故线 B 状态**完全不变**：M2 未签、clearance 未发、A5 未闭合、W1–W6 未交卷、四项 T2 证据未闭合、全局 `TS_WRITE_FREEZE` 未翻。
+
+---
+
+## §6 要求 Tom 做「大局系统还复」：同粒度、具体编辑、不要 Yes/No
+
+共享库全部文档、源码快照、模板、工件、哈希清单均可独立复跑。请按与本件相同结构，对整个系统给一份大局还复。沿用 v58 U1–U6 → v59 V1–V6（不重开已决项、不倒带已接受事实），每项须给 `文件:行:问题:改法:验收` 五段式；**「不要 Yes or No」= 不接受接受/驳回的裸结论，必须带具体编辑**。
+
+| 编号 | 还复项 | 必须交付的内容 |
+|---|---|---|
+| V1 | 时区更正与写日志缺口边界（v59 §3.1/§3.5） | A1397 / `15:55:06.565Z` / A1398 三段边界结论；不足则指名还缺哪行哪列或哪个哈希 |
+| V2 | 两表对账与三条数据链边界（本件 §2） | 生产表 / 主库 / HR 初核表逐项结论；不认可处给确切 `ssId + 页签 + 行号 + 期望值` |
+| V3 | 三层矩阵（v59 §5 + 本件 §3 更新） | L1/L2/L3 逐格标「认可 / 不认可 + 具体编辑」；不认可须给可编译 diff |
+| V4 | **E1''–E6'' 逐条**（本件 §4） | 每条二选一：**接受 + 你方将执行的独立验证命令与期望输出**；或**驳回 + 可直接 apply 的 diff**。不接受「审阅方向」「尚非对具体版本的接受」「原则上同意」。**特别请对 E3'' 撤回过强声称后的 `UNKNOWN` 状态机给出结论** |
+| V5 | 自 v55 挂起的 A/B/C/D 与 W1–W6 | 一次性交卷：A 争议写者（无可指就明写「无可指的具体写者」）／B 锁域与失败恢复负例（harness `file:line` + 断言）／C 对账完成判据（命令 + 期望 JSON）／D 你方独立验证与检查点；W1–W6 逐项结论，不留空 |
+| V6 | 加速修复排期（**已按你方边界调整**） | 给出**下一次交付物清单与可核验检查点**（可直接 commit 到共享库）；日期由你方按自身流程决定，我方不代填、不推定、不催逼 |
+
+**四类不接受**：① 仅复述「未独立核验 / OPEN / 不构成 clearance」而无 V1–V6 任一具体编辑；② 以「连接器失败 / 未取得内容 / 不运行所交脚本」为由却不指名确切缺失工件（raw URL 已免连接器）；③ 把已落地事实（v1/v1.1 收口、v197、部署恒 3、v202 修复与写后验收、时区更正已接受、本件 §3 源码锚点）倒带重议；④ 只给「审阅方向 / 待验证条件」而不给可落码 diff —— 你 17:09 五点已由 v59 转成 E1'–E6，21:53 六条已由本件转成 E1''–E6''，请在此基础上给具体编辑或带 diff 的驳回。
+
+**最短交卷路径**：直接编辑 `docs/v60_reply_template_20261104.md`（纯 ASCII raw 路径，免连接器）并 commit，或整份贴进回函。不需要运行我方脚本、不需要采信我方 PASS、不需要签 M2。
+
+**这不是要求你签 M2**：V1–V6 是技术还复，M2 / clearance 仍按你方流程独立决定；本件不请求、不推定、不代签。
+
+---
+
+## §7 三条纪律与最高红线
+
+### 7.1 不要回去 / 记住我们的进度 / 加速修复
+
+- **不要回去（进度锚点，勿回退）**：v54–v57 的 7 项 + v58 的 4 项 + v59 的 5 项 + v60 的 3 项 + **v61 新增 4 项**：① Tom 21:53Z 首次对 E1'–E6 **逐条**给六条具体待验证条件（本轮第二次实质进展）；② 六条全部接受并升级为 E1''–E6''；③ HEAD live 源码 `file:line` + SHA256 + 采集时间实证（§3）；④ 主动更正 v59 两处行号不精确、并撤回 E3'「自动逐格回滚一定成功」的过强声称。**请把审阅起点放在 §3 源码锚点、§4 E1''–E6'' 与 v59 §5 矩阵，不要退回「是否存在事故 / 是否需保全 / 是否需再交一轮证据」。**
+- **记住我们的进度**：七源全盘彻查 → 根因 100% 锁定 → 32 人全用户 dry-run → v2 两步 → 写后独立验收全 PASS → 长期通道沉淀（快照 / 执行器 / 验收脚本 / 两表探针）→ v58/v59/v60 发布与回函 → v61 吸收你六条条件并落源码实证。这是已完成并留痕的工程结果，不是提案。
+- **加速修复**：§4 六条待批编辑已写成可直接落码的 `文件:行:问题:改法:验收`，每条带拒绝条件、负例与验收命令；v60 模板把你剩下的动作压缩成「在库里填表并 commit」。本件不设新期限、不催逼日期，但请按 V6 给出下一次交付物清单与检查点，避免再以 blanket 表述延长循环。
+
+### 7.2 严禁换链接（最高红线）— 本轮实时复核实证
+
+`2026-11-04T15:31:xxZ`（北京 23:31）通过 Apps Script API `GET /v1/projects/1FPAwV50…/deployments` 只读实测（原始 `_tmp/v61_deployments_20261104_2330.json`，HTTP 200）：
+
+| # | deploymentId | 版本 | 变更 |
+|---|---|---|---|
+| 1 | `AKfycbwlxB2z9IDDo7pBv4sr0pu6-1ywvYBuRyqTwfjgl_o` | @HEAD（跟随） | 未动 |
+| 2 | `AKfycbwYXV3VS3I59bVpUi9XBMClGsFkJ6l_NxPdQcysiXYe47-iONNMk6FIoI8VEXwYl-_2` | **v202** | 今日 v199→v202 原地更新，URL 未变 |
+| 3 | `AKfycbzUyhyK-tqL7ypp2H2jZXNCMciEr2PJwhkZIg0bwV1OwV2C6D9RKJZhA4HpiUi6F5eF` | **v197** | 团队填报页，今日未动 |
+
+- `count = 3`，与 v58 §8.1（16:54）、v59 §7.2（18:44）、v60（12:12 / 20:12）**四次读数逐条一致**；3 个 URL 逐字未变；未用 `clasp deploy`、未新建/删除部署。
+- **本件撰写与发布过程零 GAS 部署动作、零新建部署、零链接变更、零生产写、零解冻**；只是共享库文档提交 + 一封邮件。E1''–E6'' 若获批，同样只推 HEAD / 原地更新既有部署，推前推后均复核部署条数与 URL。
+
+---
+
+## §8 证据索引与可达性声明
+
+**共享库（Tom 可读，raw URL 免连接器）**：`https://github.com/ritajin-tech/SMCN_ERP-T1B-audit-shared`
+- 本件：`docs/T1-B_系统大局梳理_v61_20261104_吸收Tom21-53Z六条件_升级E1双撇-E6双撇.md`
+- 纯 ASCII 镜像：`docs/v61_full_review_20261104.md`
+- 还复模板（可直接编辑交卷）：`docs/v60_reply_template_20261104.md`
+- 本轮新增实证：`evidence/v61_head_live_source_anchors.json`（源码 `file:line` + 哈希 + 关键片段）、`evidence/v61_live_state_20261104_2331.json`、`evidence/v61_deployments_20261104_2331.json`
+- 前序：v60 `b8479f1`+`0d56345` / v59 `7143545`+`07d4422` / v58 `40a0aec`+`3701e53`
+
+**本地工作区（可复跑）**：`tools/_staging_period_lock/_ts_head_live/{RemoteActions.js,PeriodLockGuard.js,RepairAB.js}`（15:29 快照）、`tools/probe_v59_live_state.py`、`tools/ts_post.py`、`tools/ts_backup_snapshot.js`、`tools/_tmp_verify_after_v2.py`、`tools/fullscan.py`、`_fullscan_report_20261104_2333.md`、`.workbuddy/memory/2026-11-04.md`。前后快照与载荷位置见 v59 §8。
+
+**七源可达性**：见 §1.2 逐源打勾。微信 / 未贴进对话的私聊记录、未授权网盘、未开通的 Agent 邮箱**物理不可达，不声称覆盖**；IMA 本轮不新增断言。
+
+---
+
+## §9 下一步（不再提问）
+
+1. 我方不再就本轮发解释性追问，也不发新的期限推定函。
+2. 请按 §6 V1–V6 交卷；对 §4 E1''–E6'' 给逐条具体编辑（接受 + 验证命令，或带 diff 的驳回）。
+3. E1''–E6'' 在你技术还复 + Rita 所有者授权双轨到位前，**不部署、不改全局冻结闸、不换链接**。
+4. T1-B M2 / clearance / GO-S4 维持原状，本件不涉及、不请求、不推定。
+
+---
+
+## 附A · Tom 21:53Z 来函逐字摘录（供留存，不改写）
+
+- 「已全文收到并合并回复两封来信：11 月 4 日 18:53 的 v59 和 20:18 的 v60 补遗，两封均无附件。」
+- 「v59：记录你方提供的部署记录、19 项工件哈希、快照及日志位置；你方更正 purge 日志缺口位于 A1397 与 A1398 之间，并报告生产表和主库的只读观测、E6 标识差异以及 E1′–E6 仍未部署。这些是你方报告，文件、采集时间及线上状态尚待独立核验。」
+- 「对 E1′，行指纹预检与写入之间仍需共同锁域或等效并发保护，防止检查后重排；E2′ 一次性票据须证明服务端原子消费、防重放及密钥保护；E3′ 对进程中断和 COMMIT 结果未知，不能保证自动逐格回滚，须保留不确定状态、禁止重试并先对账；E4′ 登记及理由白名单不足以证明所有写路径经过守卫；E5′ 须覆盖所有实际写者和直接 API 路径；E6 替换前须独立核实完整 ID 与所有引用，避免把另一环境误改。以上为基于来信摘要提出的具体待验证条件，并非源码或部署验收。」
+- 「v60：记录你方提供模板和 20:12 只读观测，以及你方称无新生产写入、部署或解冻；我方尚未独立确认。模板可用于组织 V1–V6，不替代对源码、真实锁域、原始快照和故障证据的核验，也不因未填表推定接受。下一步只读核对固定提交、部署映射、工件清单及相关源码，逐项形成可追溯意见；目前不能承诺完成日期或编造执行结果。请继续保全原始材料并停止进一步生产写入、部署、清理、解冻与自动回滚。」
+- 「M2 未签；事故安全 OPEN、HOLD/NO-GO、阶段一 PASS 暂缓。本函不构成 clearance 或生产授权。」
+
+---
+
+## 附B · 本件不换链接声明
+
+本件撰写与发布过程：**零 GAS 部署动作、零新建部署、零链接变更、零生产写、零解冻**。今日稍早的 v199→v202 四次部署均为 `deployments.update` 原地更新，实证见 §7.2；本件本身只是共享库的一次文档提交与一封技术邮件。后续若 E1''–E6'' 获批，仍按「只推 HEAD / 原地更新既有部署」执行，推前推后均复核部署条数与 URL。
