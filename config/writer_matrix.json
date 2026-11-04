@@ -1,0 +1,109 @@
+{
+  "generated_at_local": "2026-11-05 00:55:00",
+  "generated_at_utc": "2026-11-04T16:55:00Z",
+  "read_only": true,
+  "note": "Inventory of every actual write channel to the production timesheet (DB_工时流水) and master (T1B_主库_工时与请假). Derived from HEAD live snapshot pulled 2026-11-04 15:29 GMT+8 (see evidence/v61_head_live_source_anchors.json). This is a DESIGN INVENTORY, not a deployed control. All 'proposed_gating' entries are part of E1‴–E5‴ and remain HOLD/undeployed.",
+  "targets": {
+    "production_timesheet": "1Pi5u9fEawgp7yICWPMMyQCT_LbwTZthQDW-H05xYdVI (DB_工时流水, sheet 工时打卡数据库)",
+    "master": "1oxPj0mzN8poP2vQ7Bm-YKXuU49p9b0c1asyrZn4Py44 (T1B_主库_工时与请假, sheet 请假)"
+  },
+  "writers": [
+    {
+      "id": "W1_submitBatch",
+      "channel": "GAS ts-manager submitBatch",
+      "location": "Code.gs:464 (guarded by PeriodLockGuard._plGuardedInsert)",
+      "current_gating": "Per-cell B/O:Q guard (_plGuardPatch). NO row-level version stamp, NO maintenance ticket, NO full-table lock.",
+      "proposed_gating": "Route through single guarded gateway (E1‴): rowVersion check + LockService + maintenance ticket for any non-business write. Under ACL lockdown (E1‴/E5‴) this is the only programmatic path.",
+      "detection_if_bypassed": "Gateway log; daily reconciliation (E5‴ tertiary).",
+      "covered_by_edit": "E1‴, E4‴, E5‴"
+    },
+    {
+      "id": "W2_tsAppendRows",
+      "channel": "GAS RemoteActions tsAppendRows",
+      "location": "RemoteActions.gs:127 (guarded by _plGuardedInsert)",
+      "current_gating": "Same as W1 per-cell guard. NO row-level version stamp, NO lock on full-table writeback at :859/:907.",
+      "proposed_gating": "Same gateway as W1. The two full-table setValues call sites (:859 purgeSoftLeaves, :907 purgeRows) MUST route through _plGuardSetValues (E4‴).",
+      "detection_if_bypassed": "Gateway log; daily reconciliation.",
+      "covered_by_edit": "E1‴, E4‴, E5‴"
+    },
+    {
+      "id": "W3_purgeSoftLeaves",
+      "channel": "GAS RemoteActions purgeSoftLeaves",
+      "location": "RemoteActions.js:836-866 (registry :29)",
+      "current_gating": "NONE. In normal REMOTE_ACTIONS registry, NO LockService (only :1032 has lock), ZERO _tsWriteLog calls (confirmed E3_purge_zero_log). This is the 11-03 purge-zero-log fault source.",
+      "proposed_gating": "Move to MAINT_ACTIONS (E2‴) requiring one-time HMAC ticket; route full-table setValues through _plGuardSetValues (E4‴); add PREPARE/COMMIT write-ahead (E3‴).",
+      "detection_if_bypassed": "Gateway rejection log; cannot bypass once ACL lockdown + MAINT_ACTIONS enforced.",
+      "covered_by_edit": "E2‴, E3‴, E4‴, E5‴"
+    },
+    {
+      "id": "W4_purgeRows",
+      "channel": "GAS RemoteActions purgeRows",
+      "location": "RemoteActions.js:895-914 (registry :30)",
+      "current_gating": "NONE. Same gaps as W3.",
+      "proposed_gating": "Same as W3.",
+      "detection_if_bypassed": "Same as W3.",
+      "covered_by_edit": "E2‴, E3‴, E4‴, E5‴"
+    },
+    {
+      "id": "W5_repairAB",
+      "channel": "GAS RemoteActions repairAB",
+      "location": "RemoteActions.js registry :36",
+      "current_gating": "NONE in ts_post.py WRITE_ACTIONS (:26); client force=1 accepted (:85).",
+      "proposed_gating": "MAINT_ACTIONS + server-side freeze gate (E5‴) + one-time ticket (E2‴).",
+      "detection_if_bypassed": "Server-side freeze gate rejects; gateway log.",
+      "covered_by_edit": "E2‴, E5‴"
+    },
+    {
+      "id": "W6_repairDedup",
+      "channel": "GAS RemoteActions repairDedup",
+      "location": "RemoteActions.js registry :37",
+      "current_gating": "NONE in WRITE_ACTIONS; client force=1 accepted.",
+      "proposed_gating": "Same as W5.",
+      "detection_if_bypassed": "Same as W5.",
+      "covered_by_edit": "E2‴, E5‴"
+    },
+    {
+      "id": "W7_direct_sheets_api",
+      "channel": "External OAuth edit scope (e.g. hktool, numberlock webapp, any client with spreadsheets.write)",
+      "location": "Out-of-process: not in GAS source; reaches sheet directly via Sheets API",
+      "current_gating": "NONE at app layer. Reaches sheet unless sheet ACL forbids.",
+      "proposed_gating": "E1‴/E5‴ ACL LOCKDOWN: revoke broad edit on the sheet; grant write ONLY to the guarded gateway service-account identity. Direct API then has no write right.",
+      "detection_if_bypassed": "Daily reconciliation (E5‴ tertiary, detection-only). Primary prevention = ACL lockdown, not detection.",
+      "covered_by_edit": "E1‴, E5‴"
+    },
+    {
+      "id": "W8_human_manual_edit",
+      "channel": "Human editing the sheet UI directly",
+      "location": "Out-of-process: browser edit",
+      "current_gating": "NONE at app layer. onEdit trigger exists for logging only (post-hoc, NOT pre-emptive).",
+      "proposed_gating": "E1‴/E5‴ ACL LOCKDOWN: remove human direct-edit right on the sheet; humans submit via the guarded gateway only. onEdit becomes detection-only for any residual out-of-band change.",
+      "detection_if_bypassed": "onEdit log (detection-only) + daily reconciliation.",
+      "covered_by_edit": "E1‴, E5‴"
+    },
+    {
+      "id": "W9_other_gas_projects",
+      "channel": "Other GAS projects bound to or with edit access to the same spreadsheet",
+      "location": "Out-of-project: any .gs project whose manifest/service account can openById the sheet",
+      "current_gating": "UNKNOWN — requires cross-project ACL review (Tom's E4‴ point: cannot assume only this project writes).",
+      "proposed_gating": "E4‴ cross-project: enumerate all GAS projects with edit OAuth scope to the sheet; revoke every identity except the guarded gateway's. Static scan verify_guard_coverage.js across THIS project; cross-project requires IAM/Sheets ACL audit.",
+      "detection_if_bypassed": "Sheets ACL audit + daily reconciliation.",
+      "covered_by_edit": "E4‴, E5‴"
+    },
+    {
+      "id": "W10_scheduled_triggers",
+      "channel": "Time-driven / installable triggers calling any write function",
+      "location": "Project triggers (e.g. daily 02:00 Operation, ts-health, ts-manager)",
+      "current_gating": "Runs with script identity; any trigger invoking W1-W6 executes with their current (insufficient) gating.",
+      "proposed_gating": "All trigger-invoked writes route through the same gateway; maintenance triggers require tickets; freeze gate applies uniformly.",
+      "detection_if_bypassed": "Gateway log; trigger inventory review.",
+      "covered_by_edit": "E1‴, E2‴, E5‴"
+    }
+  ],
+  "summary": {
+    "total_channels": 10,
+    "currently_unguarded_for_maintenance": ["W3", "W4", "W5", "W6"],
+    "currently_unguarded_for_concurrency": ["W1", "W2", "W3", "W4", "W5", "W6"],
+    "out_of_process_unpreventable_without_acl_lockdown": ["W7", "W8", "W9"],
+    "key_concession": "Optimistic concurrency (rowVersion) in E1‴ is INSUFFICIENT unless W7/W8/W9 are closed by ACL lockdown. This is exactly Tom's E1‴ critique; E1‴ is revised accordingly."
+  }
+}
