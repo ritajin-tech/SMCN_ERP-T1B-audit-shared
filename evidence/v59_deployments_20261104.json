@@ -1,0 +1,53 @@
+{
+  "checked_at_utc": "2026-11-04T10:44:03Z",
+  "http": 200,
+  "read_only": true,
+  "deployments": [
+    {
+      "id": "AKfycbwlxB2z9IDDo7pBv4sr0pu6-1ywvYBuRyqTwfjgl_o",
+      "version": null,
+      "url": null,
+      "scriptId": "1FPAwV50VdpI2AGT42rfn6JhU0assY1QaARbhTQeiUKS0mZ66yf_JRb8R"
+    },
+    {
+      "id": "AKfycbwYXV3VS3I59bVpUi9XBMClGsFkJ6l_NxPdQcysiXYe47-iONNMk6FIoI8VEXwYl-_2",
+      "version": 202,
+      "url": null,
+      "scriptId": "1FPAwV50VdpI2AGT42rfn6JhU0assY1QaARbhTQeiUKS0mZ66yf_JRb8R"
+    },
+    {
+      "id": "AKfycbzUyhyK-tqL7ypp2H2jZXNCMciEr2PJwhkZIg0bwV1OwV2C6D9RKJZhA4HpiUi6F5eF",
+      "version": 197,
+      "url": null,
+      "scriptId": "1FPAwV50VdpI2AGT42rfn6JhU0assY1QaARbhTQeiUKS0mZ66yf_JRb8R"
+    }
+  ],
+  "count": 3,
+  "versions": [
+    {
+      "v": 202,
+      "createTime": "2026-11-04T08:05:48.135Z",
+      "desc": "V4.3.87 v2 (local datetime string -> real Date)"
+    },
+    {
+      "v": 201,
+      "createTime": "2026-11-04T08:03:05.797Z",
+      "desc": "V4.3.87 v2 (setValue Date + post-write verify)"
+    },
+    {
+      "v": 200,
+      "createTime": "2026-11-04T07:45:03.770Z",
+      "desc": "V4.3.87 v2 (batched IO): repairAB + repairDedup"
+    },
+    {
+      "v": 199,
+      "createTime": "2026-11-04T07:41:27.350Z",
+      "desc": "V4.3.87 v2: repairAB + repairDedup (2026-11-04 A/B misalignment fix)"
+    },
+    {
+      "v": 198,
+      "createTime": "2026-11-04T04:01:01.573Z",
+      "desc": null
+    }
+  ]
+}

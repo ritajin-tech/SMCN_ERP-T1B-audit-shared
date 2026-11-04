@@ -1,0 +1,82 @@
+{
+  "_tmp/v59_live_state_20261104.json": {
+    "bytes": 7932,
+    "sha256": "3b40755ed8d67410ec2e6dabfafc81e9b7d0f78b4a10cca8e65ff37a44caf5ce"
+  },
+  "_tmp/v59_deployments_20261104.json": {
+    "bytes": 1507,
+    "sha256": "a73dc0d4a4a45b3415d002818e38cb863d55fe8b68cfbf12158d9b4097723fb1"
+  },
+  "_tmp/AB_repair_payload.json": {
+    "bytes": 344504,
+    "sha256": "7f38788879222ec36f727e5c8795fa74b6f4142c169c23d5772c4040bac05358"
+  },
+  "_tmp/dedup_payload.json": {
+    "bytes": 2261,
+    "sha256": "8820bdaae4c85925d35f1a4f6db776cced9620534dcbcead72db9cd9cc041d5e"
+  },
+  "_tmp/AB_rollback_manifest.csv": {
+    "bytes": 234470,
+    "sha256": "c45eb87d4961553e2070e5b5081a83e4d2ac6b66cbaab38877c6321bf2879871"
+  },
+  "_tmp/dedup_rollback_36.csv": {
+    "bytes": 395,
+    "sha256": "a323cf536dcbd25e95516d3937b7b28f175902c9cef4b599fda5301eecb94e8a"
+  },
+  "_tmp/v2_apply_final_20261104.txt": {
+    "bytes": 2351,
+    "sha256": "b114638d19a774159d8037d7c96f16548b1f7ad4e3e49925619e1bcb18293b4d"
+  },
+  "_tmp/v2_verify_final_20261104.txt": {
+    "bytes": 4559,
+    "sha256": "4ae3f048478af82b06b942c3983aa4e1a591d8f731ccb684e71a29d19dc6e3a9"
+  },
+  "tools/ts_backup_snapshot.js": {
+    "bytes": 6609,
+    "sha256": "12448151a57ad617dc1879cfd5d61af98bd4f0ef2a35b4d482326e76e6f3ff63"
+  },
+  "tools/ts_repair_ab.js": {
+    "bytes": 8431,
+    "sha256": "225b77d3d644b664a0d9c13f878d23a2f7a75b4d2323456734463ea2fd040a06"
+  },
+  "tools/_tmp_verify_after_v2.py": {
+    "bytes": 8387,
+    "sha256": "284c71a873430a118e73b1696c7d7ac7f251589e72e60b028af7c877d75493f3"
+  },
+  "tools/probe_v59_live_state.py": {
+    "bytes": 3923,
+    "sha256": "fc542be6bb83fb6dd046ddad75f059e48872324e3f6f1789159b97ef299226bd"
+  },
+  "_backups/sheets/2026-11-04_before_v2_final\\manifest.json": {
+    "bytes": 620,
+    "sha256": "6438bcd2c6f2901e191c052dfe6b8a5196816e1df7d92500c81da6905580ded6"
+  },
+  "_backups/sheets/2026-11-04_before_v2_final\\snapshot_A_Q.json": {
+    "bytes": 2693430,
+    "sha256": "1d2af52d3f3460f7819b2ac074fa34db7c2ca8af0790e8503986ae45fd261686"
+  },
+  "_backups/sheets/2026-11-04_before_v2_final\\生产工时表__DB_工时流水.csv": {
+    "bytes": 2327307,
+    "sha256": "64257f602dc18ba48f115cc1f148c7cb6299e3bb12043a885cc17072ffd18652"
+  },
+  "_backups/sheets/2026-11-04_after_v2_final\\manifest.json": {
+    "bytes": 428,
+    "sha256": "2d2134276a7f061223da1bb36a34c055e5133952d62a109a8dcc38ed53264531"
+  },
+  "_backups/sheets/2026-11-04_after_v2_final\\snapshot_A_Q.json": {
+    "bytes": 2694762,
+    "sha256": "fdd0debbae3bf714fbe49a5b607427c3115d0df12ae4ef57f6d866b142e3847b"
+  },
+  "_backups/sheets/2026-11-04_after_v2_final\\生产工时表__DB_工时流水.csv": {
+    "bytes": 2328711,
+    "sha256": "561111b4a9d64dfbf5458de22e2769cb0fff0784fd3f29fd9469ef00c503cc1d"
+  },
+  "_backups/sheets/2026-11-03_before_leave_purge\\leave_rows_backup.csv": {
+    "bytes": 64052,
+    "sha256": "463ef3e115321304e41456aca9c806a6e66a9934b318351d253b3e7bd054ed44"
+  },
+  "_backups/sheets/2026-11-03_before_leave_purge\\manifest.json": {
+    "bytes": 662,
+    "sha256": "d25d248f410821fa97ee8c0da26e366d7d49fb1c634b74b518289b19ac15116c"
+  }
+}
