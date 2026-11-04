@@ -1,0 +1,23 @@
+{
+  "checked_at_utc": "2026-11-04T12:17:08Z",
+  "http": 200,
+  "read_only": true,
+  "deployments": [
+    {
+      "id": "AKfycbwlxB2z9IDDo7pBv4sr0pu6-1ywvYBuRyqTwfjgl_o",
+      "version": null,
+      "scriptId": "1FPAwV50VdpI2AGT42rfn6JhU0assY1QaARbhTQeiUKS0mZ66yf_JRb8R"
+    },
+    {
+      "id": "AKfycbwYXV3VS3I59bVpUi9XBMClGsFkJ6l_NxPdQcysiXYe47-iONNMk6FIoI8VEXwYl-_2",
+      "version": 202,
+      "scriptId": "1FPAwV50VdpI2AGT42rfn6JhU0assY1QaARbhTQeiUKS0mZ66yf_JRb8R"
+    },
+    {
+      "id": "AKfycbzUyhyK-tqL7ypp2H2jZXNCMciEr2PJwhkZIg0bwV1OwV2C6D9RKJZhA4HpiUi6F5eF",
+      "version": 197,
+      "scriptId": "1FPAwV50VdpI2AGT42rfn6JhU0assY1QaARbhTQeiUKS0mZ66yf_JRb8R"
+    }
+  ],
+  "count": 3
+}
