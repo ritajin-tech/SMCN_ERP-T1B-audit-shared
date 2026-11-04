@@ -1,0 +1,97 @@
+{
+  "generated_at_local": "2026-11-04 23:37:19",
+  "generated_at_utc": "2026-11-04T15:37:19Z",
+  "read_only": true,
+  "note": "HEAD live snapshot pulled 2026-11-04 15:29 GMT+8 after v2 repair. This is @HEAD source, NOT a byte-level proof of v197/v202 deployment mapping; independent verification remains with the reviewer.",
+  "files": {
+    "tools/_staging_period_lock/_ts_head_live/RemoteActions.js": {
+      "bytes": 61483,
+      "lines": 1147,
+      "sha256": "4eb452606acd29afbfdc5164396c5998c138fccea3117739d036f10502098033"
+    },
+    "tools/_staging_period_lock/_ts_head_live/PeriodLockGuard.js": {
+      "bytes": 34002,
+      "lines": 680,
+      "sha256": "28f6df75e67cd3e800ed609c0e8546d4abd33733b9314f548a2ced242f8ec281"
+    },
+    "tools/ts_post.py": {
+      "bytes": 5667,
+      "lines": 126,
+      "sha256": "004c21627ea52754349d04f30f20a949813ab9ba4d5a740690769772a3c51789"
+    }
+  },
+  "anchors": [
+    {
+      "id": "E1_row_mapping",
+      "file": "tools/_staging_period_lock/_ts_head_live/RemoteActions.js",
+      "lines": "808-835",
+      "symbol": "_tsSetValuesGuarded",
+      "excerpt": "808: function _tsSetValuesGuarded(sh, retained, dataBefore) {\n809:   if (!retained.length) return 0;\n810:   var w = retained[0].length;\n811:   for (var i = 0; i < retained.length; i++) {\n812:     while (retained[i].length < w) retained[i].push('');\n813:     if (retained[i].length > w) retained[i] = retained[i].slice(0, w);\n814:   }\n815:   var bBefore = {};\n816:   for (var j = 1; j < dataBefore.length; j++) {\n817:     var u = String(dataBefore[j][8] === null || dataBefore[j][8] === undefined ? '' : dataBefore[j][8]);\n818:     if (u && !bBefore.hasOwnProperty(u)) bBefore[u] = dataBefore[j][1];\n819:   }\n820:   sh.getRange(1, 1, retained.length, w).setValues(retained);\n821: \n822:   var n = retained.length;\n823:   if (n < 2) return 0;\n824:   var afterB = sh.getRange(2, 2, n - 1, 1).getValues();\n825:   var afterU = sh.getRange(2, 9, n - 1, 1).getValues();\n826:   var fixed = 0;\n827:   for (var r = 0; r < afterB.length; r++) {\n828:     var u2 = String(afterU[r][0] === null || afterU[r][0] === undefined ? '' : afterU[r][0]);\n829:     if (!u2 || !bBefore.hasOwnProperty(u2)) continue;\n830:     if (_tsDateKey(afterB[r][0]) !== _tsDateKey(bBefore[u2])) {\n831:       sh.getRange(r + 2, 2).setValue(bBefore[u2]);\n832:       fixed++;\n833:     }",
+      "finding": "UUID-based bBefore lookup at :815-819; setValues at :821; post-write check at :825-831; NO lock on this path"
+    },
+    {
+      "id": "E0_purge_no_lock",
+      "file": "tools/_staging_period_lock/_ts_head_live/RemoteActions.js",
+      "lines": "1032",
+      "symbol": "LockService.getScriptLock",
+      "excerpt": "1030:     var data = sh.getDataRange().getValues();\n1031:     var done = 0, skipped = 0;\n1032:     var lock = LockService.getScriptLock();\n1033:     lock.waitLock(30000);\n1034:     try {",
+      "finding": "Only LockService call in whole file; purge/repair full-table writeback paths :859/:907 have no lock"
+    },
+    {
+      "id": "E2_maintenance_registry",
+      "file": "tools/_staging_period_lock/_ts_head_live/RemoteActions.js",
+      "lines": "6-40",
+      "symbol": "REMOTE_ACTIONS",
+      "excerpt": "27:   dupreport:     function(e) { return tsDupReport(e); },      // V4.3.63 连点重复提交体检报告\n28:   driveList:     function(e) { return tsDriveList(e); },      // V4.3.65 列出周存档文件夹里的备份文件（只读）\n29:   purgeSoftLeaves: function(e) { return tsPurgeSoftLeaves(e); }, // V4.3.68 清「软删+休假类」假条行\n30:   purgeRows:      function(e) { return tsPurgeRows(e); },      // V4.3.69 物理删「指定UUID集合」或软删行（清理过量恢复残留）\n31:   probeCalendar: function(e) { return tsProbeCalendar(e); },   // V4.3.72 只读读 China Employee Leave Calendar，核对表里请假行 vs 日历真值\n32:   masterCreate:   function(e) { return masterCreate(e); },     // V4.3.74 建独立主库 T1B_主库_工时与请假\n33:   masterLeaves:   function(e) { return masterLeaves(e); },     // V4.3.74 只读读 China Employee Leave Calendar 真值(去重)\n34:   pruneDead:     function(e) { return tsPruneDead(e); },     // V4.3.74 物理删「整行空白 OR 软删」死行（回收活表预算）\n35:   fixBDates:     function(e) { return tsFixBDates(e); },     // V4.3.75 受护栏批量还原被 pruneDead 静默改坏的 B 列业务日期\n36:   repairAB:      function(e) { return tsRepairAB(e); },      // V4.3.87 v2-1 按物理行号还原 A/B（2026-11-04 事故修复）\n37:   repairDedup:   function(e) { return tsRepairDedup(e); },   // V4.3.87 v2-2 软标同 UUID 重复副本（O/P/Q）",
+      "finding": "purgeSoftLeaves:29 / purgeRows:30 / repairAB:36 / repairDedup:37 all in normal registry, no MAINT_ACTIONS"
+    },
+    {
+      "id": "E2_client_force",
+      "file": "tools/_staging_period_lock/_ts_head_live/RemoteActions.js",
+      "lines": "85",
+      "symbol": "force param",
+      "excerpt": "84:   var rows = body.rows || [];\n85:   var force = String(p.force || body.force || '0') === '1';\n86:   var dry = String(p.dry || body.dry || '0') === '1';",
+      "finding": "client-supplied force=1 accepted directly, no server-side ticket"
+    },
+    {
+      "id": "E3_write_log_swallow",
+      "file": "tools/_staging_period_lock/_ts_head_live/RemoteActions.js",
+      "lines": "67-76",
+      "symbol": "_tsWriteLog",
+      "excerpt": "67: function _tsWriteLog(action, detail) {\n68:   try {\n69:     var ss = SpreadsheetApp.openById(TS_ID);\n70:     var sh = ss.getSheetByName('_TS_WRITE_LOG');\n71:     if (!sh) {\n72:       sh = ss.insertSheet('_TS_WRITE_LOG');\n73:       sh.appendRow(['时间', '动作', '明细']);\n74:       sh.getRange(1, 1, 1, 3).setFontWeight('bold');\n75:     }\n76:     sh.appendRow([Utilities.formatDate(new Date(), 'GMT+8', 'yyyy-MM-dd HH:mm:ss'), action, detail]);",
+      "finding": "catch(e){ /* log failure ignored */ } swallows log failures"
+    },
+    {
+      "id": "E3_purge_zero_log",
+      "file": "tools/_staging_period_lock/_ts_head_live/RemoteActions.js",
+      "lines": "836-914",
+      "symbol": "purgeSoftLeaves/purgeRows",
+      "excerpt": "855:       return JSON.stringify({ ok: true, dry: true, action: 'purgeSoftLeaves', removed: removed, wouldKeep: retained.length });\n856:     }\n857:     var dateFixed = 0;\n858:     if (retained.length > 1) {\n859:       dateFixed = _tsSetValuesGuarded(sh, retained, data);\n860:     }\n861:     var last = sh.getLastRow();\n862:     if (last > retained.length) sh.deleteRows(retained.length + 1, last - retained.length);\n863:     return JSON.stringify({ ok: true, dry: false, action: 'purgeSoftLeaves', removed: removed, kept: retained.length, dateFixed: dateFixed });\n---\n903:       return JSON.stringify({ ok: true, dry: true, action: 'purgeRows', removed: removed, wouldKeep: retained.length });\n904:     }\n905:     var dateFixed = 0;\n906:     if (retained.length > 1) {\n907:       dateFixed = _tsSetValuesGuarded(sh, retained, data);\n908:     }\n909:     var last = sh.getLastRow();\n910:     if (last > retained.length) sh.deleteRows(retained.length + 1, last - retained.length);\n911:     return JSON.stringify({ ok: true, dry: false, action: 'purgeRows', removed: removed, kept: retained.length, dateFixed: dateFixed });",
+      "finding": "Both purge paths call _tsSetValuesGuarded but contain ZERO _tsWriteLog calls; all 10 log calls are in other actions"
+    },
+    {
+      "id": "E4_guard_insert",
+      "file": "tools/_staging_period_lock/_ts_head_live/PeriodLockGuard.js",
+      "lines": "531",
+      "symbol": "_plGuardedInsert",
+      "excerpt": "531: function _plGuardedInsert(opts) {\n532:   var lock = null;\n533:   var enteredWrite = false;\n534:   var logAttempted = false;\n535:   try {\n536:     var pre = _plGuardCheckBatch(opts.rows, opts.dateOf, _plPolicy());\n537:     if (!pre.ok) {\n538:       var e0 = new Error(pre.reason + ' @row#' + pre.index);\n539:       e0.plCode = pre.reason;\n540:       throw e0;\n541:     }\n542:     lock = _plAcquire(opts.timeoutMs);",
+      "finding": "Guarded insert has lock/enteredWrite/logAttempted; full-table setValues is outside its coverage"
+    },
+    {
+      "id": "E4_guard_patch",
+      "file": "tools/_staging_period_lock/_ts_head_live/PeriodLockGuard.js",
+      "lines": "617",
+      "symbol": "_plGuardPatch",
+      "excerpt": "617: function _plGuardPatch(sheet, cells, ranges) {\n618:   var policy = _plPolicy();\n619:   var offenders = [];\n620:   var data = sheet.getDataRange().getValues();\n621:   var lastRow = data.length;\n622: \n623:   function rowState(rn) {\n624:     if (rn < 2) return { state: 'header' };                   // [审⑤] 表头\n625:     if (rn > lastRow) return { state: 'absent' };\n626:     var b = _plParseBizDate(data[rn - 1][1]);\n627:     if (!b) return { state: 'unknown' };\n628:     return { state: 'known', biz: b };",
+      "finding": "Per-cell B/O:Q guard; PL_CUTOFF at :73"
+    },
+    {
+      "id": "E5_client_freeze",
+      "file": "tools/ts_post.py",
+      "lines": "23,26",
+      "symbol": "TS_WRITE_FREEZE / WRITE_ACTIONS",
+      "excerpt": "23: TS_WRITE_FREEZE = os.environ.get('TS_WRITE_FREEZE', '1') == '1'\n24: # snapshot 也一并冻结：它虽只往 _TS_SNAPSHOT 追加一行指纹（非业务数据），\n25: # 但仍是生产写入；NO-GO 期间一律拦死。（已核实无任何自动任务调用本脚本）\n26: WRITE_ACTIONS = ('appendRows', 'patchCells', 'snapshot', 'softDelGuarded', 'repairLegacyLeave')\n27: # 说明：repairLegacyLeave（V4.3.83，线上已部署）是「软标 O/P/Q + undo 可回滚」的既有动作。\n28: # 它直接 sh.getRange(rn,15,1,3).setValues(...) 写 O/P/Q，**不经 _plGuardPatch**，\n29: # 故不受 period-lock 期锁拦截 —— 这是治理事实（A5 期锁旁路），已向 Tom 披露。\n30: # 纳入白名单 = 仍受 TS_WRITE_FREEZE 冻结闸约束，不因绕过期锁而自动放行。\n31: \n32: \n33: def _assert_writable(action):\n34:     if action in WRITE_ACTIONS and TS_WRITE_FREEZE:\n35:         raise SystemExit(\n36:             '[TS_WRITE_FREEZE] 写入已冻结：生产表处于 NO-GO 清理期。\\n'",
+      "finding": "freeze gate is local process env; WRITE_ACTIONS omits repairAB/repairDedup/purgeSoftLeaves/purgeRows"
+    }
+  ]
+}
