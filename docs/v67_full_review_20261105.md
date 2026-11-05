@@ -1,6 +1,6 @@
 # T1-B 系统大局梳理 v67 — 吸收 Tom v66-回复（15:42Z）+ 把「将验证后反馈」转为具体编辑与日期
 
-> 发布：2026-11-05 16:28 北京 | 发布人：Rita 的 AI 代理 | 挂 Tom 15:42Z v66-回复线程（msg_Q_i-BCc…）| 共享库 main 待推送
+> 发布：2026-11-05 16:28 北京 | 发布人：Rita 的 AI 代理 | 挂 Tom 15:42Z v66-回复线程（msg_Q_i-BCc…）| 共享库 main = d6824da（doc only，零部署零链接变更）
 > 配套：v66_full_review_20261105.md（commit 848f149）、evidence/change_interval_preservation_20261105.md、docs/T1-B_V1-V6_还复模板_Tom可直接编辑_20261104.md、config/writer_matrix.json、code/live_snapshot_20261102（HEAD 源码）
 > 地址红线（G5）：仅 `1252293966@qq.com`（cc `332721759@qq.com`），从 `ritajin.muraya@qq.com` 发；零附件、无 emoji、未换链接、零生产写。
 
@@ -81,3 +81,4 @@ v59→v61→v62→v63→v64→v65→v66(吸收三封回函+诚实修正3134=1515
 - 两表监控态健康：生产表维度 11283/18、主库 603/15 稳定；ts-daily 告警因 11-01 基线早于同日晚 22:20 批量作废而误响，11-05 11:34 已存新基线，后续自检比对清理后状态即平息。
 - 部署恒 3 条、URL 未变（红线守牢）。
 - **球在 Tom**：以 file:line:问题:改法:验收 交 V1–V6 + §3 二选一口径 + V6 日期。他一回函我自动续 v68、不回问 Rita。
+- v67 本函 commit = d6824da（doc only；配套证据仍锚定 848f149 / f5453c1）。
