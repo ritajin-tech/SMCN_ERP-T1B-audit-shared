@@ -1,0 +1,40 @@
+# _TS_WRITE_LOG 窗口摘录（只读；行号=表内行号；结构 3 列：时间/动作/明细；无 actor 列）
+# 采集：2026-11-05 22:0x 北京 | 源：11-05 08:38 备份 CSV + 11-05 19:36 全量只读导出
+
+## A. 2026-11-04 repairAB / repairDedup（收工前已登记修复写；解释 S1→S2 的 901 行 A/B 列变化）
+row 1413 | 2026-11-04T07:48:23.000Z | repairAB | req=800 done=800 skip_fp=0 bad=0
+row 1414 | 2026-11-04T07:48:30.000Z | repairAB | req=800 done=800 skip_fp=0 bad=0
+row 1415 | 2026-11-04T07:48:34.000Z | repairAB | req=800 done=800 skip_fp=0 bad=0
+row 1416 | 2026-11-04T07:48:40.000Z | repairAB | req=800 done=800 skip_fp=0 bad=0
+row 1417 | 2026-11-04T07:48:44.000Z | repairAB | req=800 done=800 skip_fp=0 bad=0
+row 1418 | 2026-11-04T07:48:49.000Z | repairAB | req=167 done=167 skip_fp=0 bad=0
+row 1419 | 2026-11-04T07:48:53.000Z | repairDedup | req=36 done=36 skip_fp=0 bad=0
+row 1421 | 2026-11-04T07:54:03.000Z | repairAB | req=1 done=1 skip_fp=0 bad=0
+row 1422 | 2026-11-04T07:55:02.000Z | repairAB | req=1 done=1 skip_fp=0 bad=0
+row 1428 | 2026-11-04T08:03:31.000Z | repairAB | req=1 done=1 skip_fp=0 bad=0
+row 1430 | 2026-11-04T08:06:03.000Z | repairAB | req=1 done=1 skip_fp=0 bad=0
+row 1446 | 2026-11-04T08:08:31.000Z | repairAB | req=300 done=300 skip_fp=0 bad=0
+row 1447 | 2026-11-04T08:08:39.000Z | repairAB | req=300 done=300 skip_fp=0 bad=0
+row 1448 | 2026-11-04T08:08:46.000Z | repairAB | req=300 done=300 skip_fp=0 bad=0
+row 1449 | 2026-11-04T08:08:52.000Z | repairAB | req=300 done=300 skip_fp=0 bad=0
+row 1450 | 2026-11-04T08:09:01.000Z | repairAB | req=300 done=300 skip_fp=0 bad=0
+row 1451 | 2026-11-04T08:09:07.000Z | repairAB | req=300 done=300 skip_fp=0 bad=0
+row 1452 | 2026-11-04T08:09:15.000Z | repairAB | req=300 done=300 skip_fp=0 bad=0
+row 1453 | 2026-11-04T08:09:22.000Z | repairAB | req=300 done=300 skip_fp=0 bad=0
+row 1454 | 2026-11-04T08:09:30.000Z | repairAB | req=300 done=300 skip_fp=0 bad=0
+row 1455 | 2026-11-04T08:09:39.000Z | repairAB | req=300 done=300 skip_fp=0 bad=0
+row 1456 | 2026-11-04T08:09:45.000Z | repairAB | req=300 done=300 skip_fp=0 bad=0
+row 1457 | 2026-11-04T08:09:52.000Z | repairAB | req=300 done=300 skip_fp=0 bad=0
+row 1458 | 2026-11-04T08:09:59.000Z | repairAB | req=300 done=300 skip_fp=0 bad=0
+row 1459 | 2026-11-04T08:10:05.000Z | repairAB | req=267 done=267 skip_fp=0 bad=0
+row 1460 | 2026-11-04T08:10:09.000Z | repairDedup | req=36 done=36 skip_fp=0 bad=0
+
+## B. 2026-11-05 全天条目（生产表侧写日志；共 4 条）
+row 1463 | 2026-11-05T00:05:52.000Z | sync_prod_to_master | 追加 94 行到主库底稿（446.5h）；起始行 6038；剔除 1804
+row 1464 | 2026-11-05T00:12:01.000Z | attendance_rebuild_live | 实时重算「按月考勤」：598×32，月=13，人=44，备份=[OK] 按月考勤_重算前_20261105
+row 1465 | 2026-11-05T00:12:19.000Z | master_views_live | 实时重算「月度视图」：257 行；备份=[OK] 月度视图_重算前_20261105
+row 1466 | 2026-11-05T09:18:02.000Z | friday_reminder_disabled | Rita 2026-10-15 指示停用；触发器保留，改 true 后自动恢复
+
+## C. 结构性缺口（如实保留）
+_TS_WRITE_LOG 表头仅【时间/动作/明细】，无 actor / request id 列；前台逐条填报不写此日志（由填报页直接 appendRow）。
+故「请求标识」无法逐行提供；替代控制＝每日全量只读快照差集 + 动作级白名单 + 独立 UUID。
