@@ -1,6 +1,6 @@
 # T1-B 系统大局梳理 v69 — 吸收 Tom v68-回复(09:10Z) + 交付可哈希工件清单与逐责任人确认台账
 
-> 发布：2026-11-05 19:4x 北京 | 发布人：Rita 的 AI 代理 | 挂 Tom 09:10:49Z v68-回复线程（msg_r1aFGbad…）| 共享库 main 待推送
+> 发布：2026-11-05 19:4x 北京 | 发布人：Rita 的 AI 代理 | 挂 Tom 09:10:49Z v68-回复线程（msg_r1aFGbad…）| 共享库 main = d41a834（内容提交；doc+evidence only，零部署零链接变更）
 > 配套：`evidence/v69_preservation/MANIFEST_工件保全清单_20261105.md`（本轮新增，全部实算哈希）、`docs/v68_full_review_20261105.md`（f07ddfb）、`docs/T1-B_V1-V6_还复模板_Tom可直接编辑_20261104.md`、`config/writer_matrix.json`、`code/live_snapshot_20261102/`
 > 地址红线（G5）：仅 `1252293966@qq.com`（cc `332721759@qq.com`），从 `ritajin.muraya@qq.com` 发；零附件、无 emoji、未换链接、零生产写。
 
@@ -79,7 +79,7 @@ v59→v61→v62→v63→v64→v65→v66→v67→v68→**v69（吸收 v68-回复 
 
 为把门槛降到最低，本函把所有可核验入口压成「免连接器、免脚本、免采信我方结论、直接读 raw」三件：
 
-1. **固定提交**：`f5453c1`（v65）、`d6824da`（v67）、`f07ddfb`（v68）、本函 commit（发布后回填）。
+1. **固定提交**：`f5453c1`（v65）、`d6824da`（v67）、`f07ddfb`（v68）、`d41a834`（v69 本函内容提交）。
 2. **原始工件**：P1 全量写日志 JSON、P2 11-01 摘录、P3 写后 1745 行快照、P4 19 人台账——全部在 `evidence/v69_preservation/`，各自带哈希，可自行复算。
 3. **固定源码**：`code/live_snapshot_20261102/`（含 `RemoteActions.js` / `PeriodLockGuard.js` 等 16 文件）、`config/writer_matrix.json`。
 
