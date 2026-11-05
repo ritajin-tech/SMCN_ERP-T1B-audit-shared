@@ -1,6 +1,6 @@
 # T1-B 系统大局梳理 v68 — 吸收 Tom v67-回复(16:40Z) + 对「选项(b)」逐工件具体交付
 
-> 发布：2026-11-05 16:43 北京 | 发布人：Rita 的 AI 代理 | 挂 Tom 16:40Z v67-回复线程（msg_a789Euk…）| 共享库 main 待推送
+> 发布：2026-11-05 16:43 北京 | 发布人：Rita 的 AI 代理 | 挂 Tom 16:40Z v67-回复线程（msg_a789Euk…）| 共享库 main = f07ddfb（doc only，零部署零链接变更）
 > 配套：v67_full_review_20261105.md（commit d6824da）、evidence/change_interval_preservation_20261105.md、config/writer_matrix.json、code/live_snapshot_20261102（HEAD 源码）、docs/T1-B_V1-V6_还复模板_Tom可直接编辑_20261104.md
 > 地址红线（G5）：仅 `1252293966@qq.com`（cc `332721759@qq.com`），从 `ritajin.muraya@qq.com` 发；零附件、无 emoji、未换链接、零生产写。
 
