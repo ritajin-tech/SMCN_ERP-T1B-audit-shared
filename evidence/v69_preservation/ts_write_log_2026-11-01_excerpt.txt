@@ -1,0 +1,21 @@
+# _TS_WRITE_LOG 2026-11-01 窗口逐条摘录（只读导出，行号=表内行号）
+# 采集：2026-11-05 19:36 北京 | 源：生产表 _TS_WRITE_LOG A1:C1470 | 结构 3 列 时间/动作/明细 | lastRow=1466
+
+row 1374 | 2026-11-01T00:03:26.000Z | sync_prod_to_master | 无新增，零写入；剔除 442 行
+row 1375 | 2026-11-01T00:18:19.000Z | attendance_rebuild_live | 实时重算「按月考勤」：552×32，月=12，人=44，备份=[OK] 按月考勤_重算前_20261101
+row 1376 | 2026-11-01T00:23:37.000Z | master_views_live | 实时重算「月度视图」：242 行；备份=[OK] 月度视图_重算前_20261101
+row 1377 | 2026-11-01T07:01:09.000Z | patchCells(dry) | ss=1Pi5u9fEawgp7yICWPMMyQCT_LbwTZthQDW-H05xYdVI sheet=DB_工时流水 cells=4000 ranges=0 done=0
+row 1378 | 2026-11-01T07:01:13.000Z | patchCells(dry) | ss=1Pi5u9fEawgp7yICWPMMyQCT_LbwTZthQDW-H05xYdVI sheet=DB_工时流水 cells=4000 ranges=0 done=0
+row 1379 | 2026-11-01T07:01:17.000Z | patchCells(dry) | ss=1Pi5u9fEawgp7yICWPMMyQCT_LbwTZthQDW-H05xYdVI sheet=DB_工时流水 cells=3379 ranges=0 done=0
+row 1380 | 2026-11-01T09:18:03.000Z | friday_reminder_disabled | Rita 2026-10-15 指示停用；触发器保留，改 true 后自动恢复
+row 1381 | 2026-11-01T14:07:34.000Z | patchCells | ss=1Pi5u9fEawgp7yICWPMMyQCT_LbwTZthQDW-H05xYdVI sheet=DB_工时流水 cells=1 ranges=0 done=1
+row 1382 | 2026-11-01T14:07:49.000Z | patchCells | ss=1Pi5u9fEawgp7yICWPMMyQCT_LbwTZthQDW-H05xYdVI sheet=DB_工时流水 cells=1 ranges=0 done=1
+row 1383 | 2026-11-01T14:20:33.000Z | patchCells | ss=1Pi5u9fEawgp7yICWPMMyQCT_LbwTZthQDW-H05xYdVI sheet=DB_工时流水 cells=3134 ranges=0 done=3134
+row 1384 | 2026-11-01T15:51:18.000Z | repairLegacyLeave:repair(dry) | ss=1Pi5u9fEawgp7yICWPMMyQCT_LbwTZthQDW-H05xYdVI sheet=DB_工时流水 rows=1 done=1 skipped=0
+row 1385 | 2026-11-01T15:52:12.000Z | repairLegacyLeave:repair(dry) | ss=1Pi5u9fEawgp7yICWPMMyQCT_LbwTZthQDW-H05xYdVI sheet=DB_工时流水 rows=1567 done=1567 skipped=0
+row 1386 | 2026-11-01T15:53:44.000Z | repairLegacyLeave:repair | ss=1Pi5u9fEawgp7yICWPMMyQCT_LbwTZthQDW-H05xYdVI sheet=DB_工时流水 rows=1567 done=1567 skipped=0
+row 1387 | 2026-11-01T17:33:07.000Z | repairLegacyLeave:repair(dry) | ss=1Pi5u9fEawgp7yICWPMMyQCT_LbwTZthQDW-H05xYdVI sheet=DB_工时流水 rows=119 done=119 skipped=0
+row 1388 | 2026-11-01T17:33:19.000Z | repairLegacyLeave:repair | ss=1Pi5u9fEawgp7yICWPMMyQCT_LbwTZthQDW-H05xYdVI sheet=DB_工时流水 rows=119 done=119 skipped=0
+row 1389 | 2026-11-01T17:41:19.000Z | repairLegacyLeave:repair(dry) | ss=1Pi5u9fEawgp7yICWPMMyQCT_LbwTZthQDW-H05xYdVI sheet=DB_工时流水 rows=34 done=34 skipped=0
+row 1390 | 2026-11-01T17:41:29.000Z | repairLegacyLeave:repair | ss=1Pi5u9fEawgp7yICWPMMyQCT_LbwTZthQDW-H05xYdVI sheet=DB_工时流水 rows=34 done=34 skipped=0
+row 1391 | 2026-11-01T22:27:21.000Z | leave_sync_master | 追加 0 行到主库「请假」分页；跳过已存在 592 行；窗口 2026-04-01~2027-01-31；事件 257 个；无姓名 0 个
