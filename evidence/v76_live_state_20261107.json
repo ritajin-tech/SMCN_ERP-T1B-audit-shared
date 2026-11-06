@@ -1,0 +1,66 @@
+{
+ "schema": "v76_live_state_1",
+ "probe_utc": "2026-11-06T17:07:53Z",
+ "probe_beijing": "2026-11-07 01:07 北京",
+ "method": "hktool inspectWorkbook (read-only) + projects.deployments GET (read-only)",
+ "production_DB_gongshi": {
+  "name": "工时打卡数据库",
+  "sheet": "DB_工时流水",
+  "range": "A11270:Q11279",
+  "lastRow": 11336,
+  "lastCol": 18
+ },
+ "master_leave": {
+  "name": "T1B_主库_工时与请假",
+  "sheet": "请假",
+  "range": "A1:H3",
+  "lastRow": 605,
+  "lastCol": 15
+ },
+ "production_sheet_count": 16,
+ "master_sheet_count": 31,
+ "master_sheet_count_source": "master_tabs.sheets",
+ "deployments": {
+  "count": 3,
+  "items": [
+   {
+    "deploymentId": "AKfycbwlxB2z9IDDo7pBv4sr0pu6-1ywvYBuRyqTwfjgl_o",
+    "versionNumber": null,
+    "description": null,
+    "manifestFileName": "appsscript"
+   },
+   {
+    "deploymentId": "AKfycbwYXV3VS3I59bVpUi9XBMClGsFkJ6l_NxPdQcysiXYe47-iONNMk6FIoI8VEXwYl-_2",
+    "versionNumber": 202,
+    "description": "V4.3.87 v2 (local datetime string -> real Date)",
+    "manifestFileName": "appsscript"
+   },
+   {
+    "deploymentId": "AKfycbzUyhyK-tqL7ypp2H2jZXNCMciEr2PJwhkZIg0bwV1OwV2C6D9RKJZhA4HpiUi6F5eF",
+    "versionNumber": 197,
+    "description": null,
+    "manifestFileName": "appsscript"
+   }
+  ],
+  "scriptId": "1FPAwV50VdpI2AGT42rfn6JhU0assY1QaARbhTQeiUKS0mZ66yf_JRb8R"
+ },
+ "delta_vs_v75": {
+  "production_rows": 0,
+  "leave_rows": 0,
+  "deployments": 0
+ },
+ "hash_inventory": {
+  "scanned_files": 327,
+  "artifact": "evidence/v76_hash_inventory_20261107.json",
+  "note": "全量 docs/evidence 逐件 bytes + sha256 + git blob SHA-1"
+ },
+ "redlines": {
+  "zero_production_write": true,
+  "zero_master_write": true,
+  "zero_new_deployment": true,
+  "zero_link_change": true,
+  "zero_unfreeze": true,
+  "zero_script_execution": true
+ },
+ "status": "OPEN / HOLD-NO-GO / M2 未签 / 阶段一 PASS 暂缓 / TS_WRITE_FREEZE=1"
+}
