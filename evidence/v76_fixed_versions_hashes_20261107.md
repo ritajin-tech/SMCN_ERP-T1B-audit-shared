@@ -50,7 +50,7 @@ Tom 本封点名「v75 登记册和相应原件」。以下四件为 v75 本轮�
 | `evidence/v73_preservation/V8_uuid_by_original_value.md` | `0e65a9b10fbba94d0f7aa9f0…` | `0e65a9b10fbba94d0f7aa9f0…` | **PASS** |
 | `evidence/v73_preservation/V9_master_derivation_evidence.md` | `9ab1fadf1b041f40aac79de48…` | `9ab1fadf1b041f40aac79de48…` | **PASS** |
 
-**全量清单**：`evidence/v76_hash_inventory_20261107.json` 收录共享库 main 全部 **327 件** `docs/` + `evidence/` 文件，逐件给 `bytes` / `sha256` / `git_blob_sha1`，并写明两种算法的区别。你方可任选一件用任意工具 `sha256sum` 或 `git hash-object` 独立比对，**不需要运行我方脚本、不需要我方在场**。
+**全量清单**：`evidence/v76_hash_inventory_20261107.json` 收录**以 v75 固定点 `13bc6ec` 为基准**的共享库 main 全部 **327 件** `docs/` + `evidence/` 文件（不含本轮 v76 新增 5 件，避免自引用），逐件给 `bytes` / `sha256` / `git_blob_sha1`，并写明两种算法的区别。你方可任选一件用任意工具 `sha256sum` 或 `git hash-object` 独立比对，**不需要运行我方脚本、不需要我方在场**。
 
 > 诚实边界：本节的 PASS 只说明「v75 登记册声明的字节值与本轮本地副本重算一致」，**不等于**你方已取得并核验原始字节与来源，也**不等于**行数、漂移归因、部署状态或权限边界已被独立证实。你方 16:50Z 的立场我方照单接受，未作反驳。
 
@@ -66,7 +66,7 @@ Tom 本封点名「v75 登记册和相应原件」。以下四件为 v75 本轮�
 | `evidence/v76_live_state_20261107.json` | 本轮两表 + 部署只读实证 |
 | `evidence/v76_hash_inventory_20261107.json` | 327 件全量哈希清单 |
 
-v76 六件的字节数 / SHA-256 / Git blob SHA 以及发布后的 main commit，**由回函邮件固定并在共享库 commit 列表可核**；本件不自嵌自身哈希，以免循环引用。
+v76 五件的字节数 / SHA-256 / Git blob SHA 以及发布后的 main commit，**由回函邮件固定并在共享库 commit 列表可核**；本件不自嵌自身哈希，以免循环引用。
 
 ---
 

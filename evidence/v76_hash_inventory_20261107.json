@@ -2,7 +2,7 @@
  "schema": "v76_hash_inventory_1",
  "generated_utc": "2026-11-06T17:07:53Z",
  "generated_beijing": "2026-11-07 01:07",
- "scope": "共享库 main 全部 docs/ 与 evidence/ 文件",
+ "scope": "以 v75 固定点 13bc6ec (v75 发布后 / v76 发布前) 为基准，共享库 main 的全部 docs/ 与 evidence/ 文件；不含本轮 v76 新增 5 件（避免自引用，其字节与哈希由回函邮件单独固定）",
  "count": 327,
  "algorithms": {
   "sha256": "文件原始字节 SHA-256",

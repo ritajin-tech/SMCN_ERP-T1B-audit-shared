@@ -52,7 +52,7 @@
  "hash_inventory": {
   "scanned_files": 327,
   "artifact": "evidence/v76_hash_inventory_20261107.json",
-  "note": "全量 docs/evidence 逐件 bytes + sha256 + git blob SHA-1"
+  "note": "基准＝v75 固定点 13bc6ec 的全部 docs/evidence 327 件，逐件 bytes + sha256 + git blob SHA-1；不含 v76 新增 5 件"
  },
  "redlines": {
   "zero_production_write": true,
