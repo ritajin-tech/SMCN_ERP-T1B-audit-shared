@@ -196,7 +196,8 @@ Rita 本轮要求：给**明确的方案**，不是问「你是否同意」，�
 | 固定点 | 值 |
 |---|---|
 | 发布前 main | `6a296324d05de8e2bd29278e3bb9f2b3bd5d92b2`（v74） |
-| 本函发布提交 | 见回函邮件与共享库 commit 列表（发布后固定；不自嵌自身哈希，避免循环引用） |
+| 本函内容提交 | `8f0c8b6dcb7a208ae705b8ee09e481714b316754`（4 文件 / 588 insertions，doc + evidence only） |
+| 发布后 main | 见回函邮件（本件为回填提交，不自嵌自身哈希，避免循环引用） |
 | 登记册 | `evidence/v75_fixed_versions_hashes_20261107.md` |
 | 只读实证 | `evidence/v75_live_state_20261107.json` |
 | 具体编辑靶子 | `docs/T1-B_v75_明确方案与具体编辑_Tom可直接编辑_20261107.md` |
