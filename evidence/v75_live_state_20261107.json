@@ -1,0 +1,40 @@
+{
+  "artifact": "v75_live_state_20261107",
+  "nature": "read-only probe; zero production write / zero master write / zero deployment / zero link change",
+  "probe_time_local": "2026-11-07 00:18:20",
+  "probe_time_utc": "2026-11-06T16:18:20Z",
+  "ts_ssid": "1Pi5u9fEawgp7yICWPMMyQCT_LbwTZthQDW-H05xYdVI",
+  "master_ssid": "1oxPj0mzN8poP2vQ7Bm-YKXuU49p9b0c1asyrZn4Py44",
+  "production_DB_gongshi": {
+    "lastRow": 11336,
+    "lastCol": 18
+  },
+  "master_leave": {
+    "lastRow": 605,
+    "lastCol": 15
+  },
+  "master_sheet_count": 31,
+  "production_sheet_count": 16,
+  "deployments": {
+    "scriptId": "1FPAwV50VdpI2AGT42rfn6JhU0assY1QaARbhTQeiUKS0mZ66yf_JRb8R",
+    "count": 3,
+    "ids": [
+      "AKfycbwlxB2z9IDDo7pBv4sr0pu6-1ywvYBuRyqTwfjgl_o",
+      "AKfycbwYXV3VS3I59bVpUi9XBMClGsFkJ6l_NxPdQcysiXYe47-iONNMk6FIoI8VEXwYl-_2",
+      "AKfycbzUyhyK-tqL7ypp2H2jZXNCMciEr2PJwhkZIg0bwV1OwV2C6D9RKJZhA4HpiUi6F5eF"
+    ],
+    "versions": [
+      null,
+      202,
+      197
+    ]
+  },
+  "baseline": "v74 (2026-11-06): production 11305/18, leave 605/15, deployments=3 with identical three ids",
+  "delta_vs_v74": {
+    "production_rows": 31,
+    "leave_rows": 0,
+    "deployments": 0
+  },
+  "conclusion": "production sheet keeps receiving normal business entries; not a T1-B replay, not a freeze breach; three deploymentIds byte-identical to baseline, zero new deployment, zero link change",
+  "t1b_status": "OPEN / HOLD-NO-GO / M2 unsigned / phase-1 PASS held / TS_WRITE_FREEZE=1"
+}
