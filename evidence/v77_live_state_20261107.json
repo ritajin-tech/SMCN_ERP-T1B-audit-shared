@@ -1,0 +1,74 @@
+{
+ "schema": "v77_live_state_1",
+ "probe_utc": "2026-11-06T17:28:06Z",
+ "probe_beijing": "2026-11-07 01:28 北京",
+ "method": "hktool inspectWorkbook (read-only) + projects.deployments GET (read-only)",
+ "production_DB_gongshi": {
+  "name": "工时打卡数据库",
+  "sheet": "DB_工时流水",
+  "range": "A11270:Q11279",
+  "lastRow": 11336,
+  "lastCol": 18
+ },
+ "master_leave": {
+  "name": "T1B_主库_工时与请假",
+  "sheet": "请假",
+  "range": "A1:H3",
+  "lastRow": 605,
+  "lastCol": 15
+ },
+ "production_sheet_count": 16,
+ "master_sheet_count": 31,
+ "master_sheet_count_source": "master_tabs.sheets 实测",
+ "deployments": {
+  "count": 3,
+  "items": [
+   {
+    "deploymentId": "AKfycbwlxB2z9IDDo7pBv4sr0pu6-1ywvYBuRyqTwfjgl_o",
+    "versionNumber": null,
+    "description": null
+   },
+   {
+    "deploymentId": "AKfycbwYXV3VS3I59bVpUi9XBMClGsFkJ6l_NxPdQcysiXYe47-iONNMk6FIoI8VEXwYl-_2",
+    "versionNumber": 202,
+    "description": "V4.3.87 v2 (local datetime string -> real Date)"
+   },
+   {
+    "deploymentId": "AKfycbzUyhyK-tqL7ypp2H2jZXNCMciEr2PJwhkZIg0bwV1OwV2C6D9RKJZhA4HpiUi6F5eF",
+    "versionNumber": 197,
+    "description": null
+   }
+  ],
+  "scriptId": "1FPAwV50VdpI2AGT42rfn6JhU0assY1QaARbhTQeiUKS0mZ66yf_JRb8R"
+ },
+ "delta_vs_v76": {
+  "production_rows": 0,
+  "production_cols": 0,
+  "leave_rows": 0,
+  "leave_cols": 0,
+  "deployments": 0
+ },
+ "fixed_commit_binding": {
+  "fixed_commit": "93636382a7cc6f12f185dd77cb22744a3c79e042",
+  "tree": "80b8ff43d7af1c792217286c4027728f7b380ae9",
+  "sample_blob": "a91efd760f441dd6809faa4c405f46f0b0a08be7",
+  "raw_by_commit_http": 200,
+  "raw_by_commit_bytes": 2031,
+  "raw_by_commit_sha256": "2cd458c8d294c50b654f4af80882ebf1580a3b9672cb5e89ec047745c5c8a57c"
+ },
+ "hash_inventory": {
+  "scanned_files": 332,
+  "baseline": "9363638",
+  "artifact": "evidence/v77_hash_inventory_20261107.json",
+  "note": "以 v76 固定点 9363638 为基准的全部 332 件 docs/evidence 逐件 bytes + sha256 + git blob SHA-1，不含 v77 新增件"
+ },
+ "redlines": {
+  "zero_production_write": true,
+  "zero_master_write": true,
+  "zero_new_deployment": true,
+  "zero_link_change": true,
+  "zero_unfreeze": true,
+  "zero_script_execution": true
+ },
+ "status": "OPEN / HOLD-NO-GO / M2 未签 / 阶段一 PASS 暂缓 / TS_WRITE_FREEZE=1"
+}
