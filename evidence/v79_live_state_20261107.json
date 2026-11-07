@@ -1,0 +1,25 @@
+{
+  "schema": "v79_live_state_1",
+  "checked_utc": "2026-11-07T08:17:24Z",
+  "production_DB_gongshi": {"lastRow": 11336, "lastCol": 18},
+  "master_leave": {"lastRow": 606, "lastCol": 15},
+  "production_sheet_count": 16,
+  "master_sheet_count": 33,
+  "deployments": {"count": 3},
+  "team_fill_page_deployment": {
+    "deploymentId": "AKfycbzUyhyK-tqL7ypp2H2jZXNCMciEr2PJwhkZIg0bwV1OwV2C6D9RKJZhA4HpiUi6F5eF",
+    "versionNumber": 203,
+    "description": "V4.3.74 我的漏填清单（第4 tab + 逐条补填 + 二次查重）",
+    "url": "https://script.google.com/macros/s/AKfycbzUyhyK-tqL7ypp2H2jZXNCMciEr2PJwhkZIg0bwV1OwV2C6D9RKJZhA4HpiUi6F5eF/exec",
+    "access": "ANYONE_ANONYMOUS",
+    "executeAs": "USER_DEPLOYING",
+    "updateTime": "2026-11-07T03:34:23.686Z"
+  },
+  "delta_vs_v78": {
+    "production_rows": 0,
+    "leave_rows": 0,
+    "deployments": 0,
+    "team_fill_versionNumber": "202 -> 203 (版本指针前进，URL 不变)"
+  },
+  "note": "本件为只读实证，零生产写、零主库写、零解冻、零批量回灌。生产表 11336/18 与 v78 完全一致；主库请假 606/15、页签 33 均为每日 06:30 自动镜像与重算备份（B 类留档链），非本次上线所致。团队填报页版本号 202→203 系既有部署原地更新（deployments.update + versions.create），URL 逐字未变。"
+}
