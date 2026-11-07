@@ -1,0 +1,40 @@
+{
+  "schema": "v80_live_state_1",
+  "captured_utc": "2026-11-07T09:28:47Z",
+  "production_DB_gongshi": {
+    "lastRow": 11336,
+    "lastCol": 18,
+    "tail_newest_timestamp": "2026-11-06T14:54:36.558Z",
+    "note": "末行11336的录入时间为2026-11-06，早于部署updateTime 2026-11-07T03:34:23Z约13小时；与v77/v78/v79历次只读探针一致，未变"
+  },
+  "master_leave": {
+    "lastRow": 606,
+    "lastCol": 15
+  },
+  "production_sheet_count": 16,
+  "master_sheet_count": 33,
+  "deployments": {
+    "count": 3,
+    "team_fill_page": {
+      "deploymentId": "AKfycbzUyhyK-tqL7ypp2H2jZXNCMciEr2PJwhkZIg0bwV1OwV2C6D9RKJZhA4HpiUi6F5eF",
+      "versionNumber": 203,
+      "updateTime": "2026-11-07T03:34:23.686Z",
+      "url": "https://script.google.com/macros/s/AKfycbzUyhyK-tqL7ypp2H2jZXNCMciEr2PJwhkZIg0bwV1OwV2C6D9RKJZhA4HpiUi6F5eF/exec"
+    }
+  },
+  "no_write_window": {
+    "deploy_updateTime": "2026-11-07T03:34:23.686Z",
+    "last_probe": "2026-11-07T09:28:47Z",
+    "claim": "部署后至本次探针，生产表 DB_工时流水未发生任何新增写入",
+    "evidence_artifacts": [
+      "evidence/v80_prod_tail_snapshot_20261107.json",
+      "evidence/v80_code_identity_no_write_evidence_20261107.md"
+    ]
+  },
+  "delta_vs_v79": {
+    "production_rows": 0,
+    "leave_rows": 0,
+    "deployments": 0,
+    "team_fill_page_version": 203
+  }
+}
