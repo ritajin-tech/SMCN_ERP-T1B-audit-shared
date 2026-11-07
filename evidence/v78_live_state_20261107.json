@@ -1,0 +1,118 @@
+{
+ "schema": "v78_live_state_1",
+ "probe_utc": "2026-11-07T04:23:02Z",
+ "probe_beijing": "2026-11-07 12:23 北京",
+ "method": "hktool inspectWorkbook (read-only) + projects.deployments GET (read-only) + GitHub API/git (read-only) + QQ MCP inbox/sent/trash/spam (read-only)",
+ "production_DB_gongshi": {
+  "name": "工时打卡数据库",
+  "sheet": "DB_工时流水",
+  "lastRow": 11336,
+  "lastCol": 18,
+  "delta_vs_v77": {"rows": 0, "cols": 0}
+ },
+ "master_leave": {
+  "name": "T1B_主库_工时与请假",
+  "sheet": "请假",
+  "lastRow": 606,
+  "lastCol": 15,
+  "delta_vs_v77": {"rows": 1, "cols": 0},
+  "new_row_sample": ["Kian Guo", "2026-11-05T16:00:00.000Z", "休假", "OFF-WORK", "OFF-WORK", 8, "系统同步请假", "24iver7565sjmmvcnus3djvejl|2026-11-06|Kian Guo"],
+  "classification": "B 类既有自动同步（06:30 Google Calendar 镜像，留档链，不引用、不参与对外数字）"
+ },
+ "sheet_counts": {
+  "production": 16,
+  "master": 33,
+  "delta_vs_v77": {"production": 0, "master": 2},
+  "master_new_tabs": ["按月考勤_重算前_20261107", "月度视图_重算前_20261107"],
+  "note": "每日重算备份页，B 类自动镜像，与 Web App 上线无关"
+ },
+ "deployments": {
+  "count": 3,
+  "delta_vs_v77": 0,
+  "scriptId": "1FPAwV50VdpI2AGT42rfn6JhU0assY1QaARbhTQeiUKS0mZ66yf_JRb8R",
+  "team_entry": {
+   "deploymentId": "AKfycbzUyhyK-tqL7ypp2H2jZXNCMciEr2PJwhkZIg0bwV1OwV2C6D9RKJZhA4HpiUi6F5eF",
+   "url": "https://script.google.com/macros/s/AKfycbzUyhyK-tqL7ypp2H2jZXNCMciEr2PJwhkZIg0bwV1OwV2C6D9RKJZhA4HpiUi6F5eF/exec",
+   "single_get_versionNumber": 203,
+   "single_get_description": "V4.3.74 我的漏填清单（第4 tab + 逐条补填 + 二次查重）",
+   "list_api_cached_versionNumber": 197,
+   "note": "部署列表 API 有缓存，查实际版本须单条 GET deployments/{id}；URL 与 deploymentId 逐字未变"
+  },
+  "url_change": false,
+  "new_deployment": false
+ },
+ "webapp_release_20261107": {
+  "beijing_time": "2026-11-07 约 11:30 北京",
+  "feature": "现有填报页新增第 4 tab「补填 / 我的漏填」，服务端按人过滤、四色分类、逐条补填",
+  "version": {"before": "4.3.73", "after": "4.3.74"},
+  "files_changed": ["Index.html", "Code.js"],
+  "files_unchanged_count": 17,
+  "head_diff_after_push": [],
+  "page_http": 200,
+  "page_version_visible": "4.3.74",
+  "write_path": "仅 A 类前台逐条 submitBatch(currentToken, [row])；提交前 mfCheckDuplicate 二次查重；10 分钟幂等窗 / PeriodLockGuard / 写后 UUID 回读保留",
+  "explicitly_not_done": ["整月一键补齐", "submitBatch(数组) 批量写", "C 类批量回灌", "历史修复", "解冻", "自动回滚", "改表结构", "补列"],
+  "t1b_boundary": "只对上线之后的 A 类逐条补录产生部分可核对性；不追溯历史、不构成连续审计轨迹、不证明执行主体、不排除中间变更、不替代 R1/R2/R3；九格待核状态未推进一格",
+  "deploy_method": "projects.deployments.update 原地更新既有部署，非新建部署；部署数恒 3、URL 不变",
+  "local_artifacts": ["_build_missing_fill/patch_report.json", "_build_missing_fill/post_deploy_verify.json", "outputs/工时表_我的漏填_上线回执_20261107.html", "outputs/WebApp_我的漏填清单_实施方案_v3_20261107.md"]
+ },
+ "shared_repo": {
+  "main": "381aab3ef6d7bdbbf2d0f36bec0c6caf1e2b28d1",
+  "tree": "daf1b1e2d1bd130549bc7cda74d7b3ee153a78b6",
+  "commits_after_v77": 0,
+  "pr_all": 0,
+  "issues_open": 0,
+  "branches": {"main": "381aab3ef6d7bdbbf2d0f36bec0c6caf1e2b28d1", "master": "7833657cff895c7e3c44fdf58d81f5c796a50046"},
+  "docs_evidence_count_correct": 337,
+  "docs_evidence_count_naive_git_ls_tree": 222,
+  "path_quotepath_erratum": "core.quotePath=true 把中文路径八进制转义，导致 git ls-tree 少算 115 件；禁用后 381aab3=337 / 9363638=332",
+  "v77_inventory_recheck": {"baseline": "9363638", "count": 332, "path_symmetric_difference": 0, "bytes_or_sha256_mismatch": 0}
+ },
+ "mail_increment": {
+  "trigger": {"message_id": "msg_OoHGhW0GTaVQZhZMZYajLyqX_BslAqHHh1L-IrJGkX-d0Q", "utc": "2026-11-06T17:54:34Z", "subject": "回复：【生产表】v77证据核验进度", "has_attachments": false},
+  "attachment_mail_count": 0,
+  "trash_unrelated": 2,
+  "spam": 0,
+  "parallel_line": {"message_id": "msg_qcXl0Cb-scsDFXSDlk_uWNMtJI3CGurFaEC2munv2P3vHA", "utc": "2026-11-07T03:59:16Z", "subject": "【试用邀请】工时表新增「补填 / 我的漏填」，请两位试用并给意见", "to": ["vivian.ye@spacematrix.com", "tom.zhu@spacematrix.com"], "note": "独立并行线，不是审计放行、不是验收请求"}
+ },
+ "received_files": {
+  "downloads_desktop_new_36h": 0,
+  "clipboard_new_after_v77": 0,
+  "email_attachments": 0,
+  "summary": "本轮零新文件；唯一新收件为 trigger 那封邮件本身"
+ },
+ "watch": {
+  "checked_utc": "2026-11-07T04:19:16Z",
+  "events": [],
+  "exit_code": 0,
+  "mail_increment": "NOT_COVERED — 由会话侧 QQ 邮箱 MCP 补查（脚本不持邮箱凭据）"
+ },
+ "fixed_commit_binding": {
+  "fixed_commit": "381aab3ef6d7bdbbf2d0f36bec0c6caf1e2b28d1",
+  "tree": "daf1b1e2d1bd130549bc7cda74d7b3ee153a78b6",
+  "sample_path": "evidence/v77_live_state_20261107.json",
+  "sample_blob": "4e90d1aa6184d65b8cca7f0542bab6f1e1ef72bc",
+  "raw_by_commit_http": 200,
+  "raw_by_commit_bytes": 2360,
+  "raw_by_commit_sha256": "40108b9768ba2ab273b9ac9dfc426b88e3b9e43408d3eff86c15139fc5ee8dea",
+  "raw_matches_local": true,
+  "status": "我方本机实测，属对方报告；须由 Tom 独立取得并比对"
+ },
+ "hash_inventory": {
+  "artifact": "evidence/v78_hash_inventory_20261107.json",
+  "baseline": "381aab3ef6d7bdbbf2d0f36bec0c6caf1e2b28d1",
+  "count": 337,
+  "note": "不含 v78 新增件，避免自引用；逐件 bytes + 原始字节 SHA-256 + Git blob SHA-1"
+ },
+ "redlines": {
+  "zero_production_write": true,
+  "zero_master_write": true,
+  "zero_new_deployment": true,
+  "zero_link_change": true,
+  "zero_unfreeze": true,
+  "zero_bulk_backfill": true,
+  "zero_auto_rollback": true,
+  "zero_script_execution_required_from_tom": true
+ },
+ "status": "OPEN / HOLD-NO-GO / M2 未签 / 阶段一 PASS 暂缓 / TS_WRITE_FREEZE=1"
+}
