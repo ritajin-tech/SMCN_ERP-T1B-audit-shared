@@ -1,0 +1,60 @@
+{
+  "artifact": "v87 · D1 静态核对最小单元（回应 Tom 17:50 指定起点）",
+  "trigger_verbatim": "对 D1，先从固定提交选一件文件，独立取得原始字节并记录长度和 SHA-256，再与对应清单逐项比较；目前未完成此核验，暂不给通过结论。其余格子依相同原则逐项核对，不运行你方脚本。",
+  "generated_at": {
+    "beijing": "2026-11-08 21:44:03 (北京时间 GMT+8)",
+    "utc": "2026-11-08T13:44:03Z"
+  },
+  "fixed_commit": {
+    "short": "d50e795",
+    "full": "d50e7953ce400da760d0873423b41004b1882e68",
+    "repo": "ritajin-tech/SMCN_ERP-T1B-audit-shared",
+    "branch": "main"
+  },
+  "hash_inventory": {
+    "path": "evidence/v86_hash_inventory_20261108.json",
+    "total_files": 596,
+    "total_bytes": 39334267,
+    "self_exclusion_note": "清单显式排除自身；重跑结果一致（v86 已验证）"
+  },
+  "chosen_single_file_for_d1": "evidence/v86_attribution_evidence_gap_register_20261108.json",
+  "independent_retrieval_recipe": [
+    "1) git clone / fetch 固定提交后：git -C <repo> checkout d50e7953ce400da760d0873423b41004b1882e68",
+    "2) 长度：PowerShell  (Get-Item '<path>').Length   ｜ Git Bash  wc -c '<path>'",
+    "3) 哈希：PowerShell  (Get-FileHash -Algorithm SHA256 '<path>').Hash.ToLower()   ｜ Git Bash  sha256sum '<path>'"
+  ],
+  "comparison_table": [
+    {
+      "path": "evidence/v86_attribution_evidence_gap_register_20261108.json",
+      "inventory_bytes": 4825,
+      "inventory_sha256": "e7a8f8a1da84da86b12b33efce065988d920ac5363d1faca47fd411023b47007",
+      "observed_bytes": "",
+      "observed_sha256": "",
+      "match": "",
+      "tom_verdict": "",
+      "tom_note": ""
+    },
+    {
+      "path": "docs/v86_full_review_20261108.md",
+      "inventory_bytes": 14482,
+      "inventory_sha256": "b6bef159085e1334d1c036d2c30137ff83df5bd3198e2667e7401d44498f9a4a",
+      "observed_bytes": "",
+      "observed_sha256": "",
+      "match": "",
+      "tom_verdict": "",
+      "tom_note": ""
+    }
+  ],
+  "rules": {
+    "do_not_run_our_scripts": true,
+    "tools_used": [
+      "git（系统自带）",
+      "PowerShell Get-Item / Get-FileHash（系统自带）",
+      "或 sha256sum / wc -c"
+    ],
+    "we_do_not_prefill": "observed_* / match / verdict 三列一律留空由 Tom 填；我方不代填、不代算通过",
+    "unverified_is_valid": "照实写『未核』或『不改 + 理由』仍属有效还复，不抬门槛",
+    "no_acceptance_implied": "本包仅为降低核验成本的固定单元，不构成验收、生产授权或 D1 已通过"
+  },
+  "next_grid_policy": "其余 A1–D3 / E1–E4 各格依相同原则：固定提交 → 独立取字节 → 记录长度与 SHA-256 → 与清单逐项比较 → 落字；任一格回证即按总账 §六登记为推进，不必等全量齐备"
+}

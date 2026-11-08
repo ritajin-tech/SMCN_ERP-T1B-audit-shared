@@ -1,0 +1,357 @@
+{
+  "artifact": "v87 · 重建 33 页清单『持续标明推定』登记表",
+  "trigger_verbatim": "重建的 33 页清单必须持续标明推定而非原始快照。",
+  "generated_at": {
+    "beijing": "2026-11-08 21:44:03 (北京时间 GMT+8)",
+    "utc": "2026-11-08T13:44:03Z"
+  },
+  "canonical_label": "〔33 页＝RECONSTRUCTED_NOT_ORIGINAL，按命名规则重建的推定，非任何历史时点的原始快照；当前实测 35 页仅对本次采集时点成立〕",
+  "continuous_policy": [
+    "凡 v87 及以后任何新文档、回函、证据包提及 33 页，必须同段带 canonical_label 或等价标注",
+    "35 页只能表述为『本次采集时点的原始读数，仅对该时点成立』，不得写成历史原始快照",
+    "历史各代原件不改写；其当时未标注属该代状态，由本登记表统一给出读法",
+    "验收 = 重跑 tools/t1b_make_v87_evidence.py 后 unresolved_factual_count 为 0，且历史原件 / 索引性提及逐条带 resolution 理由（靶子 B2 格可逐条驳回）"
+  ],
+  "scan_scope": "共享库 docs/*.md 全部活文档与历代原件（只读扫描，不改写）",
+  "hits": [
+    {
+      "file": "T1-B_v85_明确方案与具体编辑_Tom可直接编辑_20261108.md",
+      "line_no": 53,
+      "raw": "prior_inventory_33_RECONSTRUCTED_NOT_ORIGINAL : 改法=[确认「推定非原始」标注 / 要求补原始快照] : 验收=你方明示",
+      "category": "HISTORICAL_ORIGINAL",
+      "has_reconstruction_label": true,
+      "needs_label": false,
+      "resolution": "ALREADY_LABELED"
+    },
+    {
+      "file": "T1-B_v85_明确方案与具体编辑_Tom可直接编辑_20261108.md",
+      "line_no": 89,
+      "raw": "33 页推定清单标注       已核/未核 = [  ]  说明 = ______________________",
+      "category": "HISTORICAL_ORIGINAL",
+      "has_reconstruction_label": true,
+      "needs_label": false,
+      "resolution": "ALREADY_LABELED"
+    },
+    {
+      "file": "T1-B_v85_明确方案与具体编辑_Tom可直接编辑_20261108.md",
+      "line_no": 95,
+      "raw": "> 我方未留存 33 页时刻的原始页签清单快照，已在证据包中明确标注「推定、非原始凭证、不可作原始凭证」。**接受你方「基线后 events 为空不能认定基线之前变更性质」的指正**，收窄见 v85 §4.3。",
+      "category": "HISTORICAL_ORIGINAL",
+      "has_reconstruction_label": false,
+      "needs_label": true,
+      "resolution": "HISTORICAL_NO_REWRITE"
+    },
+    {
+      "file": "T1-B_v86_明确方案与具体编辑_Tom可直接编辑_20261108.md",
+      "line_no": 51,
+      "raw": "B1  章节 classification.RECONSTRUCTED_NOT_ORIGINAL",
+      "category": "HISTORICAL_ORIGINAL",
+      "has_reconstruction_label": true,
+      "needs_label": false,
+      "resolution": "ALREADY_LABELED"
+    },
+    {
+      "file": "T1-B_v86_明确方案与具体编辑_Tom可直接编辑_20261108.md",
+      "line_no": 52,
+      "raw": "问题 33 页清单标为「重建推定、非任何历史时点原始快照」是否成立",
+      "category": "HISTORICAL_ORIGINAL",
+      "has_reconstruction_label": false,
+      "needs_label": true,
+      "resolution": "HISTORICAL_NO_REWRITE"
+    },
+    {
+      "file": "T1-B_v87_明确方案与具体编辑_Tom可直接编辑_20261108.md",
+      "line_no": 61,
+      "raw": "### B 组 · 33 页「持续」标明推定（`evidence/v87_reconstructed_label_register_20261108.json`）",
+      "category": "V87_CURRENT",
+      "has_reconstruction_label": false,
+      "needs_label": true,
+      "resolution": "INDEX_OR_POLICY_MENTION_COVERED_BY_B3"
+    },
+    {
+      "file": "T1-B_v87_明确方案与具体编辑_Tom可直接编辑_20261108.md",
+      "line_no": 63,
+      "raw": "> 回应你方原话：「重建的 33 页清单必须持续标明推定而非原始快照。」",
+      "category": "V87_CURRENT",
+      "has_reconstruction_label": true,
+      "needs_label": false,
+      "resolution": "ALREADY_LABELED"
+    },
+    {
+      "file": "T1-B_v87_明确方案与具体编辑_Tom可直接编辑_20261108.md",
+      "line_no": 64,
+      "raw": "> 统一标注（canonical_label）：`〔33 页＝RECONSTRUCTED_NOT_ORIGINAL，按命名规则重建的推定，非任何历史时点的原始快照；当前实测 35 页仅对本次采集时点成立〕`",
+      "category": "V87_CURRENT",
+      "has_reconstruction_label": true,
+      "needs_label": false,
+      "resolution": "ALREADY_LABELED"
+    },
+    {
+      "file": "T1-B_v87_明确方案与具体编辑_Tom可直接编辑_20261108.md",
+      "line_no": 69,
+      "raw": "问题 统一标注是否准确表达「33 页为重建推定、非原始快照；35 页仅对采集时点成立」",
+      "category": "V87_CURRENT",
+      "has_reconstruction_label": true,
+      "needs_label": false,
+      "resolution": "ALREADY_LABELED"
+    },
+    {
+      "file": "T1-B_v87_明确方案与具体编辑_Tom可直接编辑_20261108.md",
+      "line_no": 71,
+      "raw": "验收 任何引用 33 页处不再被读成原始快照",
+      "category": "V87_CURRENT",
+      "has_reconstruction_label": false,
+      "needs_label": true,
+      "resolution": "INDEX_OR_POLICY_MENTION_COVERED_BY_B3"
+    },
+    {
+      "file": "T1-B_v87_明确方案与具体编辑_Tom可直接编辑_20261108.md",
+      "line_no": 81,
+      "raw": "问题 「v87 及以后任何新文档/回函/证据包凡提 33 页必须同段带标注；35 页只写本次采集时点；",
+      "category": "V87_CURRENT",
+      "has_reconstruction_label": false,
+      "needs_label": true,
+      "resolution": "INDEX_OR_POLICY_MENTION_COVERED_BY_B3"
+    },
+    {
+      "file": "T1-B_v87_明确方案与具体编辑_Tom可直接编辑_20261108.md",
+      "line_no": 159,
+      "raw": "| 3 | `docs/T1-B_口径对照表_权威取数说明_20261108.md` : 头部 / §1 / §二 / §5 / §六 | 读数与辨别规则需同步；33 页标注需「持续」 | 头部改 21:31 同步；§1 补 21:29 复探无增量；33 页段落加 **canonical_label 统一标注**；辨伪规则补 17:50 真回函；§5 补 v87 触发登记；§六补 v87 生成命令 | 权威取数可复算、33 页持续标注生效 |",
+      "category": "V87_CURRENT",
+      "has_reconstruction_label": true,
+      "needs_label": false,
+      "resolution": "ALREADY_LABELED"
+    },
+    {
+      "file": "T1-B_v87_明确方案与具体编辑_Tom可直接编辑_20261108.md",
+      "line_no": 181,
+      "raw": "F2 33 页「持续标明推定」机制",
+      "category": "V87_CURRENT",
+      "has_reconstruction_label": true,
+      "needs_label": false,
+      "resolution": "ALREADY_LABELED"
+    },
+    {
+      "file": "T1-B_v87_明确方案与具体编辑_Tom可直接编辑_20261108.md",
+      "line_no": 216,
+      "raw": "| 条件①″ 33 页持续标注 | 按 B1–B4 确认或给替换机制 | Tom | 无（可并行） |",
+      "category": "V87_CURRENT",
+      "has_reconstruction_label": true,
+      "needs_label": false,
+      "resolution": "ALREADY_LABELED"
+    },
+    {
+      "file": "T1-B_v87_明确方案与具体编辑_Tom可直接编辑_20261108.md",
+      "line_no": 228,
+      "raw": "- **不要回去**：总账 §二 七项已固定证据链、v85 已有效接受的三板块还复、页签 35、生产表 11384、N6 不可回填、33 页＝推定非原始快照，均不得推回。本件不改写任何一代原件。",
+      "category": "V87_CURRENT",
+      "has_reconstruction_label": true,
+      "needs_label": false,
+      "resolution": "ALREADY_LABELED"
+    },
+    {
+      "file": "T1-B_口径对照表_权威取数说明_20261108.md",
+      "line_no": 51,
+      "raw": "- 🔴 **v86 追加（承接 Tom 16:48 指正）**：33 页历史清单是按命名规则**重建的推定，不是任何历史时点的原始快照**；35 页仅为本次采集时点的原始读数，仅对该时点成立。可取得的版本历史 / 创建 / 权限记录与**不可取得范围**三分类见 `evidence/v86_master_tabs_provenance_boundary_20261108.json`。历史原件不改写。",
+      "category": "LIVING_DOC",
+      "has_reconstruction_label": true,
+      "needs_label": false,
+      "resolution": "ALREADY_LABELED"
+    },
+    {
+      "file": "T1-B_口径对照表_权威取数说明_20261108.md",
+      "line_no": 52,
+      "raw": "- 🔴 **v87 持续标注（承接 Tom 17:50「必须持续标明推定」）**：统一标注 `〔33 页＝RECONSTRUCTED_NOT_ORIGINAL，按命名规则重建的推定，非任何历史时点的原始快照；当前实测 35 页仅对本次采集时点成立〕`。**v87 及以后任何新文档 / 回函 / 证据包凡提 33 页必须同段带此标注**；只读登记表 `evidence/v87_reconstructed_label_register_20261108.json` 扫描 docs/*.md，**命中数与 `needs_label` 以登记表 `hit_count` / `needs_label_c",
+      "category": "LIVING_DOC",
+      "has_reconstruction_label": true,
+      "needs_label": false,
+      "resolution": "ALREADY_LABELED"
+    },
+    {
+      "file": "T1-B_口径对照表_权威取数说明_20261108.md",
+      "line_no": 105,
+      "raw": "python tools/t1b_make_v87_evidence.py           # v87 三份证据包（连续性原始日志 / D1 静态核验 / 33页持续标注）只读重跑",
+      "category": "LIVING_DOC",
+      "has_reconstruction_label": true,
+      "needs_label": false,
+      "resolution": "ALREADY_LABELED"
+    },
+    {
+      "file": "T1-B_系统大局总账_Master_Consolidation_20261108.md",
+      "line_no": 89,
+      "raw": "> 🔴 **v87 追加（承接 Tom 17:50 指正）**：修复后连续性须核对**原始日志 / 时间覆盖 / 采集来源**，**不能仅凭摘要认定** → `evidence/v87_watch_continuity_original_log_20261108.json`（23 行原始日志逐行 + 23 行时间覆盖矩阵 + 采集来源链哈希 + 21:30 系统级读数）。**N6 不因 12 次修后连续 OK 而关闭**；N1 / N5 仍为缺口。另两件：`evidence/v87_d1_static_check_kit_20261108.json`（D1 静态核验最小单元，`observed",
+      "category": "LIVING_DOC",
+      "has_reconstruction_label": false,
+      "needs_label": true,
+      "resolution": "INDEX_OR_POLICY_MENTION_COVERED_BY_B3"
+    },
+    {
+      "file": "T1-B_系统大局总账_Master_Consolidation_20261108.md",
+      "line_no": 126,
+      "raw": "| **v87** | **见 git log（本件发布提交）** | Tom 17:50:25 真回函三组实质新条件 + 首次按格指定 D1 起点 | 三份证据包（连续性原始日志+时间覆盖+采集来源 / D1 静态核验最小单元 / 33 页持续标注登记表）+ 17 格具体编辑靶子；**D1 登记为程序性推进、非通过**；`docs/v87_full_review_20261108.md` |",
+      "category": "LIVING_DOC",
+      "has_reconstruction_label": true,
+      "needs_label": false,
+      "resolution": "ALREADY_LABELED"
+    },
+    {
+      "file": "T1-B_系统大局总账_Master_Consolidation_20261108.md",
+      "line_no": 175,
+      "raw": "Tom 回《回复：【生产表】v86证据与监测边界》`msg_Ipp4AFEP-P4XP3NDLpo7pdTMyRr93Vc5p0mexc8O8Z8R_A`（无附件；`to` 不含 1252293966、正文以「Rita，」开头 → **真回函**，非 `reply_all` 回显）。该信**不是纯状态回函**，含三组实质新条件：① 固定提交 / 原始字节 / 采集来源尚未独立核验；**修复后运行证据能否支持连续性，须核对原始日志、时间覆盖及采集来源，不能仅凭摘要认定**；② 重建的 33 页清单**必须持续标明推定而非原始快照**；③ **对 D1**，先从固定提交选一件文件，独立取得原始字节",
+      "category": "LIVING_DOC",
+      "has_reconstruction_label": true,
+      "needs_label": false,
+      "resolution": "ALREADY_LABELED"
+    },
+    {
+      "file": "T1-B_系统大局总账_Master_Consolidation_20261108.md",
+      "line_no": 210,
+      "raw": "| **J** | v87 承接：连续性原始日志/时间覆盖/采集来源 + D1 静态核验最小单元 + 33 页持续标注机制 + 17 格具体编辑 + D1 程序性推进（非通过） | **已落地** | `docs/v87_full_review_20261108.md` §三 / §六 |",
+      "category": "LIVING_DOC",
+      "has_reconstruction_label": true,
+      "needs_label": false,
+      "resolution": "ALREADY_LABELED"
+    },
+    {
+      "file": "v78_full_review_20261107.md",
+      "line_no": 56,
+      "raw": "| 主库页签 | **33 页**（较 v77 +2） | 新增 `按月考勤_重算前_20261107` / `月度视图_重算前_20261107`，为每日重算备份页，属 B 类自动镜像；**与本次上线无关** |",
+      "category": "HISTORICAL_ORIGINAL",
+      "has_reconstruction_label": false,
+      "needs_label": true,
+      "resolution": "HISTORICAL_NO_REWRITE"
+    },
+    {
+      "file": "v79_full_review_20261107.md",
+      "line_no": 10,
+      "raw": "2. **主库「请假」**：606 行 / 15 列，较 v78 +1（每日 06:30 镜像）；**主库页签 33 页**，较 v78 +2（每日重算快照页）。均属 B 类留档链，不引用、不参与对外数字，与本轮无关。",
+      "category": "HISTORICAL_ORIGINAL",
+      "has_reconstruction_label": false,
+      "needs_label": true,
+      "resolution": "HISTORICAL_NO_REWRITE"
+    },
+    {
+      "file": "v85_full_review_20261108.md",
+      "line_no": 96,
+      "raw": "| 前后清单 | 33 页清单按命名规则回推（去掉末两页 `..._重算前_20261108`） | ⚠️ **推定清单，非原始快照，不可作原始凭证** |",
+      "category": "HISTORICAL_ORIGINAL",
+      "has_reconstruction_label": true,
+      "needs_label": false,
+      "resolution": "ALREADY_LABELED"
+    },
+    {
+      "file": "v85_full_review_20261108.md",
+      "line_no": 99,
+      "raw": "| 日志缺口 | 明确写出 33 页时刻的清单快照、创建时间/创建者、权限变更记录**均未留存** | ✅ |",
+      "category": "HISTORICAL_ORIGINAL",
+      "has_reconstruction_label": false,
+      "needs_label": true,
+      "resolution": "HISTORICAL_NO_REWRITE"
+    },
+    {
+      "file": "v85_full_review_20261108.md",
+      "line_no": 137,
+      "raw": "| **D** | 页签清单证据包：35 页完整清单 + 33 页推定清单标注 + 记录可得性 + 日志缺口 + 关闭路径 | ✅ `evidence/v85_master_tabs_inventory_20261108.json` |",
+      "category": "HISTORICAL_ORIGINAL",
+      "has_reconstruction_label": true,
+      "needs_label": false,
+      "resolution": "ALREADY_LABELED"
+    },
+    {
+      "file": "v86_full_review_20261108.md",
+      "line_no": 64,
+      "raw": "- **RECONSTRUCTED_NOT_ORIGINAL**：33 页历史清单是按命名规则**重建的推定**，不是任何历史时点的原始快照；**明确接受对方指正**：不以它证明基线前变更性质，也不据此排除其他写入。",
+      "category": "HISTORICAL_ORIGINAL",
+      "has_reconstruction_label": true,
+      "needs_label": false,
+      "resolution": "ALREADY_LABELED"
+    },
+    {
+      "file": "v86_full_review_20261108.md",
+      "line_no": 137,
+      "raw": "- **不要回去**：总账 §二 七项已固定证据链、v85 已有效接受的三板块还复、页签 35 实测口径、生产表 11384 —— 都不得推回未固定 / 未还复 / 33 页 / 11341。本代**未改写任何一代原件**，只追加 docs 与 evidence、并对 5 份活文档做明确标注的具体编辑。",
+      "category": "HISTORICAL_ORIGINAL",
+      "has_reconstruction_label": false,
+      "needs_label": true,
+      "resolution": "HISTORICAL_NO_REWRITE"
+    },
+    {
+      "file": "v87_full_review_20261108.md",
+      "line_no": 38,
+      "raw": "- 重建的 **33 页清单必须持续标明推定而非原始快照**；",
+      "category": "V87_CURRENT",
+      "has_reconstruction_label": true,
+      "needs_label": false,
+      "resolution": "ALREADY_LABELED"
+    },
+    {
+      "file": "v87_full_review_20261108.md",
+      "line_no": 63,
+      "raw": "### T2 · 33 页清单「持续」标明推定 → 统一标注 + 可重跑登记表",
+      "category": "V87_CURRENT",
+      "has_reconstruction_label": false,
+      "needs_label": true,
+      "resolution": "INDEX_OR_POLICY_MENTION_COVERED_BY_B3"
+    },
+    {
+      "file": "v87_full_review_20261108.md",
+      "line_no": 67,
+      "raw": "- **统一标注（canonical_label）**：`〔33 页＝RECONSTRUCTED_NOT_ORIGINAL，按命名规则重建的推定，非任何历史时点的原始快照；当前实测 35 页仅对本次采集时点成立〕`",
+      "category": "V87_CURRENT",
+      "has_reconstruction_label": true,
+      "needs_label": false,
+      "resolution": "ALREADY_LABELED"
+    },
+    {
+      "file": "v87_full_review_20261108.md",
+      "line_no": 70,
+      "raw": "- **持续策略**（不是一次性补丁）：v87 及以后任何新文档、回函、证据包凡提及 33 页，必须同段带统一标注或等价表述；35 页只能写成「本次采集时点的原始读数，仅对该时点成立」；验收 = 重跑后 `unresolved_factual_count` 归零，且历史原件 / 索引性提及逐条带 `resolution` 理由。",
+      "category": "V87_CURRENT",
+      "has_reconstruction_label": false,
+      "needs_label": true,
+      "resolution": "INDEX_OR_POLICY_MENTION_COVERED_BY_B3"
+    },
+    {
+      "file": "v87_full_review_20261108.md",
+      "line_no": 118,
+      "raw": "**请改做什么**：对本代三组新证据包（连续性原始证据 / 33 页持续标注 / D1 静态核验单元）按 `文件:章节:问题:改法:验收` **逐格落字**——每格给「结论 + 依据 + 已核/未核 + 一条具体改法」；未独立取得照实写「未核」即有效，「不改 + 理由」也有效。可直接就地编辑 `docs/T1-B_v87_明确方案与具体编辑_Tom可直接编辑_20261108.md`，或邮件按格回证。",
+      "category": "V87_CURRENT",
+      "has_reconstruction_label": true,
+      "needs_label": false,
+      "resolution": "ALREADY_LABELED"
+    },
+    {
+      "file": "v87_full_review_20261108.md",
+      "line_no": 131,
+      "raw": "| D | 五份活文档同步至 v87 口径 + 33 页统一持续标注 | **已落地** | 总账 / 靶子 / 口径表 / 同步卡 / 交接卡；登记表 `unresolved_factual_count` 可重跑复核 |",
+      "category": "V87_CURRENT",
+      "has_reconstruction_label": true,
+      "needs_label": false,
+      "resolution": "ALREADY_LABELED"
+    },
+    {
+      "file": "v87_full_review_20261108.md",
+      "line_no": 140,
+      "raw": "- **不要回去**：总账 §二 七项已固定证据链、v85 已有效接受的三板块还复、页签 **35** 实测口径、生产表 **11384**、N6 不可回填、33 页＝推定非原始快照——都不得推回未固定 / 未还复 / 33 页 / 11341 / 故障期已补。**本代未改写任何一代原件**，只追加 docs 与 evidence，并对 5 份活文档做具体编辑。",
+      "category": "V87_CURRENT",
+      "has_reconstruction_label": true,
+      "needs_label": false,
+      "resolution": "ALREADY_LABELED"
+    }
+  ],
+  "hit_count": 36,
+  "needs_label_count": 12,
+  "unresolved_factual_count": 0,
+  "category_legend": {
+    "HISTORICAL_ORIGINAL": "v75–v86 历代原件，按『原件未改写、可逐代 diff』纪律只登记不回改",
+    "LIVING_DOC": "五份持续同步的活文档",
+    "V87_CURRENT": "v87 本代新增的两份 docs"
+  },
+  "resolution_legend": {
+    "ALREADY_LABELED": "同段已带统一标注或等价表述",
+    "HISTORICAL_NO_REWRITE": "历史原件当时未标注属该代状态，本登记表统一给出读法，不回改",
+    "INDEX_OR_POLICY_MENTION_COVERED_BY_B3": "标题 / 表格栏目 / 命令注释 / 策略描述等索引性提及，非把 33 页清单当事实陈述；由 B3 持续策略覆盖，对外回函正文一律带标注",
+    "PENDING_FACTUAL_LABEL": "事实陈述且未带标注，须补标注或给出不改理由"
+  },
+  "honest_note": "全部未标注命中如实列出、不靠分类把问题抹掉；每条给 category + resolution 供逐条驳回。『持续』靠本登记表 + 后续文档强制标注策略落实，不靠回改历史"
+}
