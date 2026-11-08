@@ -4,17 +4,105 @@
   "sheet": "DB_工时流水",
   "ssid": "1Pi5u9fEawgp7yICWPMMyQCT_LbwTZthQDW-H05xYdVI",
   "probe_window": "A11311:Q11371",
-  "meta": { "name": "工时打卡数据库", "range": "A11311:Q11371", "lastRow": 11341, "lastCol": 18 },
-  "header": ["⚙ 录入时间 (Timestamp)", "日期 (Date)", "姓名 (Name)", "⚙ 类型 (Type)", "阶段 (Stage)", "项目编号 (Project ID)", "工时 (Hours)", "备注 (Notes)", "⚙ 唯一码 (UUID)", "⚙ 项目名称（自动）", "⚙ 项目PM（自动）", "⚙ 直属主管（自动）", "项目情况", "", "", "", ""],
+  "meta": {
+    "name": "工时打卡数据库",
+    "range": "A11311:Q11371",
+    "lastRow": 11341,
+    "lastCol": 18
+  },
+  "header": [
+    "⚙ 录入时间 (Timestamp)",
+    "日期 (Date)",
+    "姓名 (Name)",
+    "⚙ 类型 (Type)",
+    "阶段 (Stage)",
+    "项目编号 (Project ID)",
+    "工时 (Hours)",
+    "备注 (Notes)",
+    "⚙ 唯一码 (UUID)",
+    "⚙ 项目名称（自动）",
+    "⚙ 项目PM（自动）",
+    "⚙ 直属主管（自动）",
+    "项目情况",
+    "",
+    "",
+    "",
+    ""
+  ],
   "baseline_lastRow_v81": 11336,
   "observed_lastRow_v82": 11341,
   "delta_rows": 5,
   "new_rows": [
-    { "rownum": 11337, "ts": "2026-11-07T14:19:20.535Z", "date": "2026-11-06T16:00:00.000Z", "name": "Kai Chang", "type": "执行端", "stage": "3. 施工阶段", "project": "25-150-SZ", "hours": 3, "notes": "阅读南京福特项目招标资料", "uuid": "TS-D1E7FB0863BB", "project_name": "Biosparc | Suzhou | Build | Campus", "supervisor": "Rita Jin" },
-    { "rownum": 11338, "ts": "2026-11-07T14:19:20.536Z", "date": "2026-11-06T16:00:00.000Z", "name": "Kai Chang", "type": "执行端", "stage": "3. 施工阶段", "project": "25-150-SZ", "hours": 0.5, "notes": "确定布帘样板", "uuid": "TS-ABEA5A07B558", "project_name": "Biosparc | Suzhou | Build | Campus", "supervisor": "Rita Jin" },
-    { "rownum": 11339, "ts": "2026-11-07T14:19:20.536Z", "date": "2026-11-06T16:00:00.000Z", "name": "Kai Chang", "type": "执行端", "stage": "3. 施工阶段", "project": "25-150-SZ", "hours": 1, "notes": "现场收尾整改情况查看", "uuid": "TS-E743CA3EE05C", "project_name": "Biosparc | Suzhou | Build | Campus", "supervisor": "Rita Jin" },
-    { "rownum": 11340, "ts": "2026-11-07T14:19:20.537Z", "date": "2026-11-06T16:00:00.000Z", "name": "Kai Chang", "type": "执行端", "stage": "3. 施工阶段", "project": "25-150-SZ", "hours": 3, "notes": "继续阅读南京福特项目资料，梳理一版问题", "uuid": "TS-49A1785A22B1", "project_name": "Biosparc | Suzhou | Build | Campus", "supervisor": "Rita Jin" },
-    { "rownum": 11341, "ts": "2026-11-07T14:19:20.537Z", "date": "2026-11-06T16:00:00.000Z", "name": "Kai Chang", "type": "执行端", "stage": "3. 施工阶段", "project": "25-150-SZ", "hours": 0.5, "notes": "参加总包消防验收准备会议", "uuid": "TS-7F28C724552C", "project_name": "Biosparc | Suzhou | Build | Campus", "supervisor": "Rita Jin" }
+    {
+      "rownum": 11337,
+      "ts": "2026-11-07T14:19:20.535Z",
+      "date": "2026-11-06T16:00:00.000Z",
+      "name": "Kai Chang",
+      "type": "执行端",
+      "stage": "3. 施工阶段",
+      "project": "25-150-SZ",
+      "hours": 3,
+      "notes": "阅读南京福特项目招标资料",
+      "uuid": "TS-D1E7FB0863BB",
+      "project_name": "Biosparc | Suzhou | Build | Campus",
+      "supervisor": "Rita Jin"
+    },
+    {
+      "rownum": 11338,
+      "ts": "2026-11-07T14:19:20.536Z",
+      "date": "2026-11-06T16:00:00.000Z",
+      "name": "Kai Chang",
+      "type": "执行端",
+      "stage": "3. 施工阶段",
+      "project": "25-150-SZ",
+      "hours": 0.5,
+      "notes": "确定布帘样板",
+      "uuid": "TS-ABEA5A07B558",
+      "project_name": "Biosparc | Suzhou | Build | Campus",
+      "supervisor": "Rita Jin"
+    },
+    {
+      "rownum": 11339,
+      "ts": "2026-11-07T14:19:20.536Z",
+      "date": "2026-11-06T16:00:00.000Z",
+      "name": "Kai Chang",
+      "type": "执行端",
+      "stage": "3. 施工阶段",
+      "project": "25-150-SZ",
+      "hours": 1,
+      "notes": "现场收尾整改情况查看",
+      "uuid": "TS-E743CA3EE05C",
+      "project_name": "Biosparc | Suzhou | Build | Campus",
+      "supervisor": "Rita Jin"
+    },
+    {
+      "rownum": 11340,
+      "ts": "2026-11-07T14:19:20.537Z",
+      "date": "2026-11-06T16:00:00.000Z",
+      "name": "Kai Chang",
+      "type": "执行端",
+      "stage": "3. 施工阶段",
+      "project": "25-150-SZ",
+      "hours": 3,
+      "notes": "继续阅读南京福特项目资料，梳理一版问题",
+      "uuid": "TS-49A1785A22B1",
+      "project_name": "Biosparc | Suzhou | Build | Campus",
+      "supervisor": "Rita Jin"
+    },
+    {
+      "rownum": 11341,
+      "ts": "2026-11-07T14:19:20.537Z",
+      "date": "2026-11-06T16:00:00.000Z",
+      "name": "Kai Chang",
+      "type": "执行端",
+      "stage": "3. 施工阶段",
+      "project": "25-150-SZ",
+      "hours": 0.5,
+      "notes": "参加总包消防验收准备会议",
+      "uuid": "TS-7F28C724552C",
+      "project_name": "Biosparc | Suzhou | Build | Campus",
+      "supervisor": "Rita Jin"
+    }
   ],
   "classification": {
     "execution_subject": "Kai Chang (foreground user, not script/batch)",
@@ -26,5 +114,7 @@
     "FREEZE_status": "TS_WRITE_FREEZE=1 仍生效，C 类批量回灌未触发；本 +5 非 C 类",
     "redline_breach": "none — 结构/链接/部署数(恒3)/URL 均未变",
     "interpretation": "合法 A 类前台补录；非事故写入、非隐蔽写入。恰印证 Tom 09:55Z 要点：固定两端行数/尾时间戳不能证明整窗无写入——但此处写入主体、时间、通道均可归因，属透明可核的前台提交，非不可追踪写入。"
-  }
+  },
+  "_timezone_note": "_timezone_note: 本文件所有 *_utc / 含 Z 的时间戳均为 UTC(GMT+0)。北京时间=UTC+8h。换算请用 tools/fmt_time.py。新增 *_beijing 字段为可读北京时间，原始 UTC 字段保持不变。",
+  "captured_utc_beijing": "2026-11-07 23:18:00 (北京时间 GMT+8)"
 }
