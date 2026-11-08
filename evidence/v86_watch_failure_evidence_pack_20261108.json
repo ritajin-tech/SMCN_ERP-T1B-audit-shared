@@ -1,0 +1,252 @@
+{
+  "_timezone_note": "面向 Rita 与对外回函的时间一律北京时间 GMT+8 优先、UTC 括号附注；原始 UTC 值保留供审计复算。",
+  "v86_purpose": "逐条承接 Tom 16:48 真回函 T3：六次失败原始日志、修复前后版本、后续连续运行证据；并明确接受『模拟成功不能反证故障期完整』",
+  "tom_mail": {
+    "message_id": "msg_acWm67UtPZh-bLni3VLlhrIBR1G3WzyqBRbAnLFj_nym4g",
+    "subject": "回复：【生产表】v85新增记录与监测缺口",
+    "received_utc": "2026-11-08T08:48:21Z",
+    "received_beijing": "2026-11-08 16:48:21 (北京时间 GMT+8；UTC 2026-11-08T08:48:21Z)",
+    "authenticity": "真回函：to 仅含 ritajin.muraya@qq.com、cc 332721759@qq.com，不含 1252293966；正文以「Rita，」开头。按辨伪规则排除我方 reply_all 回显（回显以「Tom，」开头且 to 含 1252293966）。",
+    "has_attachments": false,
+    "in_reply_to": "<tencent_40CBB426C22CFD032A5E2BEF080AD09FC806@qq.com>"
+  },
+  "captured_utc": "2026-11-08T09:37:15Z",
+  "captured_beijing": "2026-11-08 17:37:15 (北京时间 GMT+8；UTC 2026-11-08T09:37:15Z)",
+  "tom_condition_verbatim": "对监测故障，请保全六次失败的原始日志、修复前后版本和后续连续运行证据；模拟运行成功不能反证故障期间监测完整。",
+  "accepted": true,
+  "six_failures_original_log": {
+    "source": "C:\\Users\\rita.jin\\WorkBuddy\\SMCN_ERP\\tools\\_zc_logs\\2026-11-08.log",
+    "failures": [
+      {
+        "line": 104,
+        "raw": "[2026-11-08 13:00:00] t1b-watch      FAIL (0.7s) 只读探针失败: PROBE_FAILED: [WinError 2] 系统找不到指定的文件。"
+      },
+      {
+        "line": 111,
+        "raw": "[2026-11-08 13:30:00] t1b-watch      FAIL (0.6s) 只读探针失败: PROBE_FAILED: [WinError 2] 系统找不到指定的文件。"
+      },
+      {
+        "line": 115,
+        "raw": "[2026-11-08 14:00:02] t1b-watch      FAIL (2.0s) 只读探针失败: PROBE_FAILED: [WinError 2] 系统找不到指定的文件。"
+      },
+      {
+        "line": 120,
+        "raw": "[2026-11-08 14:30:00] t1b-watch      FAIL (0.7s) 只读探针失败: PROBE_FAILED: [WinError 2] 系统找不到指定的文件。"
+      },
+      {
+        "line": 124,
+        "raw": "[2026-11-08 15:00:00] t1b-watch      FAIL (0.7s) 只读探针失败: PROBE_FAILED: [WinError 2] 系统找不到指定的文件。"
+      },
+      {
+        "line": 130,
+        "raw": "[2026-11-08 15:30:01] t1b-watch      FAIL (1.1s) 只读探针失败: PROBE_FAILED: [WinError 2] 系统找不到指定的文件。"
+      }
+    ],
+    "failure_count": 6
+  },
+  "timing_csv_full": {
+    "source": "C:\\Users\\rita.jin\\WorkBuddy\\SMCN_ERP\\tools\\_zc_logs\\timing_t1b-watch.csv",
+    "rows": [
+      {
+        "date": "2026-11-08",
+        "time": "12:44:11",
+        "timezone": "北京时间 GMT+8（本机时区）",
+        "seconds": 0.0,
+        "ok": true
+      },
+      {
+        "date": "2026-11-08",
+        "time": "12:44:41",
+        "timezone": "北京时间 GMT+8（本机时区）",
+        "seconds": 29.7,
+        "ok": true
+      },
+      {
+        "date": "2026-11-08",
+        "time": "12:45:06",
+        "timezone": "北京时间 GMT+8（本机时区）",
+        "seconds": 24.5,
+        "ok": true
+      },
+      {
+        "date": "2026-11-08",
+        "time": "13:00:00",
+        "timezone": "北京时间 GMT+8（本机时区）",
+        "seconds": 0.7,
+        "ok": false
+      },
+      {
+        "date": "2026-11-08",
+        "time": "13:30:00",
+        "timezone": "北京时间 GMT+8（本机时区）",
+        "seconds": 0.6,
+        "ok": false
+      },
+      {
+        "date": "2026-11-08",
+        "time": "14:00:02",
+        "timezone": "北京时间 GMT+8（本机时区）",
+        "seconds": 2.0,
+        "ok": false
+      },
+      {
+        "date": "2026-11-08",
+        "time": "14:30:00",
+        "timezone": "北京时间 GMT+8（本机时区）",
+        "seconds": 0.7,
+        "ok": false
+      },
+      {
+        "date": "2026-11-08",
+        "time": "15:00:00",
+        "timezone": "北京时间 GMT+8（本机时区）",
+        "seconds": 0.7,
+        "ok": false
+      },
+      {
+        "date": "2026-11-08",
+        "time": "15:30:01",
+        "timezone": "北京时间 GMT+8（本机时区）",
+        "seconds": 1.1,
+        "ok": false
+      },
+      {
+        "date": "2026-11-08",
+        "time": "15:38:35",
+        "timezone": "北京时间 GMT+8（本机时区）",
+        "seconds": 34.4,
+        "ok": true
+      },
+      {
+        "date": "2026-11-08",
+        "time": "15:47:22",
+        "timezone": "北京时间 GMT+8（本机时区）",
+        "seconds": 29.9,
+        "ok": true
+      },
+      {
+        "date": "2026-11-08",
+        "time": "16:00:28",
+        "timezone": "北京时间 GMT+8（本机时区）",
+        "seconds": 28.3,
+        "ok": true
+      },
+      {
+        "date": "2026-11-08",
+        "time": "16:30:30",
+        "timezone": "北京时间 GMT+8（本机时区）",
+        "seconds": 30.1,
+        "ok": true
+      },
+      {
+        "date": "2026-11-08",
+        "time": "17:00:30",
+        "timezone": "北京时间 GMT+8（本机时区）",
+        "seconds": 30.2,
+        "ok": true
+      },
+      {
+        "date": "2026-11-08",
+        "time": "17:30:31",
+        "timezone": "北京时间 GMT+8（本机时区）",
+        "seconds": 31.3,
+        "ok": true
+      }
+    ],
+    "row_count": 15
+  },
+  "alert_markdown_original": {
+    "source": "C:\\Users\\rita.jin\\WorkBuddy\\SMCN_ERP\\tools\\_zc_logs\\告警_2026-11-08.md",
+    "available": true,
+    "content": "# 零积分任务告警 · 2026-11-08\n\n## 13:30:00 · t1b-watch 连续失败需人工排查\n\n只读探针失败: PROBE_FAILED: [WinError 2] 系统找不到指定的文件。\n\n---\n\n## 15:38:32 · T1-B 只读盯梢检出关键读数变化\n\nproduction: {'lastRow': 11341, 'lastCol': 18} -> {'lastRow': 11384, 'lastCol': 18}\n\n待处理草稿: C:/Users/rita.jin/WorkBuddy/SMCN_ERP\\outputs\\T1-B_盯梢触发_20261108_1538.md\n\n---\n\n"
+  },
+  "alert_email": {
+    "message_id": "msg_rqqtUSiwxaf9ZCMsgN-cWucgU62rl03ITmK9q6tVe_14kg",
+    "subject": "【SMCN 告警】t1b-watch 失败（2026-11-08 13:30）",
+    "created_utc": "2026-11-08T05:30:09Z",
+    "created_beijing": "2026-11-08 13:30:09 (北京时间 GMT+8；UTC 2026-11-08T05:30:09Z)",
+    "content_excerpt": "只读探针失败: PROBE_FAILED: [WinError 2] 系统找不到指定的文件。",
+    "note": "该告警邮件本身即故障期由自动告警通道发出的独立记录"
+  },
+  "root_cause": "计划任务原生 Windows PATH 无 Git；t1b_watch.py 的 git() 使用裸命令名 'git' 触发 WinError 2；补齐绝对路径后 remote-https 仍非可用 git 子命令，需一并注入 GIT_EXEC_PATH。",
+  "fix_before_after": [
+    {
+      "file": "tools/zero_credit_runner.py",
+      "before_path": "tools/zero_credit_runner.py.bak_20261108_t1b",
+      "before_mtime_beijing": "2026-11-08 12:43",
+      "before_sha256": "e4571d96c91a96b0f33eb95c8e4d12df4d0ea5e584a7b732bfa4a3a467382fae",
+      "before_bytes": 40466,
+      "after_mtime_beijing": "2026-11-08 12:44",
+      "after_sha256": "8f82c99b0c76ad1bba247a8852227eff62a9a725ed00af0b2ad3a689cf0ce316",
+      "after_bytes": 46454,
+      "change": "新增 t_t1b_watch(dry=False) 与 TASKS['t1b-watch']；超时 2；只比较 4 组读数；绝不自动外发邮件"
+    },
+    {
+      "file": "tools/t1b_watch.py",
+      "before_version_availability": "未单独留档修复前版本；父仓库 git 历史：c7dca883 EOD backup 2026-11-07",
+      "after_sha256": "2e054eb6a7a509ead48d1f3753296aaed9da856a4607f641b198f95e5006a5dc",
+      "after_bytes": 10015,
+      "change": "新增 _git_exe() 绝对路径定位 PortableGit + _git_env() 注入 PATH / GIT_EXEC_PATH"
+    }
+  ],
+  "continuous_run_after_fix": {
+    "pure_automatic_triggers": [
+      {
+        "time_beijing": "16:00:28",
+        "seconds": 28.3,
+        "ok": true
+      },
+      {
+        "time_beijing": "16:30:30",
+        "seconds": 30.1,
+        "ok": true
+      },
+      {
+        "time_beijing": "17:00:30",
+        "seconds": 30.2,
+        "ok": true
+      },
+      {
+        "time_beijing": "17:30:31",
+        "seconds": 31.3,
+        "ok": true
+      }
+    ],
+    "pure_automatic_count": 4,
+    "all_ok": true,
+    "note": "16:00 / 16:30 / 17:00 / 17:30 均为计划任务自动触发，无会话侧人工干预"
+  },
+  "session_side_runs": [
+    {
+      "time_beijing": "15:38:35",
+      "seconds": 34.4,
+      "ok": true
+    },
+    {
+      "time_beijing": "15:47:22",
+      "seconds": 29.9,
+      "ok": true
+    }
+  ],
+  "scheduled_task_system_record": {
+    "State": "Ready",
+    "LastRunTime": "2026-11-08 17:30:30",
+    "LastTaskResult": 0,
+    "NumberOfMissedRuns": 0,
+    "NextRunTime": "2026-11-08 18:00:00",
+    "source": "Windows 任务计划程序 Get-ScheduledTask / Get-ScheduledTaskInfo（系统级，非脚本自写日志）",
+    "captured_beijing": "2026-11-08 17:37:15 (北京时间 GMT+8；UTC 2026-11-08T09:37:15Z)",
+    "interpretation": "LastTaskResult=0 表示最近一次真实自动触发成功；NumberOfMissedRuns=0 表示本触发周期内无漏跑。"
+  },
+  "failed_window": {
+    "count": 6,
+    "first_beijing": "13:00:00",
+    "last_beijing": "15:30:01",
+    "duration_hours": 2.5,
+    "status": "IRRECOVERABLE_GAP"
+  },
+  "accepted_boundary": "明确接受 Tom：模拟运行成功不能反证故障期间监测完整。16:00 后的连续 OK 只证明修复后真实自动运行已恢复，不回填 13:00–15:30 的 2.5 小时监测空白；该窗口登记为不可回填缺口 N6，不以后续成功填补。",
+  "honesty_note": "15:52《v85后活文档口径同步卡》所写『16:00 首次自动触发诚实边界』，现由 4 次纯自动触发 + 系统级 LastTaskResult=0 / NumberOfMissedRuns=0 关闭；但关闭的是『修复后是否真自动跑』这一问题，不是『故障期监测是否完整』这一问题，后者仍为缺口。",
+  "not_a_verification": "本件不因连续运行证据齐备而自称监测历史完整或验收通过。",
+  "redline": "零换链 / 零部署 / 零生产写 / 零主库写 / 零改结构 / 零解冻 / 只读采集"
+}

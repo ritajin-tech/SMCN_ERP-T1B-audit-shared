@@ -1,0 +1,209 @@
+{
+  "_timezone_note": "面向 Rita 与对外回函的时间一律北京时间 GMT+8 优先、UTC 括号附注；原始 UTC 值保留供审计复算。",
+  "v86_purpose": "逐条承接 Tom 16:48 真回函 T2：把页签清单按「原始读数 / 重建推定 / 不可取得」三分类钉死",
+  "tom_mail": {
+    "message_id": "msg_acWm67UtPZh-bLni3VLlhrIBR1G3WzyqBRbAnLFj_nym4g",
+    "subject": "回复：【生产表】v85新增记录与监测缺口",
+    "received_utc": "2026-11-08T08:48:21Z",
+    "received_beijing": "2026-11-08 16:48:21 (北京时间 GMT+8；UTC 2026-11-08T08:48:21Z)",
+    "authenticity": "真回函：to 仅含 ritajin.muraya@qq.com、cc 332721759@qq.com，不含 1252293966；正文以「Rita，」开头。按辨伪规则排除我方 reply_all 回显（回显以「Tom，」开头且 to 含 1252293966）。",
+    "has_attachments": false,
+    "in_reply_to": "<tencent_40CBB426C22CFD032A5E2BEF080AD09FC806@qq.com>"
+  },
+  "captured_utc": "2026-11-08T09:37:15Z",
+  "captured_beijing": "2026-11-08 17:37:15 (北京时间 GMT+8；UTC 2026-11-08T09:37:15Z)",
+  "tom_condition_verbatim": "页签历史清单的推定不能当原始快照；请保留可取得的版本历史和创建、权限记录，以及不可取得的范围。",
+  "accepted": true,
+  "source_artifact": "evidence/v85_master_tabs_inventory_20261108.json",
+  "source_artifact_sha256": "d403a56cb65e9867fc0911cd5fda6bd1e64269c2acd456e92d039215a5178ec8",
+  "source_artifact_bytes": 8864,
+  "classification": {
+    "ORIGINAL_READING": {
+      "meaning": "本次采集时点的只读探针原始读数，仅对采集时点成立",
+      "count": 35,
+      "captured_utc": "2026-11-08T07:39:51Z",
+      "captured_beijing": "2026-11-08 15:39:51 (北京时间 GMT+8)",
+      "source": "tools/t1b_watch.py 的只读探针输出 _tmp/t1b_watch_probe.json；复算命令 `python tools/t1b_watch.py`（零写零部署）。",
+      "sheets_in_order": [
+        {
+          "index": 1,
+          "name": "Sheet1"
+        },
+        {
+          "index": 2,
+          "name": "_FontBackup"
+        },
+        {
+          "index": 3,
+          "name": "_LayoutBackup"
+        },
+        {
+          "index": 4,
+          "name": "工时_候选0824"
+        },
+        {
+          "index": 5,
+          "name": "月度异常"
+        },
+        {
+          "index": 6,
+          "name": "按月考勤"
+        },
+        {
+          "index": 7,
+          "name": "工时"
+        },
+        {
+          "index": 8,
+          "name": "请假"
+        },
+        {
+          "index": 9,
+          "name": "月度视图"
+        },
+        {
+          "index": 10,
+          "name": "说明"
+        },
+        {
+          "index": 11,
+          "name": "按月考勤_重建前_20261015"
+        },
+        {
+          "index": 12,
+          "name": "按月考勤_重算前_20261026"
+        },
+        {
+          "index": 13,
+          "name": "月度视图_重算前_20261026"
+        },
+        {
+          "index": 14,
+          "name": "按月考勤_重算前_20261027"
+        },
+        {
+          "index": 15,
+          "name": "月度视图_重算前_20261027"
+        },
+        {
+          "index": 16,
+          "name": "按月考勤_重算前_20261028"
+        },
+        {
+          "index": 17,
+          "name": "月度视图_重算前_20261028"
+        },
+        {
+          "index": 18,
+          "name": "按月考勤_重算前_20261029"
+        },
+        {
+          "index": 19,
+          "name": "月度视图_重算前_20261029"
+        },
+        {
+          "index": 20,
+          "name": "按月考勤_重算前_20261030"
+        },
+        {
+          "index": 21,
+          "name": "月度视图_重算前_20261030"
+        },
+        {
+          "index": 22,
+          "name": "按月考勤_重算前_20261031"
+        },
+        {
+          "index": 23,
+          "name": "月度视图_重算前_20261031"
+        },
+        {
+          "index": 24,
+          "name": "按月考勤_重算前_20261101"
+        },
+        {
+          "index": 25,
+          "name": "月度视图_重算前_20261101"
+        },
+        {
+          "index": 26,
+          "name": "按月考勤_重算前_20261102"
+        },
+        {
+          "index": 27,
+          "name": "月度视图_重算前_20261102"
+        },
+        {
+          "index": 28,
+          "name": "按月考勤_重算前_20261105"
+        },
+        {
+          "index": 29,
+          "name": "月度视图_重算前_20261105"
+        },
+        {
+          "index": 30,
+          "name": "按月考勤_重算前_20261106"
+        },
+        {
+          "index": 31,
+          "name": "月度视图_重算前_20261106"
+        },
+        {
+          "index": 32,
+          "name": "按月考勤_重算前_20261107"
+        },
+        {
+          "index": 33,
+          "name": "月度视图_重算前_20261107"
+        },
+        {
+          "index": 34,
+          "name": "按月考勤_重算前_20261108"
+        },
+        {
+          "index": 35,
+          "name": "月度视图_重算前_20261108"
+        }
+      ]
+    },
+    "RECONSTRUCTED_NOT_ORIGINAL": {
+      "meaning": "按命名规则重建的历史清单，属推定，不是任何历史时点的原始快照",
+      "count": 33,
+      "method": "当前 35 页按命名规则去掉末两页（..._重算前_20261108 一对）后回推。",
+      "status": "🔴 推定清单，非 33 页时刻的原始快照，不可作为原始凭证。我方未留存 33 页时刻的页签清单原始快照。",
+      "explicit_disclaimer": "本件明确接受 Tom 指正：不得以该 33 页推定清单证明基线之前的变更性质，亦不得据此排除其他写入；此前各代文档中「33 / 差 +0」为该代当时记载，历史原件不改写。"
+    },
+    "NOT_AVAILABLE": {
+      "meaning": "不可取得范围（逐项如实登记，不以推定替代）",
+      "records": {
+        "sheet_create_records": "NOT_AVAILABLE — 只读通道不返回页签创建时间/创建者。",
+        "execution_identity": "NOT_AVAILABLE — 只读通道不返回执行主体。",
+        "permission_records": "NOT_AVAILABLE — 只读通道不返回权限变更记录。",
+        "precise_change_time": "NOT_AVAILABLE — 只能从页签名中的日期推断为 2026-11-08，不能给出精确创建时刻。",
+        "closure_path": "主库所有者从 Google Sheets 版本历史 / 驱动器活动记录导出2026-11-07 至 11-08 的页签创建事件；我方可协助核对但需授权。"
+      },
+      "scope": [
+        "页签创建记录（谁、何时创建）",
+        "页签权限变更记录",
+        "变更执行主体身份",
+        "精确变更时间",
+        "基线之前 events 为空所能覆盖的时间范围"
+      ],
+      "closure_path": "主库所有者从 Google Sheets 版本历史 / 驱动器活动记录导出2026-11-07 至 11-08 的页签创建事件；我方可协助核对但需授权。"
+    }
+  },
+  "delta_33_to_35": {
+    "added": [
+      "按月考勤_重算前_20261108",
+      "月度视图_重算前_20261108"
+    ],
+    "pattern": "与历史各代已登记的 B 类每日重算自动镜像链同形：v75 的 31、v78 的 33 均由同名「_重算前_YYYYMMDD」一对递增而来。",
+    "classification": "历史文档登记为 B 类自动镜像，与 T1-B 事故、与本次上线无关；但按 Tom 要求，此分类未经本方独立核验创建记录，故不作认证结论。"
+  },
+  "accepted_point": "接受「不能仅凭基线后 events 为空认定基线之前的变更性质或排除其他写入」。t1b_watch 基线 created_utc=2026-11-08T04:48:02Z（北京时间 12:48:02），events=[] 只能证明该基线之后读数未变，不能证明基线之前两页的创建性质；此点在 v85 正文中明确收窄。",
+  "other_29_sheet_note": "outputs/主库29页分级清单_20261105.csv 是「业务分级口径」清单，不是物理页签总数快照，不可与 33/35 互相校验或相减。",
+  "read_rule": "以后每代页签总数一律以 tools/t1b_watch.py 的 master_tabs.sheets 实测为准，禁止沿用上代数字；「29 页分级清单」是业务分级口径，不等于物理页签总数，两者不可互相校验。",
+  "not_a_verification": "本件不因三分类清晰而自称原始快照已取得；不可取得项仍为缺口。",
+  "redline": "零换链 / 零部署 / 零生产写 / 零主库写 / 零改结构 / 零解冻 / 只读采集"
+}

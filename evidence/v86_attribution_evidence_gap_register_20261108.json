@@ -1,0 +1,91 @@
+{
+  "_timezone_note": "面向 Rita 与对外回函的时间一律北京时间 GMT+8 优先、UTC 括号附注；原始 UTC 值保留供审计复算。",
+  "v86_purpose": "逐条承接 Tom 16:48 真回函 T1：+43 行四项已固定证据与两项未固定缺口；明确不把行内线索当认证主体证明",
+  "tom_mail": {
+    "message_id": "msg_acWm67UtPZh-bLni3VLlhrIBR1G3WzyqBRbAnLFj_nym4g",
+    "subject": "回复：【生产表】v85新增记录与监测缺口",
+    "received_utc": "2026-11-08T08:48:21Z",
+    "received_beijing": "2026-11-08 16:48:21 (北京时间 GMT+8；UTC 2026-11-08T08:48:21Z)",
+    "authenticity": "真回函：to 仅含 ritajin.muraya@qq.com、cc 332721759@qq.com，不含 1252293966；正文以「Rita，」开头。按辨伪规则排除我方 reply_all 回显（回显以「Tom，」开头且 to 含 1252293966）。",
+    "has_attachments": false,
+    "in_reply_to": "<tencent_40CBB426C22CFD032A5E2BEF080AD09FC806@qq.com>"
+  },
+  "captured_utc": "2026-11-08T09:37:15Z",
+  "captured_beijing": "2026-11-08 17:37:15 (北京时间 GMT+8；UTC 2026-11-08T09:37:15Z)",
+  "source_artifact": "evidence/v85_prod_append_43rows_20261108.json",
+  "source_artifact_sha256": "12beee9e4138025e6fd60d47faea22277fc115348f73e5c88d55907f917e21b4",
+  "source_artifact_bytes": 41565,
+  "source_captured_utc": "2026-11-08T07:39:51Z",
+  "source_captured_beijing": "2026-11-08 15:39:51 (北京时间 GMT+8)",
+  "fixed_items": [
+    {
+      "item": "全列原始快照",
+      "status": "FIXED",
+      "evidence": "rows[0..42].values_A_R，A–R 共 18 列逐行逐列；第 18 列 R 表头为空且 43 行值全空",
+      "field": "rows[].values_A_R",
+      "row_count": 43,
+      "column_coverage": "A–R 全 18 列；第 18 列 R 表头为空(无列定义)、43 行值均为空，已保全。",
+      "header_A_R": [
+        "⚙ 录入时间 (Timestamp)",
+        "日期 (Date)",
+        "姓名 (Name)",
+        "⚙ 类型 (Type)",
+        "阶段 (Stage)",
+        "项目编号 (Project ID)",
+        "工时 (Hours)",
+        "备注 (Notes)",
+        "⚙ 唯一码 (UUID)",
+        "⚙ 项目名称（自动）",
+        "⚙ 项目PM（自动）",
+        "⚙ 直属主管（自动）",
+        "项目情况",
+        "",
+        "",
+        "",
+        "",
+        ""
+      ]
+    },
+    {
+      "item": "采集时间",
+      "status": "FIXED",
+      "evidence": "captured_utc 与 captured_utc_beijing 双时区保留；每行另存 submitted_utc / submitted_utc_beijing",
+      "value_utc": "2026-11-08T07:39:51Z",
+      "value_beijing": "2026-11-08 15:39:51 (北京时间 GMT+8)"
+    },
+    {
+      "item": "稳定键（唯一键）",
+      "status": "FIXED",
+      "evidence": "43 个 UUID 全部唯一（uuid_all_unique=true）；rows[].uuid 逐行保留",
+      "count": 43
+    },
+    {
+      "item": "端点与部署状态",
+      "status": "FIXED",
+      "evidence": "只读探针 t1b_watch.py 实测 deployments=3、URL 逐字未变；本件生成时复算同值",
+      "deployments": 3
+    }
+  ],
+  "open_items": [
+    {
+      "item": "请求与执行日志（服务端）",
+      "status": "NOT_AVAILABLE",
+      "owner": "写入通道所有者 / 服务端 Apps Script 管理员",
+      "reason": "我方仅持有只读执行器 hktool 与只读探针，无法取得服务端执行记录、请求关联 ID 与触发器身份",
+      "closure": "需由通道所有者导出服务端执行日志并与 rows[].uuid / submitted_utc 关联；对应既有待核 N1",
+      "tom_wording": "请固定全列原始快照、采集时间、稳定键与请求和执行日志"
+    },
+    {
+      "item": "由有权业务方核实授权和有效性",
+      "status": "NOT_CLAIMED",
+      "owner": "有权业务方",
+      "reason": "业务授权属业务判断，不由我方代判；FREEZE 亦不代判通过",
+      "closure": "书面确认 + 具名签署人 + 时间；对应 v85 新增待核 N5",
+      "tom_wording": "并由有权业务方核实授权和有效性"
+    }
+  ],
+  "accepted_boundary": "接受 Tom 原话：行内姓名、时间与 UUID 是线索，不能单独证明认证主体、写入通道、业务授权或排除其他写入。v85 与本件均不宣称逐条人工提交；同刻最多 3 行、全历史工作日等只作为待核线索登记。",
+  "freeze_assessment": "TS_WRITE_FREEZE 下这些行是否属被冻结批量回灌，由通道所有者依服务端日志判定；FREEZE 不代判通过，本件不据此认定业务有效性。",
+  "not_a_verification": "本件不因证据齐备而自称验收；事故 OPEN / HOLD-NO-GO / 阶段一 PASS 暂缓维持。",
+  "redline": "零换链 / 零部署 / 零生产写 / 零主库写 / 零改结构 / 零解冻 / 只读采集"
+}
