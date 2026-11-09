@@ -1,0 +1,181 @@
+{
+ "capture_beijing": "2026-11-09 16:17:57",
+ "capture_utc": "2026-11-09T08:17:57Z",
+ "source_log": "tools/_zc_logs/2026-11-09.log",
+ "original_log_lines": [
+  {
+   "source_log_line_no": 1,
+   "raw": "[2026-11-09 00:00:36] t1b-watch      OK (36.2s) 无增量（生产表 {'lastRow': 11384, 'lastCol': 18} / 请假 {'lastRow': 606, 'lastCol': 15} / 页签 {'production': 16, 'master': 35} / 部署 3）"
+  },
+  {
+   "source_log_line_no": 6,
+   "raw": "[2026-11-09 00:30:30] t1b-watch      OK (30.7s) 无增量（生产表 {'lastRow': 11384, 'lastCol': 18} / 请假 {'lastRow': 606, 'lastCol': 15} / 页签 {'production': 16, 'master': 35} / 部署 3）"
+  },
+  {
+   "source_log_line_no": 11,
+   "raw": "[2026-11-09 01:00:29] t1b-watch      OK (29.3s) 无增量（生产表 {'lastRow': 11384, 'lastCol': 18} / 请假 {'lastRow': 606, 'lastCol': 15} / 页签 {'production': 16, 'master': 35} / 部署 3）"
+  },
+  {
+   "source_log_line_no": 17,
+   "raw": "[2026-11-09 01:30:40] t1b-watch      OK (39.8s) 无增量（生产表 {'lastRow': 11384, 'lastCol': 18} / 请假 {'lastRow': 606, 'lastCol': 15} / 页签 {'production': 16, 'master': 35} / 部署 3）"
+  },
+  {
+   "source_log_line_no": 21,
+   "raw": "[2026-11-09 02:00:31] t1b-watch      OK (31.5s) 无增量（生产表 {'lastRow': 11384, 'lastCol': 18} / 请假 {'lastRow': 606, 'lastCol': 15} / 页签 {'production': 16, 'master': 35} / 部署 3）"
+  },
+  {
+   "source_log_line_no": 26,
+   "raw": "[2026-11-09 02:30:31] t1b-watch      OK (31.6s) 无增量（生产表 {'lastRow': 11384, 'lastCol': 18} / 请假 {'lastRow': 606, 'lastCol': 15} / 页签 {'production': 16, 'master': 35} / 部署 3）"
+  },
+  {
+   "source_log_line_no": 30,
+   "raw": "[2026-11-09 03:00:30] t1b-watch      OK (29.8s) 无增量（生产表 {'lastRow': 11384, 'lastCol': 18} / 请假 {'lastRow': 606, 'lastCol': 15} / 页签 {'production': 16, 'master': 35} / 部署 3）"
+  },
+  {
+   "source_log_line_no": 36,
+   "raw": "[2026-11-09 03:30:29] t1b-watch      OK (29.6s) 无增量（生产表 {'lastRow': 11384, 'lastCol': 18} / 请假 {'lastRow': 606, 'lastCol': 15} / 页签 {'production': 16, 'master': 35} / 部署 3）"
+  },
+  {
+   "source_log_line_no": 40,
+   "raw": "[2026-11-09 04:00:26] t1b-watch      OK (25.9s) 无增量（生产表 {'lastRow': 11384, 'lastCol': 18} / 请假 {'lastRow': 606, 'lastCol': 15} / 页签 {'production': 16, 'master': 35} / 部署 3）"
+  },
+  {
+   "source_log_line_no": 45,
+   "raw": "[2026-11-09 04:30:30] t1b-watch      OK (30.4s) 无增量（生产表 {'lastRow': 11384, 'lastCol': 18} / 请假 {'lastRow': 606, 'lastCol': 15} / 页签 {'production': 16, 'master': 35} / 部署 3）"
+  },
+  {
+   "source_log_line_no": 49,
+   "raw": "[2026-11-09 05:00:28] t1b-watch      OK (27.8s) 无增量（生产表 {'lastRow': 11384, 'lastCol': 18} / 请假 {'lastRow': 606, 'lastCol': 15} / 页签 {'production': 16, 'master': 35} / 部署 3）"
+  },
+  {
+   "source_log_line_no": 55,
+   "raw": "[2026-11-09 05:30:30] t1b-watch      OK (30.1s) 无增量（生产表 {'lastRow': 11384, 'lastCol': 18} / 请假 {'lastRow': 606, 'lastCol': 15} / 页签 {'production': 16, 'master': 35} / 部署 3）"
+  },
+  {
+   "source_log_line_no": 59,
+   "raw": "[2026-11-09 06:00:30] t1b-watch      OK (30.0s) 无增量（生产表 {'lastRow': 11384, 'lastCol': 18} / 请假 {'lastRow': 606, 'lastCol': 15} / 页签 {'production': 16, 'master': 35} / 部署 3）"
+  },
+  {
+   "source_log_line_no": 64,
+   "raw": "[2026-11-09 06:30:37] t1b-watch      OK (37.2s) 无增量（生产表 {'lastRow': 11384, 'lastCol': 18} / 请假 {'lastRow': 606, 'lastCol': 15} / 页签 {'production': 16, 'master': 35} / 部署 3）"
+  },
+  {
+   "source_log_line_no": 69,
+   "raw": "[2026-11-09 07:00:31] t1b-watch      OK (30.9s) 无增量（生产表 {'lastRow': 11384, 'lastCol': 18} / 请假 {'lastRow': 606, 'lastCol': 15} / 页签 {'production': 16, 'master': 35} / 部署 3）"
+  },
+  {
+   "source_log_line_no": 75,
+   "raw": "[2026-11-09 07:30:32] t1b-watch      OK (32.1s) 无增量（生产表 {'lastRow': 11384, 'lastCol': 18} / 请假 {'lastRow': 606, 'lastCol': 15} / 页签 {'production': 16, 'master': 35} / 部署 3）"
+  },
+  {
+   "source_log_line_no": 80,
+   "raw": "[2026-11-09 08:00:34] t1b-watch      OK (33.9s) 无增量（生产表 {'lastRow': 11384, 'lastCol': 18} / 请假 {'lastRow': 606, 'lastCol': 15} / 页签 {'production': 16, 'master': 35} / 部署 3）"
+  },
+  {
+   "source_log_line_no": 85,
+   "raw": "[2026-11-09 08:30:30] t1b-watch      OK (30.1s) 检出 1 项变化（信息级（多为每日重算镜像，预期内）），已生成待处理草稿: T1-B_盯梢触发_20261109_0830.md"
+  },
+  {
+   "source_log_line_no": 90,
+   "raw": "[2026-11-09 09:00:30] t1b-watch      OK (29.7s) 无增量（生产表 {'lastRow': 11384, 'lastCol': 18} / 请假 {'lastRow': 606, 'lastCol': 15} / 页签 {'production': 16, 'master': 37} / 部署 3）"
+  },
+  {
+   "source_log_line_no": 96,
+   "raw": "[2026-11-09 09:30:29] t1b-watch      OK (29.6s) 无增量（生产表 {'lastRow': 11384, 'lastCol': 18} / 请假 {'lastRow': 606, 'lastCol': 15} / 页签 {'production': 16, 'master': 37} / 部署 3）"
+  },
+  {
+   "source_log_line_no": 100,
+   "raw": "[2026-11-09 10:00:29] t1b-watch      OK (28.9s) 无增量（生产表 {'lastRow': 11384, 'lastCol': 18} / 请假 {'lastRow': 606, 'lastCol': 15} / 页签 {'production': 16, 'master': 37} / 部署 3）"
+  },
+  {
+   "source_log_line_no": 105,
+   "raw": "[2026-11-09 10:30:59] t1b-watch      OK (57.6s) 检出 1 项变化（实质变化），已生成待处理草稿: T1-B_盯梢触发_20261109_1030.md"
+  },
+  {
+   "source_log_line_no": 109,
+   "raw": "[2026-11-09 11:00:32] t1b-watch      OK (31.4s) 无增量（生产表 {'lastRow': 11385, 'lastCol': 18} / 请假 {'lastRow': 606, 'lastCol': 15} / 页签 {'production': 16, 'master': 37} / 部署 3）"
+  },
+  {
+   "source_log_line_no": 115,
+   "raw": "[2026-11-09 11:30:28] t1b-watch      OK (27.7s) 无增量（生产表 {'lastRow': 11385, 'lastCol': 18} / 请假 {'lastRow': 606, 'lastCol': 15} / 页签 {'production': 16, 'master': 37} / 部署 3）"
+  },
+  {
+   "source_log_line_no": 121,
+   "raw": "[2026-11-09 12:00:34] t1b-watch      OK (33.1s) 无增量（生产表 {'lastRow': 11385, 'lastCol': 18} / 请假 {'lastRow': 606, 'lastCol': 15} / 页签 {'production': 16, 'master': 37} / 部署 3）"
+  },
+  {
+   "source_log_line_no": 126,
+   "raw": "[2026-11-09 12:30:32] t1b-watch      OK (31.5s) 无增量（生产表 {'lastRow': 11385, 'lastCol': 18} / 请假 {'lastRow': 606, 'lastCol': 15} / 页签 {'production': 16, 'master': 37} / 部署 3）"
+  },
+  {
+   "source_log_line_no": 131,
+   "raw": "[2026-11-09 13:00:34] t1b-watch      OK (32.5s) 无增量（生产表 {'lastRow': 11385, 'lastCol': 18} / 请假 {'lastRow': 606, 'lastCol': 15} / 页签 {'production': 16, 'master': 37} / 部署 3）"
+  },
+  {
+   "source_log_line_no": 138,
+   "raw": "[2026-11-09 13:30:31] t1b-watch      OK (30.3s) 无增量（生产表 {'lastRow': 11385, 'lastCol': 18} / 请假 {'lastRow': 606, 'lastCol': 15} / 页签 {'production': 16, 'master': 37} / 部署 3）"
+  },
+  {
+   "source_log_line_no": 142,
+   "raw": "[2026-11-09 14:00:33] t1b-watch      OK (32.4s) 无增量（生产表 {'lastRow': 11385, 'lastCol': 18} / 请假 {'lastRow': 606, 'lastCol': 15} / 页签 {'production': 16, 'master': 37} / 部署 3）"
+  },
+  {
+   "source_log_line_no": 147,
+   "raw": "[2026-11-09 14:30:31] t1b-watch      OK (30.5s) 检出 1 项变化（实质变化），已生成待处理草稿: T1-B_盯梢触发_20261109_1430.md"
+  },
+  {
+   "source_log_line_no": 151,
+   "raw": "[2026-11-09 15:00:30] t1b-watch      OK (29.6s) 无增量（生产表 {'lastRow': 11393, 'lastCol': 18} / 请假 {'lastRow': 606, 'lastCol': 15} / 页签 {'production': 16, 'master': 37} / 部署 3）"
+  },
+  {
+   "source_log_line_no": 159,
+   "raw": "[2026-11-09 15:30:35] t1b-watch      OK (34.9s) 检出 1 项变化（实质变化），已生成待处理草稿: T1-B_盯梢触发_20261109_1530.md"
+  },
+  {
+   "source_log_line_no": 163,
+   "raw": "[2026-11-09 16:00:27] t1b-watch      OK (26.9s) 检出 1 项变化（实质变化），已生成待处理草稿: T1-B_盯梢触发_20261109_1600.md"
+  }
+ ],
+ "total_lines": 33,
+ "ok_count": 33,
+ "fail_count": 0,
+ "first_line": "[2026-11-09 00:00:36] t1b-watch      OK (36.2s) 无增量（生产表 {'lastRow': 11384, 'lastCol': 18} / 请假 {'lastRow': 606, 'lastCol': 15} / 页签 {'production': 16, 'master': 35} / 部署 3）",
+ "last_line": "[2026-11-09 16:00:27] t1b-watch      OK (26.9s) 检出 1 项变化（实质变化），已生成待处理草稿: T1-B_盯梢触发_20261109_1600.md",
+ "drafts": [
+  {
+   "path": "outputs/T1-B_盯梢触发_20261109_0830.md",
+   "bytes": 1248,
+   "sha256": "f0df5b1d79027df579cb5497804b7fc8eb84b9f82e4bc3695215295b6c646e1d"
+  },
+  {
+   "path": "outputs/T1-B_盯梢触发_20261109_1030.md",
+   "bytes": 1209,
+   "sha256": "2c68df0f0d6d93f6e3bf23c640dcbdbb328a54ce91b31631f30ca162aca6bf56"
+  },
+  {
+   "path": "outputs/T1-B_盯梢触发_20261109_1430.md",
+   "bytes": 1209,
+   "sha256": "62b308462024fc2f8a7fd160912fb8dfc5a0ee1b67e2afd83abd07d043932e6c"
+  },
+  {
+   "path": "outputs/T1-B_盯梢触发_20261109_1530.md",
+   "bytes": 1209,
+   "sha256": "bf0eb46f7191dd29fa0a1bb66197510b9fa85824cbdef45f5bd20b33bb00a245"
+  }
+ ],
+ "collection_source_chain": [
+  {
+   "item": "原始日志",
+   "path": "tools/_zc_logs/2026-11-09.log",
+   "bytes": 20182,
+   "sha256": "86198ef9b93fddd7b0e40932fd2d8ffebb727aebc220e28c0a1790154703a33c"
+  },
+  {
+   "item": "读数快照",
+   "path": "outputs/_v88_probe_20261109.json",
+   "bytes": 8352,
+   "sha256": "4e50b9b33154dd5a35b25ed736eb67480673b11a506511f0fccbc5d7b3ba0dfc"
+  }
+ ],
+ "boundary": "11-09 全天纯自动盯梢无 FAIL；但 11-08 13:00–15:30 六次 FAIL 造成的监测空白为 N6，不可由任何后续成功回填，本包不声称已补齐。"
+}

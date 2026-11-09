@@ -1,0 +1,38 @@
+{
+ "capture_beijing": "2026-11-09 16:17:57",
+ "capture_utc": "2026-11-09T08:17:57Z",
+ "disclosure": "本轮同会话对工时表 WebApp 做了中英文补齐与只读性能优化。这是与 T1-B 事故审计并行的独立变更，主动披露以供逐条驳回；不构成对事故的验收、解冻或生产授权。",
+ "version": "4.3.75",
+ "patch_report": "outputs/webapp_v4375_patch_report_20261109.json",
+ "replacements_scripted": 56,
+ "replacements_second_round": 4,
+ "baseline_sha256": {
+  "Index_html": "e10de82937534892dcfc31c7312f9ccda4fa127653a2c0f3dd5f706f88d8cbe4",
+  "Code_js": "2b755ae3c0a7f449e9d82acf94db1275c1a106b8e0c88b5fbbbf67312869554a"
+ },
+ "after_sha256_live": {
+  "Index_html": "6988bca037e2838832edc8f64a747bd10b5a084abea0502dc88f47337e5daf8f",
+  "Code_js": "7bc47c65b974263cbc11bd18621dcd6a3b7835b875b7f357ef041da4d9707e33"
+ },
+ "scope": [
+  "Index.html：全 4 tab 用户可见文案补英文对照 + APP_VERSION",
+  "Code.js：服务端返回给 UI 的 reason/readonlyReason 补双语 + TS_APP_VERSION",
+  "Code.js 性能：新增 getDbRows()（单次执行只读一次生产表、取 A–O 15 列），替换 5 个纯只读函数的重复全表读；getExactName 改走 ScriptCache(6h)"
+ ],
+ "guardrails": [
+  "写入函数 updateTimesheet / softDeleteRecord / cleanupDuplicateLeavesInternal 保持实时读表，未使用缓存",
+  "前后端版本号同步 4.3.75，避免旧缓存无限刷新",
+  "离线 node --check 双文件 PASS；零 setColumnWidth / autoResizeColumns / insertColumns / deleteColumns"
+ ],
+ "i18n_audit": "outputs/webapp_i18n_审计_工时表线上_20261109.md（前） / outputs/webapp_i18n_审计_工时表V4375_20261109.md（后）",
+ "deployments_before_text": "Found 3 deployments.\n- AKfycbwlxB2z9IDDo7pBv4sr0pu6-1ywvYBuRyqTwfjgl_o @HEAD \n- AKfycbwYXV3VS3I59bVpUi9XBMClGsFkJ6l_NxPdQcysiXYe47-iONNMk6FIoI8VEXwYl-_2 @202 - V4.3.87 v2 (local datetime string -> real Date)\n- AKfycbzUyhyK-tqL7ypp2H2jZXNCMciEr2PJwhkZIg0bwV1OwV2C6D9RKJZhA4HpiUi6F5eF @203 - V4.3.74 我的漏填清单（第4 tab + 逐条补填 + 二次查重）",
+ "deployments_after_text": "Found 3 deployments.\n- AKfycbwlxB2z9IDDo7pBv4sr0pu6-1ywvYBuRyqTwfjgl_o @HEAD \n- AKfycbwYXV3VS3I59bVpUi9XBMClGsFkJ6l_NxPdQcysiXYe47-iONNMk6FIoI8VEXwYl-_2 @202 - V4.3.87 v2 (local datetime string -> real Date)\n- AKfycbzUyhyK-tqL7ypp2H2jZXNCMciEr2PJwhkZIg0bwV1OwV2C6D9RKJZhA4HpiUi6F5eF @204 - V4.3.75 WebApp 全 tab 中英文补齐 + 只读性能优化(单次读表/15列/HR姓名缓存) — 原地更新,零换链",
+ "deployment_id": "AKfycbzUyhyK-tqL7ypp2H2jZXNCMciEr2PJwhkZIg0bwV1OwV2C6D9RKJZhA4HpiUi6F5eF",
+ "version_pointer": "203 → 204（指针前进、端点不变）",
+ "deployment_count_before": 3,
+ "deployment_count_after": 3,
+ "url_changed": false,
+ "new_deployment_created": false,
+ "online_check": "HTTP 200 / 2.41s / 161864 B；返回页含 TimeSheet System 与 Every hour counts 新文案",
+ "redlines": "零新建部署 / 零删除部署 / URL 逐字未变 / 部署恒 3 / 零生产写 / 零主库写 / 零改结构 / 零改列宽 / 零解冻 / FREEZE=1 维持"
+}

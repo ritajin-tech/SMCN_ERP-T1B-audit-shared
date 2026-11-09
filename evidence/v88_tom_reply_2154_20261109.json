@@ -1,0 +1,64 @@
+{
+ "capture_beijing": "2026-11-09 16:17:57",
+ "capture_utc": "2026-11-09T08:17:57Z",
+ "message_id": "msg_mf8NfJ0C-rz_PfRUSIKjIDOOXWlWhCXTJC3wmnbYAtEDVA",
+ "subject": "回复：【生产表】v87工件与核验进度",
+ "at": "2026-11-08 21:54:12 (北京时间 GMT+8；UTC 2026-11-08T13:54:12Z)",
+ "from_": "1252293966@qq.com",
+ "to": [
+  "ritajin.muraya@qq.com"
+ ],
+ "cc": [
+  "332721759@qq.com"
+ ],
+ "authenticity": "真回函：正文以「Rita，」开头，to 不含 1252293966，in_reply_to 指向我方 v87；已排除 13:46:53Z 我方 reply_all 回显。",
+ "body_verbatim": "Rita，\n\n已全文阅读 v87 来信，本信无附件。记录你方报告提供监测连续性原始日志包、重建页签标注登记和固定版本 D1 单件核验包，并区分故障期、会话运行与修复后计划任务；这些工件、采集来源及对应清单尚未由本方独立取得核验。\n\n监测故障期仍为缺口，后续成功不能补证；原始日志中完整时间范围、采集来源及漏跑须逐项核对。33 页重建清单必须保留推定标识，历史原始快照不可取得不得以重建替代；新增行的认证主体、请求与业务授权仍待原始证据。\n\nD1 下一步取得固定提交 d50e795 中指定文件的原始字节，独立计算字节数与 SHA-256 并与对应清单比较；在完成前不声称通过。后续按证据逐项回证，不运行所交脚本。事故 OPEN、HOLD/NO-GO、阶段一 PASS 暂缓维持，本信不构成验收或生产授权。\n\nTom",
+ "classification": "状态性还复 + 一处新增边界 + D1 方法正式采纳（非新审阅条件、非验收）",
+ "point_by_point": [
+  {
+   "tom": "工件/采集来源/对应清单尚未由本方独立取得核验",
+   "ours": "不代判、不写已核验；D1 四列仍留空",
+   "status": "ACK_NO_CLAIM"
+  },
+  {
+   "tom": "原始日志完整时间范围、采集来源及漏跑须逐项核对",
+   "ours": "v87 已给 23 行原始日志 + 23 行时间覆盖矩阵；v88 补 11-09 全天原始日志",
+   "status": "EVIDENCE_ADDED"
+  },
+  {
+   "tom": "33 页重建清单必须保留推定标识",
+   "ours": "canonical_label 持续标注，登记表 unresolved_factual_count=0",
+   "status": "ACK"
+  },
+  {
+   "tom": "历史原始快照不可取得不得以重建替代",
+   "ours": "【本封新增边界】接受并写入活文档；33 页推定与 37 页实测不得互推",
+   "status": "NEW_BOUNDARY_ACCEPTED"
+  },
+  {
+   "tom": "新增行的认证主体、请求与业务授权仍待原始证据",
+   "ours": "N1/N5 维持；v88 的 +11 行同样适用，不宣称授权",
+   "status": "ACK"
+  },
+  {
+   "tom": "D1 下一步：固定提交 d50e795 指定文件原始字节 → 独立算长度与 SHA-256 → 比清单；完成前不声称通过",
+   "ours": "我方不代填、不代算、不代判；清单值再钉一次：4825 字节 / e7a8f8a1…47007",
+   "status": "METHOD_ACCEPTED_PENDING_TOM"
+  },
+  {
+   "tom": "后续按证据逐项回证，不运行所交脚本",
+   "ours": "遵守；D1 命令全为系统自带 git / Get-Item / Get-FileHash / sha256sum",
+   "status": "ACK"
+  },
+  {
+   "tom": "OPEN、HOLD/NO-GO、阶段一 PASS 暂缓维持，本信不构成验收或生产授权",
+   "ours": "维持，不写任何通过/验收/已解决",
+   "status": "ACK"
+  }
+ ],
+ "d1_fixed_commit": "d50e7953ce400da760d0873423b41004b1882e68",
+ "d1_target": "evidence/v86_attribution_evidence_gap_register_20261108.json",
+ "d1_inventory_bytes": 4825,
+ "d1_inventory_sha256": "e7a8f8a1da84da86b12b33efce065988d920ac5363d1faca47fd411023b47007",
+ "d1_verdict": "对方未完成核验，暂不给通过结论；我方只登记程序性推进"
+}

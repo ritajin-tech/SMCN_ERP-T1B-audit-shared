@@ -1,0 +1,34 @@
+{
+ "generated_beijing": "2026-11-09 16:17:57",
+ "generated_utc": "2026-11-09T08:17:57Z",
+ "version": "v88",
+ "packages": [
+  {
+   "path": "evidence/v88_prod_append_11rows_20261109.json",
+   "bytes": 10576,
+   "sha256": "093202d7286260da155e71dbbb9bf3267297fb9dd760f8935d3216710058a137"
+  },
+  {
+   "path": "evidence/v88_master_tabs_37_20261109.json",
+   "bytes": 2602,
+   "sha256": "7f23e493d2de0daf62a0edccf8806784420e389463a4584a6c28bbfafbb09638"
+  },
+  {
+   "path": "evidence/v88_tom_reply_2154_20261109.json",
+   "bytes": 3750,
+   "sha256": "1139855222f3a3422c14da2a0b0183362bad357f1d12c8866efb3414cbb759c9"
+  },
+  {
+   "path": "evidence/v88_watch_continuity_1109_20261109.json",
+   "bytes": 10099,
+   "sha256": "de244cbc05049a408b4f1735fbb7c17f279a4c6842c0003b3175deba8a2f3f5e"
+  },
+  {
+   "path": "evidence/v88_webapp_v4375_change_20261109.json",
+   "bytes": 3137,
+   "sha256": "32003b5ceb7e499aad8653067a28f9dbbac10edce214c78b8ccf04cd5c16dcfe"
+  }
+ ],
+ "note": "全部只读生成，可重跑；不含任何业务数据写入或邮件外发。",
+ "stability_note": "采集时点取自 outputs/_v88_probe_20261109.json 的 mtime（真实读数时刻），不取运行时钟，故同一批数据重跑字节一致、无自指漂移。唯一会随真实时间变化的是 11-09 盯梢原始日志行数（每 30 分钟追加一行），属真实数据推进而非生成器漂移。"
+}
