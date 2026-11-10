@@ -1,0 +1,499 @@
+{
+  "audited_beijing": "2026-11-11 00:30:34",
+  "audited_utc": "2026-11-10T16:30:34Z",
+  "repository": {
+    "owner": "ritajin-tech",
+    "repo": "SMCN_ERP-T1B-audit-shared",
+    "private": false,
+    "visibility": "public",
+    "checked_by": "GitHub 只读 API /repos/ritajin-tech/SMCN_ERP-T1B-audit-shared",
+    "head_at_audit": "85e517c447ba4139fb8e38019fe3ffdd6cddad64"
+  },
+  "scale": {
+    "total_files_excluding_git": 646,
+    "source_like_files": 154,
+    "source_like_bytes": 3215542,
+    "basis": "该计数为【生成器运行时刻】共享库工作区快照（不含 .git），与 audited_beijing（读数快照 mtime）不完全同一时刻；发布后工作区会新增本版 .md/.json，文件数随之变化属发布推进、非数据漂移。独立复算一律以 git checkout <fixed_commit> 后的固定文件集为准，本字段只用于说明审计覆盖范围，不作为可复算的恒定量。"
+  },
+  "source_groups": [
+    {
+      "dir": "tools",
+      "count": 54,
+      "bytes": 878313,
+      "files": [
+        "tools/_build_merge.js",
+        "tools/_fetch_pl.js",
+        "tools/_inspect_api.js",
+        "tools/_inspect_pl.js",
+        "tools/_live_PeriodLockGuard.js",
+        "tools/_merged_PeriodLockGuard.js",
+        "tools/_push_guard.js",
+        "tools/_repro_o2_comment_disguise.py",
+        "tools/_repro_q_lexer.py",
+        "tools/_repro_r_static_scan.py",
+        "tools/_stage_a_write_verbs.py",
+        "tools/_ts_clearance_filestore_child.js",
+        "tools/gas_live_verify.js",
+        "tools/gen_gas_softdel.py",
+        "tools/guard_invariant_check.js",
+        "tools/guard_regression.js",
+        "tools/nonprod_isolation_assert.js",
+        "tools/patch_harness.js",
+        "tools/period_lock_port.js",
+        "tools/probe_v59_live_state.py",
+        "tools/prod_scan_from_backup.py",
+        "tools/pseudonymize_evidence.py",
+        "tools/rest_live_check.js",
+        "tools/stage_a_live_probe.py",
+        "tools/t1b_status_report.js",
+        "tools/ts_clearance.filestore.test.js",
+        "tools/ts_clearance.js",
+        "tools/ts_clearance.test.js",
+        "tools/ts_clearance_filestore.js",
+        "tools/ts_controlled_audit.js",
+        "tools/ts_controlled_audit.test.js",
+        "tools/ts_controlled_audit_offline.js",
+        "tools/ts_controlled_audit_offline.test.js",
+        "tools/ts_controlled_readguard_test.js",
+        "tools/ts_leave_coverage.js",
+        "tools/ts_leave_verify.js",
+        "tools/ts_lock_adapter.js",
+        "tools/ts_post.py",
+        "tools/ts_read_guard.js",
+        "tools/ts_read_guard.test.js",
+        "tools/ts_regrowth_sentry.js",
+        "tools/ts_repro_isolation_runner.py",
+        "tools/ts_repro_isolation_runner.test.py",
+        "tools/ts_softdel.js",
+        "tools/ts_softdel_core.clearance.test.js",
+        "tools/ts_softdel_core.js",
+        "tools/ts_softdel_core.precheck.test.js",
+        "tools/ts_softdel_gas_harness.js",
+        "tools/ts_softdel_harness.js",
+        "tools/ts_softdel_norm.js",
+        "tools/ts_softdel_verify.js",
+        "tools/v4_genpatches.py",
+        "tools/verify_gas_single_source.py",
+        "tools/writer_scope_scan.js"
+      ]
+    },
+    {
+      "dir": "evidence/20261026_v189/v189_source",
+      "count": 17,
+      "bytes": 440137,
+      "files": [
+        "evidence/20261026_v189/v189_source/Code.gs",
+        "evidence/20261026_v189/v189_source/FixBDates.gs",
+        "evidence/20261026_v189/v189_source/Index.html",
+        "evidence/20261026_v189/v189_source/PeriodLockGuard.gs",
+        "evidence/20261026_v189/v189_source/PruneDead.gs",
+        "evidence/20261026_v189/v189_source/RemoteActions.gs",
+        "evidence/20261026_v189/v189_source/RemoteTrigger.gs",
+        "evidence/20261026_v189/v189_source/amy_indirect_cost.gs",
+        "evidence/20261026_v189/v189_source/leave_sync.gs",
+        "evidence/20261026_v189/v189_source/masterAttendanceLive.gs",
+        "evidence/20261026_v189/v189_source/masterCreate.gs",
+        "evidence/20261026_v189/v189_source/masterException.gs",
+        "evidence/20261026_v189/v189_source/masterLeaves.gs",
+        "evidence/20261026_v189/v189_source/onOpen.gs",
+        "evidence/20261026_v189/v189_source/rebuildAttendance.gs",
+        "evidence/20261026_v189/v189_source/抓取设计脚本.gs",
+        "evidence/20261026_v189/v189_source/每天自动提醒.gs"
+      ]
+    },
+    {
+      "dir": "tools/v4_patches/full",
+      "count": 7,
+      "bytes": 374846,
+      "files": [
+        "tools/v4_patches/full/PeriodLockGuard.A0_PeriodLockGuard_cleanupGuard.js",
+        "tools/v4_patches/full/RemoteActions.A1d_RemoteActions_tsSoftDelGuarded.js",
+        "tools/v4_patches/full/RemoteActions.A1d_v4_FINAL_entry_bound.js",
+        "tools/v4_patches/full/RemoteTrigger.js",
+        "tools/v4_patches/full/apply_a1d_v4_entry.py",
+        "tools/v4_patches/full/masterAttendanceLive.A7_masterAttendanceLive_orphanVisible.js",
+        "tools/v4_patches/full/ts_softdel_gas_embedded.js"
+      ]
+    },
+    {
+      "dir": "code/live_snapshot_20261102",
+      "count": 16,
+      "bytes": 339448,
+      "files": [
+        "code/live_snapshot_20261102/Code.js",
+        "code/live_snapshot_20261102/FixBDates.js",
+        "code/live_snapshot_20261102/PeriodLockGuard.js",
+        "code/live_snapshot_20261102/PruneDead.js",
+        "code/live_snapshot_20261102/RemoteActions.js",
+        "code/live_snapshot_20261102/RemoteTrigger.js",
+        "code/live_snapshot_20261102/amy_indirect_cost.js",
+        "code/live_snapshot_20261102/leave_sync.js",
+        "code/live_snapshot_20261102/masterAttendanceLive.js",
+        "code/live_snapshot_20261102/masterCreate.js",
+        "code/live_snapshot_20261102/masterException.js",
+        "code/live_snapshot_20261102/masterLeaves.js",
+        "code/live_snapshot_20261102/onOpen.js",
+        "code/live_snapshot_20261102/rebuildAttendance.js",
+        "code/live_snapshot_20261102/抓取设计脚本.js",
+        "code/live_snapshot_20261102/每天自动提醒.js"
+      ]
+    },
+    {
+      "dir": "contract",
+      "count": 13,
+      "bytes": 238340,
+      "files": [
+        "contract/apply_pkc_to_real_data_v2p4.py",
+        "contract/build_fixture_v2p5.py",
+        "contract/build_fixture_v2p6.py",
+        "contract/build_fixture_v2p7.py",
+        "contract/t1b_canon_date_v2p7.py",
+        "contract/t1b_layer_conversion_v2p6.py",
+        "contract/t1b_layer_conversion_v2p7.py",
+        "contract/t1b_offline_test_v2p4.py",
+        "contract/t1b_offline_test_v2p5.py",
+        "contract/t1b_offline_test_v2p6.py",
+        "contract/t1b_offline_test_v2p7.py",
+        "contract/t1b_schema_registry_v2p6.py",
+        "contract/t1b_schema_registry_v2p7.py"
+      ]
+    },
+    {
+      "dir": "evidence/2026-11-02/white_screen_fix/deleted_repaired_6_originals",
+      "count": 6,
+      "bytes": 183102,
+      "files": [
+        "evidence/2026-11-02/white_screen_fix/deleted_repaired_6_originals/Code_repaired.js",
+        "evidence/2026-11-02/white_screen_fix/deleted_repaired_6_originals/Index_repaired.html",
+        "evidence/2026-11-02/white_screen_fix/deleted_repaired_6_originals/amy_indirect_cost_repaired.js",
+        "evidence/2026-11-02/white_screen_fix/deleted_repaired_6_originals/leave_sync_repaired.js",
+        "evidence/2026-11-02/white_screen_fix/deleted_repaired_6_originals/onOpen_repaired.js",
+        "evidence/2026-11-02/white_screen_fix/deleted_repaired_6_originals/每天自动提醒_repaired.js"
+      ]
+    },
+    {
+      "dir": "evidence/20261026_v189/baseline_v8",
+      "count": 3,
+      "bytes": 164039,
+      "files": [
+        "evidence/20261026_v189/baseline_v8/Code.gs",
+        "evidence/20261026_v189/baseline_v8/Index.html",
+        "evidence/20261026_v189/baseline_v8/PeriodLockGuard.gs"
+      ]
+    },
+    {
+      "dir": "tools/_staging_period_lock/_client_diff_work",
+      "count": 3,
+      "bytes": 150024,
+      "files": [
+        "tools/_staging_period_lock/_client_diff_work/Code.gs",
+        "tools/_staging_period_lock/_client_diff_work/Index.html",
+        "tools/_staging_period_lock/_client_diff_work/apply_client_edits.py"
+      ]
+    },
+    {
+      "dir": "tools/_staging_period_lock/period_lock_impl",
+      "count": 3,
+      "bytes": 128861,
+      "files": [
+        "tools/_staging_period_lock/period_lock_impl/PeriodLockGuard.gs",
+        "tools/_staging_period_lock/period_lock_impl/period_lock_integrated_src.gs",
+        "tools/_staging_period_lock/period_lock_impl/period_lock_tests.js"
+      ]
+    },
+    {
+      "dir": "tools/_staging_ts_leave_tip",
+      "count": 4,
+      "bytes": 62549,
+      "files": [
+        "tools/_staging_ts_leave_tip/deploy_wrapper.js",
+        "tools/_staging_ts_leave_tip/stage4_hash_check.js",
+        "tools/_staging_ts_leave_tip/stage4_tests.js",
+        "tools/_staging_ts_leave_tip/wrapper_negative_tests.js"
+      ]
+    },
+    {
+      "dir": "tools/t1b_experiment",
+      "count": 4,
+      "bytes": 56193,
+      "files": [
+        "tools/t1b_experiment/_gas_api.py",
+        "tools/t1b_experiment/lib_Code.js",
+        "tools/t1b_experiment/run_demo_now.py",
+        "tools/t1b_experiment/writer_Code.js"
+      ]
+    },
+    {
+      "dir": "tools/timesheet_forensics",
+      "count": 4,
+      "bytes": 45782,
+      "files": [
+        "tools/timesheet_forensics/ts_emptyuuid_trend.js",
+        "tools/timesheet_forensics/ts_l1l2_stratify.js",
+        "tools/timesheet_forensics/ts_unfreeze_gate.js",
+        "tools/timesheet_forensics/ts_writelog_forensics.py"
+      ]
+    },
+    {
+      "dir": "evidence/2026-11-01",
+      "count": 7,
+      "bytes": 43306,
+      "files": [
+        "evidence/2026-11-01/Tom_evidence_dossier.html",
+        "evidence/2026-11-01/build_mapping.js",
+        "evidence/2026-11-01/concurrency_test_harness.js",
+        "evidence/2026-11-01/gas_test_EditA_real.gs",
+        "evidence/2026-11-01/gas_test_EditB_crossproject.gs",
+        "evidence/2026-11-01/recovery_idempotency_drill.js",
+        "evidence/2026-11-01/verify_mapping.js"
+      ]
+    },
+    {
+      "dir": "tools/forensics",
+      "count": 4,
+      "bytes": 34088,
+      "files": [
+        "tools/forensics/base_uuid_audit.js",
+        "tools/forensics/dup_vs_base.js",
+        "tools/forensics/oct_dup_evidence.js",
+        "tools/forensics/watermark_pending.js"
+      ]
+    },
+    {
+      "dir": "tools/v4_patches",
+      "count": 1,
+      "bytes": 22311,
+      "files": [
+        "tools/v4_patches/v4_genpatches.py"
+      ]
+    },
+    {
+      "dir": "proof",
+      "count": 1,
+      "bytes": 14178,
+      "files": [
+        "proof/ts_insert_proof.js"
+      ]
+    },
+    {
+      "dir": "archive/20261021_sync",
+      "count": 1,
+      "bytes": 14019,
+      "files": [
+        "archive/20261021_sync/ts_incremental_sync.js"
+      ]
+    },
+    {
+      "dir": "evidence/2026-11-02",
+      "count": 2,
+      "bytes": 12176,
+      "files": [
+        "evidence/2026-11-02/build_preservation.py",
+        "evidence/2026-11-02/ts_live_opq_read.js"
+      ]
+    },
+    {
+      "dir": "code",
+      "count": 1,
+      "bytes": 7028,
+      "files": [
+        "code/proposed_ledger_guard_v47.js"
+      ]
+    },
+    {
+      "dir": "evidence/v73_preservation",
+      "count": 1,
+      "bytes": 3167,
+      "files": [
+        "evidence/v73_preservation/recheck_v73.py"
+      ]
+    },
+    {
+      "dir": "evidence/v72_preservation",
+      "count": 1,
+      "bytes": 2490,
+      "files": [
+        "evidence/v72_preservation/recheck_v72.py"
+      ]
+    },
+    {
+      "dir": "tools/timesheet_404_recovery",
+      "count": 1,
+      "bytes": 1145,
+      "files": [
+        "tools/timesheet_404_recovery/probe_live_entry_config.py"
+      ]
+    }
+  ],
+  "correction_to_v90": {
+    "v90_statement": "生产 WebApp 源码全文不进公开库，只给字节 + 哈希 + 受控本机路径",
+    "scope_actually_covered": "仅 @203–@206 四版 Index.html / Code.js（8 个文件）",
+    "gap": "v90 未对共享库全库做自查，因此该表述容易被理解为「库内没有源码全文」，与实际不符。",
+    "finding": "共享库 public，历史遗留源码类文件 154 个 / 3215542 字节（2026-10-26 v189 基线全套 .gs/Index.html、2026-11-02 live_snapshot 全套 .js、11-01 GAS 测试片段、tools/ 与 contract/ 下 .py 等），均为 v75 之前/早期审计阶段由本方放入的历史审计工件，不是 v89/v90/v91 新增。",
+    "stance": "正面承认、不辩解、不虚报。本版为首次全库自查。历史工件是否下线/脱敏/迁移由有权通道所有者决定，本方不擅自删除 git 历史对象（不可逆且会改变哈希链与证据链）。"
+  },
+  "four_current_versions_in_repo": [
+    {
+      "path": "outputs/_webapp_v4375_baseline/Index.html",
+      "bytes": 124450,
+      "sha256": "e10de82937534892dcfc31c7312f9ccda4fa127653a2c0f3dd5f706f88d8cbe4",
+      "in_public_repo": false,
+      "matches": []
+    },
+    {
+      "path": "outputs/_webapp_v4375_baseline/Code.js",
+      "bytes": 36725,
+      "sha256": "2b755ae3c0a7f449e9d82acf94db1275c1a106b8e0c88b5fbbbf67312869554a",
+      "in_public_repo": false,
+      "matches": []
+    },
+    {
+      "path": "outputs/_webapp_v4376_baseline/Index.html",
+      "bytes": 126839,
+      "sha256": "6988bca037e2838832edc8f64a747bd10b5a084abea0502dc88f47337e5daf8f",
+      "in_public_repo": false,
+      "matches": []
+    },
+    {
+      "path": "outputs/_webapp_v4376_baseline/Code.js",
+      "bytes": 38453,
+      "sha256": "7bc47c65b974263cbc11bd18621dcd6a3b7835b875b7f357ef041da4d9707e33",
+      "in_public_repo": false,
+      "matches": []
+    },
+    {
+      "path": "outputs/_webapp_v4377_baseline/Index.html",
+      "bytes": 124970,
+      "sha256": "60160cfe9101d21afa65cff5aeedac0d011d9ae8076077823b26f2c2ee4101c9",
+      "in_public_repo": false,
+      "matches": []
+    },
+    {
+      "path": "outputs/_webapp_v4377_baseline/Code.js",
+      "bytes": 38061,
+      "sha256": "10d30d7d1354b307cbd85977ffcb9a2cc9b0cb1aee932d14f1e02153c1975581",
+      "in_public_repo": false,
+      "matches": []
+    },
+    {
+      "path": "_build_missing_fill/live/Index.html",
+      "bytes": 123592,
+      "sha256": "a32934356a9a14aada4bba0fa2709b796cd5b2eb5e8cb2be98672016156fe93d",
+      "in_public_repo": false,
+      "matches": []
+    },
+    {
+      "path": "_build_missing_fill/live/Code.js",
+      "bytes": 38094,
+      "sha256": "e8e6ee522bb8c8e532ac19c8e979a0b1194721870e7d14543e09e3ea4c85ca3b",
+      "in_public_repo": false,
+      "matches": []
+    }
+  ],
+  "four_versions_all_not_in_repo": true,
+  "credential_scan": {
+    "by_pattern": {
+      "client_secret": {
+        "files_matched": 11,
+        "valuelike_assignments": 0
+      },
+      "access_token": {
+        "files_matched": 15,
+        "valuelike_assignments": 0
+      },
+      "refresh_token": {
+        "files_matched": 11,
+        "valuelike_assignments": 0
+      },
+      "AIza": {
+        "files_matched": 4,
+        "valuelike_assignments": 0
+      }
+    },
+    "aiza_matches": [
+      {
+        "path": "docs/T1-B_v91_明确方案与具体编辑_Tom可直接编辑_20261111.md",
+        "matched_length": 4,
+        "classification": "SHORT_PLACEHOLDER_NOT_A_KEY"
+      },
+      {
+        "path": "docs/T1-B_系统大局梳理_v22_默认拒绝守卫与触发器覆盖_20261102.md",
+        "matched_length": 4,
+        "classification": "SHORT_PLACEHOLDER_NOT_A_KEY"
+      },
+      {
+        "path": "docs/v91_full_review_20261111.md",
+        "matched_length": 4,
+        "classification": "SHORT_PLACEHOLDER_NOT_A_KEY"
+      },
+      {
+        "path": "docs/v91_full_review_20261111.md",
+        "matched_length": 4,
+        "classification": "SHORT_PLACEHOLDER_NOT_A_KEY"
+      },
+      {
+        "path": "evidence/v91_public_repo_full_audit_20261111.json",
+        "matched_length": 4,
+        "classification": "SHORT_PLACEHOLDER_NOT_A_KEY"
+      },
+      {
+        "path": "evidence/v91_public_repo_full_audit_20261111.json",
+        "matched_length": 4,
+        "classification": "SHORT_PLACEHOLDER_NOT_A_KEY"
+      }
+    ],
+    "private_key_headers": 0,
+    "conclusion": "疑似真值凭据赋值 0、私钥头 0；AIza 唯一命中为文档内 4 字符占位串，非密钥。"
+  },
+  "personal_data_scan": {
+    "phone_shaped_matches": 180,
+    "in_hex_or_hash_context": 180,
+    "files_with_phone_shape": [
+      "deliverables/T1-B_候选保留映射_可核查_2026-11-01.csv",
+      "evidence/2026-11-01/T1-B_候选保留映射_可核查_2026-11-01.csv",
+      "evidence/2026-11-01/controlled_audit_EXACT_ALL_2026-11-01.json",
+      "evidence/2026-11-01/evidence_softdel_AFTER_2026-11-01.json",
+      "evidence/2026-11-01/prod_scan_LIVE_2026-11-01-14-56-27.json",
+      "evidence/2026-11-01/repair_mapping_2026-11-01.csv",
+      "evidence/2026-11-01/softdel_targets_1567.json",
+      "evidence/2026-11-02/live_opq_postop_153rows.json",
+      "evidence/2026-11-02/preservation_119_34_rows.csv",
+      "evidence/ts_softdel_harness_20261028.txt",
+      "evidence/ts_softdel_harness_20261028b.txt",
+      "evidence/ts_softdel_harness_20261028c.txt",
+      "evidence/ts_softdel_harness_20261028d.txt",
+      "evidence/ts_softdel_harness_20261028e.txt",
+      "evidence/ts_softdel_harness_20261028f.txt",
+      "evidence/ts_softdel_harness_20261028g.txt",
+      "evidence/ts_softdel_harness_20261028h.txt",
+      "evidence/ts_softdel_harness_20261028i.txt",
+      "evidence/ts_softdel_harness_v4_20261027.txt",
+      "evidence/v76_hash_inventory_20261107.json",
+      "evidence/v77_hash_inventory_20261107.json",
+      "evidence/v78_hash_inventory_20261107.json",
+      "evidence/v79_hash_inventory_20261107.json",
+      "evidence/v80_hash_inventory_20261107.json",
+      "evidence/v86_hash_inventory_20261108.json",
+      "tools/evidence/controlled_rederive_2026-10-31/controlled_audit_phase2_B_2026-10-31-09-42-21.json",
+      "tools/evidence/controlled_rederive_2026-10-31/prod_scan_2026-10-31.json"
+    ],
+    "conclusion": "长数字正则命中全部落在 sha256: / UUID 十六进制上下文（脱敏形态如 '###,sha###:##b###…'），未发现独立 11 位手机号 / 18 位身份证 / 银行卡号的真值形态；该结论基于脱敏形状分析，属本方只读判定，不替代有权通道所有者复核。",
+    "business_contact_identifiers": "rita.jin@spacematrix.com / 1252293966@qq.com / ritajin.muraya@qq.com / 332721759@qq.com 为审计线程往来标识，在既有回函与文档中天然出现，非敏感值；本版不新增任何个人数据。"
+  },
+  "this_version_additions": {
+    "production_source_full_text": 0,
+    "personal_data": 0,
+    "note": "v91 只新增元数据 JSON（计数 / 路径 / 字节 / SHA-256 / 脱敏形状 / 处置格）与 Markdown 文档，零源码全文、零个人数据、零凭据。"
+  },
+  "pending_channel_owner_decision": {
+    "status": "PENDING_CHANNEL_OWNER_DECISION",
+    "wording_corrected": "v90 回函中「请 Tom 指定受控交付通道」已撤回；按 Tom 本函改为由有权通道所有者确认。",
+    "items": [
+      "历史遗留 154 个源码类文件是否需下线 / 脱敏 / 转入受控通道",
+      "四版 @203–@206 源码全文的受控交付方式",
+      "公开库是否转为私有或改为受控分发"
+    ],
+    "our_position": "在有权通道所有者书面确认前，本方不擅自交付源码、不擅自删改 git 历史、不擅自把源码放入公开库；本方不向 Tom 追问通道，也不代通道所有者作决定。"
+  },
+  "limits": "本自查为本方只读扫描，可重跑；不证明服务端执行主体、不证明历史工件从未被第三方取得、不替代有权通道所有者的独立核验或处置决定。"
+}

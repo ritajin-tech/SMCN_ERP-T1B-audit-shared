@@ -1,0 +1,122 @@
+{
+  "capture_beijing": "2026-11-11 00:30:34",
+  "capture_utc": "2026-11-10T16:30:34Z",
+  "reply": {
+    "message_id": "msg_ni7Ih0o6bgZuUqiYU9H37Rdk3rB68zZ3IdTXngRWUZfVeg",
+    "rfc_message_id": "<tencent_D16A101AB25D6608F0C1BC208C814D131806@qq.com>",
+    "subject": "回复：【生产表】v90监测范围与证据边界",
+    "from_email": "1252293966@qq.com",
+    "to": [
+      "ritajin.muraya@qq.com"
+    ],
+    "cc": [
+      "332721759@qq.com"
+    ],
+    "received_beijing": "2026-11-10 22:54:11",
+    "received_utc": "2026-11-10T14:54:11Z",
+    "has_attachments": false,
+    "authenticity": {
+      "verdict": "GENUINE_INBOUND_FROM_TOM",
+      "rule": "正文以「Rita，」开头、from=1252293966@qq.com、to 不含自己 ⇒ 真来信；「Tom，」开头且 from=ritajin.muraya@qq.com、收件人含自己 ⇒ 我方 reply_all 回显",
+      "distinguished_from": [
+        "msg_4PH2yG9n8MseUWFaDPb_FVvglwQICB5z0mCfx9BPImw10A（21:55 我方 v90 回显，非真来信）",
+        "msg_bZoO_qt3KCeH_JIV6GcIhYrYhEL6XsbZ9XxlQh9kP2c1UA（21:55 我方 v90 sent 原件）"
+      ]
+    },
+    "body_plain": "Rita，\n\n已全文阅读 v90 来信，本信无附件。你方报告新增 7 行、六次监测失败及四版源码字节与哈希，并说明共享库为公开仓库；这些是你方报告，本方尚未独立核验原始工件、生产数据或部署状态。\n\n一、数据：请保全新增行原始全列快照、稳定键、采集时点及来源；数值仅对应采集时点，姓名与时间不能证明执行主体或业务授权。独立复采和业务有效性仍未核。\n\n二、日志：所述本地只读记录不能证明服务端写入主体、请求关联或监控覆盖完整。请通道所有者保全原始请求及执行日志，或具名说明无法取得的范围、覆盖时段与替代证据局限；业务负责人核对受影响行并提供书面授权及有效性确认。N1、N6、R3/N5 不因本函关闭。\n\n三、并行变更：203 至 206 的源码、哈希和部署链仍待独立核验；公开库及所述本地工具变更均须结合实际内容、权限与运行记录评估，不能以端点不变或未部署推定无风险。请勿向公开仓库放置生产源码或个人数据；受控交付方式由有权通道所有者确认。\n\n下一步先只读核对固定提交的一件指定工件原始字节、长度和 SHA-256，目前尚未完成；不运行所交脚本。事故 OPEN、HOLD/NO-GO、阶段一 PASS 暂缓维持；本函不构成验收、解冻或生产授权。\n\nTom",
+    "body_format": "HTML_IN_MAIL_SYSTEM__STORED_AS_PLAIN_ABOVE"
+  },
+  "item_by_item": [
+    {
+      "id": "T1",
+      "tom_says": "你方报告新增 7 行、六次监测失败、四版源码字节与哈希、共享库为公开仓库；本方尚未独立核验原始工件、生产数据或部署状态",
+      "our_position": "ACCEPTED_NO_DISPUTE",
+      "concrete_action": "正面接受，不辩解。本方不代对方独立核验、不以本方证据包冒充对方核验结论；逐件给出可独立复算的路径/字节/哈希/命令。"
+    },
+    {
+      "id": "T2",
+      "tom_says": "一、数据：保全新增行原始全列快照、稳定键、采集时点及来源",
+      "our_position": "ALREADY_DELIVERED_IN_V90__POINTER_ONLY",
+      "concrete_action": "evidence/v90_prod_append_7rows_20261110.json（11419–11425 全 A–R 18 列、7 个 UUID、双采集时点、合计 24.0h）。本版不重复堆料，避免制造新的并行工件。"
+    },
+    {
+      "id": "T3",
+      "tom_says": "一、数据：数值仅对应采集时点，姓名与时间不能证明执行主体或业务授权",
+      "our_position": "ACCEPTED_AND_REINFORCED",
+      "concrete_action": "v90 已写明「数值非终值」。本版补 21:30→00:30 连续七轮零增量稳定性窗口（v90 发布后 22:00 起为六轮），并明确该窗口只证明读数未变，不证明无其他写入、不证明主体与完整性（v81 边界）。"
+    },
+    {
+      "id": "T4",
+      "tom_says": "一、数据：独立复采和业务有效性仍未核",
+      "our_position": "REGISTERED_AS_OPPOSITE_SIDE_ACTION",
+      "concrete_action": "本方不代对方复采、不代判业务有效性；按原话登记为未核，不催、不改写状态。"
+    },
+    {
+      "id": "T5",
+      "tom_says": "二、日志：本地只读记录不能证明服务端写入主体、请求关联或监控覆盖完整",
+      "our_position": "ACCEPTED_NO_DISPUTE",
+      "concrete_action": "v90 范围说明书五条替代证据局限已明确本方日志不作为主体/完整性证明；本版维持，不升级主张。"
+    },
+    {
+      "id": "T6",
+      "tom_says": "二、日志：请通道所有者保全原始请求及执行日志，或具名说明无法取得的范围、覆盖时段与替代证据局限",
+      "our_position": "ALREADY_DELIVERED_IN_V90__CHANNEL_OWNER_PENDING",
+      "concrete_action": "docs/T1-B_本方只读通道范围说明_覆盖时段与替代证据局限_20261110.md 已给本方范围；明确不替代通道所有者应出具件。通道所有者原件仍为 N1 缺口。"
+    },
+    {
+      "id": "T7",
+      "tom_says": "二、日志：业务负责人核对受影响行并提供书面授权及有效性确认",
+      "our_position": "REGISTERED_PENDING_BUSINESS_OWNER",
+      "concrete_action": "行范围已固定：生产表 11396–11425 共 30 行、主库请假 607–612 共 6 行。R3/N5 待有权业务负责人，本方不代判、不代签、不催。"
+    },
+    {
+      "id": "T8",
+      "tom_says": "二、日志：N1、N6、R3/N5 不因本函关闭",
+      "our_position": "MAINTAINED",
+      "concrete_action": "四项不新增、不关闭；D1 四列仍空。"
+    },
+    {
+      "id": "T9",
+      "tom_says": "三、并行变更：203 至 206 的源码、哈希和部署链仍待独立核验",
+      "our_position": "MAINTAINED_TO_BE_VERIFIED",
+      "concrete_action": "evidence/v90_deploy_chain_bytes_and_hash_20261110.json 四版原始字节 + SHA-256 全链继续标待核；端点不变、部署数不变均不作为代码或行为不变的证据。"
+    },
+    {
+      "id": "T10",
+      "tom_says": "三、并行变更：公开库及所述本地工具变更均须结合实际内容、权限与运行记录评估，不能以端点不变或未部署推定无风险",
+      "our_position": "NEW_CONDITION__FULLY_ANSWERED_IN_V91",
+      "concrete_action": "本版新增 evidence/v91_local_tools_three_factors_20261111.json：逐件给实际内容(bytes/SHA-256/作用摘要)、权限(写能力/凭据/触发者/作用对象)、运行记录(成功与失败均列，含一次 ValueError)。并明确本方不以「未部署」推定无风险。"
+    },
+    {
+      "id": "T11",
+      "tom_says": "三、并行变更：公开库须结合实际内容评估",
+      "our_position": "NEW_CONDITION__FIRST_FULL_REPO_AUDIT__CORRECTION_ACCEPTED",
+      "concrete_action": "本版首次做全库自查：evidence/v91_public_repo_full_audit_20261111.json。正面承认 v90 的「生产源码全文不进公开库」只覆盖 @203–@206 四版，未做全库自查；实测 public 库历史遗留 154 个源码类文件 / 3,215,542 字节。四版当前源码 8 个文件逐件哈希比对 NOT_IN_REPO。"
+    },
+    {
+      "id": "T12",
+      "tom_says": "三、并行变更：请勿向公开仓库放置生产源码或个人数据",
+      "our_position": "ACCEPTED__THIS_VERSION_ADDS_NONE__COMPLIANCE_EVIDENCE_GIVEN",
+      "concrete_action": "v91 零新增源码全文、零新增个人数据（只放元数据/计数/脱敏形状）。全库凭据与敏感值形状复核：疑似真值凭据赋值 0、私钥头 0、长数字命中均为 sha256/UUID 十六进制上下文。历史遗留是否下线/迁移，列为待有权通道所有者决定的具体编辑格，本方不擅自删除 git 历史对象。"
+    },
+    {
+      "id": "T13",
+      "tom_says": "三、并行变更：受控交付方式由有权通道所有者确认",
+      "our_position": "V90_WORDING_CORRECTED",
+      "concrete_action": "撤回 v90 回函中「请 Tom 指定受控交付通道」的提法。改登记 PENDING_CHANNEL_OWNER_DECISION：由有权通道所有者确认，本方在此之前不擅自交付、不擅自把源码放入公开库；不再向 Tom 追问通道。"
+    },
+    {
+      "id": "T14",
+      "tom_says": "下一步先只读核对固定提交的一件指定工件原始字节、长度和 SHA-256，目前尚未完成；不运行所交脚本",
+      "our_position": "D1_STILL_EMPTY__NO_PROXY_NO_URGE",
+      "concrete_action": "固定提交 d50e795 / 单件 evidence/v86_attribution_evidence_gap_register_20261108.json 的 D1 四列仍空。本方不代填、不代算、不催通过、不运行所交脚本，并给最小可独立完成的一格（系统自带 git / wc -c / sha256sum）。"
+    },
+    {
+      "id": "T15",
+      "tom_says": "事故 OPEN、HOLD/NO-GO、阶段一 PASS 暂缓维持；本函不构成验收、解冻或生产授权",
+      "our_position": "MAINTAINED",
+      "concrete_action": "状态原样维持，本版不构成验收、解冻或生产授权。"
+    }
+  ],
+  "item_count": 15
+}

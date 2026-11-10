@@ -1,0 +1,119 @@
+{
+  "capture_beijing": "2026-11-11 00:30:34",
+  "capture_utc": "2026-11-10T16:30:34Z",
+  "readings": {
+    "production": {
+      "lastRow": 11425,
+      "lastCol": 18
+    },
+    "master_leave": {
+      "lastRow": 612,
+      "lastCol": 15
+    },
+    "sheet_counts": {
+      "production": 16,
+      "master": 39
+    },
+    "deployments": 3
+  },
+  "baseline_v90_beijing": "2026-11-10 21:30:29",
+  "baseline_v90_last_row": 11425,
+  "window_label": "v90 发布后 21:30 → 11-11 00:30 连续零增量稳定性窗口",
+  "no_increment_rounds": 7,
+  "original_log_lines": [
+    "[2026-11-10 21:30:29] t1b-watch      OK (29.1s) 无增量（生产表 {'lastRow': 11425, 'lastCol': 18} / 请假 {'lastRow': 612, 'lastCol': 15} / 页签 {'production': 16, 'master': 39} / 部署 3）",
+    "[2026-11-10 22:00:36] t1b-watch      OK (35.7s) 无增量（生产表 {'lastRow': 11425, 'lastCol': 18} / 请假 {'lastRow': 612, 'lastCol': 15} / 页签 {'production': 16, 'master': 39} / 部署 3）",
+    "[2026-11-10 22:30:43] t1b-watch      OK (43.1s) 无增量（生产表 {'lastRow': 11425, 'lastCol': 18} / 请假 {'lastRow': 612, 'lastCol': 15} / 页签 {'production': 16, 'master': 39} / 部署 3）",
+    "[2026-11-10 23:00:35] t1b-watch      OK (34.7s) 无增量（生产表 {'lastRow': 11425, 'lastCol': 18} / 请假 {'lastRow': 612, 'lastCol': 15} / 页签 {'production': 16, 'master': 39} / 部署 3）",
+    "[2026-11-10 23:30:33] t1b-watch      OK (32.7s) 无增量（生产表 {'lastRow': 11425, 'lastCol': 18} / 请假 {'lastRow': 612, 'lastCol': 15} / 页签 {'production': 16, 'master': 39} / 部署 3）",
+    "[2026-11-11 00:00:37] t1b-watch      OK (37.3s) 无增量（生产表 {'lastRow': 11425, 'lastCol': 18} / 请假 {'lastRow': 612, 'lastCol': 15} / 页签 {'production': 16, 'master': 39} / 部署 3）",
+    "[2026-11-11 00:30:34] t1b-watch      OK (33.7s) 无增量（生产表 {'lastRow': 11425, 'lastCol': 18} / 请假 {'lastRow': 612, 'lastCol': 15} / 页签 {'production': 16, 'master': 39} / 部署 3）"
+  ],
+  "timing_rows": [
+    {
+      "date": "2026-11-10",
+      "time": "21:30:29",
+      "seconds": 29.1,
+      "ok": 1
+    },
+    {
+      "date": "2026-11-10",
+      "time": "22:00:36",
+      "seconds": 35.7,
+      "ok": 1
+    },
+    {
+      "date": "2026-11-10",
+      "time": "22:30:43",
+      "seconds": 43.1,
+      "ok": 1
+    },
+    {
+      "date": "2026-11-10",
+      "time": "23:00:35",
+      "seconds": 34.7,
+      "ok": 1
+    },
+    {
+      "date": "2026-11-10",
+      "time": "23:30:33",
+      "seconds": 32.7,
+      "ok": 1
+    }
+  ],
+  "trigger_reports_after_v90": 0,
+  "conclusion": "七组读数逐字一致：生产表 11425/18、请假 612/15、页签 39/16、部署 3。",
+  "honest_limit": "只证明这些采集时点的只读读数未变；不能排除覆盖写入、删除、回滚或时间戳不可靠等非尾部写入（v81 口径），不证明写入主体、请求关联或监控覆盖完整，不证明业务有效性。生产表持续可能有新行进入，本方不冻结读数、不说终值。",
+  "numeric_progression": [
+    {
+      "at_beijing": "2026-11-10 20:00:37",
+      "last_row": 11418,
+      "source": "zc log 无增量轮"
+    },
+    {
+      "at_beijing": "2026-11-10 20:30:36",
+      "last_row": 11420,
+      "source": "outputs/T1-B_盯梢触发_20261110_2030.md"
+    },
+    {
+      "at_beijing": "2026-11-10 21:00:33",
+      "last_row": 11425,
+      "source": "outputs/T1-B_盯梢触发_20261110_2100.md"
+    },
+    {
+      "at_beijing": "2026-11-10 21:30:29",
+      "last_row": 11425,
+      "source": "zc log 无增量轮"
+    },
+    {
+      "at_beijing": "2026-11-10 22:00:36",
+      "last_row": 11425,
+      "source": "zc log 无增量轮"
+    },
+    {
+      "at_beijing": "2026-11-10 22:30:43",
+      "last_row": 11425,
+      "source": "zc log 无增量轮"
+    },
+    {
+      "at_beijing": "2026-11-10 23:00:35",
+      "last_row": 11425,
+      "source": "zc log 无增量轮"
+    },
+    {
+      "at_beijing": "2026-11-10 23:30:33",
+      "last_row": 11425,
+      "source": "zc log 无增量轮"
+    },
+    {
+      "at_beijing": "2026-11-11 00:00:37",
+      "last_row": 11425,
+      "source": "zc log 无增量轮"
+    },
+    {
+      "at_beijing": "2026-11-11 00:30:34",
+      "last_row": 11425,
+      "source": "zc log 无增量轮"
+    }
+  ]
+}

@@ -1,0 +1,58 @@
+{
+  "generated_beijing": "2026-11-11 00:30:34",
+  "generated_utc": "2026-11-10T16:30:34Z",
+  "version": "v91",
+  "packages": [
+    {
+      "path": "evidence/v91_tom_reply_2254_20261110.json",
+      "bytes": 9323,
+      "sha256": "80a24a52e2409bc66c7aa29833c5ce49fa840251f7a1cdf7f4600df81db918b9"
+    },
+    {
+      "path": "evidence/v91_local_tools_three_factors_20261111.json",
+      "bytes": 13800,
+      "sha256": "e2bbb9208e0558d522aadf32eae5dc283607cfc6332a8d629ba7f4a7db37b2ba"
+    },
+    {
+      "path": "evidence/v91_public_repo_full_audit_20261111.json",
+      "bytes": 20169,
+      "sha256": "9174f69ba6b6632a28ee448c9660fd00387e5092ce99114d049403159422b753"
+    },
+    {
+      "path": "evidence/v91_stability_window_and_readings_20261111.json",
+      "bytes": 4440,
+      "sha256": "9a5609947aead3f41b19093c8103d8293f5f291f71a061d1e6bab8c788edd956"
+    },
+    {
+      "path": "evidence/v91_live_readings_and_sources_20261111.json",
+      "bytes": 3701,
+      "sha256": "7bb0f4172c3ebd285f73678e62de2370d8bcea12e1c039f5a2a7065e89664030"
+    },
+    {
+      "path": "evidence/v91_supporting_artifacts_20261111.json",
+      "bytes": 1268,
+      "sha256": "e018b5fc4d4a611ce62c7c99836ad584df604c92ee77b2d5a4f8a52aaee0c903"
+    },
+    {
+      "path": "evidence/v91_endpoint_no_change_20261111.json",
+      "bytes": 993,
+      "sha256": "1300012519687efd2f74404b5d2f2648d903fe36879d23de66f4ff409780692c"
+    }
+  ],
+  "note": "全部只读生成，可重跑；零业务数据写入、零邮件外发、零换链。",
+  "stability_note": "采集时点取 _tmp/t1b_watch_probe.json 的 mtime；盯梢日志行数随真实时间推进属数据推进，不是生成器漂移。逐件 SHA-256 以本清单为准。",
+  "d1_static_check": {
+    "status": "STILL_EMPTY__NO_PROXY_NO_URGE",
+    "fixed_commit": "d50e7953ce400da760d0873423b41004b1882e68",
+    "target": "evidence/v86_attribution_evidence_gap_register_20261108.json",
+    "expected_bytes": 4825,
+    "expected_sha256": "e7a8f8a1da84da86b12b33efce065988d920ac5363d1faca47fd411023b47007",
+    "tom_columns": [
+      "observed_bytes",
+      "observed_sha256",
+      "match",
+      "tom_verdict"
+    ],
+    "note": "D1 四列仍空；本方不代填、不代算、不催通过、不运行所交脚本。"
+  }
+}

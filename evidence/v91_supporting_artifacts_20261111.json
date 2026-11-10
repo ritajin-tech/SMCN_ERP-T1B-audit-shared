@@ -1,0 +1,27 @@
+{
+  "capture_beijing": "2026-11-11 00:30:34",
+  "capture_utc": "2026-11-10T16:30:34Z",
+  "purpose": "把稳定性窗口原始记录放进共享库，使独立复算不是空话；不含生产源码、不含个人数据、不含凭据",
+  "supporting_files": [
+    {
+      "path": "evidence/supporting_v91/timing_t1b-watch.csv",
+      "source": "tools/_zc_logs/timing_t1b-watch.csv",
+      "bytes": 3515,
+      "sha256": "4acda31341b094fc337acdc243755fb6d09013d69f66fc54fccb9fc28971e3ee",
+      "purpose": "零积分调度原始记录，含 21:30 后八轮 OK 与 11-08 六次 FAIL 原始时点"
+    },
+    {
+      "path": "evidence/supporting_v91/zc_t1b_watch_no_increment_lines_20261110_1111.txt",
+      "source": "tools/_zc_logs/2026-11-10.log 与 2026-11-11.log 中 t1b-watch 无增量行抽取",
+      "bytes": 1407,
+      "sha256": "fd3322015516e5da3263e2745f1f892cdff91ea7c950d1b3dfecdebea2e7847d",
+      "purpose": "v90 发布后零增量稳定性窗口原始行，供独立复核"
+    }
+  ],
+  "recalc_commands": [
+    "git -C <repo> checkout <fixed_commit>",
+    "wc -c <path>",
+    "sha256sum <path>"
+  ],
+  "note": "源码全文与四版 baseline 仍保留在本方受控路径，交付方式 PENDING_CHANNEL_OWNER_DECISION。"
+}

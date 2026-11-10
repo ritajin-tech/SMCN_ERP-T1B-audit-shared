@@ -1,0 +1,115 @@
+{
+  "captured_beijing": "2026-11-11 00:30:34",
+  "captured_utc": "2026-11-10T16:30:34Z",
+  "trigger": {
+    "verdict": "NEW_TOM_REVIEW_CONDITION → OPEN_V91",
+    "tom_reply": "2026-11-10 22:54:11 北京 真回函（msg_ni7Ih0o…）",
+    "data_event": "NONE（v90 后八轮零增量）",
+    "rule": "总账 §5.3 防循环闸门：实质新审阅条件 / 真实数据事件 / 活文档矛盾 ⇒ 开版；纯状态与自方回显只登记不发空函。"
+  },
+  "sources_checklist": [
+    {
+      "n": 1,
+      "source": "生产表 DB_工时流水 / 主库请假 / 页签 / 部署（t1b-watch 00:00 快照）",
+      "result": "11425/18 · 612/15 · 39/16 · 3",
+      "verdict": "NO_INCREMENT"
+    },
+    {
+      "n": 2,
+      "source": "零积分盯梢 21:30–00:30 八轮原始日志 + timing CSV",
+      "result": "全 OK / 全无增量 / 0 触发报告",
+      "verdict": "STABLE"
+    },
+    {
+      "n": 3,
+      "source": "21:55 后本地新文件",
+      "result": "归档批量 touch + 自动守卫产物，无人工新文档/无 Tom 附件",
+      "verdict": "NO_NEW_ARTIFACT"
+    },
+    {
+      "n": 4,
+      "source": "共享库本地 HEAD / status",
+      "result": "85e517c / 0 待提交",
+      "verdict": "NO_CHANGE"
+    },
+    {
+      "n": 5,
+      "source": "共享库远端 main（ls-remote）",
+      "result": "85e517c",
+      "verdict": "NO_REMOTE_EDIT"
+    },
+    {
+      "n": 6,
+      "source": "QQ 邮件 inbox",
+      "result": "Tom 22:54 真回函 1 封 + 我方 21:55 回显 1 封",
+      "verdict": "NEW_TRIGGER"
+    },
+    {
+      "n": 7,
+      "source": "QQ 邮件 sent",
+      "result": "21:55 v90 回函；22:54 后无我方回函",
+      "verdict": "NOT_YET_REPLIED"
+    },
+    {
+      "n": 8,
+      "source": "GitHub commits（since 13:50Z）",
+      "result": "仅我方 85e517c",
+      "verdict": "NO_TOM_COMMIT"
+    },
+    {
+      "n": 9,
+      "source": "GitHub issues OPEN / PR all",
+      "result": "0 / 0",
+      "verdict": "NO_TOM_EDIT"
+    },
+    {
+      "n": 10,
+      "source": "GitHub 仓库可见性",
+      "result": "public (private=false)",
+      "verdict": "BOUNDARY_CONFIRMED"
+    },
+    {
+      "n": 11,
+      "source": "共享库全库源码/敏感值自查",
+      "result": "154 源码类文件历史遗留；四版当前源码 NOT_IN_REPO；无真值凭据",
+      "verdict": "CORRECTION_DISCLOSED"
+    },
+    {
+      "n": 12,
+      "source": "ts-manager 现场 clasp list-deployments",
+      "result": "恒 3 / @206 / 三个 ID 未变",
+      "verdict": "ZERO_LINK_CHANGE"
+    }
+  ],
+  "four_deployment_chains": [
+    {
+      "system": "工时表 WebApp ts-manager",
+      "deployments": 3,
+      "pointer": "@206",
+      "url_changed": false,
+      "source": "本轮现场 clasp list-deployments 只读复核"
+    },
+    {
+      "system": "Operation 引擎",
+      "deployments": 2,
+      "pointer": "@70",
+      "url_changed": false,
+      "source": "沿用 v89/v90 登记读数，本轮未现场复采（如实标注）"
+    },
+    {
+      "system": "NPS",
+      "deployments": 21,
+      "pointer": "@88",
+      "url_changed": false,
+      "source": "沿用 v89/v90 登记读数，本轮未现场复采（如实标注）"
+    },
+    {
+      "system": "pclist numberlock",
+      "deployments": 10,
+      "pointer": "@400",
+      "url_changed": false,
+      "source": "沿用 v89/v90 登记读数，本轮未现场复采（如实标注）"
+    }
+  ],
+  "redlines": "本版零 GAS push、零 deploy、零新建/删除部署、零 URL 变更、零生产写、零主库写、零改结构列宽、零解冻、零回滚。"
+}

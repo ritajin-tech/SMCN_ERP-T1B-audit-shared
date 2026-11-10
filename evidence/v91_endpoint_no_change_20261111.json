@@ -1,0 +1,15 @@
+{
+  "capture_beijing": "2026-11-11 00:30:34",
+  "capture_utc": "2026-11-10T16:30:34Z",
+  "deployment_count": 3,
+  "pointer": "@206",
+  "deployment_ids": [
+    "AKfycbwlxB2z9IDDo7pBv4sr0pu6-1ywvYBuRyqTwfjgl_o @HEAD",
+    "AKfycbwYXV3VS3I59bVpUi9XBMClGsFkJ6l_NxPdQcysiXYe47-iONNMk6FIoI8VEXwYl-_2 @202",
+    "AKfycbzUyhyK-tqL7ypp2H2jZXNCMciEr2PJwhkZIg0bwV1OwV2C6D9RKJZhA4HpiUi6F5eF @206"
+  ],
+  "url_changed": false,
+  "new_deployment_created": false,
+  "live_deployments_text": "Found 3 deployments.\n- AKfycbwlxB2z9IDDo7pBv4sr0pu6-1ywvYBuRyqTwfjgl_o @HEAD \n- AKfycbwYXV3VS3I59bVpUi9XBMClGsFkJ6l_NxPdQcysiXYe47-iONNMk6FIoI8VEXwYl-_2 @202 - V4.3.87 v2 (local datetime string -> real Date)\n- AKfycbzUyhyK-tqL7ypp2H2jZXNCMciEr2PJwhkZIg0bwV1OwV2C6D9RKJZhA4HpiUi6F5eF @206 - V4.3.77 撤掉我的漏填页 Copy/复制清单 跨页搬运入口 — 原地更新,零换链",
+  "note": "端点不变、部署数不变均不作为代码或行为不变的证据（v89 口径维持）。"
+}

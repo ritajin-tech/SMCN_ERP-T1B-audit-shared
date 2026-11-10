@@ -1,0 +1,245 @@
+{
+  "capture_beijing": "2026-11-11 00:30:34",
+  "capture_utc": "2026-11-10T16:30:34Z",
+  "purpose": "正面回答 Tom「公开库及所述本地工具变更均须结合实际内容、权限与运行记录评估，不能以端点不变或未部署推定无风险」",
+  "three_factors_definition": {
+    "actual_content": "逐件 bytes + SHA-256 + 作用摘要；源码全文不入 public 库",
+    "permission": "写能力 / 作用对象 / 凭据 / 触发者 / 是否触碰部署与业务数据 / 列宽冻结护栏",
+    "runtime_record": "实际运行时间、触发者、结果（成功与失败均列）、原始日志路径"
+  },
+  "tools": [
+    {
+      "path": "tools/erp_color_repair.py",
+      "bytes": 21250,
+      "sha256": "77aed2d6968999ea9cbd3d6463fb66d9d9415d1dc9480ca5d58081c04408e66a",
+      "mtime_beijing": "2026-11-10 22:31:14",
+      "changed_at_beijing": "2026-11-10 20:26",
+      "actual_content": {
+        "summary": "三色/红VI 加性修复与人员列回刷；--apply-all 串联 REPAIR_TABS+PCLIST+OA+TierB+DOC+人员列",
+        "bytes": 21250,
+        "sha256": "77aed2d6968999ea9cbd3d6463fb66d9d9415d1dc9480ca5d58081c04408e66a",
+        "note": "实际内容以 bytes + SHA-256 固定；源码全文按 Tom 要求不放入 public 共享库，保留在本方受控路径。"
+      },
+      "permission": {
+        "capability": "WRITE_CAPABLE（经 numberlock/hktool webapp 对 ERP 表格做加性 CF/底色修复）",
+        "write_scope": "主库 1oxPj0mz… / 生产表 1Pi5u9fE… 等 13 本表；仅颜色/条件格式，不写工时流水业务值",
+        "credentials": "本机已授权的 hktool 只读通道 / 本地 OAuth 凭据；无新增凭据",
+        "actor": "Rita 指令触发 + Windows 计划任务 ZC_*（零积分无人值守）",
+        "gas_push": false,
+        "deployment_changed": false,
+        "url_changed": false,
+        "production_business_write": false,
+        "master_business_write": false,
+        "column_width_change": false,
+        "freeze_change": false,
+        "note": "具写能力的工具仅作用于颜色/条件格式，不写工时流水业务值；T1-B 审计链本轮未调用任何写路径。不以「未部署」推定无风险。"
+      }
+    },
+    {
+      "path": "tools/personnel_audit.py",
+      "bytes": 9355,
+      "sha256": "199311be25b26030869b1849f44bd37a16618299c1e2539ec1643835c20fd071",
+      "mtime_beijing": "2026-11-10 22:31:14",
+      "changed_at_beijing": "2026-11-10 21:5x",
+      "actual_content": {
+        "summary": "13 本表人员列三色合规只读审计；PROTECTED_SKIP 跳过 5 张受保护页",
+        "bytes": 9355,
+        "sha256": "199311be25b26030869b1849f44bd37a16618299c1e2539ec1643835c20fd071",
+        "note": "实际内容以 bytes + SHA-256 固定；源码全文按 Tom 要求不放入 public 共享库，保留在本方受控路径。"
+      },
+      "permission": {
+        "capability": "READ_ONLY（审计扫描，输出 JSON 报告）",
+        "write_scope": "无写；只写本地 outputs/ 报告",
+        "credentials": "本机已授权的 hktool 只读通道 / 本地 OAuth 凭据；无新增凭据",
+        "actor": "Rita 指令触发 + Windows 计划任务 ZC_*（零积分无人值守）",
+        "gas_push": false,
+        "deployment_changed": false,
+        "url_changed": false,
+        "production_business_write": false,
+        "master_business_write": false,
+        "column_width_change": false,
+        "freeze_change": false,
+        "note": "具写能力的工具仅作用于颜色/条件格式，不写工时流水业务值；T1-B 审计链本轮未调用任何写路径。不以「未部署」推定无风险。"
+      }
+    },
+    {
+      "path": "tools/threecolor_watchdog.py",
+      "bytes": 10000,
+      "sha256": "19b949e8eaf9e654ac44fa27abe0733f802c88755b1e1027584de5b56cd26e94",
+      "mtime_beijing": "2026-11-10 22:31:14",
+      "changed_at_beijing": "2026-11-10 20:30",
+      "actual_content": {
+        "summary": "三色守望：EXPECTED 扩至 44；重试退避 / 超时 330s / 排程错峰",
+        "bytes": 10000,
+        "sha256": "19b949e8eaf9e654ac44fa27abe0733f802c88755b1e1027584de5b56cd26e94",
+        "note": "实际内容以 bytes + SHA-256 固定；源码全文按 Tom 要求不放入 public 共享库，保留在本方受控路径。"
+      },
+      "permission": {
+        "capability": "READ_ONLY（远程只读取数 + 本地状态与日志）",
+        "write_scope": "无写；只写本地 outputs/threecolor_watchdog_latest.json 与 tools/_zc_state/",
+        "credentials": "本机已授权的 hktool 只读通道 / 本地 OAuth 凭据；无新增凭据",
+        "actor": "Rita 指令触发 + Windows 计划任务 ZC_*（零积分无人值守）",
+        "gas_push": false,
+        "deployment_changed": false,
+        "url_changed": false,
+        "production_business_write": false,
+        "master_business_write": false,
+        "column_width_change": false,
+        "freeze_change": false,
+        "note": "具写能力的工具仅作用于颜色/条件格式，不写工时流水业务值；T1-B 审计链本轮未调用任何写路径。不以「未部署」推定无风险。"
+      }
+    },
+    {
+      "path": "tools/zero_credit_runner.py",
+      "bytes": 54451,
+      "sha256": "eae06071d9c5e602161df2f21334f8be26913ad8bdc262211b4ea436bb254daf",
+      "mtime_beijing": "2026-11-10 22:31:14",
+      "changed_at_beijing": "2026-11-10 既有（本轮未改）",
+      "actual_content": {
+        "summary": "零积分无人值守排程；TASKS 含 t1b-watch(只读)、三色/人员审计、ts-health 等",
+        "bytes": 54451,
+        "sha256": "eae06071d9c5e602161df2f21334f8be26913ad8bdc262211b4ea436bb254daf",
+        "note": "实际内容以 bytes + SHA-256 固定；源码全文按 Tom 要求不放入 public 共享库，保留在本方受控路径。"
+      },
+      "permission": {
+        "capability": "MIXED（部分任务具备 HTTP/脚本调用能力；T1-B 本轮只调用 t1b-watch 只读任务）",
+        "write_scope": "T1-B 只读；其它任务各自范围另属运维域，本版不代为声明其授权状态",
+        "credentials": "本机已授权的 hktool 只读通道 / 本地 OAuth 凭据；无新增凭据",
+        "actor": "Rita 指令触发 + Windows 计划任务 ZC_*（零积分无人值守）",
+        "gas_push": false,
+        "deployment_changed": false,
+        "url_changed": false,
+        "production_business_write": false,
+        "master_business_write": false,
+        "column_width_change": false,
+        "freeze_change": false,
+        "note": "具写能力的工具仅作用于颜色/条件格式，不写工时流水业务值；T1-B 审计链本轮未调用任何写路径。不以「未部署」推定无风险。"
+      }
+    },
+    {
+      "path": "tools/t1b_make_v89_evidence.py",
+      "bytes": 25020,
+      "sha256": "1b677ca552b89f1e896a01449f649ec6c79f98e9be292a80db49751c2dac7ab2",
+      "mtime_beijing": "2026-11-10 22:31:14",
+      "changed_at_beijing": "2026-11-10 20:1x",
+      "actual_content": {
+        "summary": "v89 只读证据包生成器",
+        "bytes": 25020,
+        "sha256": "1b677ca552b89f1e896a01449f649ec6c79f98e9be292a80db49751c2dac7ab2",
+        "note": "实际内容以 bytes + SHA-256 固定；源码全文按 Tom 要求不放入 public 共享库，保留在本方受控路径。"
+      },
+      "permission": {
+        "capability": "READ_ONLY（读本地文件 / hktool 只读探针 / 部署清单文本）",
+        "write_scope": "只写 _tmp/audit_shared/evidence/；源码内 setColumnWidth/autoResize 仅为 guardrails 声明文本（L304），非调用",
+        "credentials": "本机已授权的 hktool 只读通道 / 本地 OAuth 凭据；无新增凭据",
+        "actor": "Rita 指令触发 + Windows 计划任务 ZC_*（零积分无人值守）",
+        "gas_push": false,
+        "deployment_changed": false,
+        "url_changed": false,
+        "production_business_write": false,
+        "master_business_write": false,
+        "column_width_change": false,
+        "freeze_change": false,
+        "note": "具写能力的工具仅作用于颜色/条件格式，不写工时流水业务值；T1-B 审计链本轮未调用任何写路径。不以「未部署」推定无风险。"
+      }
+    },
+    {
+      "path": "tools/t1b_make_v90_evidence.py",
+      "bytes": 38942,
+      "sha256": "92f1e7018cb68c0e659ae3a850d8442d0e72a4e077323b603622e5ea34b13bec",
+      "mtime_beijing": "2026-11-10 22:31:14",
+      "changed_at_beijing": "2026-11-10 21:4x",
+      "actual_content": {
+        "summary": "v90 只读证据包生成器（六包 + supporting_v90 四件原始支撑件）",
+        "bytes": 38942,
+        "sha256": "92f1e7018cb68c0e659ae3a850d8442d0e72a4e077323b603622e5ea34b13bec",
+        "note": "实际内容以 bytes + SHA-256 固定；源码全文按 Tom 要求不放入 public 共享库，保留在本方受控路径。"
+      },
+      "permission": {
+        "capability": "READ_ONLY",
+        "write_scope": "只写 _tmp/audit_shared/evidence/；零 GAS push、零 deploy、零生产写/主库写",
+        "credentials": "本机已授权的 hktool 只读通道 / 本地 OAuth 凭据；无新增凭据",
+        "actor": "Rita 指令触发 + Windows 计划任务 ZC_*（零积分无人值守）",
+        "gas_push": false,
+        "deployment_changed": false,
+        "url_changed": false,
+        "production_business_write": false,
+        "master_business_write": false,
+        "column_width_change": false,
+        "freeze_change": false,
+        "note": "具写能力的工具仅作用于颜色/条件格式，不写工时流水业务值；T1-B 审计链本轮未调用任何写路径。不以「未部署」推定无风险。"
+      }
+    },
+    {
+      "path": "tools/t1b_make_v91_evidence.py",
+      "bytes": 37458,
+      "sha256": "f0fb50795792d96c67e8fb48095857b8e1dc2da42fdab90cd2a8395802310f89",
+      "mtime_beijing": "2026-11-11 00:47:39",
+      "changed_at_beijing": "2026-11-11 00:3x",
+      "actual_content": {
+        "summary": "v91 只读证据包生成器（本版）",
+        "bytes": 37458,
+        "sha256": "f0fb50795792d96c67e8fb48095857b8e1dc2da42fdab90cd2a8395802310f89",
+        "note": "实际内容以 bytes + SHA-256 固定；源码全文按 Tom 要求不放入 public 共享库，保留在本方受控路径。"
+      },
+      "permission": {
+        "capability": "READ_ONLY",
+        "write_scope": "只写 _tmp/audit_shared/evidence/；零 GAS push、零 deploy、零生产写/主库写",
+        "credentials": "本机已授权的 hktool 只读通道 / 本地 OAuth 凭据；无新增凭据",
+        "actor": "Rita 指令触发 + Windows 计划任务 ZC_*（零积分无人值守）",
+        "gas_push": false,
+        "deployment_changed": false,
+        "url_changed": false,
+        "production_business_write": false,
+        "master_business_write": false,
+        "column_width_change": false,
+        "freeze_change": false,
+        "note": "具写能力的工具仅作用于颜色/条件格式，不写工时流水业务值；T1-B 审计链本轮未调用任何写路径。不以「未部署」推定无风险。"
+      }
+    }
+  ],
+  "runtime_records": [
+    {
+      "at_beijing": "2026-11-10 21:5x",
+      "tool": "erp_color_repair.py --apply-all",
+      "trigger": "Rita 指令「为啥不都改？为啥还问我？改」",
+      "result": "PARTIAL_THEN_FIXED",
+      "evidence": "outputs/_apply_all_20261110.log",
+      "detail": "日志内保留一次 ValueError: not enough values to unpack (expected 4, got 2)（repair_vi_green_additive L308）；修正后重跑，TierB 11/11 + DOC 2/2 成功，3 张页失败经查为 SHEET 级保护（权限边界，非代码 bug）。失败记录不删除、不粉饰。"
+    },
+    {
+      "at_beijing": "2026-11-10 22:0x",
+      "tool": "threecolor_watchdog.py",
+      "trigger": "零积分计划任务 / 本地复跑",
+      "result": "OK",
+      "evidence": "outputs/_wd_final.log",
+      "detail": "总页签 196 / 范围内 44 / TierA[0·0] / TierB[5]=5 张受保护页；EXIT=0。"
+    },
+    {
+      "at_beijing": "2026-11-10 22:1x",
+      "tool": "personnel_audit.py",
+      "trigger": "零积分计划任务 / 本地复跑",
+      "result": "OK",
+      "evidence": "outputs/_pa_final.log",
+      "detail": "189 列，违规 7 全部为受保护页，真实待修 0；EXIT=0。"
+    },
+    {
+      "at_beijing": "2026-11-10 22:1x",
+      "tool": "erp_color_repair.py PERSONNEL_REAPPLY",
+      "trigger": "本地复跑",
+      "result": "OK",
+      "evidence": "outputs/_personnel_reapply.log",
+      "detail": "[PERSONNEL REAPPLY] 26/26 OK（权限跳过 2 个受保护页签）。"
+    },
+    {
+      "at_beijing": "2026-11-10 21:30 → 2026-11-11 00:30（每 30 分钟，共 7 轮）",
+      "tool": "t1b-watch（zero_credit_runner 调度）",
+      "trigger": "Windows 计划任务 ZC_t1b-watch（PT30M）",
+      "result": "OK × 7 / 全部无增量",
+      "evidence": "tools/_zc_logs/2026-11-10.log、tools/_zc_logs/2026-11-11.log",
+      "detail": "每轮只读比对生产表/请假/页签/部署四组读数；绝不自动外发邮件。"
+    }
+  ],
+  "honest_note": "本方不以「未部署」推定无风险；具写能力的工具如实标注 WRITE_CAPABLE，并保留一次 ValueError 失败记录。本清单为本方只读判定，不替代有权方独立核验。",
+  "redlines": "零 GAS push / 零 deploy / 零新建删除部署 / 零生产业务写 / 零主库业务写 / 零列宽结构改动"
+}
