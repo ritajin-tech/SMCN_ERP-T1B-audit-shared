@@ -1,0 +1,34 @@
+{
+ "generated_beijing": "2026-11-10 20:15:24",
+ "generated_utc": "2026-11-10T12:15:24Z",
+ "version": "v89",
+ "packages": [
+  {
+   "path": "evidence/v89_prod_append_23rows_20261110.json",
+   "bytes": 21246,
+   "sha256": "3e854d3b3dda1a0a06cad8c16241b1fc8eb50e4c417e3dc22450b79376d82f1f"
+  },
+  {
+   "path": "evidence/v89_master_tabs_39_and_leave_612_20261110.json",
+   "bytes": 5617,
+   "sha256": "bfd1ba5675e5ada6b203a9260829b1659aa70c0d17c19da03d697fb41d210b2e"
+  },
+  {
+   "path": "evidence/v89_tom_reply_1634_20261109.json",
+   "bytes": 5221,
+   "sha256": "f73ba785984e354e9228c5fc854395ff62d52c8b0b1362a13e66cd7d31218c80"
+  },
+  {
+   "path": "evidence/v89_webapp_deploy_chain_203_to_206_20261110.json",
+   "bytes": 6220,
+   "sha256": "c532f2a12f177b813912d041a038198095ec21478d234caa4e9cb6bcca002012"
+  },
+  {
+   "path": "evidence/v89_live_readings_and_sources_20261110.json",
+   "bytes": 3215,
+   "sha256": "c1d35a34aeddf63d8d330812527f9ba33b67b94a5b50520e5322ac87469767cb"
+  }
+ ],
+ "note": "全部只读生成，可重跑；不含任何业务数据写入或邮件外发。",
+ "stability_note": "读数快照时点取自 tools/_zc_state/t1b-watch-readings.json 的 mtime；现场补采时点取自生成时刻并单列 capture_beijing / capture_utc，两者分开记录，避免自指漂移或把现场读冒充为 20:00 读数。"
+}

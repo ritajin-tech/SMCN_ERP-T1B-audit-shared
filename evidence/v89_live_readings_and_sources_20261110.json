@@ -1,0 +1,117 @@
+{
+ "capture_beijing": "2026-11-10 20:15:24",
+ "capture_utc": "2026-11-10T12:15:24Z",
+ "readings_snapshot_beijing": "2026-11-10 20:00:37",
+ "readings_snapshot_utc": "2026-11-10T12:00:37Z",
+ "readings": {
+  "production": {
+   "lastRow": 11418,
+   "lastCol": 18
+  },
+  "master_leave": {
+   "lastRow": 612,
+   "lastCol": 15
+  },
+  "sheet_counts": {
+   "production": 16,
+   "master": 39
+  },
+  "deployments": 3
+ },
+ "baseline_v88": {
+  "production_last_row": 11395,
+  "master_leave_last_row": 606,
+  "master_tabs": 37,
+  "production_tabs": 16,
+  "deployments": 3
+ },
+ "delta": {
+  "production_rows": 23,
+  "master_leave_rows": 6,
+  "master_tabs": 2,
+  "production_tabs": 0,
+  "deployments": 0
+ },
+ "sources_checklist": [
+  {
+   "src": "生产表 DB_工时流水（hktool 只读）",
+   "checked": true,
+   "result": "11418/18，现场补采 11396–11418 共 23 行 A–R 全 18 列"
+  },
+  {
+   "src": "主库 请假（hktool 只读）",
+   "checked": true,
+   "result": "612/15，现场补采 607–612 共 6 行"
+  },
+  {
+   "src": "主库页签清单（只读探针快照）",
+   "checked": true,
+   "result": "39 页，新增 20261110 一对，B 类每日镜像"
+  },
+  {
+   "src": "生产表页签清单",
+   "checked": true,
+   "result": "16 页，无增量"
+  },
+  {
+   "src": "部署清单（clasp list-deployments，只读）",
+   "checked": true,
+   "result": "ts-manager 恒 3、@206、deploymentId/URL 逐字未变"
+  },
+  {
+   "src": "Tom 邮箱审计线程（QQ 邮箱只读）",
+   "checked": true,
+   "result": "真回函 1 封 16:34:41 北京；已排除我方 reply_all 回显"
+  },
+  {
+   "src": "GitHub 共享库远端（list_commits + git fetch 只读）",
+   "checked": true,
+   "result": "自 11-09 起仅我方 v88 一条提交 673f99d；Tom 尚无编辑提交"
+  },
+  {
+   "src": "11-10 当日新增/修改文件",
+   "checked": true,
+   "result": "93 个，按类归纳见 docs/v89_full_review_20261110.md §一"
+  },
+  {
+   "src": "零积分盯梢原始日志",
+   "checked": true,
+   "result": "tools/_zc_logs/2026-11-10.log；t1b-watch 行数=41"
+  }
+ ],
+ "parallel_changes_1110": [
+  {
+   "system": "工时表 WebApp ts-manager",
+   "change": "V4.3.75→4.3.76→4.3.77",
+   "pointer": "@204→@206",
+   "deployments_before": 3,
+   "deployments_after": 3,
+   "url_changed": false
+  },
+  {
+   "system": "Operation 引擎",
+   "change": "V96→V97→V98（Ongoing Signed 出清口径改 PM 竣工并集 pclist）",
+   "pointer": "@68→@70",
+   "deployments_before": 2,
+   "deployments_after": 2,
+   "url_changed": false
+  },
+  {
+   "system": "NPS",
+   "change": "V1.9.53 治本 + 两个在用部署原地到 v88",
+   "pointer": "@87/@72→@88",
+   "deployments_before": 21,
+   "deployments_after": 21,
+   "url_changed": false
+  },
+  {
+   "system": "pclist numberlock",
+   "change": "vitext VI 标题 + 三色 CF 闭环",
+   "pointer": "@399→@400",
+   "deployments_before": 10,
+   "deployments_after": 10,
+   "url_changed": false
+  }
+ ],
+ "redlines": "全链只读；零新建 / 零删除部署、零 URL 变更、零生产写 / 零主库写 / 零改结构 / 零解冻"
+}

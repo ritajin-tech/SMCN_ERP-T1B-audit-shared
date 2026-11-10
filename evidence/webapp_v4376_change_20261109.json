@@ -1,0 +1,42 @@
+{
+ "capture_beijing": "2026-11-09 18:14:09",
+ "capture_utc": "2026-11-09T10:14:09Z",
+ "disclosure": "承接 v88_webapp_v4375_change 的并行变更附注。Rita 反馈 V4.3.75「怎么罗里吧嗦的」：逐句双语长文在每张卡片重复 N 次。本次仅精简「我的漏填」页展示层文案，短标签双语保留、长说明折叠、卡片内不再重复、数字只写一次。纯 UI 文案，不触碰任何数据、证据、口径、写入路径、结构或部署端点。",
+ "version": "4.3.76",
+ "patch_script": "tools/webapp_patch_v4376.py",
+ "patch_report": "outputs/webapp_v4376_patch_report_20261109.json",
+ "replacements": {
+  "Index_html": 14,
+  "Code_js": 9
+ },
+ "baseline_sha256": {
+  "Index_html": "6988bca037e2838832edc8f64a747bd10b5a084abea0502dc88f47337e5daf8f",
+  "Code_js": "7bc47c65b974263cbc11bd18621dcd6a3b7835b875b7f357ef041da4d9707e33"
+ },
+ "after_sha256_live": {
+  "Index_html": "60160cfe9101d21afa65cff5aeedac0d011d9ae8076077823b26f2c2ee4101c9",
+  "Code_js": "10d30d7d1354b307cbd85977ffcb9a2cc9b0cb1aee932d14f1e02153c1975581"
+ },
+ "scope": [
+  "Index.html：副标题/图例/顶部 banner/统计行/卡片 tag/空态/复制告警 改短标签双语；「可补」卡片不再渲染 reason；删掉每张卡片底下的重复说明与重复警告；底部 5 行长说明收进 details 默认折叠",
+  "Code.js：服务端 reason 短化；TS_APP_VERSION 与前端 APP_VERSION 同步 4.3.76"
+ ],
+ "guardrails": [
+  "锚点断言 count==1 + 两阶段内存态 + 失败零落盘；已实测拦截 1 处笔误（L752 是 if 非 else if）后修正重跑",
+  "离线 node --check 双文件 PASS；Index.html 内联 JS 抽取后 node --check PASS；details/summary/div 标签配对 92/92",
+  "零 setColumnWidth / autoResizeColumns / insertColumns / deleteColumns",
+  "写入函数 updateTimesheet / softDeleteRecord / cleanupDuplicateLeavesInternal 与 PeriodLock 护栏、getDbRows / ScriptCache 读表优化全部原样保留（守卫命中 16 处）"
+ ],
+ "deployments_before_text": "Found 3 deployments.\n- AKfycbwlxB2z9IDDo7pBv4sr0pu6-1ywvYBuRyqTwfjgl_o @HEAD \n- AKfycbwYXV3VS3I59bVpUi9XBMClGsFkJ6l_NxPdQcysiXYe47-iONNMk6FIoI8VEXwYl-_2 @202 - V4.3.87 v2 (local datetime string -> real Date)\n- AKfycbzUyhyK-tqL7ypp2H2jZXNCMciEr2PJwhkZIg0bwV1OwV2C6D9RKJZhA4HpiUi6F5eF @204 - V4.3.75 WebApp 全 tab 中英文补齐 + 只读性能优化(单次读表/15列/HR姓名缓存) — 原地更新,零换链",
+ "deployments_after_text": "Found 3 deployments.\n- AKfycbwlxB2z9IDDo7pBv4sr0pu6-1ywvYBuRyqTwfjgl_o @HEAD \n- AKfycbwYXV3VS3I59bVpUi9XBMClGsFkJ6l_NxPdQcysiXYe47-iONNMk6FIoI8VEXwYl-_2 @202 - V4.3.87 v2 (local datetime string -> real Date)\n- AKfycbzUyhyK-tqL7ypp2H2jZXNCMciEr2PJwhkZIg0bwV1OwV2C6D9RKJZhA4HpiUi6F5eF @205 - V4.3.76 我的漏填页文案精简(短标签双语+长说明折叠) — 原地更新,零换链",
+ "deployment_id": "AKfycbzUyhyK-tqL7ypp2H2jZXNCMciEr2PJwhkZIg0bwV1OwV2C6D9RKJZhA4HpiUi6F5eF",
+ "version_pointer": "204 → 205（指针前进、端点不变）",
+ "deployment_count_before": 3,
+ "deployment_count_after": 3,
+ "url_changed": false,
+ "new_deployment_created": false,
+ "deploy_command": "clasp push（只推 HEAD，19 files）+ clasp deploy -i <既有 deploymentId>（原地更新）；未使用 create-version / 未新建部署",
+ "online_check": "GET /exec HTTP 200；返回页含 4.3.76、Yellow cards only、只补黄色卡片、Help / 说明（点开）、Green · Excluded；旧文案 No record found for this workday 与 Suggested values — editable 均 0 命中。（HtmlService 会把内联 JS 的 / 与标签转义为 \\/ 与 \\x3c，精确 grep 需按转义形态核对）",
+ "tom_thread": "防循环闸门判定：本次为纯展示层文案，不涉及 T1-B 事故证据链、数据、口径、写入或端点，不触发新回函、不新开承接代、不改 v88 结论。仅在共享库留本附注供 Tom 可查阅，不主动发邮件。",
+ "redlines": "零新建部署 / 零删除部署 / URL 逐字未变 / 部署恒 3 / 零生产写 / 零主库写 / 零改结构 / 零改列宽 / 零解冻 / FREEZE=1 维持 / 零对外邮件"
+}

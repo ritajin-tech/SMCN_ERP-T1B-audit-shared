@@ -1,0 +1,102 @@
+{
+ "capture_beijing": "2026-11-10 20:15:24",
+ "capture_utc": "2026-11-10T12:15:24Z",
+ "disclosure": "对 Tom 16:34 新增待核风险的正面回应：本方**不主张**「URL 与部署数不变＝代码或行为不变」。代码确已变更，逐版源码哈希与逐条编辑报告全量给出；不变的是端点、部署数与 deploymentId。",
+ "endpoint": {
+  "deployment_id": "AKfycbzUyhyK-tqL7ypp2H2jZXNCMciEr2PJwhkZIg0bwV1OwV2C6D9RKJZhA4HpiUi6F5eF",
+  "url_changed": false,
+  "deployment_count_before": 3,
+  "deployment_count_after": 3,
+  "new_deployment_created": false,
+  "deployments_live_text": "Found 3 deployments.\n- AKfycbwlxB2z9IDDo7pBv4sr0pu6-1ywvYBuRyqTwfjgl_o @HEAD \n- AKfycbwYXV3VS3I59bVpUi9XBMClGsFkJ6l_NxPdQcysiXYe47-iONNMk6FIoI8VEXwYl-_2 @202 - V4.3.87 v2 (local datetime string -> real Date)\n- AKfycbzUyhyK-tqL7ypp2H2jZXNCMciEr2PJwhkZIg0bwV1OwV2C6D9RKJZhA4HpiUi6F5eF @206 - V4.3.77 撤掉我的漏填页 Copy/复制清单 跨页搬运入口 — 原地更新,零换链"
+ },
+ "version_chain": [
+  {
+   "pointer": "@203",
+   "version": "V4.3.74",
+   "when": "2026-11-09 之前（V4.3.75 改动前基线）",
+   "trigger": "既有版本",
+   "index_sha256": "e10de82937534892dcfc31c7312f9ccda4fa127653a2c0f3dd5f706f88d8cbe4",
+   "code_sha256": "2b755ae3c0a7f449e9d82acf94db1275c1a106b8e0c88b5fbbbf67312869554a",
+   "sha_source": "evidence/v88_webapp_v4375_change_20261109.json baseline_sha256"
+  },
+  {
+   "pointer": "@204",
+   "version": "V4.3.75",
+   "when": "2026-11-09 16:1x 北京时间",
+   "trigger": "全 tab 中英文补齐 + 只读性能优化",
+   "index_sha256": "6988bca037e2838832edc8f64a747bd10b5a084abea0502dc88f47337e5daf8f",
+   "code_sha256": "7bc47c65b974263cbc11bd18621dcd6a3b7835b875b7f357ef041da4d9707e33",
+   "sha_source": "outputs/_webapp_v4376_baseline/（V4.3.76 改动前基线＝V4.3.75 态）"
+  },
+  {
+   "pointer": "@205",
+   "version": "V4.3.76",
+   "when": "2026-11-09 18:11 北京时间",
+   "trigger": "Rita 反馈「怎么罗里吧嗦的」→ 短标签双语 + 长说明折叠",
+   "index_sha256": "60160cfe9101d21afa65cff5aeedac0d011d9ae8076077823b26f2c2ee4101c9",
+   "code_sha256": "10d30d7d1354b307cbd85977ffcb9a2cc9b0cb1aee932d14f1e02153c1975581",
+   "sha_source": "outputs/_webapp_v4377_baseline/（V4.3.77 改动前基线＝V4.3.76 态）"
+  },
+  {
+   "pointer": "@206",
+   "version": "V4.3.77",
+   "when": "2026-11-09 18:25 北京时间",
+   "trigger": "Rita 圈出「Copy / 复制清单」→ 撤销跨页搬运入口",
+   "index_sha256": "a32934356a9a14aada4bba0fa2709b796cd5b2eb5e8cb2be98672016156fe93d",
+   "code_sha256": "e8e6ee522bb8c8e532ac19c8e979a0b1194721870e7d14543e09e3ea4c85ca3b",
+   "sha_source": "_build_missing_fill/live/ 当前线上源码（clasp pull 真相源）"
+  }
+ ],
+ "seven_preservation_items": [
+  {
+   "item": "变更前后部署指向",
+   "value": "@203→@204→@205→@206；每次均为 clasp push(HEAD) + clasp deploy -i <既有ID> 原地更新",
+   "evidence": "本包 endpoint + 三份 webapp_*_change_*.json 的 deployments_before_text / after_text",
+   "status": "FIXED"
+  },
+  {
+   "item": "源码及哈希",
+   "value": "逐版 Index.html / Code.js SHA-256 见 version_chain；v4375/v4376/v4377 三份逐条 old→new 报告在 outputs/",
+   "evidence": "outputs/webapp_v4375|v4376|v4377_patch_report_20261109.json + 三份 baseline 目录",
+   "status": "FIXED"
+  },
+  {
+   "item": "执行主体",
+   "value": "本地 clasp 使用 Rita 本机 ~/.clasprc.json 凭据执行 push/deploy；Apps Script **服务端执行身份**（谁触发、以何权限运行）须 Workspace Admin 才能取得，本方只读通道不可取得",
+   "evidence": "N1 / R1 / R2 既有缺口登记；clasp 输出与本地 git 日志可取得",
+   "status": "PARTIAL_NOT_AVAILABLE"
+  },
+  {
+   "item": "时间",
+   "value": "各版采集时点见 version_chain.when，一律北京时间优先 + UTC 附注",
+   "evidence": "tools/fmt_time.py 统一格式；evidence 各包 capture_beijing / capture_utc",
+   "status": "FIXED"
+  },
+  {
+   "item": "授权",
+   "value": "V4.3.76/77 由 Rita 会话内截图反馈触发，属 UI 文案与入口调整，非业务数据授权；**书面业务授权与有效性确认仍未出具**（R3/N5）",
+   "evidence": "chat_logs / 当日日志；本包不写「已授权」「已确认」",
+   "status": "PENDING_BUSINESS_OWNER"
+  },
+  {
+   "item": "缓存失效规则",
+   "value": "服务端 getExactName 用 ScriptCache(6h)；前端 APP_VERSION 与服务端 TS_APP_VERSION 同步，旧页检测到版本不符自动重载；写入函数 updateTimesheet / softDeleteRecord / cleanupDuplicateLeavesInternal 保持实时读表、不走缓存；PeriodLock 锁内重核不受影响",
+   "evidence": "Code.js L151 / getDbRows / ScriptCache；三份 change evidence 的 guardrails",
+   "status": "FIXED"
+  },
+  {
+   "item": "可获取日志",
+   "value": "可取得：本地 clasp push/deploy 输出、git log、tools/_zc_logs/2026-11-10.log（零积分 runner 逐轮）、outputs/webapp_v4376|v4377 变更卡。不可取得及覆盖范围：GAS 服务端执行记录 / Cloud Logging / 请求 ID→服务端事务映射，需 Workspace Admin 导出；本方只读通道不覆盖，按 Tom 要求出具范围说明，不冒充通道所有者。",
+   "evidence": "N1 缺口登记 + 本包 scope_statement",
+   "status": "PARTIAL_NOT_AVAILABLE"
+  }
+ ],
+ "scope_statement": "不可获取及覆盖范围说明：本方能独立取得的是本地侧代码、哈希、部署清单文本与零积分盯梢日志；不能独立取得的是 GAS 服务端执行身份、请求 ID 与执行事务的对应关系、权限继承快照（R1/R2/N1）。此说明不替代通道所有者应出具的原始日志。",
+ "guardrails": [
+  "零 setColumnWidth / autoResizeColumns / insertColumns / deleteColumns",
+  "零业务写 / 零生产表写 / 零主库写 / 零改结构 / 零列宽 / 零解冻 / FREEZE=1 维持",
+  "node --check 双文件 + 内联 JS 抽取校验全部 PASS；前后端版本号逐版同步"
+ ],
+ "redlines": "零新建部署 / 零删除部署 / URL 逐字未变 / 部署恒 3 / 零换链"
+}

@@ -1,0 +1,47 @@
+{
+ "capture_beijing": "2026-11-09 18:25:58",
+ "capture_utc": "2026-11-09T10:25:58Z",
+ "disclosure": "承接 v88_webapp_v4375_change / webapp_v4376_change 的并行变更附注。Rita 圈出「Copy / 复制清单」按钮问用途，核查后判定该入口与本页定位冲突，予以撤销。纯前端入口删除，不触碰任何数据、证据、口径、写入路径、结构或部署端点。",
+ "version": "4.3.77",
+ "patch_script": "tools/webapp_patch_v4377.py",
+ "patch_report": "outputs/webapp_v4377_patch_report_20261109.json",
+ "replacements": {
+  "Index_html": 3,
+  "Code_js": 1
+ },
+ "what_was_removed": "「My Missing / 我的漏填」页的 Copy / 复制清单 按钮 + mfCopyList() 函数：把待补清单复制成 5 列 TSV(Date/Project ID/Stage/Hours/Note)，供人再切到 Detail / 明细补录页 Paste / 粘贴 → 保存；自身不写任何数据，只是跨页搬运",
+ "why": [
+  "与本页「卡片上直接 Confirm、不用回表格」定位冲突，把人导回批量粘贴老路",
+  "绕过本页逐条确认与提交前二次查重",
+  "容易被误以为「复制了＝补完了」，反而造成漏填",
+  "按钮行里唯一主色高亮，比 Refresh 更抢眼、易误点"
+ ],
+ "not_lost": "Detail / 明细补录页的 openPasteModal()（Paste / 粘贴）与 copyTemplate()（Copy / 复制模板）原样保留；mfSubmit() 逐条补填、mfGoDetail() 去修改这条均原样保留；批量补录能力完整，只是不再从本页一键导出 TSV",
+ "baseline_sha256": {
+  "Index_html": "60160cfe9101d21afa65cff5aeedac0d011d9ae8076077823b26f2c2ee4101c9",
+  "Code_js": "10d30d7d1354b307cbd85977ffcb9a2cc9b0cb1aee932d14f1e02153c1975581"
+ },
+ "after_sha256_live": {
+  "Index_html": "a32934356a9a14aada4bba0fa2709b796cd5b2eb5e8cb2be98672016156fe93d",
+  "Code_js": "e8e6ee522bb8c8e532ac19c8e979a0b1194721870e7d14543e09e3ea4c85ca3b"
+ },
+ "guardrails": [
+  "锚点断言 count==1 + 两阶段内存态 + 失败零落盘；已实测拦截 1 处问题（JS 字面 \\t / \\n 需 raw 字符串）后修正重跑",
+  "删除后硬断言：mfCopyList 与「复制清单」文案归零；openPasteModal / copyTemplate / mfGoDetail / mfSubmit 均存在",
+  "离线 node --check 双文件 PASS；Index.html 内联 JS node --check PASS；div 92/92、details 1/1",
+  "前后端版本号同步 4.3.77；零 setColumnWidth / autoResizeColumns / insertColumns / deleteColumns",
+  "PeriodLock / getDbRows / ScriptCache 守卫命中 16 处，V4.3.75 性能治本原样保留"
+ ],
+ "deployments_before_text": "Found 3 deployments.\n- AKfycbwlxB2z9IDDo7pBv4sr0pu6-1ywvYBuRyqTwfjgl_o @HEAD \n- AKfycbwYXV3VS3I59bVpUi9XBMClGsFkJ6l_NxPdQcysiXYe47-iONNMk6FIoI8VEXwYl-_2 @202 - V4.3.87 v2 (local datetime string -> real Date)\n- AKfycbzUyhyK-tqL7ypp2H2jZXNCMciEr2PJwhkZIg0bwV1OwV2C6D9RKJZhA4HpiUi6F5eF @205 - V4.3.76 我的漏填页文案精简(短标签双语+长说明折叠) — 原地更新,零换链",
+ "deployments_after_text": "Found 3 deployments.\n- AKfycbwlxB2z9IDDo7pBv4sr0pu6-1ywvYBuRyqTwfjgl_o @HEAD \n- AKfycbwYXV3VS3I59bVpUi9XBMClGsFkJ6l_NxPdQcysiXYe47-iONNMk6FIoI8VEXwYl-_2 @202 - V4.3.87 v2 (local datetime string -> real Date)\n- AKfycbzUyhyK-tqL7ypp2H2jZXNCMciEr2PJwhkZIg0bwV1OwV2C6D9RKJZhA4HpiUi6F5eF @206 - V4.3.77 撤掉我的漏填页 Copy/复制清单 跨页搬运入口 — 原地更新,零换链",
+ "deployment_id": "AKfycbzUyhyK-tqL7ypp2H2jZXNCMciEr2PJwhkZIg0bwV1OwV2C6D9RKJZhA4HpiUi6F5eF",
+ "version_pointer": "205 → 206（指针前进、端点不变）",
+ "deployment_count_before": 3,
+ "deployment_count_after": 3,
+ "url_changed": false,
+ "new_deployment_created": false,
+ "deploy_command": "clasp push（只推 HEAD，19 files）+ clasp deploy -i <既有 deploymentId>（原地更新）；未使用 create-version / 未新建部署",
+ "online_check": "GET /exec HTTP 200；4.3.77 命中 1，mfCopyList 与「复制清单」0 命中；openPasteModal / copyTemplate / mfSubmit / mfGoDetail 各 1（通道健在）；Yellow cards only 与 Help 仍在。返回体积 159776 B → 158204 B（-1572 B）。",
+ "tom_thread": "防循环闸门判定：纯前端入口删除，不涉及 T1-B 事故证据链、数据、口径、写入或端点，不触发新回函、不新开承接代、不改 v88 结论。仅在共享库留本附注供 Tom 可查阅，不主动发邮件。",
+ "redlines": "零新建部署 / 零删除部署 / URL 逐字未变 / 部署恒 3 / 零生产写 / 零主库写 / 零改结构 / 零改列宽 / 零解冻 / FREEZE=1 维持 / 零对外邮件"
+}
