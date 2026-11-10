@@ -1,0 +1,71 @@
+{
+ "capture_beijing": "2026-11-10 21:49:40",
+ "capture_utc": "2026-11-10T13:49:40Z",
+ "disclosure": "对 Tom 20:45 第三段「保全各版源码原始字节、哈希」的正面补强：v89 只给 SHA-256，本包补每版 Index.html / Code.js 的原始字节数，两值可独立复算。端点不变、部署数不变，均【不】作为代码或行为不变的证据。",
+ "version_chain": [
+  {
+   "pointer": "@203",
+   "version": "V4.3.74",
+   "when_beijing": "2026-11-09 之前（V4.3.75 改动前基线）",
+   "trigger": "既有版本",
+   "index_bytes": 124450,
+   "index_sha256": "e10de82937534892dcfc31c7312f9ccda4fa127653a2c0f3dd5f706f88d8cbe4",
+   "code_bytes": 36725,
+   "code_sha256": "2b755ae3c0a7f449e9d82acf94db1275c1a106b8e0c88b5fbbbf67312869554a",
+   "sha_source": "outputs/_webapp_v4375_baseline/（v88 baseline_sha256 同源）",
+   "status": "TO_BE_INDEPENDENTLY_VERIFIED"
+  },
+  {
+   "pointer": "@204",
+   "version": "V4.3.75",
+   "when_beijing": "2026-11-09 16:1x",
+   "trigger": "全 tab 中英文补齐 + 只读性能优化",
+   "index_bytes": 126839,
+   "index_sha256": "6988bca037e2838832edc8f64a747bd10b5a084abea0502dc88f47337e5daf8f",
+   "code_bytes": 38453,
+   "code_sha256": "7bc47c65b974263cbc11bd18621dcd6a3b7835b875b7f357ef041da4d9707e33",
+   "sha_source": "outputs/_webapp_v4376_baseline/（V4.3.76 改动前基线＝V4.3.75 态）",
+   "status": "TO_BE_INDEPENDENTLY_VERIFIED"
+  },
+  {
+   "pointer": "@205",
+   "version": "V4.3.76",
+   "when_beijing": "2026-11-09 18:11",
+   "trigger": "短标签双语 + 长说明折叠",
+   "index_bytes": 124970,
+   "index_sha256": "60160cfe9101d21afa65cff5aeedac0d011d9ae8076077823b26f2c2ee4101c9",
+   "code_bytes": 38061,
+   "code_sha256": "10d30d7d1354b307cbd85977ffcb9a2cc9b0cb1aee932d14f1e02153c1975581",
+   "sha_source": "outputs/_webapp_v4377_baseline/（V4.3.77 改动前基线＝V4.3.76 态）",
+   "status": "TO_BE_INDEPENDENTLY_VERIFIED"
+  },
+  {
+   "pointer": "@206",
+   "version": "V4.3.77",
+   "when_beijing": "2026-11-09 18:25",
+   "trigger": "撤销 Copy / 复制清单 跨页搬运入口",
+   "index_bytes": 123592,
+   "index_sha256": "a32934356a9a14aada4bba0fa2709b796cd5b2eb5e8cb2be98672016156fe93d",
+   "code_bytes": 38094,
+   "code_sha256": "e8e6ee522bb8c8e532ac19c8e979a0b1194721870e7d14543e09e3ea4c85ca3b",
+   "sha_source": "_build_missing_fill/live/ 当前线上源码（clasp pull 真相源）",
+   "status": "TO_BE_INDEPENDENTLY_VERIFIED"
+  }
+ ],
+ "independent_recalc_commands": [
+  "git -C <repo> checkout <fixed_commit>",
+  "wc -c <path>                       # Windows: (Get-Item '<path>').Length",
+  "sha256sum <path>                   # Windows: (Get-FileHash -Algorithm SHA256 '<path>').Hash.ToLower()"
+ ],
+ "endpoint": {
+  "deployment_id": "AKfycbzUyhyK-tqL7ypp2H2jZXNCMciEr2PJwhkZIg0bwV1OwV2C6D9RKJZhA4HpiUi6F5eF",
+  "url_changed": false,
+  "deployment_count_before": 3,
+  "deployment_count_after": 3,
+  "new_deployment_created": false,
+  "deployments_live_text": "Found 3 deployments.\n- AKfycbwlxB2z9IDDo7pBv4sr0pu6-1ywvYBuRyqTwfjgl_o @HEAD \n- AKfycbwYXV3VS3I59bVpUi9XBMClGsFkJ6l_NxPdQcysiXYe47-iONNMk6FIoI8VEXwYl-_2 @202 - V4.3.87 v2 (local datetime string -> real Date)\n- AKfycbzUyhyK-tqL7ypp2H2jZXNCMciEr2PJwhkZIg0bwV1OwV2C6D9RKJZhA4HpiUi6F5eF @206 - V4.3.77 撤掉我的漏填页 Copy/复制清单 跨页搬运入口 — 原地更新,零换链"
+ },
+ "seven_preservation_status": "七类保全 v89 已逐项落位；本轮补「源码原始字节」，其余维持原状态（执行主体/可获取日志仍 PARTIAL_NOT_AVAILABLE、授权仍 PENDING_BUSINESS_OWNER）",
+ "cache_rule": "ScriptCache(6h) + 前后端 APP_VERSION/TS_APP_VERSION 同步、旧页版本不符重载；写入函数 updateTimesheet / softDeleteRecord / cleanupDuplicateLeavesInternal 实时读表不走缓存；PeriodLock 锁内重核不受影响",
+ "redlines": "零新建部署 / 零删除部署 / URL 逐字未变 / 部署恒 3 / 零换链"
+}

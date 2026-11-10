@@ -1,0 +1,91 @@
+{
+ "capture_beijing": "2026-11-10 21:49:40",
+ "capture_utc": "2026-11-10T13:49:40Z",
+ "purpose": "把文档引用的原始支撑件放进共享库，使「独立复算」不是空话；不含生产 WebApp 源码全文，公开库边界见 public_repo_boundary。",
+ "repository_visibility": {
+  "owner": "ritajin-tech",
+  "repo": "SMCN_ERP-T1B-audit-shared",
+  "private": false,
+  "visibility": "public",
+  "checked_by": "GitHub 只读 API /repos/ritajin-tech/SMCN_ERP-T1B-audit-shared，2026-11-10 21:4x 北京"
+ },
+ "supporting_files": [
+  {
+   "path": "evidence/supporting_v90/timing_t1b-watch.csv",
+   "source": "tools/_zc_logs/timing_t1b-watch.csv",
+   "bytes": 3347,
+   "sha256": "845999711a8dd23ab619923c7b4b70b237a710af019c014a634dfa8423ca749e",
+   "purpose": "零积分调度原始记录：date/time/seconds/ok，含六次 FAIL 原始时点，供独立复核覆盖时段",
+   "recalc": "wc -c <path> ; sha256sum <path>"
+  },
+  {
+   "path": "evidence/supporting_v90/T1-B_盯梢触发_20261110_2030.md",
+   "source": "outputs/T1-B_盯梢触发_20261110_2030.md",
+   "bytes": 1209,
+   "sha256": "6ec1d694e59638078c9b7f1026ddd0364412f84fc6cd7b56a799805e67753ce2",
+   "purpose": "20:30 变化轮原始触发报告，给出 11418→11420，供独立复核推进链",
+   "recalc": "wc -c <path> ; sha256sum <path>"
+  },
+  {
+   "path": "evidence/supporting_v90/T1-B_盯梢触发_20261110_2100.md",
+   "source": "outputs/T1-B_盯梢触发_20261110_2100.md",
+   "bytes": 1209,
+   "sha256": "c352ae3f63f15c70ecb155d1302eda3325edc8536167078cf2fb9ee71d5166e0",
+   "purpose": "21:00 变化轮原始触发报告，给出 11420→11425，供独立复核推进链",
+   "recalc": "wc -c <path> ; sha256sum <path>"
+  },
+  {
+   "path": "evidence/supporting_v90/zc_t1b_watch_lines_20261110.txt",
+   "source": "tools/_zc_logs/2026-11-10.log 中 t1b-watch 行抽取（44 行）",
+   "bytes": 8459,
+   "sha256": "2abbc3a6104e0fedc31c33f7992e69d90dd466f90deda12062bb16ca75ebe96d",
+   "purpose": "无增量轮原始读数行，供独立复核 20:00=11418 与 21:30=11425 两点",
+   "recalc": "wc -c <path> ; sha256sum <path>"
+  }
+ ],
+ "source_code_artifacts": [
+  {
+   "pointer": "@203",
+   "version": "V4.3.74",
+   "index_bytes": 124450,
+   "index_sha256": "e10de82937534892dcfc31c7312f9ccda4fa127653a2c0f3dd5f706f88d8cbe4",
+   "code_bytes": 36725,
+   "code_sha256": "2b755ae3c0a7f449e9d82acf94db1275c1a106b8e0c88b5fbbbf67312869554a",
+   "controlled_path": "outputs/_webapp_v4375_baseline/（v88 baseline_sha256 同源）"
+  },
+  {
+   "pointer": "@204",
+   "version": "V4.3.75",
+   "index_bytes": 126839,
+   "index_sha256": "6988bca037e2838832edc8f64a747bd10b5a084abea0502dc88f47337e5daf8f",
+   "code_bytes": 38453,
+   "code_sha256": "7bc47c65b974263cbc11bd18621dcd6a3b7835b875b7f357ef041da4d9707e33",
+   "controlled_path": "outputs/_webapp_v4376_baseline/（V4.3.76 改动前基线＝V4.3.75 态）"
+  },
+  {
+   "pointer": "@205",
+   "version": "V4.3.76",
+   "index_bytes": 124970,
+   "index_sha256": "60160cfe9101d21afa65cff5aeedac0d011d9ae8076077823b26f2c2ee4101c9",
+   "code_bytes": 38061,
+   "code_sha256": "10d30d7d1354b307cbd85977ffcb9a2cc9b0cb1aee932d14f1e02153c1975581",
+   "controlled_path": "outputs/_webapp_v4377_baseline/（V4.3.77 改动前基线＝V4.3.76 态）"
+  },
+  {
+   "pointer": "@206",
+   "version": "V4.3.77",
+   "index_bytes": 123592,
+   "index_sha256": "a32934356a9a14aada4bba0fa2709b796cd5b2eb5e8cb2be98672016156fe93d",
+   "code_bytes": 38094,
+   "code_sha256": "e8e6ee522bb8c8e532ac19c8e979a0b1194721870e7d14543e09e3ea4c85ca3b",
+   "controlled_path": "_build_missing_fill/live/ 当前线上源码（clasp pull 真相源）"
+  }
+ ],
+ "public_repo_boundary": "共享库为 public。四版 Index.html / Code.js 属生产 WebApp 源码全文，本方不擅自把生产源码推到公开仓库（超出已承诺审计披露面且不可逆）。本包只固定各版【原始字节数 + SHA-256 + 受控本机路径】；源码全文保留在本方受控路径 outputs/_webapp_v437*_baseline/ 与 _build_missing_fill/live/。请 Tom 指定受控交付通道（私有仓库 / 加密附件 / 现场只读取字节），本方按其指定方式提供；在提供前，已给的 bytes + sha256 仍可用于核对后续交付字节是否一致。本方不以「未放全文」为由主张已核验，也不把端点不变当作代码不变的证据。",
+ "recalc_commands": [
+  "git -C <repo> checkout <fixed_commit>",
+  "wc -c <path>",
+  "sha256sum <path>"
+ ],
+ "redlines": "只写本地共享库 evidence 目录；零生产写/零主库写/零换链/零新建删除部署"
+}

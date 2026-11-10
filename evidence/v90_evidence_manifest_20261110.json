@@ -1,0 +1,40 @@
+{
+ "generated_beijing": "2026-11-10 21:49:40",
+ "generated_utc": "2026-11-10T13:49:40Z",
+ "version": "v90",
+ "packages": [
+  {
+   "path": "evidence/v90_prod_append_7rows_20261110.json",
+   "bytes": 9066,
+   "sha256": "b5c522143ce4e589a2849b7654e34b964673f750a4d5d640822297905ab9dbab"
+  },
+  {
+   "path": "evidence/v90_log_coverage_and_substitute_limits_20261110.json",
+   "bytes": 5783,
+   "sha256": "c2da8610ba7b965da3436824c526bf3762f69ba33cef87cb0a306b1a77c1b5a9"
+  },
+  {
+   "path": "evidence/v90_tom_reply_2045_20261110.json",
+   "bytes": 7374,
+   "sha256": "c96153bd87e2f7cc15a675fc8a3491d9ff633e567e6e018a048be56774124cf8"
+  },
+  {
+   "path": "evidence/v90_deploy_chain_bytes_and_hash_20261110.json",
+   "bytes": 4007,
+   "sha256": "8547d60190a41928c36f8b468391ce07d49bd34d3fe7a16adba5cf610b65b950"
+  },
+  {
+   "path": "evidence/v90_live_readings_and_parallel_changes_20261110.json",
+   "bytes": 8784,
+   "sha256": "d5300d9f007b7932919ce6bfac016c37aa60731df0001835be5b2fa5b67d3d2e"
+  },
+  {
+   "path": "evidence/v90_supporting_artifacts_20261110.json",
+   "bytes": 4671,
+   "sha256": "6d4a6b9180f787f72dbd5da6c5ed33faa0be556147b1accdb78cb5185c3336fd"
+  }
+ ],
+ "note": "全部只读生成，可重跑；不含任何业务数据写入或邮件外发。",
+ "stability_note": "读数快照时点取自 tools/_zc_state/t1b-watch-readings.json 的 mtime；现场补采时点取自生成时刻并单列 capture_beijing / capture_utc，两者分开记录。盯梢日志行数随真实时间推进属数据推进，不是生成器漂移；本 manifest 不自指。",
+ "d1_static_check": "v87 指定的固定提交单件核验四列仍空；对方明示「目前未完成」，本方不代填、不代算、不催通过、不运行所交脚本。"
+}

@@ -1,0 +1,258 @@
+{
+ "capture_beijing": "2026-11-10 21:49:40",
+ "capture_utc": "2026-11-10T13:49:40Z",
+ "readings_snapshot_beijing": "2026-11-10 21:30:29",
+ "readings_snapshot_utc": "2026-11-10T13:30:29Z",
+ "readings": {
+  "production": {
+   "lastRow": 11425,
+   "lastCol": 18
+  },
+  "master_leave": {
+   "lastRow": 612,
+   "lastCol": 15
+  },
+  "sheet_counts": {
+   "production": 16,
+   "master": 39
+  },
+  "deployments": 3
+ },
+ "baseline_v89": {
+  "production_last_row": 11418,
+  "master_leave_last_row": 612,
+  "master_tabs": 39,
+  "production_tabs": 16,
+  "deployments": 3
+ },
+ "delta": {
+  "production_rows": 7,
+  "master_leave_rows": 0,
+  "master_tabs": 0,
+  "production_tabs": 0,
+  "deployments": 0
+ },
+ "numeric_progression": [
+  {
+   "at_beijing": "2026-11-10 20:00:37",
+   "production_last_row": 11418,
+   "source": "tools/_zc_logs/2026-11-10.log（无增量轮，行内含读数）"
+  },
+  {
+   "at_beijing": "2026-11-10 20:30:36",
+   "production_last_row": 11420,
+   "from_last_row": 11418,
+   "source": "outputs/T1-B_盯梢触发_20261110_2030.md",
+   "source_note": "变化轮由触发报告给出前后读数；zc 日志该轮只写「检出 1 项变化」不含读数"
+  },
+  {
+   "at_beijing": "2026-11-10 21:00:33",
+   "production_last_row": 11425,
+   "from_last_row": 11420,
+   "source": "outputs/T1-B_盯梢触发_20261110_2100.md",
+   "source_note": "变化轮由触发报告给出前后读数；zc 日志该轮只写「检出 1 项变化」不含读数"
+  },
+  {
+   "at_beijing": "2026-11-10 21:30:29",
+   "production_last_row": 11425,
+   "source": "tools/_zc_logs/2026-11-10.log（无增量轮，行内含读数）"
+  }
+ ],
+ "non_final_value_note": "11425 仅对 2026-11-10 21:30 采集时点成立。生产表持续有新行进入，本方不冻结读数、不把任一时点值说成终值；每代只固定该代采集时点与其间新增行区间。",
+ "sources_checklist": [
+  {
+   "src": "生产表 DB_工时流水（hktool 只读现场补采）",
+   "checked": true,
+   "result": "11425/18，补采 A11419:R11425 共 7 行 A–R 全 18 列 + UUID 稳定键"
+  },
+  {
+   "src": "主库 请假（21:30 只读读数快照）",
+   "checked": true,
+   "result": "612/15，相对 v89 无增量；本轮未重复全量复采，如实标注"
+  },
+  {
+   "src": "主库页签清单（只读探针快照）",
+   "checked": true,
+   "result": "39 页，相对 v89 无增量；新增 20261110 一对已在 v89 固定"
+  },
+  {
+   "src": "生产表页签清单",
+   "checked": true,
+   "result": "16 页，无增量"
+  },
+  {
+   "src": "部署清单（clasp list-deployments，只读）",
+   "checked": true,
+   "result": "ts-manager 恒 3、@206、deploymentId/URL 逐字未变"
+  },
+  {
+   "src": "Tom 邮箱审计线程（QQ 邮箱只读）",
+   "checked": true,
+   "result": "20:45:14 北京真回函 1 封；已排除 20:21 我方 reply_all 回显"
+  },
+  {
+   "src": "GitHub 共享库远端（list_commits + ls-remote，只读）",
+   "checked": true,
+   "result": "自 11-09 起仅我方 v88 673f99d 与 v89 466d930 两条提交；Tom 仍无编辑提交"
+  },
+  {
+   "src": "11-10 20:21 之后新增/修改文件",
+   "checked": true,
+   "result": "31 个，逐项归纳见 parallel_changes_after_2021"
+  },
+  {
+   "src": "零积分盯梢原始日志（只读）",
+   "checked": true,
+   "result": "tools/_zc_logs/2026-11-10.log 218 行；timing_t1b-watch.csv 119 行"
+  },
+  {
+   "src": "当日工作日志",
+   "checked": true,
+   "result": ".workbuddy/memory/2026-11-10.md；v89 段落与三色审计段落"
+  }
+ ],
+ "parallel_changes_after_2021": [
+  {
+   "item": "tools/erp_color_repair.py（20:26 修改）",
+   "nature": "本地工具脚本：PERSONNEL_REAPPLY / --apply-all 加性 CF 修复",
+   "gas_push": false,
+   "deployment_changed": false,
+   "url_changed": false,
+   "classification": "LOCAL_TOOL_ONLY",
+   "risk_status": "TO_BE_VERIFIED_NOT_AUTHORIZED"
+  },
+  {
+   "item": "tools/threecolor_watchdog.py（20:30 修改）",
+   "nature": "本地工具脚本：重试退避 / 超时 330s / 排程错峰",
+   "gas_push": false,
+   "deployment_changed": false,
+   "url_changed": false,
+   "classification": "LOCAL_TOOL_ONLY",
+   "risk_status": "TO_BE_VERIFIED_NOT_AUTHORIZED"
+  },
+  {
+   "item": "outputs/三色规则全局审计与防复发_20261110.md（21:08）",
+   "nature": "本地审计报告，13 本表/196 页签/32 页范围内 31/32 合规",
+   "gas_push": false,
+   "deployment_changed": false,
+   "url_changed": false,
+   "classification": "LOCAL_REPORT",
+   "risk_status": "TO_BE_VERIFIED_NOT_AUTHORIZED"
+  },
+  {
+   "item": "outputs/T1-B_盯梢触发_20261110_2030.md / _2100.md",
+   "nature": "零积分只读盯梢触发报告（+2 行 / +5 行）",
+   "gas_push": false,
+   "deployment_changed": false,
+   "url_changed": false,
+   "classification": "READ_ONLY_WATCH",
+   "risk_status": "TO_BE_VERIFIED_NOT_AUTHORIZED"
+  },
+  {
+   "item": "20:21 我方 v89 回函 + 共享库 466d930",
+   "nature": "对外回函与文档发布，零业务数据写入",
+   "gas_push": false,
+   "deployment_changed": false,
+   "url_changed": false,
+   "classification": "AUDIT_CORRESPONDENCE",
+   "risk_status": "TO_BE_VERIFIED_NOT_AUTHORIZED"
+  }
+ ],
+ "parallel_change_policy": "承接 Tom 20:45「新增的并行变更继续列为待核风险，不视为授权」：以上逐项如实登记，全部标 TO_BE_VERIFIED_NOT_AUTHORIZED；本轮零 GAS push、零新建/删除部署、零 URL 变更，但不因「未部署」就省略登记，也不把本地脚本变更说成已获授权。",
+ "four_deployment_chains": [
+  {
+   "system": "工时表 WebApp ts-manager",
+   "deployments": 3,
+   "pointer": "@206",
+   "url_changed": false,
+   "source": "本轮现场 clasp list-deployments 只读复核"
+  },
+  {
+   "system": "Operation 引擎",
+   "deployments": 2,
+   "pointer": "@70",
+   "url_changed": false,
+   "source": "沿用 v89 / 当日日志已登记读数，本轮未重新现场复采"
+  },
+  {
+   "system": "NPS",
+   "deployments": 21,
+   "pointer": "@88",
+   "url_changed": false,
+   "source": "沿用 v89 / 当日日志已登记读数，本轮未重新现场复采"
+  },
+  {
+   "system": "pclist numberlock",
+   "deployments": 10,
+   "pointer": "@400",
+   "url_changed": false,
+   "source": "沿用 v89 / 当日日志已登记读数，本轮未重新现场复采"
+  }
+ ],
+ "master_tabs": [
+  "Sheet1",
+  "_FontBackup",
+  "_LayoutBackup",
+  "工时_候选0824",
+  "月度异常",
+  "按月考勤",
+  "工时",
+  "请假",
+  "月度视图",
+  "说明",
+  "按月考勤_重建前_20261015",
+  "按月考勤_重算前_20261026",
+  "月度视图_重算前_20261026",
+  "按月考勤_重算前_20261027",
+  "月度视图_重算前_20261027",
+  "按月考勤_重算前_20261028",
+  "月度视图_重算前_20261028",
+  "按月考勤_重算前_20261029",
+  "月度视图_重算前_20261029",
+  "按月考勤_重算前_20261030",
+  "月度视图_重算前_20261030",
+  "按月考勤_重算前_20261031",
+  "月度视图_重算前_20261031",
+  "按月考勤_重算前_20261101",
+  "月度视图_重算前_20261101",
+  "按月考勤_重算前_20261102",
+  "月度视图_重算前_20261102",
+  "按月考勤_重算前_20261105",
+  "月度视图_重算前_20261105",
+  "按月考勤_重算前_20261106",
+  "月度视图_重算前_20261106",
+  "按月考勤_重算前_20261107",
+  "月度视图_重算前_20261107",
+  "按月考勤_重算前_20261108",
+  "月度视图_重算前_20261108",
+  "按月考勤_重算前_20261109",
+  "月度视图_重算前_20261109",
+  "按月考勤_重算前_20261110",
+  "月度视图_重算前_20261110"
+ ],
+ "production_tabs": [
+  "🟥 SpaceMatrix",
+  "_TS_SNAPSHOT",
+  "_TS_WRITE_LOG",
+  "🔍 时段诊断",
+  "Sheet1",
+  "Log",
+  "_SYS_LOG",
+  "CONFIG",
+  "DB_工时流水",
+  "FY26折算后工时",
+  "FY26工时",
+  "Sheet3",
+  "CAL_INSPECT_LOG",
+  "PM看板",
+  "QS看板",
+  "QS看板按项目"
+ ],
+ "added_tabs_20261110": [
+  "按月考勤_重算前_20261110",
+  "月度视图_重算前_20261110"
+ ],
+ "canonical_label_33": "〔33 页＝RECONSTRUCTED_NOT_ORIGINAL，按命名规则重建的推定，非任何历史时点的原始快照；当前实测 39 页仅对 2026-11-10 21:30 本次采集时点成立〕",
+ "boundary": "33 页是重建推定、39 页是本次采集时点实测，两者不得互推；历史原始快照不可取得，不得以重建替代；页签命名相似不能单独证明创建来源。",
+ "redlines": "全链只读；零新建 / 零删除部署、零 URL 变更、零生产写 / 零主库写 / 零改结构 / 零列宽 / 零解冻"
+}
