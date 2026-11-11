@@ -1,0 +1,19 @@
+{
+ "capture_beijing": "2026-11-12 01:15:55",
+ "capture_utc": "2026-11-11T17:15:55Z",
+ "deployments_found": 3,
+ "deployment_ids_masked": [
+  "AKfycbwlxB…gl_o",
+  "AKfycbwYXV3V…XwYl-_2",
+  "AKfycbzUyhyK…A4HpiUi6F5eF"
+ ],
+ "ids_identical_before_after": true,
+ "url_unchanged": true,
+ "versioned_head_transition": "@207 / V4.3.78 → @208 @209 @210 @211 / V4.3.82（五次均为既有部署原地更新，非新建）",
+ "pmlist_transition": "@420 → @425（同一 deploymentId 原地更新，非新建；另一 @420 保留作回滚）",
+ "new_deployments": 0,
+ "deleted_deployments": 0,
+ "bd_probe_404_separation": "BD 队列探头端点返回 HTTP 404 是探针可达性新问题，本方未对该端点做任何 push/deploy/删除/替换；与「本方零换链」为两件独立事实，分开登记，不互相掩盖。",
+ "redline": "任何修复、迭代、热修都不得产生新访问链接；本版零新建 / 零删除部署 / 零 URL 变更",
+ "note": "端点不变不等于代码不变，逐版哈希见 evidence/v95_parallel_changes_since_v94_20261112.json"
+}

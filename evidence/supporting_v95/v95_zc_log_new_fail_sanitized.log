@@ -1,0 +1,15 @@
+# v95 新增失败运行记录（脱敏副本 · 原件按字节冻结在本机）
+# since 2026-11-11 19:29:36 北京；只列时点/任务/秒数/失败文本，不含任何凭据或个资
+
+2026-11-11 20:35:15 bd-drain FAIL (14.9s) 队列探头失败（GAS 不可达）: <HTTPError 404: 'Not Found'>
+2026-11-11 21:05:14 bd-drain FAIL (14.3s) 队列探头失败（GAS 不可达）: <HTTPError 404: 'Not Found'>
+2026-11-11 21:10:06 pclist-harvest FAIL (5.8s) 请求失败: <HTTPError 404: 'Not Found'>
+2026-11-11 21:35:15 bd-drain FAIL (14.4s) 队列探头失败（GAS 不可达）: <HTTPError 404: 'Not Found'>
+2026-11-11 22:04:50 numberlock-fixwatch FAIL (0.9s) vercheck 探针失败: <HTTPError 404: 'Not Found'>
+2026-11-11 22:05:14 bd-drain FAIL (14.0s) 队列探头失败（GAS 不可达）: <HTTPError 404: 'Not Found'>
+2026-11-11 22:35:14 bd-drain FAIL (14.2s) 队列探头失败（GAS 不可达）: <HTTPError 404: 'Not Found'>
+2026-11-11 23:05:14 bd-drain FAIL (13.8s) 队列探头失败（GAS 不可达）: <HTTPError 404: 'Not Found'>
+2026-11-11 23:10:06 pclist-harvest FAIL (5.7s) 请求失败: <HTTPError 404: 'Not Found'>
+2026-11-11 23:35:15 bd-drain FAIL (14.7s) 队列探头失败（GAS 不可达）: <HTTPError 404: 'Not Found'>
+2026-11-12 00:05:15 bd-drain FAIL (14.3s) 队列探头失败（GAS 不可达）: HTTP 404
+2026-11-12 00:35:15 bd-drain FAIL (14.3s) 队列探头失败（GAS 不可达）: HTTP 404

@@ -1,0 +1,140 @@
+{
+ "capture_beijing": "2026-11-12 01:15:55",
+ "capture_utc": "2026-11-11T17:15:55Z",
+ "since": "2026-11-11 19:29:36 (北京时间 GMT+8；UTC 2026-11-11T11:29:36Z)",
+ "gate_log_new_fail": 10,
+ "cross_day_new_fail": 2,
+ "total_new_fail": 12,
+ "tool_limitation": "闸门脚本 only 读取 since 当日日志（2026-11-11.log），跨入次日的 2 条由本方另行逐条登记，不静默丢弃；合计 12 条。",
+ "triage_rule": "三类严格分开：① REPRODUCED_SYMPTOM_ONLY 同一网络层症状在相同探针范围重复出现，不是业务回归结论；② NOT_REPRODUCED_AT_OTHER_TIME 另一时点本方通道可达，不同时点不得互推、不据此判误报；③ INDETERMINATE__COLLECTION_FAILURE 该轮因采集失败未取得原始读数，无法判断当时生产状态。",
+ "reproduced_symptom_only": {
+  "count": 12,
+  "items": [
+   {
+    "time": "2026-11-11 20:35:15",
+    "task": "bd-drain",
+    "seconds": "14.9",
+    "detail": "队列探头失败（GAS 不可达）: <HTTPError 404: 'Not Found'>"
+   },
+   {
+    "time": "2026-11-11 21:05:14",
+    "task": "bd-drain",
+    "seconds": "14.3",
+    "detail": "队列探头失败（GAS 不可达）: <HTTPError 404: 'Not Found'>"
+   },
+   {
+    "time": "2026-11-11 21:10:06",
+    "task": "pclist-harvest",
+    "seconds": "5.8",
+    "detail": "请求失败: <HTTPError 404: 'Not Found'>"
+   },
+   {
+    "time": "2026-11-11 21:35:15",
+    "task": "bd-drain",
+    "seconds": "14.4",
+    "detail": "队列探头失败（GAS 不可达）: <HTTPError 404: 'Not Found'>"
+   },
+   {
+    "time": "2026-11-11 22:04:50",
+    "task": "numberlock-fixwatch",
+    "seconds": "0.9",
+    "detail": "vercheck 探针失败: <HTTPError 404: 'Not Found'>"
+   },
+   {
+    "time": "2026-11-11 22:05:14",
+    "task": "bd-drain",
+    "seconds": "14.0",
+    "detail": "队列探头失败（GAS 不可达）: <HTTPError 404: 'Not Found'>"
+   },
+   {
+    "time": "2026-11-11 22:35:14",
+    "task": "bd-drain",
+    "seconds": "14.2",
+    "detail": "队列探头失败（GAS 不可达）: <HTTPError 404: 'Not Found'>"
+   },
+   {
+    "time": "2026-11-11 23:05:14",
+    "task": "bd-drain",
+    "seconds": "13.8",
+    "detail": "队列探头失败（GAS 不可达）: <HTTPError 404: 'Not Found'>"
+   },
+   {
+    "time": "2026-11-11 23:10:06",
+    "task": "pclist-harvest",
+    "seconds": "5.7",
+    "detail": "请求失败: <HTTPError 404: 'Not Found'>"
+   },
+   {
+    "time": "2026-11-11 23:35:15",
+    "task": "bd-drain",
+    "seconds": "14.7",
+    "detail": "队列探头失败（GAS 不可达）: <HTTPError 404: 'Not Found'>"
+   },
+   {
+    "time": "2026-11-12 00:05:15",
+    "task": "bd-drain",
+    "seconds": "14.3",
+    "detail": "队列探头失败（GAS 不可达）: HTTP 404"
+   },
+   {
+    "time": "2026-11-12 00:35:15",
+    "task": "bd-drain",
+    "seconds": "14.3",
+    "detail": "队列探头失败（GAS 不可达）: HTTP 404"
+   }
+  ],
+  "note": "12 条全部为同一 HTTP 404 症状在相同只读探针范围重复出现；不是业务回归结论。"
+ },
+ "not_reproduced_at_other_time": {
+  "count": 1,
+  "items": [
+   {
+    "time": "2026-11-12 01:04:05",
+    "channel": "hktool 现场只读 probe",
+    "result": "生产表 11445/18、请假 613/15、页签 41/16 全部成功取得"
+   }
+  ],
+  "note": "该成功为不同时点、不同链路、不同端点，按 Tom 口径不得据此判此前 404 告警为误报。"
+ },
+ "indeterminate_collection_failure": {
+  "count": 0,
+  "items": [],
+  "note": "本轮 12 条均取得明确失败文本（HTTP 404），无「采集失败无法判断」条目。"
+ },
+ "other_symptom_fail": {
+  "count": 0,
+  "items": []
+ },
+ "new_symptom_disclosure": {
+  "previous": "v94 及之前：DNS 11001 / TCP 10060 / ETIMEDOUT / socket 15s 超时",
+  "now": "v94 之后：HTTP 404 Not Found（bd-drain / pclist-harvest / numberlock-fixwatch 三个只读探针）",
+  "independent_recheck": "2026-11-12 01:0x 北京本方对既有 BD 队列探头端点做一次独立只读 GET，复现 HTTP 404；该端点 URL 与本地配置逐字一致、本方未做任何 push/deploy/删除/替换。",
+  "strict_boundary": "该 404 是监控探针端点的可达性问题，与本方「零换链」是两件独立的事：ts-manager 三个 deploymentId 与团队入口 URL 逐字未变、部署恒 3；本方未新建、未删除、未替换任何部署。不推定 404 根因、不推定写入主体、不擅自修复，修复需另行授权。",
+  "status": "NEW_SYMPTOM__ROOT_CAUSE_NOT_DETERMINED__NO_FIX_APPLIED"
+ },
+ "overall_verdict": "NO_BLANKET_CLASSIFICATION__NEITHER_REGRESSION_NOR_FALSE_POSITIVE",
+ "recollect_scope_and_time": {
+  "recollected": [
+   "生产表 lastRow/lastCol",
+   "主库请假 lastRow/lastCol",
+   "两库页签集合",
+   "ts-manager 部署清单",
+   "共享库 HEAD/远端/dirty",
+   "两份活文档完整性"
+  ],
+  "not_recollected": [
+   "条件格式配置同范围现场复采",
+   "权限配置同范围现场复采",
+   "服务端请求与执行日志",
+   "公开库访问记录",
+   "同事手机端渲染",
+   "生产表逐行全列现场复采",
+   "BD 队列探头端点 404 根因"
+  ]
+ },
+ "config_version": "tools/zero_credit_runner.py 本地只读配置；探针端点常量与本地文件逐字一致",
+ "permissions": "全程只读；零生产写 / 零主库写 / 零 clasp push / 零 deploy",
+ "overall_flag": "PARTIAL_REPRODUCED__NEW_404_SYMPTOM__ZERO_FIX",
+ "values_are_final": false,
+ "incident_state": "OPEN · HOLD-NO-GO · 阶段一 PASS 暂缓 · M2 未签 · TS_WRITE_FREEZE=1"
+}

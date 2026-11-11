@@ -1,0 +1,112 @@
+{
+ "capture_beijing": "2026-11-12 01:15:55",
+ "capture_utc": "2026-11-11T17:15:55Z",
+ "generation": "v95",
+ "prev_generation": "v94",
+ "prev_commit": "05359e61baa06b1a8e813a018059a5fcf98ae6b0",
+ "trigger": {
+  "gate_verdict": "OPEN_NEXT_VERSION",
+  "triggered": [
+   "T1",
+   "T5"
+  ],
+  "tool": "tools/t1b_gate_check.py",
+  "external": "_tmp/v95_gate_external.json"
+ },
+ "packages": [
+  {
+   "path": "evidence/v95_tom_reply_1937_20261111.json",
+   "bytes": 7142,
+   "sha256": "6407f933e53d1ed255e5f3f608f93d3b349e8ac7aae713e5dd63bfee4ffb7a53",
+   "what": "Tom 19:37:55 新真回函九组条件逐条正面承接"
+  },
+  {
+   "path": "evidence/v95_parallel_changes_since_v94_20261112.json",
+   "bytes": 5294,
+   "sha256": "974593e30a45c3a2cd649cef8df0119c0d451e83ba7474904c15495bc9a12313",
+   "what": "v94 后五版 WebApp 与 pmlist 主部署逐版哈希/部署指向/时点/测试范围"
+  },
+  {
+   "path": "evidence/v95_monitoring_alerts_triage_20261112.json",
+   "bytes": 5534,
+   "sha256": "e7120c5420e0c6b793bdb5d93fbecfc15761882dcfdb260343a2c7072904035e",
+   "what": "v94 后 12 条新失败三分类 + HTTP 404 新特征主动披露"
+  },
+  {
+   "path": "evidence/v95_live_readings_and_sources_20261112.json",
+   "bytes": 4155,
+   "sha256": "01929b496c23e700bcf018582e2ad7f22fc60c57693fa72784775828169f277a",
+   "what": "01:04:05 北京现场只读复采 12 轴逐源打勾 + 检查范围声明"
+  },
+  {
+   "path": "evidence/v95_endpoint_no_change_20261112.json",
+   "bytes": 1078,
+   "sha256": "e46fba1d78cece09a3df81078e8c2212f3f037513b05fb97580594ff12a33fcd",
+   "what": "零换链实证：部署恒 3 / 三个 ID 与 URL 逐字未变 / 404 与换链严格分离"
+  },
+  {
+   "path": "evidence/v95_d1_static_recheck_20261112.json",
+   "bytes": 888,
+   "sha256": "98a5de883cdf407f146d329110735404d65a82bf1525910b47778247454f5ca8",
+   "what": "d50e795 指定单件静态复算（不算 D1 核验）"
+  },
+  {
+   "path": "evidence/v95_content_scope_boundary_20261112.json",
+   "bytes": 1821,
+   "sha256": "e7492226290cc67b66b326eb960430fff9c3ad31759ff02c8865e911dbd258eb",
+   "what": "内容层边界：重复与小时数不确认、不处置、四要素本机保全"
+  },
+  {
+   "path": "evidence/v95_exposure_access_scope_20261112.json",
+   "bytes": 1640,
+   "sha256": "a50da81d1115392ce239dc14adcb796b0a4fd5717619eb95124edaa32016561c",
+   "what": "公开库脱敏硬闸 / 访问记录不可取得 / 有权方待决"
+  },
+  {
+   "path": "evidence/supporting_v95/v95_zc_log_new_fail_sanitized.log",
+   "bytes": 1425,
+   "sha256": "0b03ac94829245e52c44eb94feb3108944532353368d97db12ff207c02e0261e",
+   "what": "12 条新失败脱敏原件副本"
+  },
+  {
+   "path": "docs/v95_full_review_20261112.md",
+   "bytes": 8869,
+   "sha256": "6fd1c43c63e5ee2a7ad404268f0f9f48e5f2ff8c2aa647f3b3719b65156a108b",
+   "what": "v95 系统大局梳理主文档（四板块 / 明确方案 / 大局还复 / 三提醒 / 范围声明）"
+  },
+  {
+   "path": "docs/T1-B_v95_明确方案与具体编辑_Tom可直接编辑_20261112.md",
+   "bytes": 10236,
+   "sha256": "1d4bced1e61d401784c4beae0daae41e80e8b65f63f1202e9b298a21495d7d7c",
+   "what": "A–N 十四组具体编辑靶子 + S5 监控专项 + S6 最小可验收动作 + P1–P4 大局还复格"
+  }
+ ],
+ "total_files": 11,
+ "sensitive_gate": {
+  "result": "PASS",
+  "forbidden_patterns": 5,
+  "scope": "邮箱 / 部署 ID / token / 工时 UUID / 姓名 / 资产 ID 前缀 / 源码标记"
+ },
+ "redlines": {
+  "zero_production_write": true,
+  "zero_master_write": true,
+  "zero_soft_marker": true,
+  "zero_physical_delete": true,
+  "zero_new_deployment": true,
+  "zero_deleted_deployment": true,
+  "zero_url_change": true,
+  "zero_history_object_edit": true
+ },
+ "incident_state": "OPEN · HOLD-NO-GO · 阶段一 PASS 暂缓 · M2 未签 · TS_WRITE_FREEZE=1",
+ "open_items_unchanged": [
+  "R1",
+  "R2",
+  "R3",
+  "R4",
+  "N1",
+  "N5",
+  "N6",
+  "D1"
+ ],
+ "values_are_final": false
+}

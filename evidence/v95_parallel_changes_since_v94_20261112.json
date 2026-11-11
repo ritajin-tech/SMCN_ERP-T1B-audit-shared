@@ -1,0 +1,127 @@
+{
+ "capture_beijing": "2026-11-12 01:15:55",
+ "capture_utc": "2026-11-11T17:15:55Z",
+ "statement": "端点不变不等于代码不变：v94 发布（2026-11-11 19:28:04 北京）之后，代码确已变更，以下逐版登记，全部标 TO_BE_VERIFIED_NOT_AUTHORIZED，不视为 Tom 授权或验收。",
+ "webapp_chain": [
+  {
+   "label": "V4.3.78 → V4.3.79 去疑视图",
+   "at_beijing": "2026-11-11 22:14:42",
+   "before": {
+    "Code.js": "c6671ec5aaf536b700be9e640f78461510f214827c90439e1a6e7d72274b8571",
+    "Index.html": "87bd29f358a4820d5f80167d87c67aa177a677eb8c2972b9960b9d217bacd6d8"
+   },
+   "after": {
+    "Code.js": "6d16f0616abe9314041a17845a9dddf33f98e446eeb4c6ad9a091ec3762843a6",
+    "Index.html": "1de6f1ca7d1a4fe01a26d8d7ca1a983f8923bcb76fd89d1a44bed20cc8804a5f"
+   },
+   "deployment": {
+    "before_count": 3,
+    "after_count": 3,
+    "ids_identical": true,
+    "version_transition": "@207 → @208（同一 deploymentId 原地更新）"
+   },
+   "offline_validation": "{'forbidden_hits': {'Code.js': {}, 'Index.html': {}}, 'braces': {'Code.js': [192, 192], 'Index.html': [415, 415]}, 'version_sync': True, 'dryrun_sample': {'date': '2026-06-02', 'name': '<NAME_REDACTED>', 'rows': 13, 'raw_hours': 29.0, 'suspect_rows': 4, 'suspect_lines': [9316, 9317, 9318, 9319], 'effective_hours': 21.0, 'card_before': 'Recorded 29h / 已有记录 · 请勿重复（无任何重复提示）', 'card_after': 'Recorded ",
+   "status": "TO_BE_VERIFIED_NOT_AUTHORIZED"
+  },
+  {
+   "label": "V4.3.79 → V4.3.80 该不该补行动指引",
+   "at_beijing": "2026-11-11 22:39:43",
+   "before": {
+    "Code.js": "6d16f0616abe9314041a17845a9dddf33f98e446eeb4c6ad9a091ec3762843a6",
+    "Index.html": "1de6f1ca7d1a4fe01a26d8d7ca1a983f8923bcb76fd89d1a44bed20cc8804a5f"
+   },
+   "after": {
+    "Code.js": "c9968321bec7d497819836f3716345d4f5b434eb3e20b110af356ae472b55617",
+    "Index.html": "c36aaabeae4d81e0176f7023e2155ae21d1fa0044b2d7211871745d86a3c83b4"
+   },
+   "deployment": {
+    "before_count": 3,
+    "after_count": 3,
+    "ids_identical": true,
+    "version_transition": "@208 → @209（同一 deploymentId 原地更新）"
+   },
+   "offline_validation": "",
+   "status": "TO_BE_VERIFIED_NOT_AUTHORIZED"
+  },
+  {
+   "label": "V4.3.80 → V4.3.81 说人话",
+   "at_beijing": "2026-11-11 23:18:02",
+   "before": {
+    "Code.js": "c9968321bec7d497819836f3716345d4f5b434eb3e20b110af356ae472b55617",
+    "Index.html": "c36aaabeae4d81e0176f7023e2155ae21d1fa0044b2d7211871745d86a3c83b4"
+   },
+   "after": {
+    "Code.js": "02ae0f5acb0d7253acf185958c53ee7fcc3a1d6dccab291da1a172a97cd36234",
+    "Index.html": "f57168717da8a181425ac54350f971c38117904ddae800b3ba59aeada26bb557"
+   },
+   "deployment": {
+    "before_count": 3,
+    "after_count": 3,
+    "ids_identical": true,
+    "version_transition": "@209 → @210（同一 deploymentId 原地更新）"
+   },
+   "offline_validation": "",
+   "status": "TO_BE_VERIFIED_NOT_AUTHORIZED"
+  },
+  {
+   "label": "V4.3.81 → V4.3.82 八小时判定",
+   "at_beijing": "2026-11-12 00:17:41",
+   "before": {
+    "Code.js": "02ae0f5acb0d7253acf185958c53ee7fcc3a1d6dccab291da1a172a97cd36234",
+    "Index.html": "f57168717da8a181425ac54350f971c38117904ddae800b3ba59aeada26bb557"
+   },
+   "after": {
+    "Code.js": "7c7a353221560cebafcad3d029dba7884abdca85e96a86c37acbdc4c0e656e16",
+    "Index.html": "53995ac5a2b4c68d35dc65143691fbb687b69c76ebf2a0d82c3ef6174577f0de"
+   },
+   "deployment": {
+    "before_count": 3,
+    "after_count": 3,
+    "ids_identical": true,
+    "version_transition": "@210 → @211（同一 deploymentId 原地更新，deploy -i 回显 @211）"
+   },
+   "offline_validation": "",
+   "status": "TO_BE_VERIFIED_NOT_AUTHORIZED"
+  }
+ ],
+ "pmlist_chain": {
+  "label": "pmlist 主部署 Registry 链接/颜色四色自愈（条件格式免疫）",
+  "at_beijing": "2026-11-12 00:18",
+  "transition": "@420 → @425（同一 deploymentId 原地更新）",
+  "deployments_before": 3,
+  "deployments_after": 3,
+  "ids_identical": true,
+  "verification": "97/97 行逐格合规、0 绿底/残片/裸 URL；本地源码与诊断工具逐件登记",
+  "tools": [
+   "tools/registry_style_audit.py",
+   "tools/gas_pull.py",
+   "tools/gas_push_deploy.py"
+  ],
+  "status": "TO_BE_VERIFIED_NOT_AUTHORIZED"
+ },
+ "execution_subject": "本方（Rita 授权的技术执行方）在既有部署上原地更新；书面授权边界与影响确认仍须有权负责人出具，本方不代填、不代判。",
+ "test_scope": [
+  "node --check 双文件语法",
+  "逐版远程 HEAD 逐字比对",
+  "服务端判定真实执行 Dry Run",
+  "前端真实渲染 Dry Run",
+  "提交查重真实执行 Dry Run",
+  "推后 list-deployments 恒 3 与 URL 逐字未变",
+  "线上 HTTP 200 与新版本命中",
+  "Registry 逐格颜色/链接独立读回"
+ ],
+ "server_records_status": "NOT_OBTAINED__CHANNEL_OWNER_PENDING",
+ "authorization_status": "PENDING_WRITTEN_AUTHORIZATION",
+ "not_touched": [
+  "任何工时数据行",
+  "软删标记",
+  "物理删",
+  "轨 B 冻结的重复副本",
+  "列宽与结构",
+  "状态机的业务口径代判",
+  "D1 四列",
+  "生产表与主库写入"
+ ],
+ "note": "原始源码全文不入公开库；逐版 SHA-256 为可复算句柄。全部哈希仅对各自采集时点成立。",
+ "values_are_final": false
+}

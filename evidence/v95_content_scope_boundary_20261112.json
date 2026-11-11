@@ -1,0 +1,34 @@
+{
+ "capture_beijing": "2026-11-12 01:15:55",
+ "capture_utc": "2026-11-11T17:15:55Z",
+ "duplicate_and_hours_status": "NOT_CONFIRMED__PENDING_BUSINESS_OWNER",
+ "statement": "按 Tom 本函要求，本方不确认重复数量、工时损失或处理方案；不执行删除、合并、写入。",
+ "preserved_locally": [
+  "生产表原始全列快照（本机受控，不入公开库）",
+  "A1 硬重复稳定键与逐项匹配规则（本地只读工具）",
+  "采集时点与四要素登记",
+  "逐行明细 CSV（含姓名，禁外发）"
+ ],
+ "boundary": {
+  "presentation_layer": "已上线至 @211 / V4.3.82：只列工作日合计不足 8h 的日期、卡片写还差几小时；只改显示，不动任何单元格",
+  "data_layer": "轨 B 冻结：1615 行原始重复副本只读、不删、不改、不合并；清账成品已备，只等有权业务负责人书面授权"
+ },
+ "product_contract": "同事看到的页面只渲染需补日期；禁审计术语；后台冻结的重复记录是我方要处理的事，不占同事注意力。",
+ "business_rule_change": {
+  "at": "2026-11-11 23:5x 北京",
+  "by": "Rita 本人裁定",
+  "from_rule": "当天无任何存活记录才列待补",
+  "to_rule": "工作日工时 + 请假必须满 8 小时，不足才列待补并显示缺口",
+  "note": "属业务口径裁定，不是本方代判；已逐版列入并行变更披露 TO_BE_VERIFIED_NOT_AUTHORIZED。"
+ },
+ "frozen_duplicate_mask": "33 人天原始合计 ≥8 但 A1 折叠后 <8；按同事明细页可见的原始合计判，不凭空冒怪卡；等清账授权后自动按新口径重列，无需改代码。",
+ "locked_days": "14 个锁定日不显示、报 Rita",
+ "no_write": [
+  "零生产写",
+  "零主库写",
+  "零软标",
+  "零物理删",
+  "零合并"
+ ],
+ "values_are_final": false
+}

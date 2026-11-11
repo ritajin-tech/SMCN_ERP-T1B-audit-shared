@@ -1,0 +1,42 @@
+{
+ "capture_beijing": "2026-11-12 01:15:55",
+ "capture_utc": "2026-11-11T17:15:55Z",
+ "publication_screening": {
+  "new_files_source_code_fulltext": 0,
+  "new_files_personal_data_plaintext": 0,
+  "new_files_credential_values": 0,
+  "new_files_deployment_id_plaintext": 0,
+  "gate": "生成器内置敏感值硬闸：邮箱 / 部署 ID / token / 工时 UUID / 姓名 / 资产 ID 前缀 / 源码标记，命中即中止；结果 PASS"
+ },
+ "repo_state": {
+  "public": true,
+  "commits": 281,
+  "head_equals_remote": true,
+  "dirty": 0,
+  "fixed_commit_d50e795": "commit"
+ },
+ "github_mcp_since": "2026-11-11T11:28:04Z：新 commit 0（仅 v94 自身）/ OPEN issue 0 / PR 0",
+ "non_inference": "0/0/0 与 HEAD 一致、dirty 0 只代表本方可读通道所见，不推定无访问或无泄露；访问记录查询受限不能证明没有访问或泄露。",
+ "server_logs": {
+  "status": "NOT_OBTAINED__CHANNEL_OWNER_PENDING",
+  "note": "本方只读通道无服务端请求/执行日志权限；本轮未取得有权通道所有者的具名不可取得范围说明。"
+ },
+ "public_repo_access_log": {
+  "status": "NOT_OBTAINED__CHANNEL_OWNER_PENDING"
+ },
+ "business_owner": {
+  "status": "PENDING_WRITTEN_AUTHORIZATION",
+  "note": "R3/N5 有权业务负责人书面授权与有效性确认仍待出具。"
+ },
+ "channel_owner_decision": {
+  "status": "PENDING_CHANNEL_OWNER_DECISION",
+  "note": "访问控制与后续处置由有权通道所有者书面决定；本方不擅自决定、不交付源码全文、不删改 git 历史对象。"
+ },
+ "open_items_unchanged": [
+  "N1",
+  "N6",
+  "R3/N5",
+  "D1"
+ ],
+ "values_are_final": false
+}

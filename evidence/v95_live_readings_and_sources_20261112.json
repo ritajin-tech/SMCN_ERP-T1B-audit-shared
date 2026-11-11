@@ -1,0 +1,146 @@
+{
+ "capture_beijing": "2026-11-12 01:15:55",
+ "capture_utc": "2026-11-11T17:15:55Z",
+ "probe_at_beijing": "2026-11-12 01:04:05",
+ "probe_at_utc": "2026-11-11T17:04:05Z",
+ "read_only": true,
+ "readings": {
+  "production": "11445/18",
+  "master_leave": "613/15",
+  "sheet_counts": {
+   "master": 41,
+   "production": 16
+  },
+  "deployments": 3,
+  "versioned_head": "@211 / V4.3.82",
+  "shared_repo": {
+   "head": "05359e6",
+   "remote": "05359e6",
+   "commits": 281,
+   "dirty": 0,
+   "fixed_commit_d50e795": "commit"
+  }
+ },
+ "baseline_comparison": {
+  "production": "11445/18 与 v94 基线一致，零行增量",
+  "master_leave": "613/15 与 v94 基线一致",
+  "sheet_counts": "41/16 与 v94 基线一致",
+  "deployments": "3 与 v94 基线一致；三个 deploymentId 与 URL 逐字未变",
+  "data_events": 0,
+  "note": "本轮零数据事件；读数不变不排除覆盖写入、删除或回滚，采样间隔内变化不确认写入主体或业务有效性，不建立稳定窗口。"
+ },
+ "sources": [
+  {
+   "name": "生产表 DB_工时流水",
+   "channel": "hktool 现场 probe",
+   "status": "RECOLLECTED_LIVE"
+  },
+  {
+   "name": "主库 请假",
+   "channel": "hktool 现场 probe",
+   "status": "RECOLLECTED_LIVE"
+  },
+  {
+   "name": "生产表页签集合",
+   "channel": "hktool mode=list",
+   "status": "RECOLLECTED_LIVE"
+  },
+  {
+   "name": "主库页签集合",
+   "channel": "hktool mode=list",
+   "status": "RECOLLECTED_LIVE"
+  },
+  {
+   "name": "ts-manager 部署清单",
+   "channel": "clasp list-deployments 严格只读",
+   "status": "RECOLLECTED_LIVE"
+  },
+  {
+   "name": "共享库 HEAD / 远端 / dirty / 固定提交",
+   "channel": "git 只读 + GitHub MCP",
+   "status": "RECOLLECTED_LIVE"
+  },
+  {
+   "name": "Tom 新真回函 / 我方回显 / sent",
+   "channel": "QQ Mail MCP 全文回读",
+   "status": "RECOLLECTED_LIVE"
+  },
+  {
+   "name": "共享库新编辑 / issue / PR",
+   "channel": "GitHub MCP 三查",
+   "status": "RECOLLECTED_LIVE"
+  },
+  {
+   "name": "两份活文档完整性",
+   "channel": "t1b_sync_live_docs.py --verify-only",
+   "status": "RECOLLECTED_LIVE"
+  },
+  {
+   "name": "零积分排程原始运行日志",
+   "channel": "tools/_zc_logs 逐行",
+   "status": "RECOLLECTED_LIVE"
+  },
+  {
+   "name": "WebApp 线上静态探活",
+   "channel": "只读 GET",
+   "status": "RECOLLECTED_LIVE"
+  },
+  {
+   "name": "BD 队列探头端点 404 独立复现",
+   "channel": "只读 GET",
+   "status": "RECOLLECTED_LIVE"
+  },
+  {
+   "name": "条件格式 / 权限 / 服务端基线",
+   "channel": "未同范围现场复采",
+   "status": "NOT_CHECKED"
+  },
+  {
+   "name": "服务端请求与执行日志 / 公开库访问记录",
+   "channel": "无权取得、未获具名范围说明",
+   "status": "NOT_OBTAINED"
+  },
+  {
+   "name": "真人登录会话 / 手机端 / P4 现场交互",
+   "channel": "未做",
+   "status": "NOT_CHECKED"
+  },
+  {
+   "name": "pmlist / qslist / BD / Plan 明细",
+   "channel": "沿用 v94 登记读数，不冒充实测",
+   "status": "CARRIED_FORWARD_NOT_RECOLLECTED"
+  }
+ ],
+ "scope_statement": {
+  "checked_axes": [
+   "12 轴本轮现场复采",
+   "4 轴沿用登记读数或不可取得",
+   "3 轴明确未核",
+   "逐版哈希",
+   "失败三分类",
+   "部署清单",
+   "活文档完整性",
+   "脱敏硬闸"
+  ],
+  "not_checked": [
+   "条件格式/权限/服务端基线同范围现场复采",
+   "真人登录会话",
+   "手机端渲染",
+   "P4 现场交互",
+   "生产表逐行全列现场复采",
+   "404 根因",
+   "服务端日志",
+   "公开库访问记录"
+  ],
+  "rule": "状态层与证据层全绿不覆盖内容层与呈现层；无范围声明的 PASS 属过度承诺；查不到不等于没有；离线复算不等于现场复采。"
+ },
+ "non_inference": [
+  "行内姓名、时间、UUID 仅为归因线索，不是认证主体或业务授权证明",
+  "页签命名相似不能单独证明创建来源",
+  "历史原始快照不得以重建替代",
+  "端点不变不等于代码不变",
+  "公开库 0/0/0 不推定无访问或无泄露",
+  "不同时点/链路成功不证明先前告警误报"
+ ],
+ "values_are_final": false
+}

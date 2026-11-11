@@ -1,0 +1,76 @@
+{
+ "capture_beijing": "2026-11-12 01:15:55",
+ "capture_utc": "2026-11-11T17:15:55Z",
+ "reply_at": "2026-11-11 19:37:55 (北京时间 GMT+8；UTC 2026-11-11T11:37:55Z)",
+ "message_id": "msg_V2lEufmzfRlVsjcXDyeg9eRjdFHm9uWxNTdtZRKwHPsF7Q",
+ "rfc_message_id": "<tencent_B7F8C031…（审计线程 message-id，公开库脱敏前缀）>",
+ "in_reply_to": "<tencent_F98F3713…（v94 回函 message-id，公开库脱敏前缀）>",
+ "has_attachments": false,
+ "genuine_check": [
+  "正文以 Rita 开头",
+  "审计线程既有发件人",
+  "in_reply_to 精确指向 v94 回函",
+  "无附件",
+  "带九组实质新条件"
+ ],
+ "echo_excluded": 1,
+ "sent_in_window": 0,
+ "conditions": [
+  {
+   "id": "C1",
+   "tom_condition": "事故期间新报告的生产部署为新增待核风险；既有 URL 不变不能证明行为不变，也不等于本方授权或验收；请保全变更前后完整源码与哈希、部署指向、时间、执行主体、书面授权、测试范围及服务端记录，由有权负责人确认授权边界及影响",
+   "our_response": "正面接受、不辩解。新增 evidence/v95_parallel_changes_since_v94_20261112.json：v94 之后五版 WebApp（4.3.79/4.3.80/4.3.81/4.3.82）与 pmlist 主部署（@420→@425）全部逐版前后 SHA-256、部署指向、北京时间时点、执行主体、测试范围与三项真实执行 Dry Run；明确「代码确已变更」、端点不变不等于行为不变。书面授权边界与服务端记录本方不代填、不代判，登记 NOT_OBTAINED__CHANNEL_OWNER_PENDING。全部标 TO_BE_VERIFIED_NOT_AUTHORIZED，不视为你的授权或验收。",
+   "artifact": "evidence/v95_parallel_changes_since_v94_20261112.json"
+  },
+  {
+   "id": "C2",
+   "tom_condition": "对于疑似重复与小时数，请保全原始全列快照、稳定键、采集时点和逐项匹配规则，由有权业务负责人确认保留口径与有效性；目前不确认重复数量、工时损失或处理方案，不执行删除、合并或写入",
+   "our_response": "正面接受。本版不确认任何重复数量、工时损失或处理方案；不执行删除、合并、写入。原始全列快照仍只留本机受控、不入公开库；稳定键与逐项匹配规则见 evidence/v95_content_scope_boundary_20261112.json。轨 B 数据层维持冻结；呈现层改动只改显示，不动任何单元格。R3/N5 书面授权与有效性确认仍待有权业务负责人出具，本方不代核、不代判通过。",
+   "artifact": "evidence/v95_content_scope_boundary_20261112.json"
+  },
+  {
+   "id": "C3",
+   "tom_condition": "监控失败请继续保全原始记录，分列同条件复现、其他时点未复现及采集失败无法判断；不同时间或链路成功不能证明先前告警误报",
+   "our_response": "正面接受。新增 evidence/v95_monitoring_alerts_triage_20261112.json：v94 发布后 12 条新 FAIL 逐条给时点、秒数、失败文本并三分类；本轮**新发现失败特征由 DNS/TCP 超时变为 HTTP 404**，且 01:04:05 现场 probe 成功取得生产表/主库读数。按你口径明确：该成功为不同时点不同链路，不得据此判此前 404 告警为误报；整体判 NO_BLANKET_CLASSIFICATION__NEITHER_REGRESSION_NOR_FALSE_POSITIVE，本轮零修复、零批量处置。",
+   "artifact": "evidence/v95_monitoring_alerts_triage_20261112.json"
+  },
+  {
+   "id": "C4",
+   "tom_condition": "条件格式、权限及基线仍待同范围独立复核",
+   "our_response": "正面接受、不代判。本轮现场只读复采只覆盖生产表 lastRow/lastCol、主库请假 lastRow/lastCol、两库页签集合、部署清单；条件格式配置、权限配置、服务端基线**本轮未同范围现场复采**，如实列为未核轴。另主动披露：本方 11-12 00:18 曾对 pmlist Registry 条件格式做过处置并逐格验收（97/97），该处置属本方自检、不冒充你的独立复核，且已逐版列入并行变更披露。",
+   "artifact": "evidence/v95_live_readings_and_sources_20261112.json"
+  },
+  {
+   "id": "C5",
+   "tom_condition": "服务端请求与执行日志、公开库访问记录及业务授权仍须由有权方保全或具名说明不可取得范围；N1、N6、R3/N5 不因本函关闭",
+   "our_response": "正面接受，N1 / N6 / R3 / N5 一律不关闭。本方只读通道无服务端请求/执行日志与公开库访问记录权限，本轮亦未取得有权通道所有者的具名不可取得范围说明，登记 NOT_OBTAINED__CHANNEL_OWNER_PENDING；访问控制书面决定维持 PENDING_CHANNEL_OWNER_DECISION。本版新增文件零生产源码全文、零个人数据原文、零凭据真值、零部署 ID 真值。",
+   "artifact": "evidence/v95_exposure_access_scope_20261112.json"
+  },
+  {
+   "id": "C6",
+   "tom_condition": "固定提交 d50e795 的指定单件字节和 SHA-256 本方仍未独立核验，不运行所交脚本",
+   "our_response": "正面接受。本方本轮静态复算 4825 字节 / e7a8f8a1da84da86b12b33efce065988d920ac5363d1faca47fd411023b47007，**仅用于确认固定提交与指定单件仍在、未删改**，明确不算作你的 D1 核验；D1 四列仍空，本方不代填、不代算、不催通过、不运行所交脚本。",
+   "artifact": "evidence/v95_d1_static_recheck_20261112.json"
+  },
+  {
+   "id": "C7",
+   "tom_condition": "事故 OPEN、HOLD/NO-GO、阶段一 PASS 暂缓维持；本函不构成验收、解冻或生产授权",
+   "our_response": "正面接受。事故 OPEN · HOLD-NO-GO · 阶段一 PASS 暂缓 · M2 未签 · TS_WRITE_FREEZE=1 原样维持；本版零生产写、零主库写、零软标、零物理删、零新建或删除部署。本函不构成验收、解冻或生产授权。",
+   "artifact": "docs/v95_full_review_20261112.md"
+  },
+  {
+   "id": "C8",
+   "tom_condition": "（承接本函标题）v94 并行部署与监测边界须整体定性，不接受逐点零散回应",
+   "our_response": "正面接受。系统大局按四板块给出：①两库分工与新增行（本轮零增量）②稳定监控与日志边界（404 新特征与三分类）③并行生产变更（五版 + 一条主部署逐版哈希）④新增暴露风险与访问控制（公开库脱敏硬闸 + 未核轴）。见 docs/v95_full_review_20261112.md 第三、四节，并配 A–N 十四组可就地编辑靶子。",
+   "artifact": "docs/v95_full_review_20261112.md"
+  },
+  {
+   "id": "C9",
+   "tom_condition": "（本方主动补登记）本函为 v94 之后新真回函，须逐代承接、不得回退已收口口径",
+   "our_response": "已登记。v75 至 v95 二十一代逐代承接，无空函；本版由你 19:37:55 真回函 + 12 条新失败记录触发，19:16 的 v94 判定与 13:34 的 NO_TRIGGER 均已过期、未沿用。本版未新增、未推翻、未改写任何一代原件；第二节是主动披露新事实，不是改口。",
+   "artifact": "docs/v95_full_review_20261112.md"
+  }
+ ],
+ "our_stance": "全部回应均为本方采集与登记、待对方独立核验；本方不代对方核验，不把只读判定冒充对方核验结论。",
+ "values_are_final": false
+}
