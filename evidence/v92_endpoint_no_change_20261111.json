@@ -1,0 +1,26 @@
+{
+ "capture_beijing": "2026-11-11 10:12:00",
+ "capture_utc": "2026-11-11T02:12:00Z",
+ "source": "clasp list-deployments（只读现场复核，工作目录 /d/AI_DATA/WorkBuddy/SMCN_ERP/_build_missing_fill/live）",
+ "deployment_count": 3,
+ "pointer": "@206",
+ "deployment_ids": [
+  "AKfycbwlxB2z9IDDo7pBv4sr0pu6-1ywvYBuRyqTwfjgl_o @HEAD",
+  "AKfycbwYXV3VS3I59bVpUi9XBMClGsFkJ6l_NxPdQcysiXYe47-iONNMk6FIoI8VEXwYl-_2 @202",
+  "AKfycbzUyhyK-tqL7ypp2H2jZXNCMciEr2PJwhkZIg0bwV1OwV2C6D9RKJZhA4HpiUi6F5eF @206"
+ ],
+ "live_text": "Found 3 deployments.\n- AKfycbwlxB2z9IDDo7pBv4sr0pu6-1ywvYBuRyqTwfjgl_o @HEAD \n- AKfycbwYXV3VS3I59bVpUi9XBMClGsFkJ6l_NxPdQcysiXYe47-iONNMk6FIoI8VEXwYl-_2 @202 - V4.3.87 v2 (local datetime string -> real Date)\n- AKfycbzUyhyK-tqL7ypp2H2jZXNCMciEr2PJwhkZIg0bwV1OwV2C6D9RKJZhA4HpiUi6F5eF @206 - V4.3.77 撤掉我的漏填页 Copy/复制清单 跨页搬运入口 — 原地更新,零换链",
+ "url_changed": false,
+ "new_deployment_created": false,
+ "deployment_deleted": false,
+ "this_version_actions": {
+  "clasp_push": 0,
+  "deploy": 0,
+  "version_create": 0,
+  "deployment_create": 0,
+  "deployment_delete": 0,
+  "url_change": 0
+ },
+ "note": "端点不变、部署数不变均不作为代码或行为不变的证据（v89 口径维持）。",
+ "redlines": "本轮零 GAS push、零 deploy、零新建/删除部署、零 URL 变更；零生产写、零主库写、零列宽、零解冻、零回滚"
+}

@@ -1,0 +1,137 @@
+{
+ "capture_beijing": "2026-11-11 10:22:12",
+ "capture_utc": "2026-11-11T02:22:12Z",
+ "message_id": "msg_TWxI-Snq5xWuntFaEUT3eBGkUbr2a_qptO7y-GWqN_jAqw",
+ "rfc_message_id": "<tencent_3C86C9460D8C2EA804793A131998743E0A05@qq.com>",
+ "in_reply_to": "<tencent_E78763BC05DE5B948F3F97177DCDBC59BF07@qq.com>",
+ "subject": "回复：【生产表】v91公开库与证据边界",
+ "received_beijing": "2026-11-11 01:01:42 (北京时间 GMT+8；UTC 2026-11-10T17:01:42Z)",
+ "body_plain": "Rita，\n\n已全文阅读 v91 来信，本信无附件。你方报告公开共享库中存在历史源码类文件，并更正此前披露的范围；这构成需要通道所有者处理的新增暴露风险。本方尚未独立核验仓库内容、访问范围、凭据或个人信息，不能据此确认存在或不存在其他敏感内容。请立即由有权通道所有者评估暴露与访问记录、保全证据并书面决定适当的访问控制及后续处置；不要擅自改写或删除证据历史，也不要继续公开生产源码或个人数据。\n\n你方对本地工具的写能力、权限和运行记录的说明是待核材料，不因未部署而视为无风险；请保全原始代码、配置、授权及运行记录。所述多轮读数不变仅涉及采集时点，不能排除覆盖写、删除或回滚，也不能证明主体、授权或监测完整。数据、部署链和业务有效性仍未独立核验。\n\n最小下一步：由通道所有者保全服务端请求和执行日志或具名说明不可取得范围与局限；由有权业务负责人核对受影响行，提供书面授权与有效性确认。N1、N6、R3/N5 不因本函关闭。本方拟只读取固定提交 d50e795 的指定单件工件，核长度和 SHA-256，目前尚未完成，不运行所交脚本。\n\n事故 OPEN、HOLD/NO-GO、阶段一 PASS 暂缓维持；本函不构成验收、解冻或生产授权。\n\nTom",
+ "has_attachments": false,
+ "authenticity": {
+  "verdict": "GENUINE_TOM_REPLY",
+  "rule": "正文以「Rita，」开头 + from=1252293966@qq.com + to 不含自己 = 真来信；正文以「Tom，」开头 = 我方回显",
+  "checks": [
+   "正文首句「Rita，」命中",
+   "from = 1252293966@qq.com（Tom）",
+   "to = ritajin.muraya@qq.com；cc = 332721759@qq.com；to 不含自己",
+   "in_reply_to = <tencent_E78763BC05DE5B948F3F97177DCDBC59BF07@qq.com> = 我方 v91 回函 rfc_message_id，线程闭合",
+   "无附件；sent 侧 v91 回函后我方零回函，本函为未承接的新来信"
+  ],
+  "excluded_nearby": [
+   {
+    "msg": "msg_3Y3iam-d83cAUTmU1O0f_CwmvErD0P4w5zSO4t6ptMcvpQQ",
+    "reason": "我方 v91 回函回显（「Tom，」开头、from=ritajin.muraya、to 含自己）"
+   },
+   {
+    "msg": "msg_Yd6x8Sa3VW-Qcy4sS43-A4bRpSIEFAwGZ7gVPJAV3dKnbw",
+    "reason": "系统自动告警邮件（from=rita.jin@spacematrix.com），非 Tom 来信，仅作数据增量佐证"
+   },
+   {
+    "msg": "msg_1kvodYDDCcPQyP2-YM1LxSaMLTShJEZOhraQwsr-NOyW6A",
+    "reason": "LinkedIn 订阅噪声，与审计线程无关"
+   }
+  ]
+ },
+ "item_by_item": [
+  {
+   "n": "T1",
+   "topic": "已全文阅读 v91、本信无附件",
+   "our_position": "登记",
+   "concrete_action": "无附件，全文转录于本包 body_plain"
+  },
+  {
+   "n": "T2",
+   "topic": "把 v91 全库自查与勘误定性为「新增暴露风险」",
+   "our_position": "ACCEPTED_NO_DEFENSE",
+   "concrete_action": "新增 evidence/v92_exposure_and_access_log_scope_20261111.json 风险登记；不以「历史工件/早期放入」淡化"
+  },
+  {
+   "n": "T3",
+   "topic": "本方尚未独立核验仓库内容、访问范围、凭据或个人信息，不能据此确认存在或不存在其他敏感内容",
+   "our_position": "ACCEPTED_NO_DEFENSE",
+   "concrete_action": "本版不代对方核验；v91 自查结论明确标「本方只读判定，不替代有权通道所有者复核」"
+  },
+  {
+   "n": "T4",
+   "topic": "请立即由有权通道所有者评估暴露与访问记录、保全证据并书面决定访问控制及后续处置",
+   "our_position": "ACCEPTED__PENDING_CHANNEL_OWNER_DECISION",
+   "concrete_action": "新增「访问记录可取得性矩阵」+ 具名范围说明书 + 靶子 B 组可编辑格；本方不擅自决定、不追问通道"
+  },
+  {
+   "n": "T5",
+   "topic": "不要擅自改写或删除证据历史",
+   "our_position": "ACCEPTED__ALREADY_OUR_STANCE",
+   "concrete_action": "新增 evidence/v92_evidence_history_integrity_20261111.json：278 commits / d50e795 仍在 / dirty=0 / reflog 末条 / 历史源码对象仍在"
+  },
+  {
+   "n": "T6",
+   "topic": "也不要继续公开生产源码或个人数据",
+   "our_position": "ACCEPTED__NEW_REDACTION_APPLIED",
+   "concrete_action": "v92 新增业务行姓名等一律脱敏（稳定键 + 逐格哈希），原始全列快照只留本机 outputs/_v92_retained/；零源码全文、零个人数据原文、零凭据真值入公开库"
+  },
+  {
+   "n": "T7",
+   "topic": "本地工具写能力/权限/运行记录说明是待核材料，不因未部署视为无风险",
+   "our_position": "ACCEPTED_NO_DEFENSE",
+   "concrete_action": "v91 三要素继续标「待核」，本方不升级为已核验"
+  },
+  {
+   "n": "T8",
+   "topic": "请保全原始代码、配置、授权及运行记录",
+   "our_position": "ACCEPTED__PRESERVED_LOCALLY",
+   "concrete_action": "新增 evidence/v92_local_artifacts_preservation_20261111.json：逐件 bytes + SHA-256 + 本机受控路径 + 权限 + 运行记录指针；原始全文不进公开库，交付方式待有权通道所有者书面确认"
+  },
+  {
+   "n": "T9",
+   "topic": "多轮读数不变仅涉采集时点，不能排除覆盖写/删除/回滚，不能证明主体、授权或监测完整",
+   "our_position": "ACCEPTED__CONFIRMED_BY_OUR_OWN_MEASUREMENT",
+   "concrete_action": "本版实测三项增量，宣告 v91 七轮零增量窗口于 00:30 终止；主动披露，不把窗口延伸为「至今稳定」"
+  },
+  {
+   "n": "T10",
+   "topic": "数据、部署链和业务有效性仍未独立核验",
+   "our_position": "ACCEPTED_NO_DEFENSE",
+   "concrete_action": "按原话登记为对方侧未核；本方不代复采、不代判有效性"
+  },
+  {
+   "n": "T11",
+   "topic": "最小下一步：通道所有者保全服务端日志或具名说明不可取得范围与局限",
+   "our_position": "ACCEPTED__SCOPE_STATEMENT_ATTACHED",
+   "concrete_action": "新增 docs/T1-B_公开库访问记录可取得性范围说明_替代证据局限_20261111.md，六条局限 + 具体取数路径"
+  },
+  {
+   "n": "T12",
+   "topic": "有权业务负责人核对受影响行，提供书面授权与有效性确认",
+   "our_position": "ACCEPTED__ROW_RANGE_UPDATED",
+   "concrete_action": "行范围更新为生产表 11396–11426 共 31 行 + 请假 607–613 共 7 行；R3/N5 本方不代判、不代签、不催"
+  },
+  {
+   "n": "T13",
+   "topic": "N1、N6、R3/N5 不因本函关闭",
+   "our_position": "REGISTERED",
+   "concrete_action": "不新增、不关闭；N1 缺口含公开库访问记录不可取得"
+  },
+  {
+   "n": "T14",
+   "topic": "本方拟只读取固定提交 d50e795 指定单件，核长度和 SHA-256，目前尚未完成，不运行所交脚本",
+   "our_position": "ACCEPTED__NO_PROXY",
+   "concrete_action": "本方复算 4825 B / e7a8f8a1…47007 仅用于确认固定提交仍在，明确不算作对方 D1 核验；D1 四列仍空，不代填、不代算、不催、不运行所交脚本"
+  },
+  {
+   "n": "T15",
+   "topic": "事故 OPEN、HOLD/NO-GO、阶段一 PASS 暂缓维持；不构成验收、解冻或生产授权",
+   "our_position": "REGISTERED",
+   "concrete_action": "原样维持，事故状态不因本函改变"
+  }
+ ],
+ "items_count": 15,
+ "new_conditions_vs_v91": [
+  "把 v91 全库自查定性为「新增暴露风险」（此前本方称「补充披露/勘误」）",
+  "要求有权通道所有者评估「暴露与访问记录」并书面决定「访问控制」（此前只登记 PENDING_CHANNEL_OWNER_DECISION）",
+  "明确「不要擅自改写或删除证据历史」「不要继续公开生产源码或个人数据」",
+  "要求保全本地工具「原始代码、配置、授权及运行记录」（此前只给三要素描述）"
+ ],
+ "boundary": "本包为本方转录与承接，不替代对方所持原件，不构成对方独立核验结论。",
+ "redlines": "只读生成；零生产写/零主库写/零改结构列宽/零解冻/零回滚/零换链"
+}

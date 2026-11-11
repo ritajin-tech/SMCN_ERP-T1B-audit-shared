@@ -1,0 +1,40 @@
+{
+ "capture_beijing": "2026-11-11 10:22:12",
+ "capture_utc": "2026-11-11T02:22:12Z",
+ "items": [
+  {
+   "path": "evidence/supporting_v92/timing_t1b-watch_20261111.txt",
+   "bytes": 616,
+   "sha256": "db1f6f712a3ba97c33c12d876ccc5eb8ac6a9720116d58474c5c48d31b8e24e3",
+   "lines": 22,
+   "what": "零积分盯梢 11-11 全轮次时序与耗时原始行"
+  },
+  {
+   "path": "evidence/supporting_v92/T1-B_盯梢触发_20261111_0630.md",
+   "bytes": 1207,
+   "sha256": "7cc7479dd745473c328960db53aec0759ba84c76ff5807da7d9964eeb28ba900",
+   "what": "零积分盯梢触发报告原件（只读，无个人数据）"
+  },
+  {
+   "path": "evidence/supporting_v92/T1-B_盯梢触发_20261111_0830.md",
+   "bytes": 1248,
+   "sha256": "38f87d5dab7c155fd148e9cec43cc6594cfdbffc3ac77b45a373b0972ec0ce46",
+   "what": "零积分盯梢触发报告原件（只读，无个人数据）"
+  },
+  {
+   "path": "evidence/supporting_v92/告警_2026-11-11.md",
+   "bytes": 292,
+   "sha256": "6dc3397704cb674b118b4a479063acb6bc839ef2290fd0b533d145736e11a04b",
+   "what": "06:30 自动告警原始日志行"
+  }
+ ],
+ "items_count": 4,
+ "screening": "逐件复核：零生产源码全文、零个人数据原文、零凭据真值；仅时序、读数与告警文本",
+ "retained_locally_not_in_repo": [
+  "outputs/_v92_retained/prod_11426_full_18cols_20261111.json",
+  "outputs/_v92_retained/leave_613_full_15cols_20261111.json",
+  "tools/*.py 原始代码全文（保全清单见 v92_local_artifacts_preservation_20261111.json）"
+ ],
+ "delivery": "PENDING_CHANNEL_OWNER_DECISION",
+ "redlines": "只读复制；零改写历史、零外发"
+}

@@ -1,0 +1,365 @@
+{
+ "capture_readings_beijing": "2026-11-11 10:08:59",
+ "capture_readings_utc": "2026-11-11T02:08:59Z",
+ "capture_rows_beijing": "2026-11-11 10:09:20",
+ "capture_rows_utc": "2026-11-11T02:09:20Z",
+ "source": "hktool inspectWorkbook（只读）A1:R1 / A11425:R11425 / A11426:R11426；A1:O1 / A612:O612 / A613:O613；页签清单",
+ "baseline_v91": {
+  "production": "11425/18",
+  "master_leave": "612/15",
+  "master_tabs": 39,
+  "production_tabs": 16,
+  "deployments": 3,
+  "captured_beijing": "2026-11-11 00:30:34"
+ },
+ "current": {
+  "production": "11426/18",
+  "master_leave": "613/15",
+  "master_tabs": 41,
+  "production_tabs": 16,
+  "deployments": 3
+ },
+ "events": [
+  {
+   "n": 1,
+   "item": "主库请假",
+   "delta": "612/15 → 613/15（+1 行）",
+   "detected_beijing": "2026-11-11 06:30:30",
+   "detection_source": "零积分盯梢触发报告 T1-B_盯梢触发_20261111_0630.md + 06:30:40 自动告警邮件",
+   "level": "实质变化"
+  },
+  {
+   "n": 2,
+   "item": "主库页签",
+   "delta": "39 → 41（+2）",
+   "detected_beijing": "2026-11-11 08:30:32",
+   "detection_source": "触发报告 T1-B_盯梢触发_20261111_0830.md",
+   "level": "信息级（B 类每日重算镜像，预期内）",
+   "added_tabs": [
+    "按月考勤_重算前_20261111",
+    "月度视图_重算前_20261111"
+   ],
+   "classification": "B 类每日重算镜像（..._重算前_YYYYMMDD 成对生成）；非结构改动、非我方写入；页签命名相似不证明创建来源"
+  },
+  {
+   "n": 3,
+   "item": "生产表 DB_工时流水",
+   "delta": "11425 → 11426（+1 行）",
+   "detected_beijing": "2026-11-11 10:08:59",
+   "detection_source": "本方现场 t1b_watch 只读复核（10:00 那轮仍为 11425）",
+   "level": "实质变化",
+   "row_timestamp_utc": "2026-11-11T02:08:29.718Z",
+   "row_timestamp_beijing": "2026-11-11 10:08:29",
+   "note": "该行录入时间距本方 10:08:59 现场复核仅 30 秒；10:00 盯梢轮未捕获，非脚本漏报"
+  }
+ ],
+ "production": {
+  "baseline_last_row": 11425,
+  "current_last_row": 11426,
+  "net_new_rows": 1,
+  "last_col": 18,
+  "header_18_cols": [
+   "⚙ 录入时间 (Timestamp)",
+   "日期 (Date)",
+   "姓名 (Name)",
+   "⚙ 类型 (Type)",
+   "阶段 (Stage)",
+   "项目编号 (Project ID)",
+   "工时 (Hours)",
+   "备注 (Notes)",
+   "⚙ 唯一码 (UUID)",
+   "⚙ 项目名称（自动）",
+   "⚙ 项目PM（自动）",
+   "⚙ 直属主管（自动）",
+   "项目情况",
+   "",
+   "",
+   "",
+   "",
+   ""
+  ],
+  "row_11426_public": [
+   {
+    "col": "A",
+    "header": "⚙ 录入时间 (Timestamp)",
+    "value": "2026-11-11T02:08:29.718Z"
+   },
+   {
+    "col": "B",
+    "header": "日期 (Date)",
+    "value": "2026-11-10T16:00:00.000Z"
+   },
+   {
+    "col": "C",
+    "header": "姓名 (Name)",
+    "value": "[REDACTED_PERSONAL|sha256:bc8332c7904f]",
+    "value_sha256": "bc8332c7904f803532084fd842f7b391e92c893a75381b0dd935f858ea1b69e0"
+   },
+   {
+    "col": "D",
+    "header": "⚙ 类型 (Type)",
+    "value": "执行端"
+   },
+   {
+    "col": "E",
+    "header": "阶段 (Stage)",
+    "value": "1. 投标"
+   },
+   {
+    "col": "F",
+    "header": "项目编号 (Project ID)",
+    "value": "26-136-HK"
+   },
+   {
+    "col": "G",
+    "header": "工时 (Hours)",
+    "value": 8
+   },
+   {
+    "col": "H",
+    "header": "备注 (Notes)",
+    "value": "SU FIX"
+   },
+   {
+    "col": "I",
+    "header": "⚙ 唯一码 (UUID)",
+    "value": "TS-111C5E2C1F0C"
+   },
+   {
+    "col": "J",
+    "header": "⚙ 项目名称（自动）",
+    "value": "Chow Tai Fook Jewellery | Hong Kong | D&B | Office renovation New World Tower 36F"
+   },
+   {
+    "col": "K",
+    "header": "⚙ 项目PM（自动）",
+    "value": ""
+   },
+   {
+    "col": "L",
+    "header": "⚙ 直属主管（自动）",
+    "value": "[REDACTED_PERSONAL|sha256:d9264dfa1eea]",
+    "value_sha256": "d9264dfa1eead75b6ddfe1858d49634751a3e1784a2bee8875f7b574694a8f1a"
+   },
+   {
+    "col": "M",
+    "header": "项目情况",
+    "value": ""
+   },
+   {
+    "col": "N",
+    "header": "",
+    "value": "2026-10-31T16:00:00.000Z"
+   },
+   {
+    "col": "O",
+    "header": "",
+    "value": ""
+   },
+   {
+    "col": "P",
+    "header": "",
+    "value": ""
+   },
+   {
+    "col": "Q",
+    "header": "",
+    "value": ""
+   },
+   {
+    "col": "R",
+    "header": "",
+    "value": ""
+   }
+  ],
+  "row_11426_stable_key_uuid": "TS-111C5E2C1F0C",
+  "row_11426_hours": 8,
+  "previous_row_11425_uuid": "TS-FFDED16650CD",
+  "raw_full_row_retention": {
+   "status": "RETAINED_LOCALLY_NOT_IN_PUBLIC_REPO",
+   "path": "outputs/_v92_retained/prod_11426_full_18cols_20261111.json",
+   "reason": "承接 Tom 本函「不要继续公开生产源码或个人数据」；姓名类字段在公开库版脱敏，仅给稳定键与逐格 SHA-256",
+   "delivery": "PENDING_CHANNEL_OWNER_DECISION"
+  }
+ },
+ "master_leave": {
+  "baseline_last_row": 612,
+  "current_last_row": 613,
+  "net_new_rows": 1,
+  "last_col": 15,
+  "header_15_cols": [
+   "姓名",
+   "日期",
+   "类型",
+   "阶段",
+   "项目编号",
+   "工时",
+   "备注",
+   "去重键",
+   "来源",
+   "事件开始",
+   "事件结束",
+   "当日序号",
+   "事件总天数",
+   "全天",
+   "是否未来日期"
+  ],
+  "row_613_public": [
+   {
+    "col": "A",
+    "header": "姓名",
+    "value": "[REDACTED_PERSONAL|sha256:bf9a7801d28f]",
+    "value_sha256": "bf9a7801d28f0f36d05a104b4427351eef852f6474a015a26a273c5de3b0b333"
+   },
+   {
+    "col": "B",
+    "header": "日期",
+    "value": "2026-11-12T16:00:00.000Z"
+   },
+   {
+    "col": "C",
+    "header": "类型",
+    "value": "休假"
+   },
+   {
+    "col": "D",
+    "header": "阶段",
+    "value": "OFF-WORK"
+   },
+   {
+    "col": "E",
+    "header": "项目编号",
+    "value": "OFF-WORK"
+   },
+   {
+    "col": "F",
+    "header": "工时",
+    "value": 8
+   },
+   {
+    "col": "G",
+    "header": "备注",
+    "value": "系统同步请假"
+   },
+   {
+    "col": "H",
+    "header": "去重键",
+    "value": "[REDACTED_PERSONAL|sha256:40667282d608]",
+    "value_sha256": "40667282d608f09747910a534d63a010c42e71c74cf1303537e597c75b010187"
+   },
+   {
+    "col": "I",
+    "header": "来源",
+    "value": "日历"
+   },
+   {
+    "col": "J",
+    "header": "事件开始",
+    "value": "2026-11-12T16:00:00.000Z"
+   },
+   {
+    "col": "K",
+    "header": "事件结束",
+    "value": "2026-11-13T16:00:00.000Z"
+   },
+   {
+    "col": "L",
+    "header": "当日序号",
+    "value": 1
+   },
+   {
+    "col": "M",
+    "header": "事件总天数",
+    "value": 1
+   },
+   {
+    "col": "N",
+    "header": "全天",
+    "value": "是"
+   },
+   {
+    "col": "O",
+    "header": "是否未来日期",
+    "value": ""
+   }
+  ],
+  "row_613_dedup_key_sha256": "40667282d608f09747910a534d63a010c42e71c74cf1303537e597c75b010187",
+  "raw_full_row_retention": {
+   "status": "RETAINED_LOCALLY_NOT_IN_PUBLIC_REPO",
+   "path": "outputs/_v92_retained/leave_613_full_15cols_20261111.json",
+   "delivery": "PENDING_CHANNEL_OWNER_DECISION"
+  }
+ },
+ "master_tabs": {
+  "count": 41,
+  "list": [
+   "Sheet1",
+   "_FontBackup",
+   "_LayoutBackup",
+   "工时_候选0824",
+   "月度异常",
+   "按月考勤",
+   "工时",
+   "请假",
+   "月度视图",
+   "说明",
+   "按月考勤_重建前_20261015",
+   "按月考勤_重算前_20261026",
+   "月度视图_重算前_20261026",
+   "按月考勤_重算前_20261027",
+   "月度视图_重算前_20261027",
+   "按月考勤_重算前_20261028",
+   "月度视图_重算前_20261028",
+   "按月考勤_重算前_20261029",
+   "月度视图_重算前_20261029",
+   "按月考勤_重算前_20261030",
+   "月度视图_重算前_20261030",
+   "按月考勤_重算前_20261031",
+   "月度视图_重算前_20261031",
+   "按月考勤_重算前_20261101",
+   "月度视图_重算前_20261101",
+   "按月考勤_重算前_20261102",
+   "月度视图_重算前_20261102",
+   "按月考勤_重算前_20261105",
+   "月度视图_重算前_20261105",
+   "按月考勤_重算前_20261106",
+   "月度视图_重算前_20261106",
+   "按月考勤_重算前_20261107",
+   "月度视图_重算前_20261107",
+   "按月考勤_重算前_20261108",
+   "月度视图_重算前_20261108",
+   "按月考勤_重算前_20261109",
+   "月度视图_重算前_20261109",
+   "按月考勤_重算前_20261110",
+   "月度视图_重算前_20261110",
+   "按月考勤_重算前_20261111",
+   "月度视图_重算前_20261111"
+  ],
+  "canonical_label_33": "33 页＝RECONSTRUCTED_NOT_ORIGINAL 重建推定，非任何历史时点的原始快照",
+  "boundary": "39 页仅对 2026-11-11 00:30 成立、41 页仅对 2026-11-11 10:08:59 成立；29/31/33/35/37/39/41 不得互推"
+ },
+ "production_tabs": {
+  "count": 16,
+  "list": [
+   "🟥 SpaceMatrix",
+   "_TS_SNAPSHOT",
+   "_TS_WRITE_LOG",
+   "🔍 时段诊断",
+   "Sheet1",
+   "Log",
+   "_SYS_LOG",
+   "CONFIG",
+   "DB_工时流水",
+   "FY26折算后工时",
+   "FY26工时",
+   "Sheet3",
+   "CAL_INSPECT_LOG",
+   "PM看板",
+   "QS看板",
+   "QS看板按项目"
+  ]
+ },
+ "attribution_boundary": "行内姓名、时间、UUID 仅为归因线索，不是认证主体或业务授权证明；本包不推定写入主体、不推定是否属冻结批量回灌（TS_WRITE_FREEZE=1 维持），服务端创建/执行记录属 N1，本方只读通道不可取得。",
+ "numeric_not_final": "数值非终值；每代只固定该代采集时点与新增行区间，不冻结、不说终值。",
+ "redlines": "只读采集；零生产写/零主库写/零改结构/零补列/零解冻/零回滚/零换链"
+}

@@ -1,0 +1,111 @@
+{
+ "capture_beijing": "2026-11-11 10:22:12",
+ "capture_utc": "2026-11-11T02:22:12Z",
+ "gate": {
+  "rule": "总账 §5.3 防循环闸门",
+  "triggers": [
+   "Tom 01:01 真回函带实质新审阅条件",
+   "三项真实数据增量"
+  ],
+  "verdict": "OPEN_V92",
+  "note": "不是空函、不是机械重发；v91 回函 00:50 后我方零回函，本函为首次承接"
+ },
+ "sources": [
+  {
+   "n": 1,
+   "src": "生产表 DB_工时流水 / 主库请假 / 页签 / 部署（t1b_watch 现场只读复核 10:08:59）",
+   "fact": "11426/18 · 613/15 · 页签 41/16 · 部署 3",
+   "verdict": "三项增量，真实数据事件"
+  },
+  {
+   "n": 2,
+   "src": "生产表 11426 行全 18 列现场补采（hktool inspectWorkbook，只读）",
+   "fact": "A11426:R11426 + A1:R1 表头 + A11425:R11425 对照行",
+   "verdict": "已固定，原件本机受控"
+  },
+  {
+   "n": 3,
+   "src": "主库请假 613 行全 15 列现场补采（hktool，只读）",
+   "fact": "A613:O613 + A1:O1 表头 + A612:O612 对照行",
+   "verdict": "已固定，原件本机受控"
+  },
+  {
+   "n": 4,
+   "src": "零积分盯梢 00:30→10:00 共 20 轮 timing CSV + zc 日志",
+   "fact": "06:30 / 08:30 两份触发报告，其余 18 轮无增量",
+   "verdict": "窗口终止实证"
+  },
+  {
+   "n": 5,
+   "src": "06:30 自动告警邮件（系统自发，非 Tom 来信）",
+   "fact": "master_leave 612/15 → 613/15",
+   "verdict": "真实增量佐证，非真回函"
+  },
+  {
+   "n": 6,
+   "src": "QQ 邮箱 inbox（16:45Z 起全量）",
+   "fact": "Tom 01:01 真回函 1 封；我方 v91 回显 1 封；自动告警 1 封；LinkedIn 噪声 1 封",
+   "verdict": "新触发"
+  },
+  {
+   "n": 7,
+   "src": "QQ 邮箱 sent（16:45Z 起全量）",
+   "fact": "仅 v91 回函 00:50；其后我方零回函",
+   "verdict": "尚未回复"
+  },
+  {
+   "n": 8,
+   "src": "共享库本地 HEAD / status",
+   "fact": "d55f5dd / 0 待提交",
+   "verdict": "无改动"
+  },
+  {
+   "n": 9,
+   "src": "共享库远端 main（ls-remote + GitHub MCP list_commits）",
+   "fact": "d55f5dd / 仅我方 v91 一条提交",
+   "verdict": "无 Tom 提交"
+  },
+  {
+   "n": 10,
+   "src": "GitHub issues OPEN / PR all / commits since 16:45Z",
+   "fact": "0 / 0 / 仅 d55f5dd",
+   "verdict": "无 Tom 编辑"
+  },
+  {
+   "n": 11,
+   "src": "GitHub 仓库访问记录（traffic / collaborators / audit log）",
+   "fact": "collaborators 403；traffic 无凭据；gh CLI 未安装",
+   "verdict": "NOT_AVAILABLE_VIA_THIS_CHANNEL"
+  },
+  {
+   "n": 12,
+   "src": "ts-manager 现场 clasp list-deployments",
+   "fact": "恒 3 / @206 / 三个 deploymentId 逐字未变",
+   "verdict": "零换链"
+  },
+  {
+   "n": 13,
+   "src": "证据历史完整性（git rev-list / cat-file / reflog / ls-files）",
+   "fact": "278 commits / d50e795 仍在 / worktree dirty=0 / reflog 末条 d55f5dd",
+   "verdict": "未删改"
+  }
+ ],
+ "sources_count": 13,
+ "current": {
+  "production": "11426/18",
+  "master_leave": "613/15",
+  "master_tabs": 41,
+  "production_tabs": 16,
+  "deployments": 3,
+  "shared_head": "d55f5dd",
+  "shared_remote_main": "d55f5dd"
+ },
+ "four_deployment_chains": {
+  "ts_manager": "恒 3 / @206（本轮现场 clasp list-deployments 复核，三 ID 逐字未变）",
+  "operation": "恒 2 / @70（沿用 v89/v90 登记读数，本轮未现场复采，如实标注）",
+  "nps": "恒 21 / @88（沿用登记读数，本轮未现场复采，如实标注）",
+  "pclist": "恒 10 / @400（沿用登记读数，本轮未现场复采，如实标注）",
+  "caveat": "端点不变、部署数不变均不作为代码或行为不变的证据（v89 口径维持）"
+ },
+ "redlines": "逐源只读；零生产写/零主库写/零改结构列宽/零解冻/零换链"
+}
