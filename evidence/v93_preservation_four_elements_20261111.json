@@ -1,0 +1,63 @@
+{
+ "capture_beijing": "2026-11-11 12:45:39",
+ "capture_utc": "2026-11-11T04:45:39Z",
+ "trigger": "Tom 12:01 真回函「请保全原始全列快照、稳定键、采集时点及来源」四要素",
+ "four_elements": [
+  {
+   "element": "v92 生产表 11426 行原始全 18 列",
+   "raw_snapshot": {
+    "path": "outputs/_v92_retained/prod_11426_full_18cols_20261111.json",
+    "bytes": 1452,
+    "sha256": "dec6ef8c0930428b4d6fb0f27b9ef6dde3da9a5d6150a9a64eec9ccefb217c83",
+    "cols": 18,
+    "retention": "本机受控、不进公开库",
+    "delivery": "PENDING_CHANNEL_OWNER_DECISION"
+   },
+   "stable_key": "TS-111C5E2C1F0C",
+   "capture_time_beijing": "2026-11-11 10:09:20",
+   "capture_time_utc": "2026-11-11T02:09:20Z",
+   "source": "hktool inspectWorkbook A11426:R11426 + A1:R1 + A11425:R11425"
+  },
+  {
+   "element": "v92 主库请假 613 行原始全 15 列",
+   "raw_snapshot": {
+    "path": "outputs/_v92_retained/leave_613_full_15cols_20261111.json",
+    "bytes": 1171,
+    "sha256": "5d10ab0298a8fedd4534ffe2c32058dfae492e084699ae0774e9bf23b7631de7",
+    "cols": 15,
+    "retention": "本机受控、不进公开库",
+    "delivery": "PENDING_CHANNEL_OWNER_DECISION"
+   },
+   "stable_key": "逐格 SHA-256（无 UUID 列，用 H 列去重键哈希）",
+   "capture_time_beijing": "2026-11-11 10:09:20",
+   "capture_time_utc": "2026-11-11T02:09:20Z",
+   "source": "hktool inspectWorkbook A613:O613 + A1:O1 + A612:O612"
+  },
+  {
+   "element": "v93 生产表 11424–11431 共 8 行原始全 18 列",
+   "raw_snapshot": {
+    "path": "outputs/_v93_retained/prod_rows_11424_11431_full18_20261111.json",
+    "bytes": 4273,
+    "sha256": "0270b6e39422feff8c0895f1d893d345ca009d672a7c7f32e53e050326bf1ebf",
+    "cols": 18,
+    "retention": "本机受控、不进公开库",
+    "delivery": "PENDING_CHANNEL_OWNER_DECISION"
+   },
+   "stable_key": "TS-4C999C53D7EE / TS-3348C8896C74 / TS-C5DDEB80A6E6 / TS-8D8A3BAE8CF5 / TS-DCF268123AFA",
+   "capture_time_beijing": "2026-11-11 12:40:06",
+   "capture_time_utc": "2026-11-11T04:40:06Z",
+   "source": "hktool inspectWorkbook A11424:R11431 + A1:R1（tools/t1b_capture_rows.py，只读）"
+  }
+ ],
+ "elements_count": 3,
+ "model": {
+  "definition": "保全 = 原始全列字节 + SHA-256 + 稳定键 + 采集时点 + 来源五者同时固定；不等于把原文放进公开库",
+  "why": "同一封回函明令「继续避免公开源码及个人数据」，故原始全文只留本机受控路径，公开库只给脱敏元数据",
+  "delivery": "PENDING_CHANNEL_OWNER_DECISION；在其书面确认前不擅自交付、不擅自放入公开库"
+ },
+ "continuity": {
+  "statement": "v92 两件 + v93 一件构成连续保全链；v92 已固定的 11426 行 UUID TS-111C5E2C1F0C 在本版 A11424:R11431 补采中原值复现，可作跨代一致性校验",
+  "cross_check": "11426 行在 v92 与 v93 两件原件中逐格一致（本方现场复核，未改动）"
+ },
+ "redlines": "只读清点；零生产写/零主库写/零改结构列宽/零解冻/零换链；零源码全文入公开库"
+}

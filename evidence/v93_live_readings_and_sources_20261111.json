@@ -1,0 +1,114 @@
+{
+ "capture_beijing": "2026-11-11 12:45:39",
+ "capture_utc": "2026-11-11T04:45:39Z",
+ "gate": {
+  "rule": "总账 §5.3 防循环闸门",
+  "triggers": [
+   "Tom 12:01:57 真回函带实质新审阅条件（四类证据未核验定性 + 四要素具名要求 + 访问记录不可推定）",
+   "生产表 11426→11431 五项真实数据增量",
+   "两条本方必须主动披露的失败运行记录"
+  ],
+  "verdict": "OPEN_V93",
+  "note": "不是空函、不是机械重发；v92 回函 10:39 后我方零回函，本函为首次承接"
+ },
+ "sources": [
+  {
+   "n": 1,
+   "src": "生产表 DB_工时流水（现场 probe 12:37:12，只读）",
+   "fact": "11431 / 18；v92 为 11426 / 18，净 +5 行",
+   "verdict": "真实数据事件"
+  },
+  {
+   "n": 2,
+   "src": "生产表 11424–11431 全 18 列现场补采（t1b_capture_rows.py，12:40:06，只读）",
+   "fact": "8 行 + A1:R1 表头；新增 5 行五个独立 UUID、同一录入批次 04:05:54.131–134Z",
+   "verdict": "已固定，原件本机受控"
+  },
+  {
+   "n": 3,
+   "src": "主库「请假」（现场 probe 12:37:12，只读）",
+   "fact": "613 / 15，与 v92 一致，零增量",
+   "verdict": "无变化"
+  },
+  {
+   "n": 4,
+   "src": "主库页签 / 生产表页签（现场 probe，只读）",
+   "fact": "41 / 16，与 v92 一致，零增量",
+   "verdict": "无变化"
+  },
+  {
+   "n": 5,
+   "src": "零积分盯梢 10:30 / 11:00 / 11:30 / 12:00 / 12:30 五轮 + 日志",
+   "fact": "10:30 捕获 11425→11426；12:30:33 捕获 11426→11431；其余三轮无增量",
+   "verdict": "两次增量均被正式捕获，非脚本漏报"
+  },
+  {
+   "n": 6,
+   "src": "QQ 邮箱 inbox（after 02:39:00Z 全量）",
+   "fact": "Tom 12:01:57 真回函 1 封；12:19:38 系统自动告警邮件 1 封；无其他 Tom 来信",
+   "verdict": "新触发"
+  },
+  {
+   "n": 7,
+   "src": "QQ 邮箱 sent（v92 回函后）",
+   "fact": "仅 v92 回函 10:39:17 一封；其后我方零回函",
+   "verdict": "尚未回复"
+  },
+  {
+   "n": 8,
+   "src": "共享库本地 HEAD / status",
+   "fact": "df64e14 / 0 待提交",
+   "verdict": "无改动"
+  },
+  {
+   "n": 9,
+   "src": "共享库远端 main（ls-remote + GitHub MCP list_commits since 02:39Z）",
+   "fact": "df64e14e0c60a638f4da224a9ce1899f7a3b2bc0；since 02:39Z 零新 commit",
+   "verdict": "无 Tom 提交"
+  },
+  {
+   "n": 10,
+   "src": "GitHub issues OPEN / PR all",
+   "fact": "0 / 0",
+   "verdict": "无 Tom 编辑"
+  },
+  {
+   "n": 11,
+   "src": "GitHub 仓库访问记录（traffic / collaborators / audit log）",
+   "fact": "沿用 v92 实测：collaborators 403、traffic 无凭据、audit log 需组织所有者权限",
+   "verdict": "NOT_AVAILABLE_VIA_THIS_CHANNEL；明确「查不到」≠「无访问」"
+  },
+  {
+   "n": 12,
+   "src": "ts-manager 现场 clasp list-deployments（12:27 复核）",
+   "fact": "恒 3 / @206 / 三个 deploymentId 逐字未变；@202 描述 V4.3.87 v2 经核为 11-10 v89 基线已存在的历史标签，非本版变更",
+   "verdict": "零换链"
+  },
+  {
+   "n": 13,
+   "src": "证据历史完整性（git rev-list / cat-file / status）",
+   "fact": "279 commits / d50e795 仍为 commit / worktree dirty 0",
+   "verdict": "未删改"
+  }
+ ],
+ "sources_count": 13,
+ "current": {
+  "production": "11431/18",
+  "master_leave": "613/15",
+  "master_tabs": 41,
+  "production_tabs": 16,
+  "deployments": 3,
+  "shared_head": "df64e14",
+  "shared_remote_main": "df64e14"
+ },
+ "four_deployment_chains": {
+  "ts_manager": "恒 3 / @206（本轮现场 clasp list-deployments 复核，三 ID 逐字未变）",
+  "operation": "恒 2 / @70（沿用登记读数，本轮未现场复采，如实标注）",
+  "nps": "恒 21 / @88（沿用登记读数，本轮未现场复采，如实标注）",
+  "pclist": "恒 10 / @400（沿用登记读数，本轮未现场复采，如实标注）",
+  "caveat": "端点不变、部署数不变均不作为代码或行为不变的证据（v89 口径维持）"
+ },
+ "incident_state": "OPEN · HOLD-NO-GO · 阶段一 PASS 暂缓 · M2 未签 · TS_WRITE_FREEZE=1（原样维持）",
+ "outstanding": "R1–R4 / N1 / N5 / N6 / R3 / D1 不新增、不关闭；D1 四列仍空，本方不代填、不运行所交脚本",
+ "redlines": "逐源只读；零生产写/零主库写/零改结构列宽/零解冻/零换链"
+}

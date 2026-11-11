@@ -1,0 +1,573 @@
+{
+ "capture_beijing": "2026-11-11 12:45:39",
+ "capture_utc": "2026-11-11T04:45:39Z",
+ "trigger": "Tom 本函「请继续保全相关材料」「不以未部署推定无风险」「结合原始代码、权限、授权和运行记录核验」",
+ "preservation_model": {
+  "definition": "保全 = 本机受控路径固定原始字节 + SHA-256 + mtime + 权限 + 运行记录指针；不等于把全文放进公开库",
+  "why": "同一封回函明令「继续避免公开源码及个人数据」，故原始全文不进公开库；公开库只放元数据清单",
+  "delivery": "PENDING_CHANNEL_OWNER_DECISION；在其书面确认前不擅自交付、不擅自放入公开库"
+ },
+ "artifacts": [
+  {
+   "path": "tools/t1b_capture_rows.py",
+   "bytes": 5650,
+   "sha256": "29af78e5dcd4aca403985820394c923e4cb9e47f59deae121c8accd1935a8d81",
+   "mtime_beijing": "2026-11-11 12:39:56",
+   "role": "v93 新增：参数化新增行全 18/15 列只读补采长期通道",
+   "capability": "READ_ONLY",
+   "note": "本版新建；替代此前每代临时取数的一次性做法",
+   "first_seen": "v93",
+   "frozen_snapshot": null,
+   "v92_registered": null,
+   "delta_vs_v92": "NEW_IN_V93",
+   "retention": "ORIGINAL_RETAINED_LOCALLY__FULLTEXT_NOT_IN_PUBLIC_REPO",
+   "delivery": "PENDING_CHANNEL_OWNER_DECISION"
+  },
+  {
+   "path": "tools/t1b_make_v93_evidence.py",
+   "bytes": 64351,
+   "sha256": "39966f8701968ac3ef5bf056f81a931f8cba5b4a3acd788acd065c93bf68544e",
+   "mtime_beijing": "2026-11-11 13:05:11",
+   "role": "v93 只读可重跑证据生成器（本版新增）",
+   "capability": "READ_ONLY",
+   "note": "内置公开库敏感值硬闸；源码全文不进公开库",
+   "first_seen": "v93",
+   "frozen_snapshot": null,
+   "v92_registered": null,
+   "delta_vs_v92": "NEW_IN_V93",
+   "retention": "ORIGINAL_RETAINED_LOCALLY__FULLTEXT_NOT_IN_PUBLIC_REPO",
+   "delivery": "PENDING_CHANNEL_OWNER_DECISION"
+  },
+  {
+   "path": "tools/t1b_make_v92_evidence.py",
+   "bytes": 50476,
+   "sha256": "545ca2cb8b1a22aeb2799be7617d003b28f97c22a55811eb8011081d4e04516e",
+   "mtime_beijing": "2026-11-11 10:35:15",
+   "role": "v92 只读证据生成器",
+   "capability": "READ_ONLY",
+   "note": "v92 已登记",
+   "first_seen": "v91_or_earlier",
+   "frozen_snapshot": null,
+   "v92_registered": {
+    "bytes": 50476,
+    "sha256_prefix": "545ca2cb8b1a"
+   },
+   "delta_vs_v92": "UNCHANGED_VS_V92",
+   "retention": "ORIGINAL_RETAINED_LOCALLY__FULLTEXT_NOT_IN_PUBLIC_REPO",
+   "delivery": "PENDING_CHANNEL_OWNER_DECISION"
+  },
+  {
+   "path": "tools/probe_v59_live_state.py",
+   "bytes": 3999,
+   "sha256": "d46fc32718f9b2d157da11234ac71e9db7b07cb74ac3a35af43ee9ef6564ddeb",
+   "mtime_beijing": "2026-11-04 22:31:11",
+   "role": "两表现场只读探针",
+   "capability": "READ_ONLY",
+   "note": "尾部抽查写死 A11270:Q11279，只给 lastRow 元数据；v93 由 t1b_capture_rows.py 补全列",
+   "first_seen": "v91_or_earlier",
+   "frozen_snapshot": null,
+   "v92_registered": null,
+   "delta_vs_v92": "EXISTED_BEFORE__NOT_LISTED_IN_V92_16",
+   "retention": "ORIGINAL_RETAINED_LOCALLY__FULLTEXT_NOT_IN_PUBLIC_REPO",
+   "delivery": "PENDING_CHANNEL_OWNER_DECISION"
+  },
+  {
+   "path": "tools/t1b_watch.py",
+   "bytes": 10015,
+   "sha256": "2e054eb6a7a509ead48d1f3753296aaed9da856a4607f641b198f95e5006a5dc",
+   "mtime_beijing": "2026-11-08 15:36:58",
+   "role": "T1-B 零积分只读盯梢",
+   "capability": "READ_ONLY",
+   "note": "12:30 轮正式捕获 11431",
+   "first_seen": "v91_or_earlier",
+   "frozen_snapshot": null,
+   "v92_registered": null,
+   "delta_vs_v92": "EXISTED_BEFORE__NOT_LISTED_IN_V92_16",
+   "retention": "ORIGINAL_RETAINED_LOCALLY__FULLTEXT_NOT_IN_PUBLIC_REPO",
+   "delivery": "PENDING_CHANNEL_OWNER_DECISION"
+  },
+  {
+   "path": "tools/threecolor_watchdog.py",
+   "bytes": 10000,
+   "sha256": "19b949e8eaf9e654ac44fa27abe0733f802c88755b1e1027584de5b56cd26e94",
+   "mtime_beijing": "2026-11-10 22:31:14",
+   "role": "全 ERP 三色规则只读巡检",
+   "capability": "READ_ONLY",
+   "note": "11:22 FAIL；现场复采 17 分 07 秒返回，pmlist 整本超时、OPER 一项复现",
+   "first_seen": "v91_or_earlier",
+   "frozen_snapshot": null,
+   "v92_registered": {
+    "bytes": 10000,
+    "sha256_prefix": "19b949e8eaf9"
+   },
+   "delta_vs_v92": "UNCHANGED_VS_V92",
+   "retention": "ORIGINAL_RETAINED_LOCALLY__FULLTEXT_NOT_IN_PUBLIC_REPO",
+   "delivery": "PENDING_CHANNEL_OWNER_DECISION"
+  },
+  {
+   "path": "tools/personnel_audit.py",
+   "bytes": 9355,
+   "sha256": "199311be25b26030869b1849f44bd37a16618299c1e2539ec1643835c20fd071",
+   "mtime_beijing": "2026-11-10 22:31:14",
+   "role": "13 本表人员列合规审计",
+   "capability": "READ_ONLY",
+   "note": "12:19 FAIL 为受保护页已知边界",
+   "first_seen": "v91_or_earlier",
+   "frozen_snapshot": null,
+   "v92_registered": {
+    "bytes": 9355,
+    "sha256_prefix": "199311be25b2"
+   },
+   "delta_vs_v92": "UNCHANGED_VS_V92",
+   "retention": "ORIGINAL_RETAINED_LOCALLY__FULLTEXT_NOT_IN_PUBLIC_REPO",
+   "delivery": "PENDING_CHANNEL_OWNER_DECISION"
+  },
+  {
+   "path": "tools/erp_color_repair.py",
+   "bytes": 21250,
+   "sha256": "77aed2d6968999ea9cbd3d6463fb66d9d9415d1dc9480ca5d58081c04408e66a",
+   "mtime_beijing": "2026-11-10 22:31:14",
+   "role": "三色红 VI 加性修复",
+   "capability": "WRITE_CAPABLE",
+   "note": "具写能力，本版不调用；列宽神圣不可动",
+   "first_seen": "v91_or_earlier",
+   "frozen_snapshot": null,
+   "v92_registered": {
+    "bytes": 21250,
+    "sha256_prefix": "77aed2d69689"
+   },
+   "delta_vs_v92": "UNCHANGED_VS_V92",
+   "retention": "ORIGINAL_RETAINED_LOCALLY__FULLTEXT_NOT_IN_PUBLIC_REPO",
+   "delivery": "PENDING_CHANNEL_OWNER_DECISION"
+  },
+  {
+   "path": "tools/zero_credit_runner.py",
+   "bytes": 55440,
+   "sha256": "f10861d30fdb8ee9fc14a6adca5b938fc7877b03acccbd0db6a8818ef3ce0be1",
+   "mtime_beijing": "2026-11-11 10:21:47",
+   "role": "零积分排程执行器",
+   "capability": "MIXED",
+   "note": "v91 登记 54451 B / eae06071，v92 实测 55440 B / f10861d3，v93 未再变更",
+   "first_seen": "v91_or_earlier",
+   "frozen_snapshot": null,
+   "v92_registered": {
+    "bytes": 55440,
+    "sha256_prefix": "f10861d30fdb"
+   },
+   "delta_vs_v92": "UNCHANGED_VS_V92",
+   "retention": "ORIGINAL_RETAINED_LOCALLY__FULLTEXT_NOT_IN_PUBLIC_REPO",
+   "delivery": "PENDING_CHANNEL_OWNER_DECISION"
+  },
+  {
+   "path": "tools/.hktool_remote.json",
+   "bytes": 32,
+   "sha256": "8e1a13ebac05087b3ba745b4524998636c05ea9dd033e7e1836de12d32011d57",
+   "mtime_beijing": "2026-10-11 09:16:06",
+   "role": "hktool 只读通道 key 配置",
+   "capability": "CONFIG_SECRET",
+   "note": "仅给 bytes + SHA-256，不给内容；凭据真值不入公开库",
+   "first_seen": "v91_or_earlier",
+   "frozen_snapshot": null,
+   "v92_registered": {
+    "bytes": 32,
+    "sha256_prefix": "8e1a13ebac05"
+   },
+   "delta_vs_v92": "UNCHANGED_VS_V92",
+   "retention": "ORIGINAL_RETAINED_LOCALLY__FULLTEXT_NOT_IN_PUBLIC_REPO",
+   "delivery": "PENDING_CHANNEL_OWNER_DECISION"
+  },
+  {
+   "path": "outputs/_v92_retained/prod_11426_full_18cols_20261111.json",
+   "bytes": 1452,
+   "sha256": "dec6ef8c0930428b4d6fb0f27b9ef6dde3da9a5d6150a9a64eec9ccefb217c83",
+   "mtime_beijing": "2026-11-11 10:35:29",
+   "role": "v92 生产表新增行原始全 18 列快照",
+   "capability": "RETAINED_ORIGINAL",
+   "note": "本机受控，含姓名原文，不进公开库",
+   "first_seen": "v91_or_earlier",
+   "frozen_snapshot": null,
+   "v92_registered": null,
+   "delta_vs_v92": "EXISTED_BEFORE__NOT_LISTED_IN_V92_16",
+   "retention": "ORIGINAL_RETAINED_LOCALLY__FULLTEXT_NOT_IN_PUBLIC_REPO",
+   "delivery": "PENDING_CHANNEL_OWNER_DECISION"
+  },
+  {
+   "path": "outputs/_v92_retained/leave_613_full_15cols_20261111.json",
+   "bytes": 1171,
+   "sha256": "5d10ab0298a8fedd4534ffe2c32058dfae492e084699ae0774e9bf23b7631de7",
+   "mtime_beijing": "2026-11-11 10:35:29",
+   "role": "v92 请假新增行原始全 15 列快照",
+   "capability": "RETAINED_ORIGINAL",
+   "note": "本机受控，含姓名原文，不进公开库",
+   "first_seen": "v91_or_earlier",
+   "frozen_snapshot": null,
+   "v92_registered": null,
+   "delta_vs_v92": "EXISTED_BEFORE__NOT_LISTED_IN_V92_16",
+   "retention": "ORIGINAL_RETAINED_LOCALLY__FULLTEXT_NOT_IN_PUBLIC_REPO",
+   "delivery": "PENDING_CHANNEL_OWNER_DECISION"
+  },
+  {
+   "path": "outputs/_v93_retained/prod_rows_11424_11431_full18_20261111.json",
+   "bytes": 4273,
+   "sha256": "0270b6e39422feff8c0895f1d893d345ca009d672a7c7f32e53e050326bf1ebf",
+   "mtime_beijing": "2026-11-11 12:40:21",
+   "role": "v93 生产表 8 行原始全 18 列快照",
+   "capability": "RETAINED_ORIGINAL",
+   "note": "本机受控，含姓名原文，不进公开库",
+   "first_seen": "v93",
+   "frozen_snapshot": null,
+   "v92_registered": null,
+   "delta_vs_v92": "NEW_IN_V93",
+   "retention": "ORIGINAL_RETAINED_LOCALLY__FULLTEXT_NOT_IN_PUBLIC_REPO",
+   "delivery": "PENDING_CHANNEL_OWNER_DECISION"
+  },
+  {
+   "path": "outputs/threecolor_watchdog_1116_baseline_20261111.json",
+   "bytes": 5069,
+   "sha256": "8ede2e6896458d6d1eb83cbbe629ccfe1b802530bbae495cd8ec572782baae6b",
+   "mtime_beijing": "2026-11-11 12:31:16",
+   "role": "11:16 三色巡检报告原件备份",
+   "capability": "LOG",
+   "note": "复采前先备份，不覆盖原件；已核零个人数据/零源码/零凭据",
+   "first_seen": "v93",
+   "frozen_snapshot": null,
+   "v92_registered": null,
+   "delta_vs_v92": "NEW_IN_V93",
+   "retention": "ORIGINAL_RETAINED_LOCALLY__FULLTEXT_NOT_IN_PUBLIC_REPO",
+   "delivery": "PENDING_CHANNEL_OWNER_DECISION"
+  },
+  {
+   "path": "outputs/_wd_final.log",
+   "bytes": 1350,
+   "sha256": "260ad250fa33e04dc137b6f932b2f49d478c78aae80709b86170854b1aecab4f",
+   "mtime_beijing": "2026-11-10 22:31:14",
+   "role": "11-10 三色终检运行记录",
+   "capability": "LOG",
+   "note": "总页签 196 / 范围内 44 / TierA 0·0 / TierB 5 保护页 / EXIT=0",
+   "first_seen": "v91_or_earlier",
+   "frozen_snapshot": null,
+   "v92_registered": {
+    "bytes": 1350,
+    "sha256_prefix": "260ad250fa33"
+   },
+   "delta_vs_v92": "UNCHANGED_VS_V92",
+   "retention": "ORIGINAL_RETAINED_LOCALLY__FULLTEXT_NOT_IN_PUBLIC_REPO",
+   "delivery": "PENDING_CHANNEL_OWNER_DECISION"
+  },
+  {
+   "path": "outputs/_pa_final.log",
+   "bytes": 1734,
+   "sha256": "9c70a92ad812af158509652b5b15d16d56b245ba4a0f479918eef9f2ea10a0c8",
+   "mtime_beijing": "2026-11-10 22:31:14",
+   "role": "11-10 人员审计终检运行记录",
+   "capability": "LOG",
+   "note": "真实待修 0",
+   "first_seen": "v91_or_earlier",
+   "frozen_snapshot": null,
+   "v92_registered": {
+    "bytes": 1734,
+    "sha256_prefix": "9c70a92ad812"
+   },
+   "delta_vs_v92": "UNCHANGED_VS_V92",
+   "retention": "ORIGINAL_RETAINED_LOCALLY__FULLTEXT_NOT_IN_PUBLIC_REPO",
+   "delivery": "PENDING_CHANNEL_OWNER_DECISION"
+  },
+  {
+   "path": "tools/_zc_logs/2026-11-11.log",
+   "bytes": 16860,
+   "sha256": "72068186ebdee65121d2fef7718929f28eec99a105a06c44b7a28ee740e45b45",
+   "mtime_beijing": "2026-11-11 13:05:05",
+   "role": "当日零积分排程运行记录",
+   "capability": "LOG",
+   "note": "含 11:22 / 12:19 两条 FAIL，成功与失败均列",
+   "first_seen": "v91_or_earlier",
+   "frozen_snapshot": {
+    "path": "outputs/_v93_retained/frozen/2026-11-11.log",
+    "bytes": 16860,
+    "sha256": "72068186ebdee65121d2fef7718929f28eec99a105a06c44b7a28ee740e45b45",
+    "frozen_at_beijing": "2026-11-11 12:45:39",
+    "reason": "时间推进件按采集时点冻结，保证重跑可复算"
+   },
+   "v92_registered": {
+    "bytes": 13381,
+    "sha256_prefix": "64fcd1c93af8"
+   },
+   "delta_vs_v92": "APPENDED_EXPECTED_LOG_GROWTH",
+   "retention": "ORIGINAL_RETAINED_LOCALLY__FULLTEXT_NOT_IN_PUBLIC_REPO",
+   "delivery": "PENDING_CHANNEL_OWNER_DECISION"
+  },
+  {
+   "path": "tools/_zc_logs/告警_2026-11-11.md",
+   "bytes": 667,
+   "sha256": "66a3514779ce9a8a8735a074e313d00dd4f91cd5cf0f2a834747db6c8fd4e4d4",
+   "mtime_beijing": "2026-11-11 12:19:30",
+   "role": "当日告警原件",
+   "capability": "LOG",
+   "note": "原件入 supporting_v93/",
+   "first_seen": "v91_or_earlier",
+   "frozen_snapshot": {
+    "path": "outputs/_v93_retained/frozen/告警_2026-11-11.md",
+    "bytes": 667,
+    "sha256": "66a3514779ce9a8a8735a074e313d00dd4f91cd5cf0f2a834747db6c8fd4e4d4",
+    "frozen_at_beijing": "2026-11-11 12:45:39",
+    "reason": "时间推进件按采集时点冻结，保证重跑可复算"
+   },
+   "v92_registered": null,
+   "delta_vs_v92": "EXISTED_BEFORE__NOT_LISTED_IN_V92_16",
+   "retention": "ORIGINAL_RETAINED_LOCALLY__FULLTEXT_NOT_IN_PUBLIC_REPO",
+   "delivery": "PENDING_CHANNEL_OWNER_DECISION"
+  },
+  {
+   "path": "tools/_zc_logs/timing_t1b-watch.csv",
+   "bytes": 4215,
+   "sha256": "6dcee9c31590202fb4582fd326fb6a73e31560d7ca6e5d09b5b0f528002caa3c",
+   "mtime_beijing": "2026-11-11 13:00:31",
+   "role": "盯梢时序与耗时原始 CSV",
+   "capability": "LOG",
+   "note": "片段入 supporting_v93/",
+   "first_seen": "v91_or_earlier",
+   "frozen_snapshot": {
+    "path": "outputs/_v93_retained/frozen/timing_t1b-watch.csv",
+    "bytes": 4215,
+    "sha256": "6dcee9c31590202fb4582fd326fb6a73e31560d7ca6e5d09b5b0f528002caa3c",
+    "frozen_at_beijing": "2026-11-11 12:45:39",
+    "reason": "时间推进件按采集时点冻结，保证重跑可复算"
+   },
+   "v92_registered": {
+    "bytes": 4075,
+    "sha256_prefix": "6d99df06381a"
+   },
+   "delta_vs_v92": "APPENDED_EXPECTED_LOG_GROWTH",
+   "retention": "ORIGINAL_RETAINED_LOCALLY__FULLTEXT_NOT_IN_PUBLIC_REPO",
+   "delivery": "PENDING_CHANNEL_OWNER_DECISION"
+  },
+  {
+   "path": "outputs/T1-B_盯梢触发_20261111_1030.md",
+   "bytes": 1209,
+   "sha256": "68eb208878f01e12483d4a3d9c073ac8e3c5a7264307a60c759c41edeb132ff9",
+   "mtime_beijing": "2026-11-11 10:30:35",
+   "role": "10:30 触发报告原件",
+   "capability": "LOG",
+   "note": "原件入 supporting_v93/",
+   "first_seen": "v91_or_earlier",
+   "frozen_snapshot": null,
+   "v92_registered": null,
+   "delta_vs_v92": "EXISTED_BEFORE__NOT_LISTED_IN_V92_16",
+   "retention": "ORIGINAL_RETAINED_LOCALLY__FULLTEXT_NOT_IN_PUBLIC_REPO",
+   "delivery": "PENDING_CHANNEL_OWNER_DECISION"
+  },
+  {
+   "path": "outputs/T1-B_盯梢触发_20261111_1230.md",
+   "bytes": 1209,
+   "sha256": "d0f8451351a9bb999833e52baf85a83ce4d096fbb1fffaa97af1bf234bb4b7c3",
+   "mtime_beijing": "2026-11-11 12:30:33",
+   "role": "12:30 触发报告原件",
+   "capability": "LOG",
+   "note": "原件入 supporting_v93/",
+   "first_seen": "v93",
+   "frozen_snapshot": null,
+   "v92_registered": null,
+   "delta_vs_v92": "NEW_IN_V93",
+   "retention": "ORIGINAL_RETAINED_LOCALLY__FULLTEXT_NOT_IN_PUBLIC_REPO",
+   "delivery": "PENDING_CHANNEL_OWNER_DECISION"
+  }
+ ],
+ "artifacts_count": 21,
+ "artifacts_changed_since_v92": [],
+ "artifacts_new_since_v92": [
+  {
+   "path": "tools/t1b_capture_rows.py",
+   "bytes": 5650,
+   "sha256": "29af78e5dcd4aca403985820394c923e4cb9e47f59deae121c8accd1935a8d81",
+   "mtime_beijing": "2026-11-11 12:39:56",
+   "role": "v93 新增：参数化新增行全 18/15 列只读补采长期通道",
+   "capability": "READ_ONLY",
+   "note": "本版新建；替代此前每代临时取数的一次性做法",
+   "first_seen": "v93",
+   "frozen_snapshot": null,
+   "v92_registered": null,
+   "delta_vs_v92": "NEW_IN_V93",
+   "retention": "ORIGINAL_RETAINED_LOCALLY__FULLTEXT_NOT_IN_PUBLIC_REPO",
+   "delivery": "PENDING_CHANNEL_OWNER_DECISION"
+  },
+  {
+   "path": "tools/t1b_make_v93_evidence.py",
+   "bytes": 64351,
+   "sha256": "39966f8701968ac3ef5bf056f81a931f8cba5b4a3acd788acd065c93bf68544e",
+   "mtime_beijing": "2026-11-11 13:05:11",
+   "role": "v93 只读可重跑证据生成器（本版新增）",
+   "capability": "READ_ONLY",
+   "note": "内置公开库敏感值硬闸；源码全文不进公开库",
+   "first_seen": "v93",
+   "frozen_snapshot": null,
+   "v92_registered": null,
+   "delta_vs_v92": "NEW_IN_V93",
+   "retention": "ORIGINAL_RETAINED_LOCALLY__FULLTEXT_NOT_IN_PUBLIC_REPO",
+   "delivery": "PENDING_CHANNEL_OWNER_DECISION"
+  },
+  {
+   "path": "outputs/_v93_retained/prod_rows_11424_11431_full18_20261111.json",
+   "bytes": 4273,
+   "sha256": "0270b6e39422feff8c0895f1d893d345ca009d672a7c7f32e53e050326bf1ebf",
+   "mtime_beijing": "2026-11-11 12:40:21",
+   "role": "v93 生产表 8 行原始全 18 列快照",
+   "capability": "RETAINED_ORIGINAL",
+   "note": "本机受控，含姓名原文，不进公开库",
+   "first_seen": "v93",
+   "frozen_snapshot": null,
+   "v92_registered": null,
+   "delta_vs_v92": "NEW_IN_V93",
+   "retention": "ORIGINAL_RETAINED_LOCALLY__FULLTEXT_NOT_IN_PUBLIC_REPO",
+   "delivery": "PENDING_CHANNEL_OWNER_DECISION"
+  },
+  {
+   "path": "outputs/threecolor_watchdog_1116_baseline_20261111.json",
+   "bytes": 5069,
+   "sha256": "8ede2e6896458d6d1eb83cbbe629ccfe1b802530bbae495cd8ec572782baae6b",
+   "mtime_beijing": "2026-11-11 12:31:16",
+   "role": "11:16 三色巡检报告原件备份",
+   "capability": "LOG",
+   "note": "复采前先备份，不覆盖原件；已核零个人数据/零源码/零凭据",
+   "first_seen": "v93",
+   "frozen_snapshot": null,
+   "v92_registered": null,
+   "delta_vs_v92": "NEW_IN_V93",
+   "retention": "ORIGINAL_RETAINED_LOCALLY__FULLTEXT_NOT_IN_PUBLIC_REPO",
+   "delivery": "PENDING_CHANNEL_OWNER_DECISION"
+  },
+  {
+   "path": "outputs/T1-B_盯梢触发_20261111_1230.md",
+   "bytes": 1209,
+   "sha256": "d0f8451351a9bb999833e52baf85a83ce4d096fbb1fffaa97af1bf234bb4b7c3",
+   "mtime_beijing": "2026-11-11 12:30:33",
+   "role": "12:30 触发报告原件",
+   "capability": "LOG",
+   "note": "原件入 supporting_v93/",
+   "first_seen": "v93",
+   "frozen_snapshot": null,
+   "v92_registered": null,
+   "delta_vs_v92": "NEW_IN_V93",
+   "retention": "ORIGINAL_RETAINED_LOCALLY__FULLTEXT_NOT_IN_PUBLIC_REPO",
+   "delivery": "PENDING_CHANNEL_OWNER_DECISION"
+  }
+ ],
+ "artifacts_appended_logs": [
+  {
+   "path": "tools/_zc_logs/2026-11-11.log",
+   "bytes": 16860,
+   "sha256": "72068186ebdee65121d2fef7718929f28eec99a105a06c44b7a28ee740e45b45",
+   "mtime_beijing": "2026-11-11 13:05:05",
+   "role": "当日零积分排程运行记录",
+   "capability": "LOG",
+   "note": "含 11:22 / 12:19 两条 FAIL，成功与失败均列",
+   "first_seen": "v91_or_earlier",
+   "frozen_snapshot": {
+    "path": "outputs/_v93_retained/frozen/2026-11-11.log",
+    "bytes": 16860,
+    "sha256": "72068186ebdee65121d2fef7718929f28eec99a105a06c44b7a28ee740e45b45",
+    "frozen_at_beijing": "2026-11-11 12:45:39",
+    "reason": "时间推进件按采集时点冻结，保证重跑可复算"
+   },
+   "v92_registered": {
+    "bytes": 13381,
+    "sha256_prefix": "64fcd1c93af8"
+   },
+   "delta_vs_v92": "APPENDED_EXPECTED_LOG_GROWTH",
+   "retention": "ORIGINAL_RETAINED_LOCALLY__FULLTEXT_NOT_IN_PUBLIC_REPO",
+   "delivery": "PENDING_CHANNEL_OWNER_DECISION"
+  },
+  {
+   "path": "tools/_zc_logs/timing_t1b-watch.csv",
+   "bytes": 4215,
+   "sha256": "6dcee9c31590202fb4582fd326fb6a73e31560d7ca6e5d09b5b0f528002caa3c",
+   "mtime_beijing": "2026-11-11 13:00:31",
+   "role": "盯梢时序与耗时原始 CSV",
+   "capability": "LOG",
+   "note": "片段入 supporting_v93/",
+   "first_seen": "v91_or_earlier",
+   "frozen_snapshot": {
+    "path": "outputs/_v93_retained/frozen/timing_t1b-watch.csv",
+    "bytes": 4215,
+    "sha256": "6dcee9c31590202fb4582fd326fb6a73e31560d7ca6e5d09b5b0f528002caa3c",
+    "frozen_at_beijing": "2026-11-11 12:45:39",
+    "reason": "时间推进件按采集时点冻结，保证重跑可复算"
+   },
+   "v92_registered": {
+    "bytes": 4075,
+    "sha256_prefix": "6d99df06381a"
+   },
+   "delta_vs_v92": "APPENDED_EXPECTED_LOG_GROWTH",
+   "retention": "ORIGINAL_RETAINED_LOCALLY__FULLTEXT_NOT_IN_PUBLIC_REPO",
+   "delivery": "PENDING_CHANNEL_OWNER_DECISION"
+  }
+ ],
+ "delta_classification_note": "差异分四类，避免把日志追加虚报成工具变更、也避免把早期就存在的文件误报成 v92 后新增：UNCHANGED_VS_V92（与 v92 登记字节哈希一致）/ CHANGED_SINCE_V92__TO_BE_VERIFIED_NOT_AUTHORIZED（工具或配置变更，待核）/ APPENDED_EXPECTED_LOG_GROWTH（日志与报告随时间追加，属预期数据推进，仍如实列出）/ NEW_IN_V93（本版新建）/ EXISTED_BEFORE__NOT_LISTED_IN_V92_16（早期已存在但不在 v92 的 16 件清单内，本版补登记）。v92 登记值从其已发布证据包动态读取，不用手写对照表。",
+ "three_factors": {
+  "actual_content": "逐件 bytes + SHA-256 + 角色 + 摘要；原始全文本机受控，不进公开库",
+  "permissions": "逐件标 capability：READ_ONLY / WRITE_CAPABLE / MIXED / CONFIG_SECRET / RETAINED_ORIGINAL / LOG；具写能力者如实标，不因未部署降级",
+  "runtime_records": "成功与失败均列，见 evidence/v93_monitoring_failures_20261111.json 与 tools/_zc_logs/2026-11-11.log"
+ },
+ "parallel_changes_since_v92": {
+  "verdict": "TO_BE_VERIFIED_NOT_AUTHORIZED",
+  "statement": "v92 发布（10:22 北京）之后，本机 tools/ 与 outputs/ 另有并行新增/改动，其中 tools/t1b_capture_rows.py 与 tools/t1b_make_v93_evidence.py 由 T1-B 本版引入，其余为零积分排程正常运行产物；本方不以「未部署」推定无风险，不代判其授权与运行影响，逐件如实登记为待核风险。",
+  "items": [
+   {
+    "path": "tools/t1b_capture_rows.py",
+    "mtime_bj": "2026-11-11 12:39",
+    "bytes": 5650,
+    "reason": "替代每代临时取数，沉淀为参数化只读补采长期通道"
+   },
+   {
+    "path": "tools/t1b_make_v93_evidence.py",
+    "mtime_bj": "2026-11-11 12:45",
+    "bytes": null,
+    "reason": "v93 只读证据生成器（本清单登记其自身）"
+   },
+   {
+    "path": "outputs/threecolor_watchdog_1116_baseline_20261111.json",
+    "mtime_bj": "2026-11-11 12:31",
+    "reason": "复采前备份 11:16 报告原件"
+   },
+   {
+    "path": "outputs/T1-B_盯梢触发_20261111_1230.md",
+    "mtime_bj": "2026-11-11 12:30",
+    "reason": "盯梢自动生成触发报告"
+   },
+   {
+    "path": "outputs/personnel_audit_latest.json",
+    "mtime_bj": "2026-11-11 12:19",
+    "reason": "personnel-audit 自动生成报告"
+   },
+   {
+    "path": "tools/.ts_health_baseline.json",
+    "mtime_bj": "2026-11-11 12:15",
+    "reason": "ts-health 零积分任务正常产物"
+   },
+   {
+    "path": "_tmp/v93_probe.json",
+    "mtime_bj": "2026-11-11 12:37",
+    "reason": "本版现场只读探针输出"
+   }
+  ]
+ },
+ "runtime_records": {
+  "success": [
+   "12:30:33 盯梢捕获 11431",
+   "12:37:12 现场 probe OK",
+   "12:40:06 全 18 列补采 OK",
+   "11:00 / 11:30 / 12:00 三轮无增量 OK"
+  ],
+  "failure": [
+   "11:22:58 threecolor-watchdog FAIL（复采 17 分 07 秒返回：pmlist 整本 The read operation timed out；OPER/月度预测_FY 违规复现）",
+   "12:19:30 personnel-audit FAIL（已知受保护页边界）",
+   "v91 已登记的一次 ValueError: not enough values to unpack 继续保留，不删除不粉饰"
+  ],
+  "statement": "成功与失败均列；本方不以未部署推定无风险。"
+ },
+ "authorization": {
+  "status": "PARTIAL_NOT_AVAILABLE",
+  "statement": "本方只有 Rita 指令触发记录与凭据文件路径，没有独立的书面授权文书；R3/N5 有权业务负责人书面授权与有效性确认仍欠，本方不代签、不代判、不催。"
+ },
+ "honest_note": "本清单为本方只读判定，不替代有权通道所有者独立核验；具写能力工具如实标 WRITE_CAPABLE / MIXED，不因未部署而降级为 READ_ONLY。",
+ "redlines": "只读清点；零生产写/零主库写/零改结构列宽/零解冻/零换链；零源码全文入公开库"
+}

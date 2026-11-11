@@ -1,0 +1,76 @@
+{
+ "generated_beijing": "2026-11-11 12:45:39",
+ "generated_utc": "2026-11-11T04:45:39Z",
+ "version": "v93",
+ "packages": [
+  {
+   "path": "evidence/v93_tom_reply_1201_20261111.json",
+   "bytes": 9465,
+   "sha256": "2a2e5e5c114eac3efdb163e433499ceea7432c7f9e873b3c0d269449f79a7c97"
+  },
+  {
+   "path": "evidence/v93_data_events_20261111.json",
+   "bytes": 15837,
+   "sha256": "ccf18fb66b866b814e4091b4b6bdebeee0e1f04df82a247eac85b2834996f41a"
+  },
+  {
+   "path": "evidence/v93_preservation_four_elements_20261111.json",
+   "bytes": 3112,
+   "sha256": "5204bb920c95e15a5e38da941a6b31425b48885542de4115a472bef848764788"
+  },
+  {
+   "path": "evidence/v93_monitoring_failures_20261111.json",
+   "bytes": 6133,
+   "sha256": "752aefe1a9820976994ccd852ff5f8bf084d2fcdda89967a755dd2712ec0a9ed"
+  },
+  {
+   "path": "evidence/v93_exposure_access_scope_20261111.json",
+   "bytes": 4810,
+   "sha256": "8ac955e002513946b34ee5fb4ea30d7aeb67592046f6817c84cdcae16cd38822"
+  },
+  {
+   "path": "evidence/v93_local_artifacts_preservation_20261111.json",
+   "bytes": 24104,
+   "sha256": "61e3e25b624335c41a37bd5c952caecffc17b03b81f49c1f3afa01b26eceb6e9"
+  },
+  {
+   "path": "evidence/v93_stability_and_numeric_boundary_20261111.json",
+   "bytes": 2222,
+   "sha256": "cd279f4dcb42a0682ab2ab985a97bb3a3378aa0f887614880282fce7c7c8edb8"
+  },
+  {
+   "path": "evidence/v93_live_readings_and_sources_20261111.json",
+   "bytes": 4434,
+   "sha256": "c1c9cdc4bf13c4989a04cdb2a8e986bc9e884ccbfdd43a616027d6701a801ceb"
+  },
+  {
+   "path": "evidence/v93_endpoint_no_change_20261111.json",
+   "bytes": 1945,
+   "sha256": "d71fdbaa731a647526be5416de87080cf193f7d771fbfe99234ba5ec0f8ac2f4"
+  },
+  {
+   "path": "evidence/v93_supporting_artifacts_20261111.json",
+   "bytes": 2470,
+   "sha256": "3c37ffde923c8bf485c97785a0b303cd164dd3e109eca6060e59a7b3de243ad1"
+  }
+ ],
+ "packages_count": 10,
+ "note": "全部只读生成，可重跑；零业务数据写入、零邮件外发、零换链。",
+ "stability_note": "采集时点固定为现场实测值，不随重跑变化；本机工具 mtime/bytes 随真实时间推进属数据推进，不是生成器漂移；逐件 SHA-256 以本清单为准，清单不自嵌自身哈希。",
+ "d1_static_check": {
+  "status": "STILL_EMPTY__NO_PROXY_NO_URGE",
+  "fixed_commit": "d50e7953ce400da760d0873423b41004b1882e68",
+  "target": "evidence/v86_attribution_evidence_gap_register_20261108.json",
+  "expected_bytes": 4825,
+  "expected_sha256": "e7a8f8a1da84da86b12b33efce065988d920ac5363d1faca47fd411023b47007",
+  "our_recheck": "本方复算 git show d50e795:<target> | wc -c / sha256sum 得 4825 / e7a8f8a1…47007，仅用于确认固定提交与单件仍在、未删改；明确不算作 Tom 的 D1 核验",
+  "tom_columns": {
+   "observed_bytes": null,
+   "observed_sha256": null,
+   "match": null,
+   "tom_verdict": null
+  },
+  "our_bound": "本方不代填、不代算、不催通过、不运行所交脚本"
+ },
+ "redlines": "零生产写/零主库写/零改结构列宽/零解冻/零回滚/零 GAS push/零 deploy/零新建删除部署/零 URL 变更/零历史对象删改"
+}

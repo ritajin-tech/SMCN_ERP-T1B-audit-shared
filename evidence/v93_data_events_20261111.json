@@ -1,0 +1,631 @@
+{
+ "capture_probe_beijing": "2026-11-11 12:37:12",
+ "capture_probe_utc": "2026-11-11T04:37:12Z",
+ "capture_rows_beijing": "2026-11-11 12:40:06",
+ "capture_rows_utc": "2026-11-11T04:40:06Z",
+ "source": "hktool inspectWorkbook（只读）A1:R1 / A11424:R11431；页签清单；现场 probe lastRow 元数据",
+ "baseline_v92": {
+  "production": "11426/18",
+  "master_leave": "613/15",
+  "master_tabs": 41,
+  "production_tabs": 16,
+  "deployments": 3,
+  "captured_beijing": "2026-11-11 10:08:59"
+ },
+ "current": {
+  "production": "11431/18",
+  "master_leave": "613/15",
+  "master_tabs": 41,
+  "production_tabs": 16,
+  "deployments": 3,
+  "captured_beijing": "2026-11-11 12:37:12"
+ },
+ "events": [
+  {
+   "n": 1,
+   "item": "生产表 DB_工时流水",
+   "delta": "11426 → 11431（+5 行）",
+   "detected_beijing": "2026-11-11 12:30:33",
+   "detection_source": "零积分盯梢触发报告 T1-B_盯梢触发_20261111_1230.md",
+   "level": "实质变化",
+   "row_timestamp_utc": "2026-11-11T04:05:54.131Z ~ 04:05:54.134Z",
+   "row_timestamp_beijing": "2026-11-11 12:05:54",
+   "note": "12:00:43 盯梢轮读数确为 11426；5 行于 12:05:54 录入，下一轮 12:30 捕获，属采样间隔，非脚本漏报"
+  },
+  {
+   "n": 2,
+   "item": "主库请假",
+   "delta": "613/15 → 613/15（零增量）",
+   "level": "无变化"
+  },
+  {
+   "n": 3,
+   "item": "主库页签 / 生产表页签",
+   "delta": "41 / 16 → 41 / 16（零增量）",
+   "level": "无变化"
+  }
+ ],
+ "production": {
+  "baseline_last_row": 11426,
+  "current_last_row": 11431,
+  "net_new_rows": 5,
+  "last_col": 18,
+  "header_18_cols": [
+   "⚙ 录入时间 (Timestamp)",
+   "日期 (Date)",
+   "姓名 (Name)",
+   "⚙ 类型 (Type)",
+   "阶段 (Stage)",
+   "项目编号 (Project ID)",
+   "工时 (Hours)",
+   "备注 (Notes)",
+   "⚙ 唯一码 (UUID)",
+   "⚙ 项目名称（自动）",
+   "⚙ 项目PM（自动）",
+   "⚙ 直属主管（自动）",
+   "项目情况",
+   "",
+   "",
+   "",
+   "",
+   ""
+  ],
+  "new_rows_public": [
+   {
+    "row": 11427,
+    "cols": [
+     {
+      "col": "A",
+      "header": "⚙ 录入时间 (Timestamp)",
+      "value": "2026-11-11T04:05:54.131Z"
+     },
+     {
+      "col": "B",
+      "header": "日期 (Date)",
+      "value": "2026-11-10T16:00:00.000Z"
+     },
+     {
+      "col": "C",
+      "header": "姓名 (Name)",
+      "value": "[REDACTED_PERSONAL|sha256:da3a629909bd]",
+      "value_sha256": "da3a629909bd365e4d481eef0944a7ee10be5f78af8e78851e7d30785d71e150"
+     },
+     {
+      "col": "D",
+      "header": "⚙ 类型 (Type)",
+      "value": "执行端"
+     },
+     {
+      "col": "E",
+      "header": "阶段 (Stage)",
+      "value": "3. 施工阶段"
+     },
+     {
+      "col": "F",
+      "header": "项目编号 (Project ID)",
+      "value": "26-064-SH"
+     },
+     {
+      "col": "G",
+      "header": "工时 (Hours)",
+      "value": 1
+     },
+     {
+      "col": "H",
+      "header": "备注 (Notes)",
+      "value": "报价"
+     },
+     {
+      "col": "I",
+      "header": "⚙ 唯一码 (UUID)",
+      "value": "TS-4C999C53D7EE"
+     },
+     {
+      "col": "J",
+      "header": "⚙ 项目名称（自动）",
+      "value": ""
+     },
+     {
+      "col": "K",
+      "header": "⚙ 项目PM（自动）",
+      "value": ""
+     },
+     {
+      "col": "L",
+      "header": "⚙ 直属主管（自动）",
+      "value": "[REDACTED_PERSONAL|sha256:4df069c27e69]",
+      "value_sha256": "4df069c27e69aee5cfda71f47c1256a6462a2bc4ace1b853939194196c324d23"
+     },
+     {
+      "col": "M",
+      "header": "项目情况",
+      "value": ""
+     },
+     {
+      "col": "N",
+      "header": "",
+      "value": ""
+     },
+     {
+      "col": "O",
+      "header": "",
+      "value": ""
+     },
+     {
+      "col": "P",
+      "header": "",
+      "value": ""
+     },
+     {
+      "col": "Q",
+      "header": "",
+      "value": ""
+     },
+     {
+      "col": "R",
+      "header": "",
+      "value": ""
+     }
+    ],
+    "stable_key_uuid": "TS-4C999C53D7EE",
+    "hours": 1,
+    "timestamp_utc": "2026-11-11T04:05:54.131Z",
+    "timestamp_beijing": "2026-11-11 12:05:54",
+    "date_utc": "2026-11-10T16:00:00.000Z",
+    "date_beijing": "2026-11-11 00:00:00（工时归属日）"
+   },
+   {
+    "row": 11428,
+    "cols": [
+     {
+      "col": "A",
+      "header": "⚙ 录入时间 (Timestamp)",
+      "value": "2026-11-11T04:05:54.132Z"
+     },
+     {
+      "col": "B",
+      "header": "日期 (Date)",
+      "value": "2026-11-10T16:00:00.000Z"
+     },
+     {
+      "col": "C",
+      "header": "姓名 (Name)",
+      "value": "[REDACTED_PERSONAL|sha256:da3a629909bd]",
+      "value_sha256": "da3a629909bd365e4d481eef0944a7ee10be5f78af8e78851e7d30785d71e150"
+     },
+     {
+      "col": "D",
+      "header": "⚙ 类型 (Type)",
+      "value": "执行端"
+     },
+     {
+      "col": "E",
+      "header": "阶段 (Stage)",
+      "value": "1. 投标"
+     },
+     {
+      "col": "F",
+      "header": "项目编号 (Project ID)",
+      "value": "26-131-HZ"
+     },
+     {
+      "col": "G",
+      "header": "工时 (Hours)",
+      "value": 1
+     },
+     {
+      "col": "H",
+      "header": "备注 (Notes)",
+      "value": "报价"
+     },
+     {
+      "col": "I",
+      "header": "⚙ 唯一码 (UUID)",
+      "value": "TS-3348C8896C74"
+     },
+     {
+      "col": "J",
+      "header": "⚙ 项目名称（自动）",
+      "value": ""
+     },
+     {
+      "col": "K",
+      "header": "⚙ 项目PM（自动）",
+      "value": ""
+     },
+     {
+      "col": "L",
+      "header": "⚙ 直属主管（自动）",
+      "value": "[REDACTED_PERSONAL|sha256:4df069c27e69]",
+      "value_sha256": "4df069c27e69aee5cfda71f47c1256a6462a2bc4ace1b853939194196c324d23"
+     },
+     {
+      "col": "M",
+      "header": "项目情况",
+      "value": ""
+     },
+     {
+      "col": "N",
+      "header": "",
+      "value": ""
+     },
+     {
+      "col": "O",
+      "header": "",
+      "value": ""
+     },
+     {
+      "col": "P",
+      "header": "",
+      "value": ""
+     },
+     {
+      "col": "Q",
+      "header": "",
+      "value": ""
+     },
+     {
+      "col": "R",
+      "header": "",
+      "value": ""
+     }
+    ],
+    "stable_key_uuid": "TS-3348C8896C74",
+    "hours": 1,
+    "timestamp_utc": "2026-11-11T04:05:54.132Z",
+    "timestamp_beijing": "2026-11-11 12:05:54",
+    "date_utc": "2026-11-10T16:00:00.000Z",
+    "date_beijing": "2026-11-11 00:00:00（工时归属日）"
+   },
+   {
+    "row": 11429,
+    "cols": [
+     {
+      "col": "A",
+      "header": "⚙ 录入时间 (Timestamp)",
+      "value": "2026-11-11T04:05:54.132Z"
+     },
+     {
+      "col": "B",
+      "header": "日期 (Date)",
+      "value": "2026-11-10T16:00:00.000Z"
+     },
+     {
+      "col": "C",
+      "header": "姓名 (Name)",
+      "value": "[REDACTED_PERSONAL|sha256:da3a629909bd]",
+      "value_sha256": "da3a629909bd365e4d481eef0944a7ee10be5f78af8e78851e7d30785d71e150"
+     },
+     {
+      "col": "D",
+      "header": "⚙ 类型 (Type)",
+      "value": "执行端"
+     },
+     {
+      "col": "E",
+      "header": "阶段 (Stage)",
+      "value": "3. 施工阶段"
+     },
+     {
+      "col": "F",
+      "header": "项目编号 (Project ID)",
+      "value": "26-063-BJ"
+     },
+     {
+      "col": "G",
+      "header": "工时 (Hours)",
+      "value": 1
+     },
+     {
+      "col": "H",
+      "header": "备注 (Notes)",
+      "value": "报价"
+     },
+     {
+      "col": "I",
+      "header": "⚙ 唯一码 (UUID)",
+      "value": "TS-C5DDEB80A6E6"
+     },
+     {
+      "col": "J",
+      "header": "⚙ 项目名称（自动）",
+      "value": ""
+     },
+     {
+      "col": "K",
+      "header": "⚙ 项目PM（自动）",
+      "value": ""
+     },
+     {
+      "col": "L",
+      "header": "⚙ 直属主管（自动）",
+      "value": "[REDACTED_PERSONAL|sha256:4df069c27e69]",
+      "value_sha256": "4df069c27e69aee5cfda71f47c1256a6462a2bc4ace1b853939194196c324d23"
+     },
+     {
+      "col": "M",
+      "header": "项目情况",
+      "value": ""
+     },
+     {
+      "col": "N",
+      "header": "",
+      "value": ""
+     },
+     {
+      "col": "O",
+      "header": "",
+      "value": ""
+     },
+     {
+      "col": "P",
+      "header": "",
+      "value": ""
+     },
+     {
+      "col": "Q",
+      "header": "",
+      "value": ""
+     },
+     {
+      "col": "R",
+      "header": "",
+      "value": ""
+     }
+    ],
+    "stable_key_uuid": "TS-C5DDEB80A6E6",
+    "hours": 1,
+    "timestamp_utc": "2026-11-11T04:05:54.132Z",
+    "timestamp_beijing": "2026-11-11 12:05:54",
+    "date_utc": "2026-11-10T16:00:00.000Z",
+    "date_beijing": "2026-11-11 00:00:00（工时归属日）"
+   },
+   {
+    "row": 11430,
+    "cols": [
+     {
+      "col": "A",
+      "header": "⚙ 录入时间 (Timestamp)",
+      "value": "2026-11-11T04:05:54.133Z"
+     },
+     {
+      "col": "B",
+      "header": "日期 (Date)",
+      "value": "2026-11-10T16:00:00.000Z"
+     },
+     {
+      "col": "C",
+      "header": "姓名 (Name)",
+      "value": "[REDACTED_PERSONAL|sha256:da3a629909bd]",
+      "value_sha256": "da3a629909bd365e4d481eef0944a7ee10be5f78af8e78851e7d30785d71e150"
+     },
+     {
+      "col": "D",
+      "header": "⚙ 类型 (Type)",
+      "value": "执行端"
+     },
+     {
+      "col": "E",
+      "header": "阶段 (Stage)",
+      "value": "1. 投标"
+     },
+     {
+      "col": "F",
+      "header": "项目编号 (Project ID)",
+      "value": "26-133-NJ"
+     },
+     {
+      "col": "G",
+      "header": "工时 (Hours)",
+      "value": 4
+     },
+     {
+      "col": "H",
+      "header": "备注 (Notes)",
+      "value": "报价"
+     },
+     {
+      "col": "I",
+      "header": "⚙ 唯一码 (UUID)",
+      "value": "TS-8D8A3BAE8CF5"
+     },
+     {
+      "col": "J",
+      "header": "⚙ 项目名称（自动）",
+      "value": ""
+     },
+     {
+      "col": "K",
+      "header": "⚙ 项目PM（自动）",
+      "value": ""
+     },
+     {
+      "col": "L",
+      "header": "⚙ 直属主管（自动）",
+      "value": "[REDACTED_PERSONAL|sha256:4df069c27e69]",
+      "value_sha256": "4df069c27e69aee5cfda71f47c1256a6462a2bc4ace1b853939194196c324d23"
+     },
+     {
+      "col": "M",
+      "header": "项目情况",
+      "value": ""
+     },
+     {
+      "col": "N",
+      "header": "",
+      "value": ""
+     },
+     {
+      "col": "O",
+      "header": "",
+      "value": ""
+     },
+     {
+      "col": "P",
+      "header": "",
+      "value": ""
+     },
+     {
+      "col": "Q",
+      "header": "",
+      "value": ""
+     },
+     {
+      "col": "R",
+      "header": "",
+      "value": ""
+     }
+    ],
+    "stable_key_uuid": "TS-8D8A3BAE8CF5",
+    "hours": 4,
+    "timestamp_utc": "2026-11-11T04:05:54.133Z",
+    "timestamp_beijing": "2026-11-11 12:05:54",
+    "date_utc": "2026-11-10T16:00:00.000Z",
+    "date_beijing": "2026-11-11 00:00:00（工时归属日）"
+   },
+   {
+    "row": 11431,
+    "cols": [
+     {
+      "col": "A",
+      "header": "⚙ 录入时间 (Timestamp)",
+      "value": "2026-11-11T04:05:54.134Z"
+     },
+     {
+      "col": "B",
+      "header": "日期 (Date)",
+      "value": "2026-11-10T16:00:00.000Z"
+     },
+     {
+      "col": "C",
+      "header": "姓名 (Name)",
+      "value": "[REDACTED_PERSONAL|sha256:da3a629909bd]",
+      "value_sha256": "da3a629909bd365e4d481eef0944a7ee10be5f78af8e78851e7d30785d71e150"
+     },
+     {
+      "col": "D",
+      "header": "⚙ 类型 (Type)",
+      "value": "执行端"
+     },
+     {
+      "col": "E",
+      "header": "阶段 (Stage)",
+      "value": "1. 投标"
+     },
+     {
+      "col": "F",
+      "header": "项目编号 (Project ID)",
+      "value": "26-127-SH"
+     },
+     {
+      "col": "G",
+      "header": "工时 (Hours)",
+      "value": 1
+     },
+     {
+      "col": "H",
+      "header": "备注 (Notes)",
+      "value": "报价"
+     },
+     {
+      "col": "I",
+      "header": "⚙ 唯一码 (UUID)",
+      "value": "TS-DCF268123AFA"
+     },
+     {
+      "col": "J",
+      "header": "⚙ 项目名称（自动）",
+      "value": ""
+     },
+     {
+      "col": "K",
+      "header": "⚙ 项目PM（自动）",
+      "value": ""
+     },
+     {
+      "col": "L",
+      "header": "⚙ 直属主管（自动）",
+      "value": "[REDACTED_PERSONAL|sha256:4df069c27e69]",
+      "value_sha256": "4df069c27e69aee5cfda71f47c1256a6462a2bc4ace1b853939194196c324d23"
+     },
+     {
+      "col": "M",
+      "header": "项目情况",
+      "value": ""
+     },
+     {
+      "col": "N",
+      "header": "",
+      "value": ""
+     },
+     {
+      "col": "O",
+      "header": "",
+      "value": ""
+     },
+     {
+      "col": "P",
+      "header": "",
+      "value": ""
+     },
+     {
+      "col": "Q",
+      "header": "",
+      "value": ""
+     },
+     {
+      "col": "R",
+      "header": "",
+      "value": ""
+     }
+    ],
+    "stable_key_uuid": "TS-DCF268123AFA",
+    "hours": 1,
+    "timestamp_utc": "2026-11-11T04:05:54.134Z",
+    "timestamp_beijing": "2026-11-11 12:05:54",
+    "date_utc": "2026-11-10T16:00:00.000Z",
+    "date_beijing": "2026-11-11 00:00:00（工时归属日）"
+   }
+  ],
+  "previous_row_11426_uuid": "TS-111C5E2C1F0C",
+  "new_row_uuids": [
+   "TS-4C999C53D7EE",
+   "TS-3348C8896C74",
+   "TS-C5DDEB80A6E6",
+   "TS-8D8A3BAE8CF5",
+   "TS-DCF268123AFA"
+  ],
+  "batch_note": "五行同一录入批次（04:05:54.131–134Z）、同一姓名与主管、备注均为「报价」，工时 1/1/1/4/1 合计 8；本方不推定写入主体、不推定是否属冻结批量回灌",
+  "raw_full_row_retention": {
+   "status": "RETAINED_LOCALLY_NOT_IN_PUBLIC_REPO",
+   "path": "outputs/_v93_retained/prod_rows_11424_11431_full18_20261111.json",
+   "rows": "A11424:R11431 共 8 行（含 11424–11426 三行对照）",
+   "reason": "承接 Tom「继续避免公开源码及个人数据」；姓名类字段在公开库版脱敏，仅给稳定键与逐格 SHA-256",
+   "delivery": "PENDING_CHANNEL_OWNER_DECISION"
+  }
+ },
+ "master_leave": {
+  "last_row": 613,
+  "last_col": 15,
+  "delta": 0,
+  "v92_original_retention": "outputs/_v92_retained/leave_613_full_15cols_20261111.json"
+ },
+ "master_tabs": {
+  "count": 41,
+  "note": "沿用 v92 已固定清单（41 页），本版现场 probe 复核仍为 41",
+  "boundary": "41 页仅对 2026-11-11 12:37:12 采集时点成立；29/31/33/35/37/39/41 不得互推"
+ },
+ "production_tabs": {
+  "count": 16,
+  "note": "沿用 v92 已固定清单（16 页），本版现场 probe 复核仍为 16"
+ },
+ "business_authorization_row_range": {
+  "production": "11396–11431 共 36 行",
+  "master_leave": "607–613 共 7 行",
+  "status": "R3_N5_PENDING_WRITTEN_AUTHORIZATION",
+  "note": "范围随本版增量更新；书面授权与有效性确认仍由有权业务负责人出具，本方不代判、不代签"
+ },
+ "attribution_boundary": "行内姓名、时间、UUID 仅为归因线索，不是认证主体或业务授权证明；本包不推定写入主体、不推定是否属冻结批量回灌（TS_WRITE_FREEZE=1 维持），服务端创建/执行记录属 N1，本方只读通道不可取得。",
+ "numeric_not_final": "数值非终值；每代只固定该代采集时点与新增行区间，不冻结、不说终值。",
+ "redlines": "只读采集；零生产写/零主库写/零改结构/零补列/零改列宽/零解冻/零回滚/零换链"
+}

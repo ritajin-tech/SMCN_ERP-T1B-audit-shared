@@ -1,0 +1,106 @@
+{
+ "capture_beijing": "2026-11-11 12:45:39",
+ "capture_utc": "2026-11-11T04:45:39Z",
+ "trigger": "承接 v91「运行记录（成功与失败均列）」+ Tom 本函「不以未部署推定无风险」",
+ "disclosure_principle": "本方主动披露，不隐瞒、不粉饰、不把失败说成成功；失败不下「回归」或「误报」的定论",
+ "failures": [
+  {
+   "n": 1,
+   "at_beijing": "2026-11-11 11:22:58",
+   "task": "threecolor-watchdog",
+   "duration_seconds": 418.6,
+   "level": "FAIL / 需人工排查",
+   "report": "outputs/threecolor_watchdog_latest.json（generatedAt 2026-11-11 11:16:00）",
+   "summary": {
+    "MISSING_VI": 5,
+    "WEAK_THREE": 5,
+    "REVIEW_MISSING_VI": 5,
+    "REVIEW_NO_RULES": 0,
+    "totalSheets": 198,
+    "inScopeSheets": 44
+   },
+   "affected_tabs": [
+    {
+     "book": "pmlist",
+     "tab": "周一会议首页",
+     "viBg": "#fce9ee",
+     "viIsRule": false,
+     "ruleCount": 0
+    },
+    {
+     "book": "pmlist",
+     "tab": "周一会议-催收跟进",
+     "viBg": "#fce9ee",
+     "viIsRule": false,
+     "ruleCount": 0
+    },
+    {
+     "book": "pmlist",
+     "tab": "催收看板·按项目",
+     "viBg": "#b31e3e",
+     "viIsRule": false,
+     "ruleCount": 0
+    },
+    {
+     "book": "pmlist",
+     "tab": "催收看板·按人",
+     "viBg": "#fce9ee",
+     "viIsRule": false,
+     "ruleCount": 0
+    },
+    {
+     "book": "OPER",
+     "tab": "月度预测_FY",
+     "viBg": "#eaf3de",
+     "viIsRule": false,
+     "ruleCount": 0
+    }
+   ],
+   "baseline_1110": "outputs/_wd_final.log：总页签 196 / 范围内 44 / TierA 0·0 / TierB 5 保护页 / EXIT=0",
+   "recheck": {
+    "action": "12:31 先把 11:16 报告原件另存为 outputs/threecolor_watchdog_1116_baseline_20261111.json（5069 B / sha256 8ede2e68…），再对 pmlist 与 OPER 两本发出现场只读复采；复采报告另存 outputs/threecolor_watchdog_recheck_1231_20261111.json（1131 B / sha256 d8787e3a…）",
+    "completed_beijing": "2026-11-11 12:48 前后（脚本 generatedAt 记为 12:31:16，实际耗时 17 分 07 秒后返回）",
+    "verdict": "PARTIAL_REPRODUCED__PARTIAL_COLLECTION_TIMEOUT",
+    "observation": "pmlist 整本采集失败：The read operation timed out（4 张周一会议系列页签本轮无法复核）；OPER/月度预测_FY 的 MISSING_VI + WEAK_THREE 在两次独立采集中复现；OPER/Project Number 的 REVIEW_MISSING_VI 与 11-10 终检一致；复采 summary：MISSING_VI 1 / WEAK_THREE 1 / REVIEW_MISSING_VI 1 / totalSheets 16 / inScopeSheets 2",
+    "confirmed": "至少 OPER/月度预测_FY 一项不是瞬时采集误报，两次独立采集一致；11-10 终检 TierA 0·0 到本日 TierA 命中，属真实读数变化，不是本方把告警『说没就没』",
+    "not_confirmed": "pmlist 4 张页签因整本超时无法复核，本方不推断其当前状态；复采只跑 2 本表、totalSheets 16，不能与 11:16 的 13 本表 198 页签直接比较计数",
+    "honest_note": "本方不把 11:16 报告整体判为「真回归」，也不判为「纯误报」：已复现项如实承认为真实读数变化，超时项如实标不可判定；采集通道不稳定（17 分钟 / 整本超时）与业务侧三色状态变化两件事同时成立，不互相抵消、不择一隐瞒"
+   },
+   "possible_causes_not_determined": [
+    "真回归：11-10「都改」后补的红 VI / 绿公式 CF 规则被某次页面重建或每日重算覆盖",
+    "巡检范围漂移：EXPECTED 集合在 11-10 把周一会议系列与月度预测_FY 从 Tier B 纳入 Tier A，而这些页当时只有静态 A1 底色、无 CF 规则支撑，纳入范围后即触发 Tier A 硬违规（脚本源码 EXPECTED 注释明确标注该批为『Tier B 真实数据表…纳入红VI范围』）",
+    "采集口径变化：personnelaudit 返回的 viIsRule / ruleCount 读数与 11-10 终检时不同（本环境规则 bg 读不到，判定依赖 A1 生效红 + 规则存在性）",
+    "11-10 终检 EXIT=0 时全 13 本表 196 页签；11-11 11:16 为 198 页签（主库当日新增两张 _重算前_ 镜像页），范围或页签集合变化"
+   ],
+   "our_action": "不擅自批量修复、不改列宽、不写任何单元格、不改 EXPECTED 集合、不改巡检阈值；把四种可能根因与最小复核步骤列为可编辑靶子 M 组，待有权方判断后再决定是否走既有三色长期通道 fixpersonnel/fixprotected"
+  },
+  {
+   "n": 2,
+   "at_beijing": "2026-11-11 12:19:30",
+   "task": "personnel-audit",
+   "duration_seconds": 475.7,
+   "level": "FAIL / 需人工排查",
+   "observed": "BD | China Pitch Tracker | c10 | PC | bg=#ffffff | expect=gray got=#ffffff | 受保护·权限边界",
+   "verdict": "KNOWN_PROTECTED_SHEET_BOUNDARY__NOT_A_NEW_REGRESSION",
+   "basis": "MEMORY 已登记：OPER/Project Number c18、BD/China Pitch Tracker c5–10 属 SHEET 级保护，部署账号无权解除，待授权后 fixprotected",
+   "our_action": "不擅自改权限、不擅自解除保护、不擅自改颜色；保持登记"
+  },
+  {
+   "n": 3,
+   "at_beijing": "2026-11-11 06:30:30",
+   "task": "t1b-watch",
+   "level": "预期触发（非故障）",
+   "observed": "请假 612→613 检出变化并生成触发报告",
+   "verdict": "EXPECTED_TRIGGER"
+  }
+ ],
+ "successes_same_period": [
+  "10:30:35 盯梢正式捕获 11425→11426",
+  "11:00:34 / 11:30:37 / 12:00:43 三轮无增量 OK",
+  "12:30:33 盯梢正式捕获 11426→11431，total_runs=149、consecutive_failures=0",
+  "12:37:12 现场 probe 与 12:40:06 全列补采均 OK",
+  "12:31 发起的三色现场复采虽部分超时，但脚本正常退出并产出可读报告（exit 0）"
+ ],
+ "relation_to_tom_reply": "本包正面承接「运行记录（成功与失败均列）」「不以未部署推定无风险」；两条 FAIL 属本方监测链自身，不改写 Tom 侧任何欠项状态，N1/N6/R3/N5/D1 不因本包关闭或新增",
+ "redlines": "只读登记；零批量修复/零改列宽/零改权限/零生产写/零主库写/零换链"
+}

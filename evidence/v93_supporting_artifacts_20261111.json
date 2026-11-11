@@ -1,0 +1,53 @@
+{
+ "capture_beijing": "2026-11-11 12:45:39",
+ "capture_utc": "2026-11-11T04:45:39Z",
+ "items": [
+  {
+   "path": "evidence/supporting_v93/timing_t1b-watch_20261111.txt",
+   "bytes": 756,
+   "sha256": "466f850e31de588af496ed4ad3dfe4a335e11c12e04df27ce5f3184691c97976",
+   "lines": 27,
+   "what": "零积分盯梢 11-11 全轮次时序与耗时原始行"
+  },
+  {
+   "path": "evidence/supporting_v93/T1-B_盯梢触发_20261111_1030.md",
+   "bytes": 1209,
+   "sha256": "68eb208878f01e12483d4a3d9c073ac8e3c5a7264307a60c759c41edeb132ff9",
+   "what": "零积分盯梢触发报告原件（只读，无个人数据）"
+  },
+  {
+   "path": "evidence/supporting_v93/T1-B_盯梢触发_20261111_1230.md",
+   "bytes": 1209,
+   "sha256": "d0f8451351a9bb999833e52baf85a83ce4d096fbb1fffaa97af1bf234bb4b7c3",
+   "what": "零积分盯梢触发报告原件（只读，无个人数据）"
+  },
+  {
+   "path": "evidence/supporting_v93/告警_2026-11-11.md",
+   "bytes": 667,
+   "sha256": "66a3514779ce9a8a8735a074e313d00dd4f91cd5cf0f2a834747db6c8fd4e4d4",
+   "what": "当日三条告警原始日志（06:30 触发 / 11:22 三色 FAIL / 12:19 人员审计 FAIL），按采集时点冻结"
+  },
+  {
+   "path": "evidence/supporting_v93/threecolor_watchdog_1116_baseline_20261111.json",
+   "bytes": 5069,
+   "sha256": "8ede2e6896458d6d1eb83cbbe629ccfe1b802530bbae495cd8ec572782baae6b",
+   "what": "三色巡检报告原件（11:16 全量 / 12:31 两本复采），已核零个人数据/零源码/零凭据"
+  },
+  {
+   "path": "evidence/supporting_v93/threecolor_watchdog_recheck_1231_20261111.json",
+   "bytes": 1131,
+   "sha256": "d8787e3a8b18ed152456c163048ffa3c8e9a127d3a5d9b3f3ff42c6c4c9af21d",
+   "what": "三色巡检报告原件（11:16 全量 / 12:31 两本复采），已核零个人数据/零源码/零凭据"
+  }
+ ],
+ "items_count": 6,
+ "screening": "逐件复核：零生产源码全文、零个人数据原文、零凭据真值；仅时序、读数、告警文本与页签元数据",
+ "retained_locally_not_in_repo": [
+  "outputs/_v92_retained/prod_11426_full_18cols_20261111.json",
+  "outputs/_v92_retained/leave_613_full_15cols_20261111.json",
+  "outputs/_v93_retained/prod_rows_11424_11431_full18_20261111.json",
+  "tools/*.py 原始代码全文（保全清单见 v93_local_artifacts_preservation_20261111.json）"
+ ],
+ "delivery": "PENDING_CHANNEL_OWNER_DECISION",
+ "redlines": "只读复制；零改写历史、零外发"
+}

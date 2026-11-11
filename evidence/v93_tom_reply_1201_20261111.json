@@ -1,0 +1,129 @@
+{
+ "capture_beijing": "2026-11-11 12:45:39",
+ "capture_utc": "2026-11-11T04:45:39Z",
+ "message_id": "msg_9a2hvXQJ7FmD3zBQruScbKah1dl2ulgUk9w8iHoZQJ9cYw",
+ "rfc_message_id": "<tencent_A3A011E4D5CC0FE093795D18519B69309007@qq.com>",
+ "in_reply_to": "<tencent_AC03C5FCEFE70540936356EF01094F805705@qq.com>",
+ "subject": "回复：【生产表】v92风险及证据核验边界",
+ "received_beijing": "2026-11-11 12:01:57 (北京时间 GMT+8；UTC 2026-11-11T04:01:57Z)",
+ "body_plain": "Rita，\n\n已全文阅读 v92 来信，本信无附件。你方报告新增生产表及请假行、主库页签变化、本地工具变更，以及公开库访问记录受限；以上均尚未经本方独立核验，不能据此确认生产状态、行为主体、授权或暴露范围。\n\n一、数据与监测：请保全原始全列快照、稳定键、采集时点及来源。采样期间读数不变不能排除覆盖写、删除或回滚；服务端请求和执行记录仍需由通道所有者保全，或具名说明不可取得范围及替代证据局限。N1、N6 不因本函关闭。\n\n二、并行变更：所报工具变化及写能力须结合原始代码、权限、授权和运行记录核验；请继续保全相关材料，不以未部署推定无风险。部署链及业务有效性仍未独立确认。\n\n三、公开库：访问记录查询受限不能证明没有访问或泄露；请有权通道所有者评估暴露、保全可取得记录并书面决定访问控制与后续处置。继续避免公开源码及个人数据，保留证据历史。\n\n下一步本方拟只读取得固定提交 d50e795 指定单件并核字节长度与 SHA-256，目前尚未完成，不运行所交脚本。由有权业务负责人核对受影响行并提供书面授权与有效性确认；R3/N5 仍待证。事故 OPEN、HOLD/NO-GO、阶段一 PASS 暂缓维持；本函不构成验收、解冻或生产授权。\n\nTom",
+ "has_attachments": false,
+ "authenticity": {
+  "verdict": "GENUINE_TOM_REPLY",
+  "rule": "正文以「Rita，」开头 + from=1252293966@qq.com + to 不含自己 + in_reply_to 指向我方上一封 rfc_message_id = 真来信；正文以「Tom，」开头 = 我方回显",
+  "checks": [
+   "正文首句「Rita，」命中",
+   "from = 1252293966@qq.com（Tom）",
+   "to = ritajin.muraya@qq.com；cc = 332721759@qq.com；to 不含自己",
+   "in_reply_to = <tencent_AC03C5FCEFE70540936356EF01094F805705@qq.com> = 我方 v92 回函 rfc_message_id，线程闭合",
+   "我方 v92 回函 sent msg_j6kuNb21oCgVZ549IlCwO0Jyqa6-sxyQSHUpjSXO3nlpSA 于 2026-11-11 10:39:17 (北京时间 GMT+8；UTC 2026-11-11T02:39:17Z) 后零回函，本函为未承接的新来信",
+   "无附件"
+  ],
+  "excluded_nearby": [
+   {
+    "msg": "msg_VX6kkNVXKFV2l_-P6nBgApNJ33Kbzdp3MjKot0C9AIvKwQ",
+    "reason": "12:19:38 系统自动告警邮件（from=rita.jin@spacematrix.com），非 Tom 来信，仅作运行失败佐证"
+   },
+   {
+    "msg": "msg_z-Ly…",
+    "reason": "我方 v92 回函 reply_all 回显（「Tom，」开头、from=ritajin.muraya）"
+   }
+  ]
+ },
+ "item_by_item": [
+  {
+   "n": "T1",
+   "topic": "已全文阅读 v92 来信、本信无附件",
+   "our_position": "登记",
+   "concrete_action": "无附件，全文转录于本包 body_plain"
+  },
+  {
+   "n": "T2",
+   "topic": "v92 报告的四类新增（新增生产表及请假行、主库页签变化、本地工具变更、公开库访问记录受限）均尚未经本方独立核验，不能据此确认生产状态、行为主体、授权或暴露范围",
+   "our_position": "ACCEPTED_NO_DEFENSE",
+   "concrete_action": "本版不代对方核验、不把本方只读判定冒充对方核验结论；四类证据一律保持「本方采集与登记、待对方独立核验」标注，见 v93_live_readings_and_sources 与 v93_preservation_four_elements"
+  },
+  {
+   "n": "T3",
+   "topic": "请保全原始全列快照、稳定键、采集时点及来源（四要素，本函首次具名）",
+   "our_position": "ACCEPTED__FOUR_ELEMENTS_FIXED",
+   "concrete_action": "新增 evidence/v93_preservation_four_elements_20261111.json：v92 两件 + v93 一件原始全列快照逐件给路径/bytes/SHA-256/稳定键 UUID/采集时点/来源；原件只留本机受控，公开库只给脱敏元数据"
+  },
+  {
+   "n": "T4",
+   "topic": "采样期间读数不变不能排除覆盖写、删除或回滚",
+   "our_position": "ACCEPTED__CONFIRMED_AGAIN_BY_OWN_MEASUREMENT",
+   "concrete_action": "v92 已主动宣告七轮窗口终止；本版再证：12:00:43 读数 11426、12:05:54 又写入 5 行、12:30:33 盯梢捕获 11431。不把任何稳定窗口延伸为「至今稳定」"
+  },
+  {
+   "n": "T5",
+   "topic": "服务端请求和执行记录仍需由通道所有者保全，或具名说明不可取得范围及替代证据局限",
+   "our_position": "ACCEPTED__N1_STILL_OPEN",
+   "concrete_action": "N1 保持缺口；v90 覆盖时段与五条局限、v92 六条替代证据局限沿用不改写；本版新增监控告警范围说明书为增量页，明确不替代通道所有者出具件"
+  },
+  {
+   "n": "T6",
+   "topic": "N1、N6 不因本函关闭",
+   "our_position": "REGISTERED",
+   "concrete_action": "不新增、不关闭；N1 含公开库访问记录与服务端执行日志，N6 为 11-08 13:00–15:30 监测空白不可回填"
+  },
+  {
+   "n": "T7",
+   "topic": "并行变更：工具变化及写能力须结合原始代码、权限、授权和运行记录核验；继续保全；不以未部署推定无风险",
+   "our_position": "ACCEPTED__THREE_FACTORS_UPDATED",
+   "concrete_action": "保全清单由 v92 的 16 件扩至本版 22 件，逐件给 bytes + SHA-256 + 权限 + 运行记录指针；v92 后新增 t1b_capture_rows.py 与本生成器如实标 TO_BE_VERIFIED_NOT_AUTHORIZED；具写能力工具仍标 WRITE_CAPABLE / MIXED"
+  },
+  {
+   "n": "T8",
+   "topic": "部署链及业务有效性仍未独立确认",
+   "our_position": "ACCEPTED_NO_DEFENSE",
+   "concrete_action": "按原话登记为对方侧未核；本方不代复采、不代判有效性；四链部署读数仅作本方只读记录，端点不变不作为代码或行为不变的证据"
+  },
+  {
+   "n": "T9",
+   "topic": "访问记录查询受限不能证明没有访问或泄露",
+   "our_position": "ACCEPTED_NO_DEFENSE",
+   "concrete_action": "本方 v92 已写「查不到不等于无访问」，本函为对方正式确认；本版在访问记录矩阵中把该命题提为显式字段，不把 403 / 无凭据 / 零新 commit 说成「无访问」"
+  },
+  {
+   "n": "T10",
+   "topic": "请有权通道所有者评估暴露、保全可取得记录并书面决定访问控制与后续处置",
+   "our_position": "REGISTERED__PENDING_CHANNEL_OWNER_DECISION",
+   "concrete_action": "维持 v91 口径：由有权通道所有者书面确认；本方不擅自决定、不擅自交付源码全文、不擅自删改 git 历史对象、不再向 Tom 追问通道"
+  },
+  {
+   "n": "T11",
+   "topic": "继续避免公开源码及个人数据，保留证据历史",
+   "our_position": "ACCEPTED__HARD_GATE_APPLIED",
+   "concrete_action": "本版新增文件零生产源码全文、零个人数据原文、零凭据真值；新增 5 行姓名类字段一律脱敏；生成器内置敏感值硬闸，命中即中止；证据历史 279 commits / d50e795 仍在 / dirty 0，零 force push / 零历史对象删改"
+  },
+  {
+   "n": "T12",
+   "topic": "本方拟只读取得固定提交 d50e795 指定单件并核字节长度与 SHA-256，目前尚未完成，不运行所交脚本",
+   "our_position": "ACCEPTED__NO_PROXY",
+   "concrete_action": "本方复算 4825 B / e7a8f8a1…47007 仅用于确认固定提交仍在，明确不算作对方 D1 核验；四列仍空，不代填、不代算、不催、不运行所交脚本"
+  },
+  {
+   "n": "T13",
+   "topic": "由有权业务负责人核对受影响行并提供书面授权与有效性确认；R3/N5 仍待证",
+   "our_position": "REGISTERED__ROW_RANGE_UPDATED",
+   "concrete_action": "行范围随本版增量更新：生产表 11396–11431 共 36 行 + 请假 607–613 共 7 行；R3/N5 本方不代判、不代签、不催"
+  },
+  {
+   "n": "T14",
+   "topic": "事故 OPEN、HOLD/NO-GO、阶段一 PASS 暂缓维持；不构成验收、解冻或生产授权",
+   "our_position": "REGISTERED",
+   "concrete_action": "原样维持，事故状态不因本函改变"
+  }
+ ],
+ "items_count": 14,
+ "new_conditions_vs_v92": [
+  "首次把 v92 四类新增证据整体定性为「均尚未经本方独立核验，不能据此确认生产状态、行为主体、授权或暴露范围」",
+  "首次具名要求保全「原始全列快照、稳定键、采集时点及来源」四要素（此前为「原始代码、配置、授权及运行记录」）",
+  "明确「访问记录查询受限不能证明没有访问或泄露」，正式否定「查不到＝无访问」的推论",
+  "把「服务端请求和执行记录仍需由通道所有者保全，或具名说明不可取得范围及替代证据局限」并入 N1 要求",
+  "明确「部署链及业务有效性仍未独立确认」"
+ ],
+ "boundary": "本包为本方转录与承接，不替代对方所持原件，不构成对方独立核验结论。",
+ "redlines": "只读生成；零生产写/零主库写/零改结构列宽/零解冻/零回滚/零换链"
+}

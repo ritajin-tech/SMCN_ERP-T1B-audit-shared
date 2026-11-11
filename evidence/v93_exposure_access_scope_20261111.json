@@ -1,0 +1,90 @@
+{
+ "capture_beijing": "2026-11-11 12:45:39",
+ "capture_utc": "2026-11-11T04:45:39Z",
+ "tom_statement": "访问记录查询受限不能证明没有访问或泄露",
+ "our_position": "ACCEPTED_NO_DEFENSE",
+ "explicit_non_inference": "本方明确不把「零新 commit / 0 issue / 0 PR / 403 / 无凭据」推定为「无访问」或「无泄露」。上述均为本方只读通道的能力边界，不是仓库访问记录不存在的证据，也不是有权通道所有者已出具范围说明。",
+ "decision_owner": {
+  "status": "PENDING_CHANNEL_OWNER_DECISION",
+  "owner": "由有权通道所有者书面确认（v91 口径，本版沿用）",
+  "our_bound": "在其书面确认前：不擅自交付源码全文、不擅自删改 git 历史对象、不擅自下线/脱敏/迁移历史遗留、不擅自把公开库转私有、不再向 Tom 追问通道。",
+  "items": [
+   "历史遗留 154 个源码类文件（v91 全库自查口径）是否下线 / 脱敏 / 转入受控通道",
+   "四版 @203–@206 生产 WebApp 源码全文的受控交付方式",
+   "公开库是否转私有或改为受控分发",
+   "由谁导出并保全 GitHub 访问记录 / 审计日志，以何种书面形式回填",
+   "v92 两件 + v93 一件原始全列快照的受控交付方式（本机 outputs/_v9X_retained/）"
+  ]
+ },
+ "access_record_matrix": [
+  {
+   "item": "仓库 commit 列表（since 02:39:17Z）",
+   "channel": "GitHub MCP list_commits",
+   "result": "AVAILABLE",
+   "observed": "0 条新 commit；main 仍 df64e14"
+  },
+  {
+   "item": "仓库 issues OPEN / PR all",
+   "channel": "GitHub MCP",
+   "result": "AVAILABLE",
+   "observed": "0 / 0"
+  },
+  {
+   "item": "仓库元数据 private=false / 可见性",
+   "channel": "v90/v91 已核",
+   "result": "REGISTERED_NOT_REFETCHED",
+   "observed": "public；本版未重复取，如实标注"
+  },
+  {
+   "item": "协作者名单 / 权限边界",
+   "channel": "GitHub MCP list_repository_collaborators",
+   "result": "NOT_AVAILABLE",
+   "observed": "v92 实测 HTTP 403 Resource not accessible by integration；本版未重复取"
+  },
+  {
+   "item": "仓库 views / clones / referrers 流量",
+   "channel": "GitHub REST traffic/*",
+   "result": "NOT_AVAILABLE",
+   "observed": "本机 gh CLI 未安装、无可用 PAT、只读 MCP 不暴露 traffic 端点"
+  },
+  {
+   "item": "组织审计日志 / 访问者身份与 IP / 下载与 fork 记录",
+   "channel": "GitHub audit log / security log",
+   "result": "NOT_AVAILABLE",
+   "observed": "需组织所有者或仓库管理员权限，本方通道不覆盖"
+  },
+  {
+   "item": "生产 WebApp 服务端请求与执行日志（N1）",
+   "channel": "GAS Admin / 通道所有者",
+   "result": "NOT_AVAILABLE",
+   "observed": "v90 覆盖时段与五条局限、v92 六条替代证据局限沿用；本版不重复、不替代"
+  }
+ ],
+ "substitute_evidence_limits": [
+  "本方只读通道只覆盖「仓库内容与元数据」，不覆盖「谁访问过、何时访问、从何地址、是否克隆或下载」。",
+  "403 与「无凭据」是本方通道的能力边界，不是仓库无访问记录的证据。",
+  "v91 全库自查（636 文件 / 154 源码类 / 3,215,542 字节）只证明审计时 HEAD 的内容，不证明历史工件从未被第三方取得。",
+  "commit / issue / PR 列表只反映仓库自身版本与议题，不反映匿名读取、clone 或被搜索引擎收录。",
+  "本版脱敏只约束 v93 新增件；历史已推送的 git 对象按「保留证据历史」原样保留，不删改、不 force push、不改写历史。",
+  "本方不代有权通道所有者评估暴露面、不代决定访问控制、不代出具访问记录。"
+ ],
+ "evidence_history_integrity": {
+  "commits_total": 279,
+  "fixed_commit_d50e795": "present (git cat-file -t = commit)",
+  "head": "df64e14e0c60a638f4da224a9ce1899f7a3b2bc0",
+  "worktree_dirty_count": 0,
+  "d1_static_recheck": {
+   "bytes": 4825,
+   "sha256": "e7a8f8a1da84da86b12b33efce065988d920ac5363d1faca47fd411023b47007",
+   "purpose": "仅用于确认固定提交与单件仍在、未删改；明确不算作 Tom 的 D1 核验"
+  },
+  "note": "v92 记录 278 commits，本版 279 = 我方 v92 发布一条提交，无第三方提交；零 force push / 零 filter-branch / 零 gc prune / 零历史对象删除 / 零历史正文改写"
+ },
+ "this_version_public_additions": {
+  "production_source_fulltext": 0,
+  "personal_data_plaintext": 0,
+  "credential_true_values": 0,
+  "note": "新增 5 行姓名与直属主管以 [REDACTED_PERSONAL|sha256:…] 给出；原始全 18 列快照只留本机受控路径。"
+ },
+ "redlines": "只读判定；零外发、零删除、零改写历史；不替代有权通道所有者决定"
+}

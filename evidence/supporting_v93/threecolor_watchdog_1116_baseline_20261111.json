@@ -1,0 +1,206 @@
+{
+  "generatedAt": "2026-11-11 11:16:00",
+  "books": [
+    {
+      "key": "pmlist",
+      "ssid": "1XVvgruEU8nIUjTgLP4x13e7h-Ua7zHrsohoryzwUifQ",
+      "sheets": [
+        {
+          "tab": "周一会议首页",
+          "inScope": true,
+          "lastRow": 96,
+          "viBg": "#fce9ee",
+          "viIsRule": false,
+          "ruleCount": 0,
+          "hasGreen": false,
+          "flags": [
+            "MISSING_VI",
+            "WEAK_THREE"
+          ]
+        },
+        {
+          "tab": "周一会议-催收跟进",
+          "inScope": true,
+          "lastRow": 11,
+          "viBg": "#fce9ee",
+          "viIsRule": false,
+          "ruleCount": 0,
+          "hasGreen": false,
+          "flags": [
+            "MISSING_VI",
+            "WEAK_THREE"
+          ]
+        },
+        {
+          "tab": "催收看板·按项目",
+          "inScope": true,
+          "lastRow": 69,
+          "viBg": "#b31e3e",
+          "viIsRule": false,
+          "ruleCount": 0,
+          "hasGreen": false,
+          "flags": [
+            "MISSING_VI",
+            "WEAK_THREE"
+          ]
+        },
+        {
+          "tab": "催收看板·按人",
+          "inScope": true,
+          "lastRow": 80,
+          "viBg": "#fce9ee",
+          "viIsRule": false,
+          "ruleCount": 0,
+          "hasGreen": false,
+          "flags": [
+            "MISSING_VI",
+            "WEAK_THREE"
+          ]
+        },
+        {
+          "tab": "Database",
+          "inScope": false,
+          "lastRow": 1076,
+          "viBg": "#cccccc",
+          "viIsRule": false,
+          "ruleCount": 0,
+          "hasGreen": false,
+          "flags": [
+            "REVIEW_MISSING_VI"
+          ]
+        }
+      ]
+    },
+    {
+      "key": "OPER",
+      "ssid": "1Pdb1urK9_YDBoPaftdY9HCZvThyV_PmNhbylq0VCOeY",
+      "sheets": [
+        {
+          "tab": "月度预测_FY",
+          "inScope": true,
+          "lastRow": 1020,
+          "viBg": "#eaf3de",
+          "viIsRule": false,
+          "ruleCount": 0,
+          "hasGreen": false,
+          "flags": [
+            "MISSING_VI",
+            "WEAK_THREE"
+          ]
+        },
+        {
+          "tab": "Project Number",
+          "inScope": false,
+          "lastRow": 1101,
+          "viBg": "#d9ead3",
+          "viIsRule": false,
+          "ruleCount": 3,
+          "hasGreen": false,
+          "flags": [
+            "REVIEW_MISSING_VI"
+          ]
+        }
+      ]
+    },
+    {
+      "key": "QSLIST",
+      "ssid": "1AOm-AeOHxCkrSDzLrMvnDHwAZifz5M_nWr-2lunjGbI",
+      "sheets": []
+    },
+    {
+      "key": "BD",
+      "ssid": "1fWKqAS_PmUWtcurdLsW5F67IzI0i4wOj_uZhRU-P4JM",
+      "sheets": [
+        {
+          "tab": "China Pitch Tracker",
+          "inScope": false,
+          "lastRow": 159,
+          "viBg": "#ffffff",
+          "viIsRule": true,
+          "ruleCount": 5,
+          "hasGreen": false,
+          "flags": [
+            "REVIEW_MISSING_VI"
+          ]
+        },
+        {
+          "tab": "辅助判断（All Projects&Pitch Tracker）",
+          "inScope": false,
+          "lastRow": 23,
+          "viBg": "#ffff00",
+          "viIsRule": false,
+          "ruleCount": 0,
+          "hasGreen": false,
+          "flags": [
+            "REVIEW_MISSING_VI"
+          ]
+        },
+        {
+          "tab": "Database",
+          "inScope": false,
+          "lastRow": 1076,
+          "viBg": "#cccccc",
+          "viIsRule": false,
+          "ruleCount": 0,
+          "hasGreen": false,
+          "flags": [
+            "REVIEW_MISSING_VI"
+          ]
+        }
+      ]
+    },
+    {
+      "key": "PROC",
+      "ssid": "1-JJTHjt8Dmxi-ZlBXznT5cVLauJ7fzcTY22l2axgbiU",
+      "sheets": []
+    },
+    {
+      "key": "MASTER",
+      "ssid": "1oxPj0mzN8poP2vQ7Bm-YKXuU49p9b0c1asyrZn4Py44",
+      "sheets": []
+    },
+    {
+      "key": "PROD_TS",
+      "ssid": "1Pi5u9fEawgp7yICWPMMyQCT_LbwTZthQDW-H05xYdVI",
+      "sheets": []
+    },
+    {
+      "key": "OA_项目台账",
+      "ssid": "1gSb3Fv61k6PXsMWfU1DQ393Dga5Z4cxHei58cHKH_XA",
+      "sheets": []
+    },
+    {
+      "key": "OA_项目明细台账",
+      "ssid": "17glaJy35sqTVwQzimXX_qLk6aLJ04VOl3e8cXuOIDns",
+      "sheets": []
+    },
+    {
+      "key": "OA_项目报价管理台账",
+      "ssid": "161puDHhSByzDqSrvEgmzXtwna47exQCASWA-aVmobG4",
+      "sheets": []
+    },
+    {
+      "key": "OA_采购总台账",
+      "ssid": "1XGhitKL0mMRuZyfpivRvAeQLYaj2EhHqNXsi3k8C7ow",
+      "sheets": []
+    },
+    {
+      "key": "OA_采购明细台账",
+      "ssid": "1vnNFSx8Gx_s_U3xA1yt5bMhWUm8JDpC_0GoKu8Hn240",
+      "sheets": []
+    },
+    {
+      "key": "OA_费用报销台账",
+      "ssid": "18_AeHM29FThjxi4YhKE5SZ9pk4AcKtR5mSmrIUf616k",
+      "sheets": []
+    }
+  ],
+  "summary": {
+    "MISSING_VI": 5,
+    "WEAK_THREE": 5,
+    "REVIEW_MISSING_VI": 5,
+    "REVIEW_NO_RULES": 0,
+    "totalSheets": 198,
+    "inScopeSheets": 44
+  }
+}

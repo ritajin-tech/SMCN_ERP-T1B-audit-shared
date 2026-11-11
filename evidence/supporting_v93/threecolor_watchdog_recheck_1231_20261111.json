@@ -1,0 +1,49 @@
+{
+  "generatedAt": "2026-11-11 12:31:16",
+  "books": [
+    {
+      "key": "pmlist",
+      "ssid": "1XVvgruEU8nIUjTgLP4x13e7h-Ua7zHrsohoryzwUifQ",
+      "error": "The read operation timed out"
+    },
+    {
+      "key": "OPER",
+      "ssid": "1Pdb1urK9_YDBoPaftdY9HCZvThyV_PmNhbylq0VCOeY",
+      "sheets": [
+        {
+          "tab": "月度预测_FY",
+          "inScope": true,
+          "lastRow": 1020,
+          "viBg": "#eaf3de",
+          "viIsRule": false,
+          "ruleCount": 0,
+          "hasGreen": false,
+          "flags": [
+            "MISSING_VI",
+            "WEAK_THREE"
+          ]
+        },
+        {
+          "tab": "Project Number",
+          "inScope": false,
+          "lastRow": 1101,
+          "viBg": "#d9ead3",
+          "viIsRule": false,
+          "ruleCount": 3,
+          "hasGreen": false,
+          "flags": [
+            "REVIEW_MISSING_VI"
+          ]
+        }
+      ]
+    }
+  ],
+  "summary": {
+    "MISSING_VI": 1,
+    "WEAK_THREE": 1,
+    "REVIEW_MISSING_VI": 1,
+    "REVIEW_NO_RULES": 0,
+    "totalSheets": 16,
+    "inScopeSheets": 2
+  }
+}
