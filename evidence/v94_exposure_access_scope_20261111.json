@@ -1,0 +1,51 @@
+{
+ "capture_beijing": "2026-11-11 19:27:50",
+ "capture_utc": "2026-11-11T11:27:50Z",
+ "repo": "ritajin-tech/SMCN_ERP-T1B-audit-shared",
+ "visibility": "public",
+ "readable_channel_observations": {
+  "new_commits": 0,
+  "new_issues": 0,
+  "new_prs": 0,
+  "head_equals_remote": true,
+  "dirty_lines": 0,
+  "commits": 280,
+  "fixed_commit_present": true
+ },
+ "non_inference": "0/0/0 / HEAD 一致 / dirty 0 / 403 / 无凭据均只是本方只读通道的能力边界，**不能证明没有访问、不能证明没有泄露**；访问记录受限≠无访问或泄露。",
+ "channel_owner_decision": "PENDING_CHANNEL_OWNER_DECISION",
+ "channel_owner_bound": "由有权通道所有者保全可取得记录并书面决定访问控制与后续处置；本方不擅自决定、不交付源码全文、不删改 git 历史对象、不再向 Tom 追问通道。",
+ "publication_screening": {
+  "new_files_zero_source_code_full_text": true,
+  "new_files_zero_personal_data_original": true,
+  "new_files_zero_credential_plaintext": true,
+  "tool": "tools/t1b_make_v94_evidence.py 内置敏感值硬闸，命中即中止",
+  "supporting_artifacts": "两件脱敏副本（本地路径占位符 + 邮箱脱敏）；原件只留本机 outputs/_v94_retained/frozen/"
+ },
+ "server_logs": {
+  "status": "NOT_OBTAINED__CHANNEL_OWNER_PENDING",
+  "note": "服务端请求与执行日志、请求关联、公开库访问记录本轮未取得；查不到 ≠ 没有"
+ },
+ "business_owner": {
+  "status": "PENDING_WRITTEN_AUTHORIZATION",
+  "note": "受影响行核对、书面授权与有效性确认仍待有权业务负责人出具；本方不代判"
+ },
+ "evidence_history": {
+  "commits": 280,
+  "fixed_commit": "d50e7953ce400da760d0873423b41004b1882e68",
+  "dirty": 0,
+  "force_push": 0,
+  "history_object_deletion": 0,
+  "historical_body_rewrite": 0
+ },
+ "open_items_unchanged": [
+  "R1",
+  "R2",
+  "R3",
+  "R4",
+  "N1",
+  "N5",
+  "N6",
+  "D1"
+ ]
+}

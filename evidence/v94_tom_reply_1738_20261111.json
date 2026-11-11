@@ -1,0 +1,88 @@
+{
+ "capture_beijing": "2026-11-11 19:27:50",
+ "capture_utc": "2026-11-11T11:27:50Z",
+ "reply_at": "2026-11-11 17:38:53 (北京时间 GMT+8；UTC 2026-11-11T09:38:53Z)",
+ "message_id": "msg_WTjZCgZOHm1UM6oUmPJcg4lImzMSQtXxUvGzZ5J1YEMe8w",
+ "rfc_message_id": "<tencent_4030F5…（审计线程 message-id，公开库脱敏前缀）>",
+ "in_reply_to": "<tencent_EC7AA2…（v93 回函 message-id，公开库脱敏前缀）>",
+ "subject": "回复：【生产表】v93新增数据与监控告警",
+ "from_domain": "qq.com (审计线程既有地址，脱敏记录)",
+ "cc_present": true,
+ "attachment_count": 0,
+ "body_plain": "Rita，\n\n已全文阅读 v93 来信，本信无附件。你方报告生产表新增 5 行、两条监控失败及部分复采超时；原始工件、生产状态、部署和运行记录尚未经本方独立核验，不能据此确认主体、授权、根因或影响范围。\n\n监控告警请保全失败原始报告、复采范围与时点、超时记录、配置版本及权限；将已复现、未复现和因采集失败无法判断的项目分开。应由有权负责人以相同范围和口径取得可复核原始读数，再对照基线、页签集合和条件格式配置逐项判断；在证据不足前不将全部告警认定为真实回归或误报，修复需另行授权。采样间隔内的变化不能据此确认写入主体或业务有效性。\n\n公开库访问受限不证明无访问或泄露，请有权通道所有者保全可取得记录并书面决定访问控制和后续处置；请勿继续公开源码或个人数据。服务端日志与请求关联仍待通道所有者保全或具名说明不可取得范围；业务负责人需核对受影响行并提供书面授权与有效性确认。N1、N6、R3/N5 不因本函关闭。\n\n固定提交 d50e795 的指定单件原始字节、长度和 SHA-256 本方仍未独立核验，不运行所交脚本。事故 OPEN、HOLD/NO-GO、阶段一 PASS 暂缓维持；本函不构成验收、解冻或生产授权。\n\nTom",
+ "authenticity": {
+  "verdict": "GENUINE_NEW_REPLY",
+  "rules": [
+   "正文以「Rita，」开头",
+   "from 与审计线程一致",
+   "to 不含我方自发地址",
+   "in_reply_to 指向 v93 回函",
+   "无附件",
+   "带九组实质新条件"
+  ],
+  "excluded": [
+   "我方 v93 reply_all 回显（正文以「Tom，」开头）1 件"
+  ],
+  "channel": "QQ Mail MCP ListMessages(inbox, after=2026-11-11T05:06:35Z) + GetMessage 全文回读",
+  "checked_at": "2026-11-11 19:16:18 (北京时间 GMT+8；UTC 2026-11-11T11:16:18Z)"
+ },
+ "conditions": [
+  {
+   "id": "C1",
+   "tom_text": "保全失败原始报告、复采范围与时点、超时记录、配置版本及权限；将已复现、未复现和因采集失败无法判断的项目分开",
+   "our_response": "正面接受。新增 evidence/v94_monitoring_alerts_triage_20261111.json + supporting_v94/ 两件脱敏原件，逐条给三分类、复采时点、超时秒数、配置版本哈希与权限边界。",
+   "evidence": "evidence/v94_monitoring_alerts_triage_20261111.json"
+  },
+  {
+   "id": "C2",
+   "tom_text": "由有权负责人以相同范围和口径取得可复核原始读数，再对照基线、页签集合和条件格式配置逐项判断；证据不足前不将全部告警认定为真实回归或误报；修复需另行授权",
+   "our_response": "正面接受。本版给出 19:00:07 现场 probe 同范围读数与基线/页签集合对照；条件格式配置本轮**未现场复采**，如实列为未核轴；三分类中不存在「整体回归/整体误报」结论；本轮零修复、零批量处置。",
+   "evidence": "evidence/v94_live_readings_and_sources_20261111.json"
+  },
+  {
+   "id": "C3",
+   "tom_text": "采样间隔内的变化不能据此确认写入主体或业务有效性",
+   "our_response": "正面接受。18:00/18:30 两次 30 分钟采样窗口内 lastRow +1+1，只登记为「行数变化」，不推定写入主体、不推定业务有效性、不建立稳定窗口；零增量窗口亦不排除覆盖写入。",
+   "evidence": "evidence/v94_data_events_20261111.json"
+  },
+  {
+   "id": "C4",
+   "tom_text": "公开库访问受限不证明无访问或泄露；有权通道所有者保全可取得记录并书面决定访问控制和后续处置；请勿继续公开源码或个人数据",
+   "our_response": "正面接受。本版新增文件零生产源码全文、零个人数据原文、零凭据真值；生成器内置敏感值硬闸，命中即中止。访问控制书面决定维持 PENDING_CHANNEL_OWNER_DECISION，由有权通道所有者书面确认，本方不擅自决定、不交付源码全文、不删改 git 历史。",
+   "evidence": "evidence/v94_exposure_access_scope_20261111.json"
+  },
+  {
+   "id": "C5",
+   "tom_text": "服务端日志与请求关联仍待通道所有者保全或具名说明不可取得范围",
+   "our_response": "正面接受，N1 不关闭。本方只读通道无服务端请求/执行日志权限，且本轮未取得有权通道所有者的具名不可取得范围说明；登记为 NOT_OBTAINED__CHANNEL_OWNER_PENDING，不以「查不到」推定无请求或无泄露。",
+   "evidence": "evidence/v94_exposure_access_scope_20261111.json"
+  },
+  {
+   "id": "C6",
+   "tom_text": "业务负责人需核对受影响行并提供书面授权与有效性确认",
+   "our_response": "正面接受，R3/N5 不关闭。本版不代业务负责人核对、不代填、不代判通过；书面授权与有效性确认仍待出具。四列 D1 仍空。",
+   "evidence": "evidence/v94_d1_static_recheck_20261111.json"
+  },
+  {
+   "id": "C7",
+   "tom_text": "N1、N6、R3/N5 不因本函关闭",
+   "our_response": "正面接受。本版不新增、不关闭、不代判任何既有欠项；R1–R4 / N1 / N5 / N6 / D1 状态原样维持。",
+   "evidence": "docs/v94_full_review_20261111.md"
+  },
+  {
+   "id": "C8",
+   "tom_text": "固定提交 d50e795 的指定单件原始字节、长度和 SHA-256 本方仍未独立核验；不运行所交脚本",
+   "our_response": "正面接受。本方复算仅用于确认固定提交与单件仍在、未删改，明确**不算作 Tom 的 D1 核验**；D1 四列仍空，本方不代填、不代算、不催通过、不运行所交脚本。",
+   "evidence": "evidence/v94_d1_static_recheck_20261111.json"
+  },
+  {
+   "id": "C9",
+   "tom_text": "事故 OPEN、HOLD/NO-GO、阶段一 PASS 暂缓维持；本函不构成验收、解冻或生产授权",
+   "our_response": "正面接受。事故状态 OPEN · HOLD-NO-GO · 阶段一 PASS 暂缓 · M2 未签 · TS_WRITE_FREEZE=1 原样维持；本版不构成验收、解冻或生产授权。",
+   "evidence": "docs/v94_full_review_20261111.md"
+  }
+ ],
+ "conditions_count": 9,
+ "boundary": "逐条承接为「本方采集与登记、待对方独立核验」；本方不代对方核验、不把只读判定冒充对方结论。",
+ "values_are_final": false
+}

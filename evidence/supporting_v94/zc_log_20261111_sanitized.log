@@ -1,0 +1,201 @@
+[2026-11-11 00:00:37] t1b-watch      OK (37.3s) 无增量（生产表 {'lastRow': 11425, 'lastCol': 18} / 请假 {'lastRow': 612, 'lastCol': 15} / 页签 {'production': 16, 'master': 39} / 部署 3）
+[2026-11-11 00:02:18] pmlist-refresh OK (137.4s)  refreshProjectSummary completed updateTotalSummary completed refreshFinanceOverview completed
+[2026-11-11 00:05:05] bd-drain       OK (5.2s) 队列为空（50 行已全部处理），本轮不调用 drainlock
+[2026-11-11 00:10:11] nps-receipt    OK (10.5s) [2026-11-10T16:10:11.159Z] ✅ 无新增打开事件，无需动作
+[2026-11-11 00:15:12] ts-health      OK (11.9s) ✅ 全部正常
+[2026-11-11 00:30:34] t1b-watch      OK (33.7s) 无增量（生产表 {'lastRow': 11425, 'lastCol': 18} / 请假 {'lastRow': 612, 'lastCol': 15} / 页签 {'production': 16, 'master': 39} / 部署 3）
+[2026-11-11 00:35:06] bd-drain       OK (5.6s) 队列为空（50 行已全部处理），本轮不调用 drainlock
+[2026-11-11 00:40:07] nps-receipt    OK (6.7s) [2026-11-10T16:40:07.304Z] ✅ 无新增打开事件，无需动作
+[2026-11-11 00:45:12] ts-health      OK (12.0s) ✅ 全部正常
+[2026-11-11 01:00:02] ts-deploy-watchdog OK (2.2s) ts-manager webapp OK (HTTP 200)
+[2026-11-11 01:00:36] t1b-watch      OK (36.0s) 无增量（生产表 {'lastRow': 11425, 'lastCol': 18} / 请假 {'lastRow': 612, 'lastCol': 15} / 页签 {'production': 16, 'master': 39} / 部署 3）
+[2026-11-11 01:02:02] pmlist-refresh OK (122.1s)  refreshProjectSummary completed updateTotalSummary completed refreshFinanceOverview completed
+[2026-11-11 01:05:05] bd-drain       OK (4.7s) 队列为空（50 行已全部处理），本轮不调用 drainlock
+[2026-11-11 01:10:04] nps-receipt    OK (4.3s) [2026-11-10T17:10:04.972Z] ✅ 无新增打开事件，无需动作
+[2026-11-11 01:10:39] pclist-harvest OK (39.3s) added=0 skipped=1
+[2026-11-11 01:15:14] ts-health      OK (13.6s) ✅ 全部正常
+[2026-11-11 01:30:40] t1b-watch      OK (40.0s) 无增量（生产表 {'lastRow': 11425, 'lastCol': 18} / 请假 {'lastRow': 612, 'lastCol': 15} / 页签 {'production': 16, 'master': 39} / 部署 3）
+[2026-11-11 01:35:05] bd-drain       OK (5.2s) 队列为空（50 行已全部处理），本轮不调用 drainlock
+[2026-11-11 01:40:05] nps-receipt    OK (4.6s) [2026-11-10T17:40:05.198Z] ✅ 无新增打开事件，无需动作
+[2026-11-11 01:45:12] ts-health      OK (12.2s) ✅ 全部正常
+[2026-11-11 02:00:42] t1b-watch      OK (41.6s) 无增量（生产表 {'lastRow': 11425, 'lastCol': 18} / 请假 {'lastRow': 612, 'lastCol': 15} / 页签 {'production': 16, 'master': 39} / 部署 3）
+[2026-11-11 02:01:04] pmlist-refresh OK (63.7s)  refreshProjectSummary completed updateTotalSummary completed refreshFinanceOverview completed
+[2026-11-11 02:05:10] bd-drain       OK (9.8s) 队列为空（50 行已全部处理），本轮不调用 drainlock
+[2026-11-11 02:10:06] nps-receipt    OK (5.4s) [2026-11-10T18:10:06.052Z] ✅ 无新增打开事件，无需动作
+[2026-11-11 02:15:19] ts-health      OK (18.7s) ✅ 全部正常
+[2026-11-11 02:30:33] t1b-watch      OK (32.6s) 无增量（生产表 {'lastRow': 11425, 'lastCol': 18} / 请假 {'lastRow': 612, 'lastCol': 15} / 页签 {'production': 16, 'master': 39} / 部署 3）
+[2026-11-11 02:35:05] bd-drain       OK (4.9s) 队列为空（50 行已全部处理），本轮不调用 drainlock
+[2026-11-11 02:40:06] nps-receipt    OK (5.8s) [2026-11-10T18:40:06.464Z] ✅ 无新增打开事件，无需动作
+[2026-11-11 02:45:12] ts-health      OK (11.8s) ✅ 全部正常
+[2026-11-11 03:00:55] t1b-watch      OK (55.2s) 无增量（生产表 {'lastRow': 11425, 'lastCol': 18} / 请假 {'lastRow': 612, 'lastCol': 15} / 页签 {'production': 16, 'master': 39} / 部署 3）
+[2026-11-11 03:02:35] pmlist-refresh OK (154.5s)  refreshProjectSummary completed updateTotalSummary completed refreshFinanceOverview completed
+[2026-11-11 03:05:05] bd-drain       OK (4.7s) 队列为空（50 行已全部处理），本轮不调用 drainlock
+[2026-11-11 03:10:06] nps-receipt    OK (6.2s) [2026-11-10T19:10:06.922Z] ✅ 无新增打开事件，无需动作
+[2026-11-11 03:10:36] pclist-harvest OK (36.3s) added=0 skipped=1
+[2026-11-11 03:15:12] ts-health      OK (12.4s) ✅ 全部正常
+[2026-11-11 03:30:30] t1b-watch      OK (29.9s) 无增量（生产表 {'lastRow': 11425, 'lastCol': 18} / 请假 {'lastRow': 612, 'lastCol': 15} / 页签 {'production': 16, 'master': 39} / 部署 3）
+[2026-11-11 03:35:05] bd-drain       OK (4.6s) 队列为空（50 行已全部处理），本轮不调用 drainlock
+[2026-11-11 03:40:04] nps-receipt    OK (4.1s) [2026-11-10T19:40:04.841Z] ✅ 无新增打开事件，无需动作
+[2026-11-11 03:43:36] numberlock-fixwatch OK (3.3s) 已对 tag=v-wdfix-1110c-cfrepair-p8 应用过，no-op
+[2026-11-11 03:45:15] ts-health      OK (14.9s) ✅ 全部正常
+[2026-11-11 04:00:58] t1b-watch      OK (58.2s) 无增量（生产表 {'lastRow': 11425, 'lastCol': 18} / 请假 {'lastRow': 612, 'lastCol': 15} / 页签 {'production': 16, 'master': 39} / 部署 3）
+[2026-11-11 04:02:11] pmlist-refresh OK (131.0s)  refreshProjectSummary completed updateTotalSummary completed refreshFinanceOverview completed
+[2026-11-11 04:05:06] bd-drain       OK (5.3s) 队列为空（50 行已全部处理），本轮不调用 drainlock
+[2026-11-11 04:10:05] nps-receipt    OK (5.0s) [2026-11-10T20:10:05.675Z] ✅ 无新增打开事件，无需动作
+[2026-11-11 04:15:12] ts-health      OK (11.6s) ✅ 全部正常
+[2026-11-11 04:30:38] t1b-watch      OK (37.5s) 无增量（生产表 {'lastRow': 11425, 'lastCol': 18} / 请假 {'lastRow': 612, 'lastCol': 15} / 页签 {'production': 16, 'master': 39} / 部署 3）
+[2026-11-11 04:35:05] bd-drain       OK (4.3s) 队列为空（50 行已全部处理），本轮不调用 drainlock
+[2026-11-11 04:40:05] nps-receipt    OK (5.1s) [2026-11-10T20:40:05.865Z] ✅ 无新增打开事件，无需动作
+[2026-11-11 04:45:13] ts-health      OK (12.5s) ✅ 全部正常
+[2026-11-11 05:00:27] t1b-watch      OK (27.1s) 无增量（生产表 {'lastRow': 11425, 'lastCol': 18} / 请假 {'lastRow': 612, 'lastCol': 15} / 页签 {'production': 16, 'master': 39} / 部署 3）
+[2026-11-11 05:01:02] pmlist-refresh OK (62.3s)  refreshProjectSummary completed updateTotalSummary completed refreshFinanceOverview completed
+[2026-11-11 05:05:05] bd-drain       OK (5.0s) 队列为空（50 行已全部处理），本轮不调用 drainlock
+[2026-11-11 05:10:05] nps-receipt    OK (4.4s) [2026-11-10T21:10:05.175Z] ✅ 无新增打开事件，无需动作
+[2026-11-11 05:10:36] pclist-harvest OK (36.1s) added=0 skipped=1
+[2026-11-11 05:15:13] ts-health      OK (13.4s) ✅ 全部正常
+[2026-11-11 05:30:31] t1b-watch      OK (31.2s) 无增量（生产表 {'lastRow': 11425, 'lastCol': 18} / 请假 {'lastRow': 612, 'lastCol': 15} / 页签 {'production': 16, 'master': 39} / 部署 3）
+[2026-11-11 05:35:04] bd-drain       OK (3.6s) 队列为空（50 行已全部处理），本轮不调用 drainlock
+[2026-11-11 05:40:05] nps-receipt    OK (4.6s) [2026-11-10T21:40:05.296Z] ✅ 无新增打开事件，无需动作
+[2026-11-11 05:45:12] ts-health      OK (11.9s) ✅ 全部正常
+[2026-11-11 06:00:40] t1b-watch      OK (39.8s) 无增量（生产表 {'lastRow': 11425, 'lastCol': 18} / 请假 {'lastRow': 612, 'lastCol': 15} / 页签 {'production': 16, 'master': 39} / 部署 3）
+[2026-11-11 06:03:02] pmlist-refresh OK (182.2s) ⚠ 慢跑 182s |  refreshProjectSummary completed updateTotalSummary completed refreshFinanceOverview completed
+[2026-11-11 06:05:05] bd-drain       OK (5.0s) 队列为空（50 行已全部处理），本轮不调用 drainlock
+[2026-11-11 06:10:10] nps-receipt    OK (9.5s) [2026-11-10T22:10:10.268Z] ✅ 无新增打开事件，无需动作
+[2026-11-11 06:15:13] ts-health      OK (12.9s) ✅ 全部正常
+[2026-11-11 06:30:37] t1b-watch      OK (37.0s) 检出 1 项变化（实质变化），已生成待处理草稿: T1-B_盯梢触发_20261111_0630.md
+[2026-11-11 06:35:07] bd-drain       OK (6.6s) 队列为空（50 行已全部处理），本轮不调用 drainlock
+[2026-11-11 06:40:05] nps-receipt    OK (4.4s) [2026-11-10T22:40:05.143Z] ✅ 无新增打开事件，无需动作
+[2026-11-11 06:45:12] ts-health      OK (12.2s) ✅ 全部正常
+[2026-11-11 07:00:02] ts-deploy-watchdog OK (2.1s) ts-manager webapp OK (HTTP 200)
+[2026-11-11 07:00:36] t1b-watch      OK (36.3s) 无增量（生产表 {'lastRow': 11425, 'lastCol': 18} / 请假 {'lastRow': 613, 'lastCol': 15} / 页签 {'production': 16, 'master': 39} / 部署 3）
+[2026-11-11 07:02:09] pmlist-refresh OK (128.7s)  refreshProjectSummary completed updateTotalSummary completed refreshFinanceOverview completed
+[2026-11-11 07:05:05] bd-drain       OK (4.9s) 队列为空（50 行已全部处理），本轮不调用 drainlock
+[2026-11-11 07:10:06] nps-receipt    OK (5.3s) [2026-11-10T23:10:06.061Z] ✅ 无新增打开事件，无需动作
+[2026-11-11 07:10:40] pclist-harvest OK (40.4s) added=0 skipped=1
+[2026-11-11 07:15:13] ts-health      OK (12.5s) ✅ 全部正常
+[2026-11-11 07:30:30] t1b-watch      OK (29.7s) 无增量（生产表 {'lastRow': 11425, 'lastCol': 18} / 请假 {'lastRow': 613, 'lastCol': 15} / 页签 {'production': 16, 'master': 39} / 部署 3）
+[2026-11-11 07:35:04] bd-drain       OK (3.9s) 队列为空（50 行已全部处理），本轮不调用 drainlock
+[2026-11-11 07:40:05] nps-receipt    OK (4.8s) [2026-11-10T23:40:05.599Z] ✅ 无新增打开事件，无需动作
+[2026-11-11 07:45:13] ts-health      OK (12.5s) ✅ 全部正常
+[2026-11-11 07:50:21] ts-export      OK (19.9s) OUTPUT=<LOCAL_USER>/WorkBuddy/工时表导出\工时表明细_今日.xlsx
+[2026-11-11 08:00:31] t1b-watch      OK (30.6s) 无增量（生产表 {'lastRow': 11425, 'lastCol': 18} / 请假 {'lastRow': 613, 'lastCol': 15} / 页签 {'production': 16, 'master': 39} / 部署 3）
+[2026-11-11 08:01:11] pmlist-refresh OK (70.5s)  refreshProjectSummary completed updateTotalSummary completed refreshFinanceOverview completed
+[2026-11-11 08:05:07] bd-drain       OK (7.1s) 队列为空（50 行已全部处理），本轮不调用 drainlock
+[2026-11-11 08:10:04] nps-receipt    OK (4.2s) [2026-11-11T00:10:04.978Z] ✅ 无新增打开事件，无需动作
+[2026-11-11 08:15:12] ts-health      OK (12.3s) ✅ 全部正常
+[2026-11-11 08:30:32] t1b-watch      OK (32.0s) 检出 1 项变化（信息级（多为每日重算镜像，预期内）），已生成待处理草稿: T1-B_盯梢触发_20261111_0830.md
+[2026-11-11 08:35:05] bd-drain       OK (4.8s) 队列为空（50 行已全部处理），本轮不调用 drainlock
+[2026-11-11 08:40:05] nps-receipt    OK (5.1s) [2026-11-11T00:40:05.914Z] ✅ 无新增打开事件，无需动作
+[2026-11-11 08:45:17] ts-health      OK (17.3s) ✅ 全部正常
+[2026-11-11 09:00:34] t1b-watch      OK (34.3s) 无增量（生产表 {'lastRow': 11425, 'lastCol': 18} / 请假 {'lastRow': 613, 'lastCol': 15} / 页签 {'production': 16, 'master': 41} / 部署 3）
+[2026-11-11 09:01:33] pmlist-refresh OK (92.4s)  refreshProjectSummary completed updateTotalSummary completed refreshFinanceOverview completed
+[2026-11-11 09:05:05] bd-drain       OK (4.9s) 队列为空（50 行已全部处理），本轮不调用 drainlock
+[2026-11-11 09:10:05] nps-receipt    OK (4.8s) [2026-11-11T01:10:05.554Z] ✅ 无新增打开事件，无需动作
+[2026-11-11 09:10:31] pclist-harvest OK (30.8s) added=0 skipped=1
+[2026-11-11 09:15:10] ts-health      OK (9.9s) ✅ 全部正常
+[2026-11-11 09:30:34] t1b-watch      OK (33.7s) 无增量（生产表 {'lastRow': 11425, 'lastCol': 18} / 请假 {'lastRow': 613, 'lastCol': 15} / 页签 {'production': 16, 'master': 41} / 部署 3）
+[2026-11-11 09:35:05] bd-drain       OK (4.8s) 队列为空（50 行已全部处理），本轮不调用 drainlock
+[2026-11-11 09:40:05] nps-receipt    OK (4.8s) [2026-11-11T01:40:05.606Z] ✅ 无新增打开事件，无需动作
+[2026-11-11 09:45:12] ts-health      OK (11.5s) ✅ 全部正常
+[2026-11-11 09:50:48] nps-survey-guard OK (4.9s) NPS Survey 守卫：✅ 干净（lastRow=23，错位孤儿/空行 0 行）
+[2026-11-11 10:00:30] t1b-watch      OK (30.2s) 无增量（生产表 {'lastRow': 11425, 'lastCol': 18} / 请假 {'lastRow': 613, 'lastCol': 15} / 页签 {'production': 16, 'master': 41} / 部署 3）
+[2026-11-11 10:01:56] numberlock-fixwatch OK (4.0s) 已对 tag=v-wdfix-1110c-cfrepair-p8 应用过，no-op
+[2026-11-11 10:02:31] pmlist-refresh OK (150.6s)  refreshProjectSummary completed updateTotalSummary completed refreshFinanceOverview completed
+[2026-11-11 10:05:06] bd-drain       OK (5.5s) 队列为空（50 行已全部处理），本轮不调用 drainlock
+[2026-11-11 10:10:06] nps-receipt    OK (5.4s) [2026-11-11T02:10:06.205Z] ✅ 无新增打开事件，无需动作
+[2026-11-11 10:15:11] ts-health      OK (11.1s) ✅ 全部正常
+[2026-11-11 10:22:33] goal-board     OK (0.0s) dry-run: goal-board --refresh（只读，已跳过）
+[2026-11-11 10:30:35] t1b-watch      OK (34.3s) 检出 1 项变化（实质变化），已生成待处理草稿: T1-B_盯梢触发_20261111_1030.md
+[2026-11-11 10:35:06] bd-drain       OK (5.3s) 队列为空（50 行已全部处理），本轮不调用 drainlock
+[2026-11-11 10:44:49] nps-receipt    OK (18.8s) [2026-11-11T02:44:49.321Z] === 本轮结束 ===
+[2026-11-11 10:45:14] ts-health      OK (13.2s) ✅ 全部正常
+[2026-11-11 11:00:34] t1b-watch      OK (32.2s) 无增量（生产表 {'lastRow': 11426, 'lastCol': 18} / 请假 {'lastRow': 613, 'lastCol': 15} / 页签 {'production': 16, 'master': 41} / 部署 3）
+[2026-11-11 11:01:04] pmlist-refresh OK (63.5s)  refreshProjectSummary completed updateTotalSummary completed refreshFinanceOverview completed
+[2026-11-11 11:05:06] bd-drain       OK (5.1s) 队列为空（50 行已全部处理），本轮不调用 drainlock
+[2026-11-11 11:10:07] nps-receipt    OK (6.7s) [2026-11-11T03:10:07.981Z] ✅ 无新增打开事件，无需动作
+[2026-11-11 11:10:49] pclist-harvest OK (47.8s) added=0 skipped=1
+[2026-11-11 11:15:14] ts-health      OK (13.2s) ✅ 全部正常
+[2026-11-11 11:22:58] threecolor-watchdog FAIL (418.6s) 报告 → <LOCAL_USER>\WorkBuddy\SMCN_ERP\outputs\threecolor_watchdog_latest.json
+[2026-11-11 11:30:37] t1b-watch      OK (36.4s) 无增量（生产表 {'lastRow': 11426, 'lastCol': 18} / 请假 {'lastRow': 613, 'lastCol': 15} / 页签 {'production': 16, 'master': 41} / 部署 3）
+[2026-11-11 11:35:04] bd-drain       OK (4.3s) 队列为空（50 行已全部处理），本轮不调用 drainlock
+[2026-11-11 11:40:06] nps-receipt    OK (5.8s) [2026-11-11T03:40:06.140Z] ✅ 无新增打开事件，无需动作
+[2026-11-11 11:45:13] ts-health      OK (12.9s) ✅ 全部正常
+[2026-11-11 11:50:10] memory-backup  OK (9.8s) chat_logs:1个 add:rc=0 commit:rc=0 pull:rc=0 commit2:rc=1 push:rc=0
+[2026-11-11 12:00:43] t1b-watch      OK (42.3s) 无增量（生产表 {'lastRow': 11426, 'lastCol': 18} / 请假 {'lastRow': 613, 'lastCol': 15} / 页签 {'production': 16, 'master': 41} / 部署 3）
+[2026-11-11 12:01:43] pmlist-refresh OK (103.7s)  refreshProjectSummary completed updateTotalSummary completed refreshFinanceOverview completed
+[2026-11-11 12:05:05] bd-drain       OK (4.7s) 队列为空（50 行已全部处理），本轮不调用 drainlock
+[2026-11-11 12:10:04] nps-receipt    OK (4.1s) [2026-11-11T04:10:04.402Z] ✅ 无新增打开事件，无需动作
+[2026-11-11 12:15:11] ts-health      OK (11.1s) ✅ 全部正常
+[2026-11-11 12:19:30] personnel-audit FAIL (475.7s)   BD       | China Pitch Tracker            | c10  | PC                             | bg=#ffffff   | expect=gray got=#ffffff | 受保护·权限边界
+[2026-11-11 12:30:33] t1b-watch      OK (32.1s) 检出 1 项变化（实质变化），已生成待处理草稿: T1-B_盯梢触发_20261111_1230.md
+[2026-11-11 12:35:06] bd-drain       OK (6.4s) 队列为空（50 行已全部处理），本轮不调用 drainlock
+[2026-11-11 12:40:05] nps-receipt    OK (5.4s) [2026-11-11T04:40:05.827Z] ✅ 无新增打开事件，无需动作
+[2026-11-11 12:45:12] ts-health      OK (12.0s) ✅ 全部正常
+[2026-11-11 13:00:04] ts-deploy-watchdog OK (2.8s) ts-manager webapp OK (HTTP 200)
+[2026-11-11 13:00:31] t1b-watch      OK (30.2s) 无增量（生产表 {'lastRow': 11431, 'lastCol': 18} / 请假 {'lastRow': 613, 'lastCol': 15} / 页签 {'production': 16, 'master': 41} / 部署 3）
+[2026-11-11 13:02:15] pmlist-refresh OK (135.0s)  refreshProjectSummary completed updateTotalSummary completed refreshFinanceOverview completed
+[2026-11-11 13:05:05] bd-drain       OK (4.7s) 队列为空（50 行已全部处理），本轮不调用 drainlock
+[2026-11-11 13:10:07] nps-receipt    OK (7.5s) [2026-11-11T05:10:07.893Z] ✅ 无新增打开事件，无需动作
+[2026-11-11 13:10:32] pclist-harvest OK (31.3s) added=0 skipped=1
+[2026-11-11 13:15:13] ts-health      OK (12.5s) ✅ 全部正常
+[2026-11-11 13:30:35] t1b-watch      OK (34.0s) 无增量（生产表 {'lastRow': 11431, 'lastCol': 18} / 请假 {'lastRow': 613, 'lastCol': 15} / 页签 {'production': 16, 'master': 41} / 部署 3）
+[2026-11-11 13:35:06] bd-drain       OK (5.9s) 队列为空（50 行已全部处理），本轮不调用 drainlock
+[2026-11-11 13:40:04] nps-receipt    OK (4.5s) [2026-11-11T05:40:04.861Z] ✅ 无新增打开事件，无需动作
+[2026-11-11 13:45:12] ts-health      OK (11.7s) ✅ 全部正常
+[2026-11-11 14:00:31] t1b-watch      OK (30.7s) 无增量（生产表 {'lastRow': 11431, 'lastCol': 18} / 请假 {'lastRow': 613, 'lastCol': 15} / 页签 {'production': 16, 'master': 41} / 部署 3）
+[2026-11-11 14:01:11] pmlist-refresh OK (70.9s)  refreshProjectSummary completed updateTotalSummary completed refreshFinanceOverview completed
+[2026-11-11 14:05:04] bd-drain       OK (3.8s) 队列为空（50 行已全部处理），本轮不调用 drainlock
+[2026-11-11 14:10:06] nps-receipt    OK (5.6s) [2026-11-11T06:10:06.004Z] ✅ 无新增打开事件，无需动作
+[2026-11-11 14:15:13] ts-health      OK (13.1s) ✅ 全部正常
+[2026-11-11 14:30:12] t1b-watch      FAIL (11.5s) 只读探针失败: PROBE_FAILED: <urlopen error [Errno 11001] getaddrinfo failed>
+[2026-11-11 14:35:12] bd-drain       FAIL (12.1s) 队列探头失败（GAS 不可达）: URLError(gaierror(11001, 'getaddrinfo failed'))
+[2026-11-11 14:40:00] nps-receipt    OK (0.2s) [2026-11-11T06:40:00.576Z] ❌ 读 COS 失败：getaddrinfo ENOTFOUND smcn-nps-tracker-1449134011.cos.ap-guangzhou.myqcloud.com（跳过本轮，下轮重试）
+[2026-11-11 14:45:13] ts-health      FAIL (12.3s) ⚠ 告警（单轮，待连续失败阈值触发邮件）:   - 数据检查异常: getaddrinfo ENOTFOUND script.google.com
+[2026-11-11 15:00:00] pmlist-refresh FAIL (0.1s) 请求失败(0s): URLError(gaierror(11001, 'getaddrinfo failed'))
+[2026-11-11 15:00:01] t1b-watch      FAIL (0.2s) 只读探针失败: PROBE_FAILED: <urlopen error [Errno 11001] getaddrinfo failed>
+[2026-11-11 15:05:12] bd-drain       FAIL (12.1s) 队列探头失败（GAS 不可达）: URLError(gaierror(11001, 'getaddrinfo failed'))
+[2026-11-11 15:10:25] nps-receipt    FAIL (25.4s) [2026-11-11T07:10:25.828Z] FATAL connect ETIMEDOUT 142.250.107.139:443
+[2026-11-11 15:12:57] pclist-harvest OK (176.5s) added=0 skipped=1
+[2026-11-11 15:15:57] ts-health      FAIL (56.6s) ⚠ 告警（单轮，待连续失败阈值触发邮件）:   - Web App 探测失败: socket 15s 超时
+[2026-11-11 15:30:12] t1b-watch      FAIL (11.7s) 只读探针失败: PROBE_FAILED: <urlopen error [Errno 11001] getaddrinfo failed>
+[2026-11-11 15:36:56] bd-drain       FAIL (116.3s) 队列探头失败（GAS 不可达）: URLError(TimeoutError(10060, '由于连接方在一段时间后没有正确答复或连接的主机没有反应，连接尝试失败。', None, 10060, None))
+[2026-11-11 15:40:12] nps-receipt    OK (12.0s) [2026-11-11T07:40:12.457Z] ❌ 读 COS 失败：getaddrinfo ENOTFOUND smcn-nps-tracker-1449134011.cos.ap-guangzhou.myqcloud.com（跳过本轮，下轮重试）
+[2026-11-11 15:46:11] ts-health      FAIL (70.5s) ⚠ 告警（单轮，待连续失败阈值触发邮件）:   - 数据检查异常: hk 15s 超时
+[2026-11-11 16:00:44] pmlist-refresh FAIL (44.2s) 请求失败(44s): URLError(TimeoutError(10060, '由于连接方在一段时间后没有正确答复或连接的主机没有反应，连接尝试失败。', None, 10060, None))
+[2026-11-11 16:00:44] t1b-watch      FAIL (43.6s) 只读探针失败: PROBE_FAILED: <urlopen error [WinError 10060] 由于连接方在一段时间后没有正确答复或连接的主机没有反应，连接尝试失败。>
+[2026-11-11 16:03:49] numberlock-fixwatch FAIL (42.1s) vercheck 探针失败: URLError(TimeoutError(10060, '由于连接方在一段时间后没有正确答复或连接的主机没有反应，连接尝试失败。', None, 10060, None))
+[2026-11-11 16:07:19] bd-drain       FAIL (138.5s) 队列探头失败（GAS 不可达）: URLError(TimeoutError(10060, '由于连接方在一段时间后没有正确答复或连接的主机没有反应，连接尝试失败。', None, 10060, None))
+[2026-11-11 16:10:23] nps-receipt    FAIL (23.5s) [2026-11-11T08:10:23.962Z] FATAL connect ETIMEDOUT 2607:f8b0:400a:80c::200e:443
+[2026-11-11 16:16:05] ts-health      FAIL (64.3s) ⚠ 告警（单轮，待连续失败阈值触发邮件）:   - 数据检查异常: hk 15s 超时
+[2026-11-11 16:30:43] t1b-watch      FAIL (42.5s) 只读探针失败: PROBE_FAILED: <urlopen error [WinError 10060] 由于连接方在一段时间后没有正确答复或连接的主机没有反应，连接尝试失败。>
+[2026-11-11 16:37:18] bd-drain       FAIL (138.4s) 队列探头失败（GAS 不可达）: URLError(TimeoutError(10060, '由于连接方在一段时间后没有正确答复或连接的主机没有反应，连接尝试失败。', None, 10060, None))
+[2026-11-11 16:40:22] nps-receipt    FAIL (21.9s) [2026-11-11T08:40:22.369Z] FATAL connect ETIMEDOUT 2607:f8b0:400a:800::200e:443
+[2026-11-11 16:46:05] ts-health      FAIL (64.3s) ⚠ 告警（单轮，待连续失败阈值触发邮件）:   - 数据检查异常: hk 15s 超时
+[2026-11-11 17:00:42] pmlist-refresh FAIL (42.2s) 请求失败(42s): URLError(TimeoutError(10060, '由于连接方在一段时间后没有正确答复或连接的主机没有反应，连接尝试失败。', None, 10060, None))
+[2026-11-11 17:00:43] t1b-watch      FAIL (42.5s) 只读探针失败: PROBE_FAILED: <urlopen error [WinError 10060] 由于连接方在一段时间后没有正确答复或连接的主机没有反应，连接尝试失败。>
+[2026-11-11 17:07:19] bd-drain       FAIL (138.4s) 队列探头失败（GAS 不可达）: URLError(TimeoutError(10060, '由于连接方在一段时间后没有正确答复或连接的主机没有反应，连接尝试失败。', None, 10060, None))
+[2026-11-11 17:10:22] nps-receipt    FAIL (21.9s) [2026-11-11T09:10:22.401Z] FATAL connect ETIMEDOUT 2607:f8b0:400a:80d::200e:443
+[2026-11-11 17:11:29] pclist-harvest FAIL (88.4s) 请求失败: URLError(TimeoutError(10060, '由于连接方在一段时间后没有正确答复或连接的主机没有反应，连接尝试失败。', None, 10060, None))
+[2026-11-11 17:16:05] ts-health      FAIL (64.5s) ⚠ 告警（单轮，待连续失败阈值触发邮件）:   - 数据检查异常: hk 15s 超时
+[2026-11-11 17:30:33] t1b-watch      OK (32.5s) 检出 1 项变化（实质变化），已生成待处理草稿: T1-B_盯梢触发_20261111_1730.md
+[2026-11-11 17:35:07] bd-drain       OK (5.6s) 队列为空（50 行已全部处理），本轮不调用 drainlock
+[2026-11-11 17:40:07] nps-receipt    OK (6.1s) [2026-11-11T09:40:07.764Z] ✅ 无新增打开事件，无需动作
+[2026-11-11 17:45:14] ts-health      OK (13.9s) ✅ 全部正常
+[2026-11-11 18:00:39] t1b-watch      OK (38.6s) 检出 1 项变化（实质变化），已生成待处理草稿: T1-B_盯梢触发_20261111_1800.md
+[2026-11-11 18:01:49] pmlist-refresh OK (109.1s)  refreshProjectSummary completed updateTotalSummary completed refreshFinanceOverview completed
+[2026-11-11 18:05:05] bd-drain       OK (4.6s) 队列为空（50 行已全部处理），本轮不调用 drainlock
+[2026-11-11 18:07:01] ts-content-guard OK (0.0s) dry-run: ts-content-guard 只读全表回扫（已跳过）
+[2026-11-11 18:07:02] ts-content-guard OK (0.7s) 首次基线已建立（已知项挂起中，不告警）：{"C_block_copy_exact_pairs": 1615, "A1_hard_duplicate_extra_rows": 1617, "A2_batch_repeat_extra_rows": 468, "B_card_vs_detail_mismatch_days": 667}
+[2026-11-11 18:10:06] nps-receipt    OK (5.7s) [2026-11-11T10:10:06.095Z] ✅ 无新增打开事件，无需动作
+[2026-11-11 18:15:11] ts-health      OK (10.9s) ✅ 全部正常
+[2026-11-11 18:30:35] t1b-watch      OK (34.4s) 检出 1 项变化（实质变化），已生成待处理草稿: T1-B_盯梢触发_20261111_1830.md
+[2026-11-11 18:35:05] bd-drain       OK (4.7s) 队列为空（50 行已全部处理），本轮不调用 drainlock
+[2026-11-11 18:40:08] nps-receipt    OK (7.3s) [2026-11-11T10:40:07.965Z] ✅ 无新增打开事件，无需动作
+[2026-11-11 18:45:14] ts-health      OK (13.8s) ✅ 全部正常
+[2026-11-11 19:00:03] ts-deploy-watchdog OK (2.3s) ts-manager webapp OK (HTTP 200)
+[2026-11-11 19:00:40] t1b-watch      OK (39.5s) 无增量（生产表 {'lastRow': 11445, 'lastCol': 18} / 请假 {'lastRow': 613, 'lastCol': 15} / 页签 {'production': 16, 'master': 41} / 部署 3）
+[2026-11-11 19:02:47] pmlist-refresh OK (167.2s)  refreshProjectSummary completed updateTotalSummary completed refreshFinanceOverview completed
+[2026-11-11 19:05:05] bd-drain       OK (4.9s) 队列为空（50 行已全部处理），本轮不调用 drainlock
+[2026-11-11 19:10:04] nps-receipt    OK (4.4s) [2026-11-11T11:10:04.905Z] ✅ 无新增打开事件，无需动作
+[2026-11-11 19:10:34] pclist-harvest OK (33.5s) added=0 skipped=1
+[2026-11-11 19:15:13] ts-health      OK (12.0s) ✅ 全部正常

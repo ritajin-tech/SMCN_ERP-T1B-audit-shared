@@ -1,0 +1,109 @@
+{
+ "generated_beijing": "2026-11-11 19:27:50",
+ "generated_utc": "2026-11-11T11:27:50Z",
+ "version": "v94",
+ "gate_verdict": "OPEN_NEXT_VERSION",
+ "gate_triggered": [
+  "T1",
+  "T2",
+  "T5"
+ ],
+ "packages": [
+  {
+   "path": "evidence/v94_tom_reply_1738_20261111.json",
+   "bytes": 7011,
+   "sha256": "da9d1749878a3074e79f2e1ca99ad8e2a9f7c59129b5273974c4e39be2edbcba",
+   "what": "Tom 17:38 新真回函全文辨伪 + 九组新增条件逐条承接"
+  },
+  {
+   "path": "evidence/v94_monitoring_alerts_triage_20261111.json",
+   "bytes": 11324,
+   "sha256": "5dd0b4977a54ba50b31034bbf6e4565907efb0f5b5bcec49330b35c6e5c94a65",
+   "what": "监控失败运行记录三分类 + 复采范围时点 + 超时记录 + 配置版本与权限"
+  },
+  {
+   "path": "evidence/v94_live_readings_and_sources_20261111.json",
+   "bytes": 4421,
+   "sha256": "5566604cf2b836307391004e2b6ebfe1bb900ec418d5fda3aecafe98dfc1e4d8",
+   "what": "13 源逐源打勾 + 现场读数 + 检查范围声明"
+  },
+  {
+   "path": "evidence/v94_data_events_20261111.json",
+   "bytes": 1650,
+   "sha256": "dbf15e3f62bd8c98d2ba6a864ed4156a2f5a34aabf60879cfb3c74c3ebb92c51",
+   "what": "18:00 / 18:30 两轮真实行增量 + 四要素保全 + 采样边界"
+  },
+  {
+   "path": "evidence/v94_parallel_change_p1_disclosure_20261111.json",
+   "bytes": 3150,
+   "sha256": "1c07204c14a9bb38890d3ace59ce316f0bf0be139b206d556faebf5621c81244",
+   "what": "轨 A 并行变更主动披露：逐版哈希 + 代码确已变更 + 端点不变≠代码不变"
+  },
+  {
+   "path": "evidence/v94_d1_static_recheck_20261111.json",
+   "bytes": 931,
+   "sha256": "e892dd36daf118c7a9e4ee731accb9e9821df91948d17566fbafa4f5709d18cf",
+   "what": "D1 静态复算（不算作 Tom 核验）+ 四列仍空"
+  },
+  {
+   "path": "evidence/v94_exposure_access_scope_20261111.json",
+   "bytes": 1981,
+   "sha256": "30243083034b9269d940c7a74a4b915f7f71c44b8699f22ee34e8fa42b41c83b",
+   "what": "访问受限≠无访问/泄露 + 公开库脱敏边界 + 通道所有者书面决定待出"
+  },
+  {
+   "path": "evidence/v94_endpoint_no_change_20261111.json",
+   "bytes": 1022,
+   "sha256": "2598095611ea57d262d21721f52b9930974a41961cf2810e5baa8d9831a5270f",
+   "what": "部署恒 3 / 三 ID 逐字未变 / URL 未变 / 原地更新"
+  }
+ ],
+ "packages_count": 8,
+ "supporting_artifacts": [
+  {
+   "path": "evidence/supporting_v94/zc_log_20261111_sanitized.log",
+   "bytes": 26197,
+   "sha256": "8f5ce2607bf4bfd7488ce1b4830cc91905a54e0014d42e59bd0b5b8a9ad2f6d1",
+   "what": "失败运行记录 / 告警原件脱敏副本"
+  },
+  {
+   "path": "evidence/supporting_v94/alerts_20261111_sanitized.md",
+   "bytes": 1761,
+   "sha256": "0f6758ca5d332f5ed7a0aba2c621f072e7007d309757f4f5f7686e8613e68adb",
+   "what": "失败运行记录 / 告警原件脱敏副本"
+  }
+ ],
+ "documents": [
+  {
+   "path": "docs/v94_full_review_20261111.md",
+   "bytes": 20108,
+   "sha256": "1c260ab9dfa3fb6dac153bb9f06f9e23afda38486ae8348550a9b92d807b7bc5",
+   "what": "本代新增文档 / 活文档覆盖注后全文（历史正文逐字保留）"
+  },
+  {
+   "path": "docs/T1-B_v94_明确方案与具体编辑_Tom可直接编辑_20261111.md",
+   "bytes": 10752,
+   "sha256": "05d45f32d2c94133ccdaa9ac39db3af1e229ad73c8bbe090b42be53961036b27",
+   "what": "本代新增文档 / 活文档覆盖注后全文（历史正文逐字保留）"
+  },
+  {
+   "path": "docs/T1-B_系统大局总账_Master_Consolidation_20261108.md",
+   "bytes": 56169,
+   "sha256": "8f3ddf7ede11738e0d3828fa63b1f6318e193b3f5cad4edba6733fe373815446",
+   "what": "本代新增文档 / 活文档覆盖注后全文（历史正文逐字保留）"
+  },
+  {
+   "path": "docs/T1-B_口径对照表_权威取数说明_20261108.md",
+   "bytes": 38701,
+   "sha256": "1f1eddcc36dd4765610e2e7dabd32ae4248fd96918967ef57d0ce4b0de763573",
+   "what": "本代新增文档 / 活文档覆盖注后全文（历史正文逐字保留）"
+  }
+ ],
+ "documents_count": 4,
+ "sensitive_gate": "PASS：逐件扫描邮箱 / 凭据 / Sheet-Script ID / 工时 UUID / 员工姓名 / 源码标记，命中即中止",
+ "stability_note": "采集时点固定；tools/_zc_logs 与告警文件按字节冻结到 outputs/_v94_retained/frozen/，重跑不覆盖快照，保证逐件可复算",
+ "scope_statement": "见 evidence/v94_live_readings_and_sources_20261111.json 的 checked / carried_forward / not_checked",
+ "redlines": "零生产写 / 零主库写 / 零软标 / 零物理删 / 零改结构列宽 / 零解冻 / 零回滚 / 零新建删除部署 / 零 URL 变更 / 零历史对象删改 / 零活文档历史正文改写",
+ "incident_state": "OPEN · HOLD-NO-GO · 阶段一 PASS 暂缓 · M2 未签 · TS_WRITE_FREEZE=1（原样维持）",
+ "values_are_final": false
+}

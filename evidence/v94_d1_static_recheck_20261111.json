@@ -1,0 +1,26 @@
+{
+ "capture_beijing": "2026-11-11 19:27:50",
+ "capture_utc": "2026-11-11T11:27:50Z",
+ "d1_status": "STILL_EMPTY__NO_PROXY_NO_URGE",
+ "fixed_commit": "d50e7953ce400da760d0873423b41004b1882e68",
+ "target": "evidence/v86_attribution_evidence_gap_register_20261108.json",
+ "our_recheck": {
+  "bytes": 4825,
+  "sha256": "e7a8f8a1da84da86b12b33efce065988d920ac5363d1faca47fd411023b47007",
+  "error": null,
+  "purpose": "仅用于确认固定提交与指定单件仍在、未删改；明确不算作 Tom 的 D1 核验"
+ },
+ "tom_columns": {
+  "observed_bytes": null,
+  "observed_sha256": null,
+  "match": null,
+  "tom_verdict": null
+ },
+ "our_bound": "本方不代填、不代算、不催通过、不运行所交脚本；D1 四列维持空白",
+ "related_open_items": [
+  "N1 服务端请求与执行日志",
+  "N6",
+  "R3/N5 有权业务负责人书面授权与有效性确认"
+ ],
+ "values_are_final": false
+}

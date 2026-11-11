@@ -1,0 +1,71 @@
+{
+ "capture_beijing": "2026-11-11 19:27:50",
+ "capture_utc": "2026-11-11T11:27:50Z",
+ "status": "TO_BE_VERIFIED_NOT_AUTHORIZED",
+ "code_changed": true,
+ "positive_statement": "代码确已变更：以下给出逐版 SHA-256，不以端点 URL 未变推定代码未变。",
+ "event": "轨 A 呈现层 P1 展示缺陷最小补丁上线（零数据写 / 零换链）",
+ "at": "2026-11-11 18:54 (北京时间 GMT+8；UTC 2026-11-11T10:54Z)",
+ "authorization": "Rita 2026-11-11 18:47 北京「做」；仅授权轨 A 呈现层，不含轨 B 数据层",
+ "deploy": {
+  "method": "clasp push（只推 HEAD, 19 文件）+ clasp deploy -i <既有 ID> 原地更新",
+  "transition": "@206 → @207（同一 deploymentId，非新建部署）",
+  "before_count": 3,
+  "after_count": 3,
+  "ids_identical": true,
+  "url_unchanged": true,
+  "zero_link_change": true
+ },
+ "file_hashes": [
+  {
+   "file": "Code.js",
+   "before_sha256": "e8e6ee522bb8c8e532ac19c8e979a0b1194721870e7d14543e09e3ea4c85ca3b",
+   "after_sha256": "c6671ec5aaf536b700be9e640f78461510f214827c90439e1a6e7d72274b8571"
+  },
+  {
+   "file": "Index.html",
+   "before_sha256": "a32934356a9a14aada4bba0fa2709b796cd5b2eb5e8cb2be98672016156fe93d",
+   "after_sha256": "87bd29f358a4820d5f80167d87c67aa177a677eb8c2972b9960b9d217bacd6d8"
+  }
+ ],
+ "change_count": 5,
+ "change_summary": [
+  "后端 existing 明细补 existingCount 全量条数",
+  "灰卡补「还有 N 条未显示」提示",
+  "Help / 说明 补一条多笔填写入口引导",
+  "TS_APP_VERSION 同步 4.3.77→4.3.78",
+  "APP_VERSION 同步 4.3.77→4.3.78"
+ ],
+ "offline_validation": {
+  "node_check_Code_js": "PASS",
+  "node_check_Index_inline_js": "PASS",
+  "brace_balance": "Index.html 415/415 · Code.js 189/189",
+  "forbidden_tokens": "setColumnWidth/autoResizeColumns/insertColumns/deleteColumns 全 0",
+  "dryrun_sample": "6/2 共 13 行 / 合计 29h / 显示 4 行 12h → 提示「还有 9 条」"
+ },
+ "live_probe": {
+  "http": 200,
+  "bytes": 154828,
+  "seconds": 2.46,
+  "login_wall": false,
+  "checks": {
+   "new_version_4.3.78": 1,
+   "old_version_4.3.77_residual": 0,
+   "existingCount": 1,
+   "new_hint_还有N条": true,
+   "p3_guidance_要一次填多条": true,
+   "help_fold_present": true,
+   "mfCopyList_still_removed": 0
+  }
+ },
+ "not_touched": [
+  "P2 红卡与 24h 口径（待业务裁定）",
+  "P3 卡片页一天一条（设计如此）",
+  "P4 INTERNAL 下拉（需现场复现）",
+  "任何工时数据 / 软标 / 物理删 / 列宽 / 结构 / 状态机"
+ ],
+ "frozen_track_b": "轨 B 数据层（1615 行整块重复副本软标候选）仍冻结未动；事故期不处置、不代判保留方",
+ "evidence_path": "outputs/工时表_轨A_上线存证_20261111.json（本机，可重跑生成器 tools/ts_p1_deploy_evidence.py）",
+ "boundary": "事故期间新增并行变更，不视为 Tom 授权、不代为验收；本告知不含生产源码全文、不含个人数据原文、不含逐行删留清单。",
+ "incident_state": "OPEN · HOLD-NO-GO · 阶段一 PASS 暂缓 · M2 未签 · TS_WRITE_FREEZE=1（原样维持）"
+}

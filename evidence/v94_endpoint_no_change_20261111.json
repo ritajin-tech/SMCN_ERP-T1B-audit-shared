@@ -1,0 +1,30 @@
+{
+ "capture_beijing": "2026-11-11 19:27:50",
+ "capture_utc": "2026-11-11T11:27:50Z",
+ "deployments_found": 3,
+ "deployment_ids_masked": [
+  "AKfycbwlxB…gl_o",
+  "AKfycbwYXV3V…XwYl-_2",
+  "AKfycbzUyhyK…A4HpiUi6F5eF"
+ ],
+ "ids_identical_before_after": true,
+ "url_unchanged": true,
+ "versioned_head_transition": "@206 / V4.3.77 → @207 / V4.3.78（既有部署原地更新，非新建）",
+ "live_http_check": {
+  "http": 200,
+  "bytes": 154828,
+  "seconds": 2.46,
+  "login_wall": false,
+  "checks": {
+   "new_version_4.3.78": 1,
+   "old_version_4.3.77_residual": 0,
+   "existingCount": 1,
+   "new_hint_还有N条": true,
+   "p3_guidance_要一次填多条": true,
+   "help_fold_present": true,
+   "mfCopyList_still_removed": 0
+  }
+ },
+ "redline": "任何修复、迭代、热修都不得产生新访问链接；本版零新建 / 零删除部署 / 零 URL 变更",
+ "note": "端点不变不等于代码不变，逐版哈希见 evidence/v94_parallel_change_p1_disclosure_20261111.json"
+}

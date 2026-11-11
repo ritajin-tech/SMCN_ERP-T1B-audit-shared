@@ -1,0 +1,269 @@
+{
+ "capture_beijing": "2026-11-11 19:27:50",
+ "capture_utc": "2026-11-11T11:27:50Z",
+ "since": "2026-11-11 13:06:35 (北京时间 GMT+8；UTC 2026-11-11T05:06:35Z)",
+ "total_fail_lines_today": 29,
+ "already_disclosed_in_v93": 2,
+ "newly_disclosed": 27,
+ "triage_rule": "三类严格分开：① REPRODUCED_SYMPTOM_ONLY 同一网络层症状在相同探针范围重复出现，**不是业务回归结论**；② NOT_REPRODUCED_AT_OTHER_TIME 另一时点本方通道可达，**不同时点不得互推、不据此判误报**；③ INDETERMINATE__COLLECTION_FAILURE 该轮因采集失败未取得原始读数，无法判断当时生产状态。",
+ "reproduced_symptom_only": {
+  "count": 6,
+  "items": [
+   {
+    "time": "2026-11-11 14:45:13",
+    "task": "ts-health",
+    "seconds": "12.3",
+    "detail": "⚠ 告警（单轮，待连续失败阈值触发邮件）:   - 数据检查异常: getaddrinfo ENOTFOUND script.google.com"
+   },
+   {
+    "time": "2026-11-11 15:10:25",
+    "task": "nps-receipt",
+    "seconds": "25.4",
+    "detail": "[2026-11-11T07:10:25.828Z] FATAL connect ETIMEDOUT 142.250.107.139:443"
+   },
+   {
+    "time": "2026-11-11 16:03:49",
+    "task": "numberlock-fixwatch",
+    "seconds": "42.1",
+    "detail": "vercheck 探针失败: URLError(TimeoutError(10060, '由于连接方在一段时间后没有正确答复或连接的主机没有反应，连接尝试失败。', None, 10060, None))"
+   },
+   {
+    "time": "2026-11-11 16:10:23",
+    "task": "nps-receipt",
+    "seconds": "23.5",
+    "detail": "[2026-11-11T08:10:23.962Z] FATAL connect ETIMEDOUT 2607:f8b0:400a:80c::200e:443"
+   },
+   {
+    "time": "2026-11-11 16:40:22",
+    "task": "nps-receipt",
+    "seconds": "21.9",
+    "detail": "[2026-11-11T08:40:22.369Z] FATAL connect ETIMEDOUT 2607:f8b0:400a:800::200e:443"
+   },
+   {
+    "time": "2026-11-11 17:10:22",
+    "task": "nps-receipt",
+    "seconds": "21.9",
+    "detail": "[2026-11-11T09:10:22.401Z] FATAL connect ETIMEDOUT 2607:f8b0:400a:80d::200e:443"
+   }
+  ]
+ },
+ "not_reproduced_at_other_time": {
+  "count": 3,
+  "items": [
+   {
+    "time": "2026-11-11 18:55:37 北京",
+    "target": "团队入口 WebApp /exec",
+    "result": "HTTP 200 / 154828 bytes / 2.46s / 无登录墙",
+    "relates_to": "15:15:57 ts-health「Web App 探测失败 socket 15s 超时」",
+    "caveat": "不同时点、不同链路，不能据此认定该告警为误报，也不能与 15:15 读数互推"
+   },
+   {
+    "time": "2026-11-11 19:09 北京",
+    "target": "clasp list-deployments",
+    "result": "Found 3 deployments / 三个 ID 逐字未变",
+    "relates_to": "14:30 起多轮 t1b-watch 只读探针 DNS 失败",
+    "caveat": "仅说明该时点本方通道可达，不推定服务端状态或访问主体"
+   },
+   {
+    "time": "2026-11-11 19:00:07",
+    "target": "hktool 只读 probe（生产表 / 请假 / 页签）",
+    "result": "11445/18 · 613/15 · 41/16 · 部署 3",
+    "relates_to": "多轮「hk 15s 超时 / 数据检查异常」",
+    "caveat": "该次 probe 成功取得读数，但不同时点，不否定此前采集失败"
+   }
+  ]
+ },
+ "indeterminate_collection_failure": {
+  "count": 21,
+  "items": [
+   {
+    "time": "2026-11-11 14:30:12",
+    "task": "t1b-watch",
+    "seconds": "11.5",
+    "detail": "只读探针失败: PROBE_FAILED: <urlopen error [Errno 11001] getaddrinfo failed>"
+   },
+   {
+    "time": "2026-11-11 14:35:12",
+    "task": "bd-drain",
+    "seconds": "12.1",
+    "detail": "队列探头失败（GAS 不可达）: URLError(gaierror(11001, 'getaddrinfo failed'))"
+   },
+   {
+    "time": "2026-11-11 15:00:00",
+    "task": "pmlist-refresh",
+    "seconds": "0.1",
+    "detail": "请求失败(0s): URLError(gaierror(11001, 'getaddrinfo failed'))"
+   },
+   {
+    "time": "2026-11-11 15:00:01",
+    "task": "t1b-watch",
+    "seconds": "0.2",
+    "detail": "只读探针失败: PROBE_FAILED: <urlopen error [Errno 11001] getaddrinfo failed>"
+   },
+   {
+    "time": "2026-11-11 15:05:12",
+    "task": "bd-drain",
+    "seconds": "12.1",
+    "detail": "队列探头失败（GAS 不可达）: URLError(gaierror(11001, 'getaddrinfo failed'))"
+   },
+   {
+    "time": "2026-11-11 15:15:57",
+    "task": "ts-health",
+    "seconds": "56.6",
+    "detail": "⚠ 告警（单轮，待连续失败阈值触发邮件）:   - Web App 探测失败: socket 15s 超时"
+   },
+   {
+    "time": "2026-11-11 15:30:12",
+    "task": "t1b-watch",
+    "seconds": "11.7",
+    "detail": "只读探针失败: PROBE_FAILED: <urlopen error [Errno 11001] getaddrinfo failed>"
+   },
+   {
+    "time": "2026-11-11 15:36:56",
+    "task": "bd-drain",
+    "seconds": "116.3",
+    "detail": "队列探头失败（GAS 不可达）: URLError(TimeoutError(10060, '由于连接方在一段时间后没有正确答复或连接的主机没有反应，连接尝试失败。', None, 10060, None))"
+   },
+   {
+    "time": "2026-11-11 15:46:11",
+    "task": "ts-health",
+    "seconds": "70.5",
+    "detail": "⚠ 告警（单轮，待连续失败阈值触发邮件）:   - 数据检查异常: hk 15s 超时"
+   },
+   {
+    "time": "2026-11-11 16:00:44",
+    "task": "pmlist-refresh",
+    "seconds": "44.2",
+    "detail": "请求失败(44s): URLError(TimeoutError(10060, '由于连接方在一段时间后没有正确答复或连接的主机没有反应，连接尝试失败。', None, 10060, None))"
+   },
+   {
+    "time": "2026-11-11 16:00:44",
+    "task": "t1b-watch",
+    "seconds": "43.6",
+    "detail": "只读探针失败: PROBE_FAILED: <urlopen error [WinError 10060] 由于连接方在一段时间后没有正确答复或连接的主机没有反应，连接尝试失败。>"
+   },
+   {
+    "time": "2026-11-11 16:07:19",
+    "task": "bd-drain",
+    "seconds": "138.5",
+    "detail": "队列探头失败（GAS 不可达）: URLError(TimeoutError(10060, '由于连接方在一段时间后没有正确答复或连接的主机没有反应，连接尝试失败。', None, 10060, None))"
+   },
+   {
+    "time": "2026-11-11 16:16:05",
+    "task": "ts-health",
+    "seconds": "64.3",
+    "detail": "⚠ 告警（单轮，待连续失败阈值触发邮件）:   - 数据检查异常: hk 15s 超时"
+   },
+   {
+    "time": "2026-11-11 16:30:43",
+    "task": "t1b-watch",
+    "seconds": "42.5",
+    "detail": "只读探针失败: PROBE_FAILED: <urlopen error [WinError 10060] 由于连接方在一段时间后没有正确答复或连接的主机没有反应，连接尝试失败。>"
+   },
+   {
+    "time": "2026-11-11 16:37:18",
+    "task": "bd-drain",
+    "seconds": "138.4",
+    "detail": "队列探头失败（GAS 不可达）: URLError(TimeoutError(10060, '由于连接方在一段时间后没有正确答复或连接的主机没有反应，连接尝试失败。', None, 10060, None))"
+   },
+   {
+    "time": "2026-11-11 16:46:05",
+    "task": "ts-health",
+    "seconds": "64.3",
+    "detail": "⚠ 告警（单轮，待连续失败阈值触发邮件）:   - 数据检查异常: hk 15s 超时"
+   },
+   {
+    "time": "2026-11-11 17:00:42",
+    "task": "pmlist-refresh",
+    "seconds": "42.2",
+    "detail": "请求失败(42s): URLError(TimeoutError(10060, '由于连接方在一段时间后没有正确答复或连接的主机没有反应，连接尝试失败。', None, 10060, None))"
+   },
+   {
+    "time": "2026-11-11 17:00:43",
+    "task": "t1b-watch",
+    "seconds": "42.5",
+    "detail": "只读探针失败: PROBE_FAILED: <urlopen error [WinError 10060] 由于连接方在一段时间后没有正确答复或连接的主机没有反应，连接尝试失败。>"
+   },
+   {
+    "time": "2026-11-11 17:07:19",
+    "task": "bd-drain",
+    "seconds": "138.4",
+    "detail": "队列探头失败（GAS 不可达）: URLError(TimeoutError(10060, '由于连接方在一段时间后没有正确答复或连接的主机没有反应，连接尝试失败。', None, 10060, None))"
+   },
+   {
+    "time": "2026-11-11 17:11:29",
+    "task": "pclist-harvest",
+    "seconds": "88.4",
+    "detail": "请求失败: URLError(TimeoutError(10060, '由于连接方在一段时间后没有正确答复或连接的主机没有反应，连接尝试失败。', None, 10060, None))"
+   },
+   {
+    "time": "2026-11-11 17:16:05",
+    "task": "ts-health",
+    "seconds": "64.5",
+    "detail": "⚠ 告警（单轮，待连续失败阈值触发邮件）:   - 数据检查异常: hk 15s 超时"
+   }
+  ]
+ },
+ "overall_verdict": "NO_BLANKET_CLASSIFICATION__NEITHER_REGRESSION_NOR_FALSE_POSITIVE；修复需另行授权，本轮零修复、零批量处置、零状态机改动",
+ "recollect_scope_and_time": {
+  "probe_at": "2026-11-11 19:00:07 (北京时间 GMT+8；UTC 2026-11-11T11:00:07Z)",
+  "scope": "生产表 DB_工时流水 lastRow/lastCol、主库请假 lastRow/lastCol、两库页签集合、部署清单",
+  "same_caliber_as": "tools/_zc_state/t1b-watch-readings.json 现行基线 11445/18 · 613/15 · 41/16 · 3",
+  "not_recollected": [
+   "条件格式配置",
+   "服务端请求与执行日志",
+   "公开库访问记录",
+   "同事手机端实际渲染",
+   "生产表逐行全列快照现场复采（hktool 通道 502 记录）"
+  ]
+ },
+ "timeout_records": "逐条见三类 items 的 seconds 与 detail；DNS getaddrinfo 11001 / TCP 10060 / ETIMEDOUT / hk 15s / socket 15s 均如实保留",
+ "config_version": {
+  "tools/zero_credit_runner.py": {
+   "bytes": 60230,
+   "sha256": "3dc6ea6c481a37d69985a616600f25216a94e60e31d6dbb7be237320697743dc"
+  },
+  "tools/t1b_watch.py": {
+   "bytes": 10015,
+   "sha256": "2e054eb6a7a509ead48d1f3753296aaed9da856a4607f641b198f95e5006a5dc"
+  },
+  "tools/t1b_gate_check.py": {
+   "bytes": 26670,
+   "sha256": "75e1ea013d9f950a7e4192853d19d3aa9479f4702fa64fa1855fc25c964aa8a6"
+  },
+  "tools/register_ts_content_guard_daily.ps1": {
+   "bytes": 3320,
+   "sha256": "17c2066f42eedab8451c78f1b9c1810c3ff0ba0e01a7fdc0ab9e86c16cd37027"
+  },
+  "tools/tom_mail_watch.py": {
+   "bytes": 10111,
+   "sha256": "b667c85223d4bbf2a0ea6d518962888543b1795172d388f7be7692ddf8e22869"
+  }
+ },
+ "permissions": {
+  "probes": "只读；零生产写 / 零主库写 / 零改结构列宽 / 零解冻 / 零回滚",
+  "mail": "QQ Mail MCP 只读；IMAP 常驻通道因缺凭据未运行（CREDENTIALS_NOT_CONFIGURED__NO_MAIL_CHECK），本轮邮件检查由会话内 MCP 完成",
+  "credentials_in_repo": false,
+  "note": "零凭据真值；clasp / hktool 凭据只在本机，不进公开库"
+ },
+ "supporting_artifacts": [
+  {
+   "path": "evidence/supporting_v94/zc_log_20261111_sanitized.log",
+   "bytes": 26197,
+   "sha256": "8f5ce2607bf4bfd7488ce1b4830cc91905a54e0014d42e59bd0b5b8a9ad2f6d1",
+   "what": "失败运行记录 / 告警原件脱敏副本"
+  },
+  {
+   "path": "evidence/supporting_v94/alerts_20261111_sanitized.md",
+   "bytes": 1761,
+   "sha256": "0f6758ca5d332f5ed7a0aba2c621f072e7007d309757f4f5f7686e8613e68adb",
+   "what": "失败运行记录 / 告警原件脱敏副本"
+  }
+ ],
+ "originals_retained_locally": [
+  "outputs/_v94_retained/frozen/2026-11-11.log",
+  "outputs/_v94_retained/frozen/告警_2026-11-11.md"
+ ],
+ "partial_flag": "PARTIAL_REPRODUCED__PARTIAL_COLLECTION_TIMEOUT",
+ "values_are_final": false
+}

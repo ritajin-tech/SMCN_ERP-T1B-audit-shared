@@ -1,0 +1,41 @@
+{
+ "capture_beijing": "2026-11-11 19:27:50",
+ "capture_utc": "2026-11-11T11:27:50Z",
+ "events": [
+  {
+   "at": "2026-11-11 18:00:39 (北京时间 GMT+8)",
+   "from_": "11443/18",
+   "to": "11444/18",
+   "delta": "+1 行",
+   "source": "outputs/T1-B_盯梢触发_20261111_1800.md",
+   "verdict": "ROW_COUNT_CHANGE_ONLY"
+  },
+  {
+   "at": "2026-11-11 18:30:35 (北京时间 GMT+8)",
+   "from_": "11444/18",
+   "to": "11445/18",
+   "delta": "+1 行",
+   "source": "outputs/T1-B_盯梢触发_20261111_1830.md",
+   "verdict": "ROW_COUNT_CHANGE_ONLY"
+  },
+  {
+   "at": "2026-11-11 19:00:07 (北京时间 GMT+8)",
+   "from_": "11445/18",
+   "to": "11445/18",
+   "delta": "0",
+   "source": "_tmp/t1b_watch_probe.json",
+   "verdict": "LIVE_RECHECK_CONSISTENT"
+  }
+ ],
+ "v93_baseline": "11431/18（2026-11-11 12:37:12 北京）",
+ "net_since_v93": "+14 行（由 30 分钟盯梢逐轮累计，本版不重建中间每一行的全列原始值）",
+ "four_elements": {
+  "original_full_column_snapshot": "原始全 18 列快照只留本机 outputs/_v94_retained/，不入公开库",
+  "stable_key": "生产表行号 + 录入时间戳（原始值只留本机）",
+  "capture_timepoint": "2026-11-11 19:00:07 (北京时间 GMT+8；UTC 2026-11-11T11:00:07Z)",
+  "source": "hktool 只读通道 / 零积分盯梢 t1b-watch"
+ },
+ "boundary": "采样间隔内的变化不能据此确认写入主体或业务有效性；零增量窗口不排除覆盖写入、删除或回滚；本版不推定新增行由谁写入、不推定业务有效性、不建立稳定窗口。",
+ "no_production_write": true,
+ "values_are_final": false
+}

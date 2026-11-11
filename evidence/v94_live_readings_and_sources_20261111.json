@@ -1,0 +1,134 @@
+{
+ "capture_beijing": "2026-11-11 19:27:50",
+ "capture_utc": "2026-11-11T11:27:50Z",
+ "probe_beijing": "2026-11-11 19:00:07",
+ "probe_utc": "2026-11-11T11:00:07Z",
+ "readings": {
+  "production": "11445/18",
+  "master_leave": "613/15",
+  "tabs_master": 41,
+  "tabs_production": 16,
+  "deployments": 3,
+  "head_deployment": "@207 / V4.3.78",
+  "version_before": "@206 / V4.3.77"
+ },
+ "sources": [
+  {
+   "id": "S01",
+   "name": "生产表 DB_工时流水",
+   "method": "hktool 19:00:07 只读 probe + 19:09 clasp 复核",
+   "status": "RECOLLECTED_LIVE",
+   "result": "11445/18"
+  },
+  {
+   "id": "S02",
+   "name": "主库「请假」",
+   "method": "19:00:07 只读 probe",
+   "status": "RECOLLECTED_LIVE",
+   "result": "613/15"
+  },
+  {
+   "id": "S03",
+   "name": "主库 / 生产表页签集合",
+   "method": "19:00:07 只读 probe（生产表 16 个真实 tab 名逐项）",
+   "status": "RECOLLECTED_LIVE",
+   "result": "41 / 16"
+  },
+  {
+   "id": "S04",
+   "name": "ts-manager 部署清单",
+   "method": "clasp list-deployments 19:09 + 线上 /exec 18:55 HTTP 200",
+   "status": "RECOLLECTED_LIVE",
+   "result": "Found 3 / @207"
+  },
+  {
+   "id": "S05",
+   "name": "Tom 审计线程邮件",
+   "method": "QQ Mail MCP ListMessages + GetMessage 全文回读",
+   "status": "RECOLLECTED_LIVE",
+   "result": "1 新真回函 / 1 回显排除 / sent 0"
+  },
+  {
+   "id": "S06",
+   "name": "GitHub 共享库",
+   "method": "MCP list_commits / issues / PRs + git rev-parse + ls-remote",
+   "status": "RECOLLECTED_LIVE",
+   "result": "0/0/0 · HEAD=remote=208b255 · 280 commits · dirty 0"
+  },
+  {
+   "id": "S07",
+   "name": "两份活文档",
+   "method": "t1b_sync_live_docs.py --verify-only",
+   "status": "RECOLLECTED_LIVE",
+   "result": "HISTORY_INTACT ×2 / CRLF / 删除非标题行 0"
+  },
+  {
+   "id": "S08",
+   "name": "零积分排程运行日志",
+   "method": "tools/_zc_logs/2026-11-11.log（已冻结快照）",
+   "status": "RECOLLECTED_LIVE",
+   "result": "201 条 / since 后 64 条 / 当日 FAIL 29 条"
+  },
+  {
+   "id": "S09",
+   "name": "当日告警原件",
+   "method": "tools/_zc_logs/告警_2026-11-11.md（已冻结快照）",
+   "status": "RECOLLECTED_LIVE",
+   "result": "1771 字节"
+  },
+  {
+   "id": "S10",
+   "name": "现在收到的文件 / 工作区增量",
+   "method": "顶层近 2 小时 mtime 只读扫描",
+   "status": "RECOLLECTED_LIVE",
+   "result": "29 个新/改动文件，均为本方产物"
+  },
+  {
+   "id": "S11",
+   "name": "防循环闸门核查卡",
+   "method": "tools/t1b_gate_check.py 本轮实跑",
+   "status": "RECOLLECTED_LIVE",
+   "result": "OPEN_NEXT_VERSION / T1+T2+T5"
+  },
+  {
+   "id": "S12",
+   "name": "pmlist / qslist / BD / Plan 明细",
+   "method": "本轮未现场复采，沿用 v93 登记读数",
+   "status": "CARRIED_FORWARD_NOT_RECOLLECTED",
+   "result": "不冒充实测"
+  },
+  {
+   "id": "S13",
+   "name": "条件格式配置 / 服务端日志 / 公开库访问记录 / 同事手机端渲染",
+   "method": "本轮无可读权限或未复现",
+   "status": "NOT_CHECKED",
+   "result": "查不到 ≠ 没有；列为未核轴"
+  }
+ ],
+ "sources_count": 13,
+ "scope_statement": {
+  "checked": [
+   "生产表 DB_工时流水",
+   "主库「请假」",
+   "主库 / 生产表页签集合",
+   "ts-manager 部署清单",
+   "Tom 审计线程邮件",
+   "GitHub 共享库",
+   "两份活文档",
+   "零积分排程运行日志",
+   "当日告警原件",
+   "现在收到的文件 / 工作区增量",
+   "防循环闸门核查卡"
+  ],
+  "carried_forward": [
+   "pmlist / qslist / BD / Plan 明细"
+  ],
+  "not_checked": [
+   "条件格式配置 / 服务端日志 / 公开库访问记录 / 同事手机端渲染"
+  ],
+  "note": "无范围声明的 PASS 属过度承诺。本卡只声明上述 11 轴本轮现场复采；状态层与证据层的全绿不覆盖内容层与呈现层。"
+ },
+ "identity_boundary": "行内姓名 / 时间 / UUID 仅为归因线索，不是认证主体或业务授权证明；页签命名相似不能单独证明创建来源；历史原始快照不得以重建替代；端点不变不等于代码不变。",
+ "values_are_final": false,
+ "sampling_caveat": "30 分钟采样间隔内的读数变化不能确认写入主体或业务有效性；零增量窗口不排除覆盖写入。"
+}
