@@ -1,0 +1,65 @@
+{
+  "artifact": "v97_1615_cleanup_disclosure",
+  "subject": "生产表 DB_工时流水 1615 行重复块清理（更新的需求 · Rita 授权可逆软标）",
+  "disclosure_type": "UPDATED_REQUIREMENT",
+  "correction_of_v96": {
+    "v96_statement": "v96 第六节第 6 组曾登记『轨 B 数据层 1615 行原始重复副本仍冻结』。",
+    "v96_status_was": "NOT_AUTHORIZED_FROZEN_BY_US_BEFORE_RITA_AUTHORIZATION",
+    "v97_status_now": "AUTHORIZED_REVERSIBLE_SOFT_MARKED",
+    "note": "v96 的『冻结不删不改』是 Rita 尚未授权前本方的冻结决定；本代按『结合更新的需求』主动披露：Rita 已于 2026-11-12 11:0x 北京明确授权清理（原话『确认有回滚机制就可以』），故该表述在 v97 起不再成立，须更正。"
+  },
+  "authorization": {
+    "by": "Rita Jin（通道所有者 / 业务负责人，本人）",
+    "when": "2026-11-12 11:0x 北京时间 GMT+8",
+    "verbatim": "确认有回滚机制就可以",
+    "independent_of_tom_letter": true,
+    "note": "该授权独立于 Tom 2026-11-12 08:52 回函；Tom 该函明示『不构成验收、解冻或生产授权』，但 Rita 作为通道所有者已另行直接授权，本披露仅陈述事实与机制，不将该授权归因为 Tom 函件效力。"
+  },
+  "mechanism": {
+    "action": "repairLegacyLeave（V4.3.83，线上已部署既有动作，非新部署）",
+    "mode": "软标 O/P/Q 三列：O=TRUE 标记软删、P=操作人、Q=时间戳",
+    "reversible": true,
+    "undo_command": "TS_WRITE_FREEZE=0 python tools/ts_post.py repairLegacyLeave _tmp/clean_rollback_payload.json",
+    "undo_payload": {"rows": "8496,...,10110", "sheet": "DB_工时流水", "op": "Rita Jin", "mode": "undo"},
+    "physical_delete": false,
+    "demonstrated": "undo 清空 8496-8498 三行 O/P/Q → 实测 O=''；re-mark 后实测 O=TRUE → 端到端可逆"
+  },
+  "scope": {
+    "target_range": "DB_工时流水 8496..10110（1615 行）",
+    "kept_range": "DB_工时流水 5180..6794（1615 行，与候选区逐行 18 列完全相同，留作真值）",
+    "nature": "整块复制重复——两半 18 列 1615/1615 全同、0 处差异 → 保留哪一半数据完全一致，无需人工确认哪份是真工时（Rita『我没法确认』被数据证否）",
+    "pre_existing_softmarks_untouched": "控制区间 8400-8495（96 行）与 10111-10150（38 行）写入前已为 O=TRUE，属先前清理批次，本版未触碰"
+  },
+  "result": {
+    "requested": 1615,
+    "done": 1615,
+    "skipped": 0,
+    "ssid": "1Pi5u9fEawgp7yICWPMMyQCT_LbwTZthQDW-H05xYdVI"
+  },
+  "verification": {
+    "target_o_true": 1615,
+    "target_total": 1615,
+    "kept_o_true": 0,
+    "kept_total": 1615,
+    "am_columns_unchanged_vs_2026-11-11_snapshot": true,
+    "rollback_demonstrated": true
+  },
+  "side_effect": "33 人天原始合计虚高（含两份副本）者，软标后按单一真值重算将正确显示为 <8h 并出现在同事『还差 X 小时』页——符合 Rita 8 小时口径，正向副作用",
+  "redlines": {
+    "zero_physical_delete": true,
+    "soft_mark_only": true,
+    "zero_link_change": true,
+    "zero_new_deployment": true,
+    "deployment_ids_unchanged": true,
+    "freeze_restored_after": "TS_WRITE_FREEZE 仅对本次命令解除（env var，未持久化）；执行后已恢复默认 =1（冻结）。本代 v97 零生产写。"
+  },
+  "evidence_files": [
+    "outputs/工时表_轨B清理_完成存证_20261112.json",
+    "outputs/工时表_1615行重复清理_交付卡_20261112.html",
+    "_tmp/clean_rollback_payload.json"
+  ],
+  "scope_statement": {
+    "checked": ["写入通道 dry-run", "实际软标 1615 行", "目标/保留/控制区间 O 列复核", "A:M vs 11-11 快照", "undo 端到端回滚实测", "部署恒 3", "生产表 ID 一致"],
+    "not_checked": ["主库请假现场复采", "P4 现场交互", "真人登录", "404 根因", "既有软标区间 8400-8495/10111-10150 来源与真值（属先前批次，不在本轮授权范围）"]
+  }
+}

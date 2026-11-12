@@ -1,0 +1,25 @@
+{
+  "artifact": "v97_404_ongoing_status",
+  "subject": "404 告警事故持续状态更新（自 v95 披露至今）",
+  "status": "ONGOING_SAME_PATTERN_COUNT_GROWING",
+  "first_disclosed_at": "v95（2026-11-12 01:20 北京）12 条",
+  "v96_disclosed": "18 条新 FAIL（bd-drain 14 / pclist-harvest 3 / numberlock-fixwatch 1），全部 HTTP 404",
+  "since_v96_probe_time": "2026-11-12T00:38:26Z 后至本代采集时点仍在持续",
+  "pattern": {
+    "endpoints": ["bd-drain", "pclist-harvest", "numberlock-fixwatch"],
+    "all_http_status": 404,
+    "nature": "只读探针 GAS 不可达 / 队列探头失败",
+    "new_failure_type": false,
+    "new_endpoint": false
+  },
+  "gate_t5_note": "本窗口（00:38:26Z 后）持续同模式 404，任务名 bd-drain/pclist-harvest/numberlock-fixwatch 已在 v97 闸门 external 中登记为『已披露』，故 T5（新失败运行记录）不触发——但这是状态登记，不代表事故消失。",
+  "recheck": {
+    "our_action": "08:30:30 北京以相同端点/只读权限/相同条件独立 GET 再次复现 HTTP 404",
+    "verdict": "REPRODUCED_SYMPTOM_ONLY",
+    "cannot_obtain": ["服务端日志", "配置版本", "变更前配置", "请求-响应关联证据"],
+    "cannot_obtain_status": "NOT_OBTAINED__CHANNEL_OWNER_PENDING"
+  },
+  "no_blanket_classification": "证据不足前不整体定性（既非业务回归、也非误报）；不同时点/链路成功不证明先前告警误报；未取得读数时段维持无法判断",
+  "fixes": "零修复、零批量处置；修复需另行授权",
+  "redline_separation": "404 与零换链严格分开：本方未对 BD 队列探头端点（AKfycbzTeAQD…）做任何 push/deploy/删除/替换；ts-manager 三个 deploymentId 与团队入口 URL 逐字未变、部署恒 3"
+}

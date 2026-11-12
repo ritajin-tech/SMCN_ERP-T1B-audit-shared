@@ -1,0 +1,48 @@
+{
+  "artifact": "v97_tom_v96reply_conditions",
+  "tom_reply": {
+    "message_id": "msg_QLgNAuAtc9ylXkVKTgRdwctDiQfl1-wSFcLeGHu7Z-OOSA",
+    "subject": "回复：【生产表】v96保全缺口与监测边界",
+    "from": "1252293966@qq.com",
+    "to": "ritajin.muraya@qq.com",
+    "cc": "332721759@qq.com",
+    "created_at": "2026-11-12T00:52:42Z（08:52:42 北京时间 GMT+8）",
+    "in_reply_to": "<tencent_693C395E5294A2BFC49739CDEF59B0071307@qq.com>",
+    "in_reply_to_matches_v96_rfc_message_id": true,
+    "has_attachments": false,
+    "is_genuine": true,
+    "auth_note": "「Rita，」开头 + from=1252293966 + in_reply_to 精确等于我方 v96 回函 rfc_message_id ⇒ 确为指向 v96 的真回函（我方 v96 回显为「Tom，」开头，已排除）"
+  },
+  "conditions": [
+    {
+      "id": "C1",
+      "tom_demand": "条件格式处置的前后全量原件缺失应保持缺证，不以事后逐格结果代替历史原件。请有权通道所有者保全现存版本、变更日志、权限、执行时间和范围，并具名说明无法取得的原件及覆盖边界；如有可验证的版本记录，再与当前配置对照，无法重建的部分明确未知，不补造。",
+      "our_response": "正面接受、不辩解。可验证版本记录 = GitHub 共享库 commit 历史（v95 e0bc1a5 → v96 4088b33 及更早），代码逐版 SHA-256 与 97/97 逐格验收结论已保全；但 11-12 00:18 处置当时的 Google Sheets 条件格式规则原件（前后配置快照）确实未保全 ⇒ 维持 NOT_OBTAINED__DO_NOT_FABRICATE，不补造、不用验收冒充配置保全。由通道所有者（Rita）具名说明不可取得的原件范围：Sheets 条件格式规则配置快照（动作时点）。如存在可验证的 Sheets CF 导出，可与当前配置对照；无法重建部分明确标未知。",
+      "status": "ACCEPTED__GAP_KEPT_AS_GAP__VERSION_RECORDS_AVAILABLE_ON_GITHUB",
+      "preservable_now": ["GitHub commit 历史（可 git show 对照）", "v95 条件格式处置代码逐版哈希", "97/97 逐格验收结论"],
+      "not_obtainable": ["11-12 00:18 当时的 Sheets 条件格式规则原件（前后配置快照）"]
+    },
+    {
+      "id": "C2",
+      "tom_demand": "404 目前仅为你方报告的症状；请端点及运行通道所有者保全同一请求的时间、目标、权限、响应及可关联服务端日志和配置版本，以相同条件只读复采并对照变更前配置。无可关联证据的时段维持无法判断，不以其他时点成功排除先前失败；修复须另行授权。",
+      "our_response": "正面接受。我方已按相同端点/权限/条件只读复采并复现 HTTP 404（REPRODUCED_SYMPTOM_ONLY，08:30:30）；但同一请求的服务端日志、配置版本、变更前配置、请求-响应关联证据本方只读通道无权取得 ⇒ 维持 NOT_OBTAINED__CHANNEL_OWNER_PENDING。无可关联证据的时段维持无法判断；08:00:30 盯梢 OK 与 08:28:25 现场 probe 成功属不同时点/链路/端点，不用于排除先前失败。修复需另行授权——本代零修复。404 事故至今仍在持续（计数增长、模式不变），见 v97_404_ongoing_status。",
+      "status": "PARTIAL__SYMPTOM_REPRODUCED_ONLY__ROOT_CAUSE_PENDING_AUTHORIZATION",
+      "preservable_by_channel_owner": ["同一 404 请求的时间/目标/权限/响应", "可关联服务端日志", "配置版本与变更前配置"],
+      "not_obtainable_by_us": ["服务端日志", "配置版本", "变更前配置", "请求-响应关联证据"]
+    },
+    {
+      "id": "C3",
+      "tom_demand": "新增行和页签请保全原始快照、稳定键、采集时间与来源；由有权业务负责人书面确认业务口径、受影响行的授权及有效性。公开库访问与服务端日志仍需有权方保全或具名说明不可取得范围。N1、N6、R3/N5 不因本函关闭。",
+      "our_response": "正面接受。v96 已保全新增请假两行（A608:O615 全 15 列）+ 两张新增页签存在性 + 稳定键 + 采集时间 + 来源（脱敏）；受影响行的写入主体与业务有效性维持 NOT_DETERMINED（『系统同步请假』、非本方写入）。业务口径（8 小时）书面确认维持 PENDING_BUSINESS_OWNER_WRITTEN_CONFIRMATION。公开库访问与服务端日志维持 NOT_OBTAINED，由有权方保全或具名说明不可取得范围。N1/N6/R3/N5 不因本函关闭——同意。",
+      "status": "ACCEPTED__ITEMS_UNCHANGED__N1_N6_R3_N5_OPEN",
+      "new_disclosure_under_this_condition": "本代『更新的需求』= 生产表 1615 行重复块清理（Rita 授权可逆软标）。该清理的执行时间（15:11 北京）、范围（8496-10110）、机制（repairLegacyLeave mode=undo）、回滚命令均已在 v97_1615_cleanup_disclosure 保全；受影响行（8496-10110）的授权 = Rita 本人书面/口头授权（『确认有回滚机制就可以』），有效性 = 整块复制 1615/1615 全同、保留 5180-6794 作真值。"
+    },
+    {
+      "id": "C4",
+      "tom_demand": "固定提交 d50e795 指定单件字节和 SHA-256 本方仍未独立核验，不运行所交脚本。事故 OPEN、HOLD/NO-GO、阶段一 PASS 暂缓维持；本函不构成验收、解冻或生产授权。",
+      "our_response": "正面接受。D1 四列仍空、本方静态复算 4825 字节 / e7a8f8a1…47007 仅用于确认固定提交仍在、不算作你的核验、不运行所交脚本。事故 OPEN、HOLD/NO-GO、阶段一 PASS 暂缓、M2 未签、TS_WRITE_FREEZE=1 原样维持。本函不构成验收、解冻或生产授权；所述 1615 清理系 Rita 独立授权，不归因于本函效力。",
+      "status": "ACCEPTED_ALL_ITEMS_UNCHANGED"
+    }
+  ],
+  "note": "以上四组条件全部『正面接受、不辩解、不代判通过』。本方不代 Tom 核验、不代填 D1、不运行所交脚本、不擅自修复。可验证版本记录（GitHub）已存在，缺口（条件格式规则原件、服务端日志）如实保留为缺证，不补造。"
+}

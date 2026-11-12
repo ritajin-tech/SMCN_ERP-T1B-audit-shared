@@ -1,0 +1,23 @@
+{
+  "artifact": "v97_gate_and_triggers",
+  "tool": "tools/t1b_gate_check.py",
+  "run_at": "2026-11-12T07:54:14Z（15:54:14 北京时间 GMT+8）",
+  "since": "2026-11-12T00:38:26Z（v96 回函 sent 时间）",
+  "verdict": "OPEN_NEXT_VERSION",
+  "triggered": ["T1", "T2"],
+  "checks": [
+    {"id": "T1", "name": "Tom 实质新真回函", "triggered": true,
+     "evidence": "QQ Mail 查到 msg_QLgNAuAtc9ylXkVKTgRdwctDiQfl1-wSFcLeGHu7Z-OOSA《回复：【生产表】v96保全缺口与监测边界》08:52:42 北京，in_reply_to 精确等于 v96 rfc_message_id"},
+    {"id": "T2", "name": "生产表 / 主库真实数据事件", "triggered": true,
+     "evidence": "所有 probe 读数与基线一致（11460/18 · 615/15 · 页签 43/16 · 部署 3）；另显式登记 data_event：1615 行可逆软标清理（授权内生产写，仅改 O/P/Q 三列，行数不变）"},
+    {"id": "T3", "name": "共享库新编辑 / PR / issue / 远端漂移", "triggered": false,
+     "evidence": "GitHub MCP 三查 0/0/0；本地 HEAD=remote=4088b33、283 commits、dirty 0（本代发布后才会 +1，属预期）"},
+    {"id": "T4", "name": "活文档真实矛盾", "triggered": false,
+     "evidence": "两份活文档 HISTORY_INTACT / CRLF=0 / 删非标题行 0，与 v96 同口径"},
+    {"id": "T5", "name": "必须主动披露的新失败运行记录", "triggered": false,
+     "evidence": "404 持续同模式已按任务名登记为已披露（bd-drain/pclist-harvest/numberlock-fixwatch）；无新失败类型、无新端点"}
+  ],
+  "baseline_used": "tools/_zc_state/t1b-watch-readings.json（11460/18 · 615/15 · 43/16 · 部署 3）",
+  "probe_file": "_tmp/v97_live_probe.json（2026-11-12 15:44:45 北京采集，read_only=true）",
+  "redlines": "只读；零生产写/零主库写/零 clasp push/零 deploy/零新建删除部署/零 URL 变更/零改结构列宽/零历史对象删改"
+}
