@@ -1,0 +1,107 @@
+{
+ "capture_beijing": "2026-11-12 08:36:27",
+ "probe_at": "2026-11-12 08:28:25 (北京时间 GMT+8；UTC 2026-11-12T00:28:25Z)",
+ "read_only": true,
+ "readings": {
+  "production": "11445/18",
+  "master_leave": "615/15",
+  "master_tabs": 43,
+  "production_tabs": 16,
+  "deployments": 3
+ },
+ "source_checklist": [
+  {
+   "axis": "QQ Mail 审计线程（inbox/sent/全文/线程头）",
+   "status": "本轮现场复采",
+   "result": "1 真回函 / 1 我方回显排除 / sent 1（v95 本体）"
+  },
+  {
+   "axis": "GitHub commit / issue / PR",
+   "status": "本轮现场复采",
+   "result": "0/0/0；本地=远端 e0bc1a5；282 commits；dirty 0"
+  },
+  {
+   "axis": "生产表 lastRow/lastCol + 尾行全列",
+   "status": "本轮现场复采",
+   "result": "11445/18；A11440:Q11445 六行全列；零新增工时行"
+  },
+  {
+   "axis": "主库请假 lastRow/lastCol + 新增两行全 15 列",
+   "status": "本轮现场复采",
+   "result": "615/15；A608:O615 八行；新增 2 行脱敏登记"
+  },
+  {
+   "axis": "两库页签集合 + 两张新增页签存在性",
+   "status": "本轮现场复采",
+   "result": "43/16；新增两张 *_重算前_20261112 各取 A1:F3 成功"
+  },
+  {
+   "axis": "部署清单与三个 deploymentId",
+   "status": "本轮现场复采",
+   "result": "Found 3；@HEAD / @202 / @211；URL 逐字未变"
+  },
+  {
+   "axis": "404 端点独立只读 GET",
+   "status": "本轮现场复采",
+   "result": "HTTP 404 复现，时点 08:30:30 北京"
+  },
+  {
+   "axis": "d50e795 指定单件静态复算",
+   "status": "本轮现场复采",
+   "result": "4825 字节 / e7a8f8a1…47007；仅证固定提交仍在"
+  },
+  {
+   "axis": "两份活文档完整性",
+   "status": "本轮现场复采",
+   "result": "HISTORY_INTACT / CRLF / removed_non_title_lines=0"
+  },
+  {
+   "axis": "v95 之后 18 条新 FAIL 三分类",
+   "status": "本轮现场复采",
+   "result": "全部 HTTP 404；18/0/0；零修复"
+  },
+  {
+   "axis": "本地工具落盘与写入痕迹",
+   "status": "本轮现场复采",
+   "result": "30 件落盘逐件核对；vo_diag_heal 无 --apply 产物"
+  },
+  {
+   "axis": "近 7.5 小时「现在收到的文件」",
+   "status": "本轮现场复采",
+   "result": "30 件全为本方产物，无对方附件或新文件"
+  },
+  {
+   "axis": "条件格式/权限/服务端基线同范围复采",
+   "status": "沿用登记 / 不可取得",
+   "result": "NOT_OBTAINED__CHANNEL_OWNER_PENDING"
+  },
+  {
+   "axis": "服务端请求与执行日志、公开库访问记录",
+   "status": "不可取得",
+   "result": "NOT_OBTAINED__CHANNEL_OWNER_PENDING"
+  },
+  {
+   "axis": "书面授权与业务有效性确认",
+   "status": "不可取得",
+   "result": "PENDING_CH / PENDING_BUSINESS_OWNER"
+  },
+  {
+   "axis": "404 根因与变更前配置",
+   "status": "明确未核",
+   "result": "不推定、不擅自修复"
+  }
+ ],
+ "not_checked": [
+  "条件格式前后配置原件",
+  "权限与服务端基线同范围现场复采",
+  "真人登录会话",
+  "手机端渲染",
+  "P4 现场交互",
+  "生产表逐行全列现场复采",
+  "两张新增页签全量内容与创建主体",
+  "404 根因与服务端请求/执行日志",
+  "公开库访问记录"
+ ],
+ "scope_statement": "状态层与证据层全绿不覆盖内容层与呈现层；无范围声明的 PASS 属过度承诺；查不到 ≠ 没有；离线复算不等于现场复采；不同时点或链路成功不证明先前告警误报；行内姓名/时间/UUID 仅为归因线索，不是认证主体或业务授权证明",
+ "values_are_final": false
+}

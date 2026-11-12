@@ -1,0 +1,28 @@
+{
+ "capture_beijing": "2026-11-12 08:36:27",
+ "recollected_at": "2026-11-12 08:28:25 北京 (UTC 2026-11-12T00:28:25Z)",
+ "prev_master_tabs": 41,
+ "current_master_tabs": 43,
+ "delta": 2,
+ "production_tabs_unchanged": 16,
+ "added": [
+  "按月考勤_重算前_20261112",
+  "月度视图_重算前_20261112"
+ ],
+ "rotated_out": [
+  "按月考勤_重算前_20261109",
+  "月度视图_重算前_20261109"
+ ],
+ "watch_capture_at": "2026-11-12 08:30:28 北京（outputs/T1-B_盯梢触发_20261112_0830.md）",
+ "classification": "已登记 B 类每日重算镜像：非结构改动、非本方写入、只登记不改口径",
+ "created_subject": "NOT_DETERMINED；页签命名相似不能单独证明创建来源",
+ "recollected_existence": true,
+ "existence_probe": "tools/t1b_delta_probe.py 对两张页签各取 A1:F3 成功返回，确认存在性",
+ "not_recollected": [
+  "两张新增页签的全量内容",
+  "创建主体",
+  "创建时点",
+  "权限配置"
+ ],
+ "values_are_final": false
+}

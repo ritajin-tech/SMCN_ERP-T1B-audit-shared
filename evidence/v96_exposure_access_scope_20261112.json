@@ -1,0 +1,13 @@
+{
+ "capture_beijing": "2026-11-12 08:36:27",
+ "publication_screening": "本代新增件零生产源码全文 / 零个人数据原文 / 零凭据真值 / 零部署 ID 真值；生成器内置敏感值硬闸，命中即中止，脱敏后才写入",
+ "new_leave_rows": "含真人姓名，姓名与稳定键中的姓名一律 <NAME_REDACTED>；原始全列快照只留本机受控、不入公开库",
+ "fixed_commit_d50e795_status": "commit；本方静态复算 4825 字节 / e7a8f8a1…47007，仅确认仍在、不算作对方 D1 核验",
+ "d1_tom_columns_still_empty": true,
+ "zero_commits_zero_issues_zero_prs": "本方可读通道所见，不推定无访问或无泄露",
+ "channel_owner_decision": "PENDING_CHANNEL_OWNER_DECISION",
+ "no_visibility_change": true,
+ "no_git_history_edit": true,
+ "incident_state": "OPEN · HOLD-NO-GO · 阶段一 PASS 暂缓 · M2 未签 · TS_WRITE_FREEZE=1",
+ "values_are_final": false
+}

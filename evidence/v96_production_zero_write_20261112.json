@@ -1,0 +1,23 @@
+{
+ "capture_beijing": "2026-11-12 08:36:27",
+ "recollected_at": "2026-11-12 08:31:08 (北京时间 GMT+8；UTC 2026-11-12T00:31:08Z)",
+ "channel": "hktool inspectWorkbook 只读 / mode=values / a1=A11440:Q11445",
+ "meta": {
+  "name": "工时打卡数据库",
+  "sheet": "DB_工时流水",
+  "range": "A11440:Q11445",
+  "lastRow": 11445,
+  "lastCol": 18
+ },
+ "last_row": 11445,
+ "last_col": 18,
+ "tail_rows_recollected": 6,
+ "newest_entry_timestamp": "2026-11-11T09:19:16.429Z",
+ "verdict": "NO_NEW_PRODUCTION_ROWS_SINCE_V95",
+ "caveat": "读数不变不排除覆盖写入、删除或回滚；采样间隔内变化不确认写入主体或业务有效性，不建立稳定窗口",
+ "zero_production_write": true,
+ "zero_master_write": true,
+ "zero_soft_marker": true,
+ "zero_physical_delete": true,
+ "values_are_final": false
+}

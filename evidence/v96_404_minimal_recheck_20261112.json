@@ -1,0 +1,33 @@
+{
+ "capture_beijing": "2026-11-12 08:36:27",
+ "tom_methodology": "端点及运行通道所有者保全失败时请求时间、目标标识、响应状态、服务端日志、配置版本；在有权只读范围内以相同端点/权限/条件复采；对照变更前配置；以可关联的原始请求与响应证据确认可复现范围与原因；不同时间或链路成功不证明先前告警误报；未取得读数时段保持无法判断；修复另需授权。",
+ "our_recheck": {
+  "at": "2026-11-12 08:30:30 北京 (UTC 2026-11-12T00:30:30Z)",
+  "endpoint": "既有 BD 队列探头端点（与本地配置逐字一致）",
+  "method": "独立只读 GET，相同端点、相同权限、相同条件",
+  "request_time_recorded": true,
+  "target_id_recorded": "端点标识脱敏后登记于本机受控，公开库不写真值",
+  "response_status": "HTTP 404 Not Found",
+  "verdict": "REPRODUCED_SYMPTOM_ONLY"
+ },
+ "cannot_obtain": {
+  "server_logs": "NOT_OBTAINED__CHANNEL_OWNER_PENDING",
+  "config_version": "NOT_OBTAINED__CHANNEL_OWNER_PENDING",
+  "before_change_config": "NOT_OBTAINED__CHANNEL_OWNER_PENDING",
+  "request_response_correlation": "NOT_OBTAINED__CHANNEL_OWNER_PENDING",
+  "note": "本方只读通道无上述权限；有权通道所有者书面决定维持 PENDING_CHANNEL_OWNER_DECISION，本方不追问受控通道"
+ },
+ "no_reading_periods": "按 Tom 口径保持「无法判断」，不推定、不填补",
+ "different_time_success_note": "08:00:30 北京 t1b-watch OK 与 08:28:25 现场 probe 成功属不同时点、不同链路、不同端点，不得据此判先前 404 告警为误报",
+ "overall": "NO_BLANKET_CLASSIFICATION__NEITHER_REGRESSION_NOR_FALSE_POSITIVE",
+ "zero_fix": true,
+ "zero_batch_handling": true,
+ "fix_requires_separate_authorization": true,
+ "separation_from_zero_link_change": {
+  "statement": "BD 队列探头端点 HTTP 404 是探针可达性新问题，与本方零换链为两件独立事实，严格分开登记、不互相掩盖",
+  "ts_manager_deployments": 3,
+  "url_verbatim_unchanged": true,
+  "our_actions_on_that_endpoint": "NONE（零 push / 零 deploy / 零删除 / 零替换）"
+ },
+ "values_are_final": false
+}

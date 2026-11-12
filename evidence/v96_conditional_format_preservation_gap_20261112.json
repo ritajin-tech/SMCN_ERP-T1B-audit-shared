@@ -1,0 +1,22 @@
+{
+ "capture_beijing": "2026-11-12 08:36:27",
+ "tom_new_requirement": "对条件格式处置也请保全前后配置、作用范围和授权",
+ "our_action": {
+  "at": "2026-11-12 00:18 北京",
+  "what": "pmlist Registry 四色整行 A:F 统一（黄/红/白/灰，不含绿）+ 短标签 HYPERLINK 方案 B；删除数据区 9 条条件格式留表头 9 条",
+  "verification": "@425 受 key 动作 regstyleverify 逐格返回，97/97 合规",
+  "disclosed_in": "v95 并行变更逐版哈希与正文"
+ },
+ "preservation_status": {
+  "before_after_source_bytes_and_hashes": "PRESERVED（见 v95_parallel_changes_since_v94_20261112.json）",
+  "conditional_format_before_config_original": "NOT_OBTAINED__NOT_CAPTURED_AT_ACTION_TIME",
+  "conditional_format_after_config_original": "NOT_OBTAINED__NOT_CAPTURED_AT_ACTION_TIME",
+  "configured_scope": "TEXTUAL_CONCLUSION_ONLY（数据区 9 条删除、表头 9 条保留、止于 R97）；原始规则对象未保全",
+  "written_authorization": "NOT_OBTAINED__CHANNEL_OWNER_PENDING"
+ },
+ "do_not_fabricate": true,
+ "do_not_use_97_97_as_config_preservation": true,
+ "do_not_impersonate_tom_independent_review": true,
+ "minimum_acceptable_action": "由有权通道所有者以 regstylediag / regstylefix(dry=1) 在有权只读范围内现场复采前后配置，或具名说明不可取得范围；本方在其判断前不补造、不代判",
+ "values_are_final": false
+}

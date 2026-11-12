@@ -1,0 +1,19 @@
+{
+ "capture_beijing": "2026-11-12 08:36:27",
+ "tom_new_requirement": "业务口径变更需由有权业务负责人书面确认，不能凭本函认定已获批准",
+ "rule": {
+  "at": "2026-11-11 23:5x 北京",
+  "decided_by": "有权业务负责人（Rita）本人",
+  "content": "工作日工时 + 请假必须满 8 小时；≥8 不显示（含加班/全天假/半天假+半天工时），<8 才列待补并显示缺口"
+ },
+ "our_disclosure": "已在 v95 并行变更披露中主动登记，标 TO_BE_VERIFIED_NOT_AUTHORIZED",
+ "status": "PENDING_BUSINESS_OWNER_WRITTEN_CONFIRMATION",
+ "not_claimed": [
+  "不代判书面确认件已齐备",
+  "不凭本函认定已获批准",
+  "不视为 Tom 独立核验结论",
+  "不因本函解冻或扩大写入"
+ ],
+ "incident_state_unchanged": true,
+ "values_are_final": false
+}

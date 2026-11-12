@@ -1,0 +1,148 @@
+{
+ "capture_beijing": "2026-11-12 08:36:27",
+ "capture_utc": "2026-11-12T00:36:27Z",
+ "generation": "v96",
+ "prev_generation": "v95",
+ "prev_commit": "e0bc1a516f58808f46342845ea47e3b8c86263a9",
+ "trigger": {
+  "gate_verdict": "OPEN_NEXT_VERSION",
+  "triggered": [
+   "T1",
+   "T2",
+   "T5"
+  ],
+  "tool": "tools/t1b_gate_check.py",
+  "external": "_tmp/v96_gate_external.json"
+ },
+ "packages": [
+  {
+   "path": "evidence/v96_gate_and_triggers_20261112.json",
+   "bytes": 2892,
+   "sha256": "68b92dcb9234fa2aea20e7ec0048cfdfe2e512e8d6a9b27f35ed3d97aafc4e9b",
+   "what": "v96 开版依据：T1+T2+T5 三触发与过期读数声明"
+  },
+  {
+   "path": "evidence/v96_tom_reply_six_conditions_20261112.json",
+   "bytes": 5431,
+   "sha256": "793cdb526724de784df31c9a50d7e5bcbf1fe72160466345ceb9a8fdb5aa696d",
+   "what": "Tom 六组条件逐条正面承接（含三处新增要求与如实缺口登记）"
+  },
+  {
+   "path": "evidence/v96_data_delta_leave_rows_20261112.json",
+   "bytes": 1847,
+   "sha256": "8068d5b1f52a570c615b9d054a22cb4658d9245dc02a88967bbda25ec51d87ed",
+   "what": "真实数据事件：请假 613→615 新增两行现场全 15 列（脱敏）"
+  },
+  {
+   "path": "evidence/v96_sheet_tabs_delta_20261112.json",
+   "bytes": 995,
+   "sha256": "c83a3da63009d03eb122689db64edd76a7b7bf7a30fb33e93786899fdbf4ea3e",
+   "what": "真实数据事件：主库页签 41→43 两张每日重算镜像"
+  },
+  {
+   "path": "evidence/v96_production_zero_write_20261112.json",
+   "bytes": 826,
+   "sha256": "542670678d55a3df0c9ac09ae4b556493bf7a2f6fc6658fc4a62203021618b5b",
+   "what": "生产表 11445/18 现场复采：尾行全列、零新增工时行"
+  },
+  {
+   "path": "evidence/v96_404_minimal_recheck_20261112.json",
+   "bytes": 2188,
+   "sha256": "c8526a3626ba5b01adb6b451be5e4bff8e2e08e7bf058af5978e5037e46cd872",
+   "what": "404 最小复核：按 Tom 方法论逐格，同端点同权限同条件复现、缺口如实登记"
+  },
+  {
+   "path": "evidence/v96_monitoring_alerts_triage_20261112.json",
+   "bytes": 5163,
+   "sha256": "184df7705b22aa97564ef8dbd0af02be42af652856d6511f9c47968273337c4d",
+   "what": "v95 之后 18 条新 404 失败逐条登记与三分类"
+  },
+  {
+   "path": "evidence/v96_conditional_format_preservation_gap_20261112.json",
+   "bytes": 1417,
+   "sha256": "e76f0c3189bf1ac7d85f26df61b6196bdd07452c536c4d2c22a6b2a52fa9a608",
+   "what": "条件格式前后配置保全缺口：如实登记 NOT_OBTAINED，不补造、不冒充"
+  },
+  {
+   "path": "evidence/v96_business_rule_written_confirmation_20261112.json",
+   "bytes": 827,
+   "sha256": "4e700191d548c2442c4b6b4e10f9a81889be6b0a7162c0b72c624a67508938cc",
+   "what": "业务口径书面确认：登记 PENDING，不代判已批准"
+  },
+  {
+   "path": "evidence/v96_local_tool_changes_20261112.json",
+   "bytes": 1750,
+   "sha256": "12b2cc16c5ebf130cf4a974c67dfae5335f5aaee77cba9ae6c0c33776be518b9",
+   "what": "v95 之后本地工具变更三要素（实际内容 / 权限 / 运行记录）"
+  },
+  {
+   "path": "evidence/v96_endpoint_no_change_20261112.json",
+   "bytes": 657,
+   "sha256": "acabecf0b46a4d8abf475f868d767621ab0be6f210da0f29d38695480f2132f9",
+   "what": "零换链实证：部署恒 3、三个 ID 与团队入口 URL 逐字未变"
+  },
+  {
+   "path": "evidence/v96_live_readings_and_sources_20261112.json",
+   "bytes": 3570,
+   "sha256": "a857b9e15c6530b8bf90259f67a21cf8a088b0bdcdfc535ddda98ca653943eff",
+   "what": "现场读数与 12 轴逐源打勾、4 轴沿用或不可取得、明确未核清单"
+  },
+  {
+   "path": "evidence/v96_d1_static_recheck_20261112.json",
+   "bytes": 694,
+   "sha256": "3a7d568b7a9d68267b096a525788b11eb80af4dc64f94ecaea49ded8b1129e70",
+   "what": "D1：固定提交指定单件字节与 SHA-256 静态复算（仅证仍在、不算对方核验）"
+  },
+  {
+   "path": "evidence/v96_exposure_access_scope_20261112.json",
+   "bytes": 924,
+   "sha256": "0a81e9261c55b31edd5a20b3baa22da7adfb55fc46ef315cade2dc9c0757c347",
+   "what": "公开库边界：脱敏硬闸、保全≠公开、访问控制待有权方书面决定"
+  },
+  {
+   "path": "docs/v96_full_review_20261112.md",
+   "bytes": 17320,
+   "sha256": "19c42ba7da9a6a301c2cf1bee494d65a2764db8c60d1ab13b91585eff4a4396b",
+   "what": "v96 系统大局梳理主文档：四板块 + 六组承接 + 七节"
+  },
+  {
+   "path": "docs/T1-B_v96_明确方案与具体编辑_Tom可直接编辑_20261112.md",
+   "bytes": 12701,
+   "sha256": "93763310dd97fa4806ae65711e15d2757a96a346e2850ff6f5675ea9cf7e413b",
+   "what": "A–O 十五组具体编辑靶子 + S5 监控专项 + S6 最小可验收动作 + P1–P4 大局还复格"
+  }
+ ],
+ "total_files": 16,
+ "sensitive_gate": {
+  "result": "PASS",
+  "forbidden_patterns": 5,
+  "pii_names_count": 18,
+  "scope": "邮箱 / 部署 ID / token / 工时 UUID / 姓名 / 资产 ID 前缀 / 源码标记",
+  "newly_added_pii": [
+   "本代新增请假两行涉及的姓名"
+  ]
+ },
+ "redlines": {
+  "zero_production_write": true,
+  "zero_master_write": true,
+  "zero_soft_marker": true,
+  "zero_physical_delete": true,
+  "zero_new_deployment": true,
+  "zero_deleted_deployment": true,
+  "zero_url_change": true,
+  "zero_history_object_edit": true,
+  "zero_live_doc_body_edit": true
+ },
+ "incident_state": "OPEN · HOLD-NO-GO · 阶段一 PASS 暂缓 · M2 未签 · TS_WRITE_FREEZE=1",
+ "open_items_unchanged": [
+  "R1",
+  "R2",
+  "R3",
+  "R4",
+  "N1",
+  "N5",
+  "N6",
+  "D1"
+ ],
+ "values_are_final": false
+}

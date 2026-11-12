@@ -1,0 +1,59 @@
+{
+ "capture_beijing": "2026-11-12 08:36:27",
+ "recollected_at": "2026-11-12 08:30:21 (北京时间 GMT+8；UTC 2026-11-12T00:30:21Z)",
+ "channel": "hktool inspectWorkbook 只读 / mode=values / a1=A608:O615",
+ "meta": {
+  "name": "T1B_主库_工时与请假",
+  "sheet": "请假",
+  "range": "A608:O615",
+  "lastRow": 615,
+  "lastCol": 15
+ },
+ "prev_baseline": "613 / 15（v95 承接代，2026-11-12 01:04:05 北京）",
+ "current": "615 / 15（本代 2026-11-12 08:28:25 北京）",
+ "delta_rows": 2,
+ "watch_capture_at": "2026-11-12 06:30:29 北京（outputs/T1-B_盯梢触发_20261112_0630.md）",
+ "new_rows": [
+  {
+   "row": 614,
+   "cols": 15,
+   "date_cell": "2026-11-10T16:00:00.000Z",
+   "leave_type": "休假",
+   "hours": 8,
+   "source_note": "系统同步请假",
+   "stable_key": "69vpjkg3a9u3pra4eafqvd70an|2026-11-11|<NAME_REDACTED>",
+   "channel": "日历",
+   "window_start": "2026-11-10T16:00:00.000Z",
+   "window_end": "2026-11-11T16:00:00.000Z",
+   "seq": 1,
+   "total": 1,
+   "flag": "是"
+  },
+  {
+   "row": 615,
+   "cols": 15,
+   "date_cell": "2026-11-11T16:00:00.000Z",
+   "leave_type": "休假",
+   "hours": 2,
+   "source_note": "系统同步请假",
+   "stable_key": "7gmklh0q2873lufpk6opi9ftt6|2026-11-12|<NAME_REDACTED>",
+   "channel": "日历",
+   "window_start": "2026-11-12T08:00:00.000Z",
+   "window_end": "2026-11-12T10:00:00.000Z",
+   "seq": 1,
+   "total": 1,
+   "flag": "否"
+  }
+ ],
+ "redaction": "姓名与稳定键中的姓名一律 <NAME_REDACTED>；原始全列快照只留本机受控、不入公开库",
+ "write_subject": "NOT_DETERMINED；两笔均为「系统同步请假」记录，非本方写入，写入主体与业务有效性不确认",
+ "not_confirmed": [
+  "覆盖写入",
+  "删除",
+  "回滚",
+  "写入主体",
+  "业务有效性"
+ ],
+ "no_stable_window": true,
+ "values_are_final": false
+}

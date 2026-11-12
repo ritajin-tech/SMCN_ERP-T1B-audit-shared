@@ -1,0 +1,51 @@
+{
+ "capture_beijing": "2026-11-12 08:36:27",
+ "at": "2026-11-12 01:43:57 (北京时间 GMT+8；UTC 2026-11-11T17:43:57Z)",
+ "subject": "回复：【生产表】v95并行变更与404告警",
+ "genuine": true,
+ "has_attachments": false,
+ "in_reply_to_exactly_matches_v95_rfc": true,
+ "conditions": [
+  {
+   "no": 1,
+   "tom": "事故期间既有 WebApp 持续更新至 211、另一主部署更新、条件格式处置与 HTTP 404 告警均为对方报告；本方尚未独立核验源码、部署、授权、运行记录或生产状态；既有地址不变不能证明行为不变，并行变更继续列为待核风险，不视为本方授权或验收。",
+   "response": "正面接受、不辩解。v95 已逐版披露五版 WebApp 原地更新（@207→@211）与一条 pmlist 主部署原地更新（@420→@425）前后 SHA-256 与本代不新增任何部署；本代继续标 TO_BE_VERIFIED_NOT_AUTHORIZED，不主张已被独立核验、不视为授权或验收。",
+   "status": "ACCEPTED_NOT_AUTHORIZED"
+  },
+  {
+   "no": 2,
+   "tom": "请保全每次变更前后源码原始字节及哈希、部署指向、执行主体、时间、书面授权、测试范围和服务端记录；由有权负责人确认授权与影响。",
+   "response": "正面接受。前后源码原始字节、哈希、部署指向、时点、执行主体、测试范围见 evidence/v95_parallel_changes_since_v94_20261112.json；书面授权与服务端记录本方无权取得，登记 NOT_OBTAINED__CHANNEL_OWNER_PENDING，不代填、不代判。",
+   "status": "PARTIAL__SERVER_RECORDS_NOT_OBTAINED"
+  },
+  {
+   "no": 3,
+   "tom": "【本函新增】对条件格式处置也请保全前后配置、作用范围和授权。",
+   "response": "🔴 正面接受并如实披露缺口：本方 11-12 00:18 对 pmlist Registry 条件格式做过处置并逐格验收（97/97 合规，真因是 18 条 =TRUE 条件格式按列锁死底色、止于 R97），但处置前后条件格式配置的原始全量原件当时未做保全，作用范围只留有文字结论，授权件本方无权出具 ⇒ 一律登记 NOT_OBTAINED__CHANNEL_OWNER_PENDING，不补造、不用 v95 的 97/97 验收冒充前后配置保全、不冒充对方独立复核。",
+   "status": "NOT_OBTAINED__DO_NOT_FABRICATE",
+   "newly_added": true
+  },
+  {
+   "no": 4,
+   "tom": "【本函新增】业务口径变更需由有权业务负责人书面确认，不能凭本函认定已获批准。",
+   "response": "🔴 正面接受、不越界：11-11 23:5x 北京由 Rita 本人裁定「工作日工时 + 请假必须满 8 小时，不足才列待补并显示缺口」，该裁定属业务负责人本人作出、已逐版列入并行变更披露；但本方不代判其书面确认件已齐备、不凭本函认定已获批准、不视为对方核验结论，登记 PENDING_BUSINESS_OWNER_WRITTEN_CONFIRMATION，由有权业务负责人另行出具。",
+   "status": "PENDING_BUSINESS_OWNER_WRITTEN_CONFIRMATION",
+   "newly_added": true
+  },
+  {
+   "no": 5,
+   "tom": "【本函新增·404 最小复核方法论】由端点及运行通道所有者保全失败时的请求时间、目标标识、响应状态与相关服务端日志及配置版本，在有权只读范围内以相同端点、权限和条件复采，对照变更前配置；以可关联的原始请求与响应证据确认可复现范围和原因。不同时间或链路成功不能证明先前告警误报；未取得读数的时段保持无法判断。修复另需授权。",
+   "response": "🔴 正面接受并按该判据执行本方可执行部分：08:30:30 北京以相同端点、只读权限、相同条件独立 GET，再次复现 HTTP 404（REPRODUCED_SYMPTOM_ONLY）。但请求-响应关联证据、服务端日志、配置版本、变更前配置本方只读通道无权取得，登记 NOT_OBTAINED__CHANNEL_OWNER_PENDING；未取得读数的时段保持「无法判断」，不推定根因、不推定写入主体、不擅自修复、不批量处置，修复需另行授权。逐格见 evidence/v96_404_minimal_recheck_20261112.json。",
+   "status": "PARTIAL__SYMPTOM_REPRODUCED_ONLY",
+   "newly_added": true
+  },
+  {
+   "no": 6,
+   "tom": "疑似重复数据及工时尚未独立核验，不确认数量、损失或处置；请保全原始快照与匹配规则并由业务负责人确认有效性。公开库访问及服务端日志仍须由有权方保全或具名说明不可取得范围。N1、N6、R3/N5 不因本函关闭。固定提交 d50e795 指定单件字节和 SHA-256 本方仍未独立核验、不运行所交脚本。事故 OPEN、HOLD/NO-GO、阶段一 PASS 暂缓维持；本函不构成验收、解冻或生产授权。",
+   "response": "正面接受、一律不关闭。本代不确认任何重复数量、工时损失或处理方案，不删并不写；轨 B 数据层 1615 行原始重复副本仍冻结。原始全列快照只留本机受控、不入公开库；稳定键与逐项匹配规则沿用 evidence/v95_content_scope_boundary_20261112.json。D1 四列仍空、本方静态复算 4825 字节 / e7a8f8a1…47007 仅用于确认固定提交仍在、不算作对方核验、不运行所交脚本。事故状态原样维持。",
+   "status": "ACCEPTED_ALL_ITEMS_UNCHANGED"
+  }
+ ],
+ "newly_added_count": 3,
+ "note": "本函全部回应均为「本方采集与登记、待 Tom 独立核验」；本方不代对方核验，也不把只读判定冒充对方核验结论。"
+}

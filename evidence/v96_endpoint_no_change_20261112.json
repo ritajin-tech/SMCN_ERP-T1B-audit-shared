@@ -1,0 +1,18 @@
+{
+ "capture_beijing": "2026-11-12 08:36:27",
+ "deployments_found": 3,
+ "deployment_versions": [
+  "@HEAD",
+  "@202",
+  "@211"
+ ],
+ "ids_identical_to_prev_generation": true,
+ "url_verbatim_unchanged": true,
+ "new_deployments": 0,
+ "deleted_deployments": 0,
+ "zero_clasp_push": true,
+ "zero_deploy": true,
+ "bd_probe_404_separation": "BD 队列探头端点 HTTP 404 为探针可达性新问题，与本方零换链为两件独立事实；本方未对该端点做任何 push / deploy / 删除 / 替换",
+ "redline": "不改链接：本代零新建、零删除部署；所有修复、迭代、热修都不得产生新访问链接",
+ "values_are_final": false
+}

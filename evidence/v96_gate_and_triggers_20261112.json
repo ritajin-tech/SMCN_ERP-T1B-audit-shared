@@ -1,0 +1,67 @@
+{
+ "capture_beijing": "2026-11-12 08:36:27",
+ "capture_utc": "2026-11-12T00:36:27Z",
+ "generation": "v96",
+ "prev_generation": "v95",
+ "prev_commit": "e0bc1a516f58808f46342845ea47e3b8c86263a9",
+ "gate": {
+  "tool": "tools/t1b_gate_check.py",
+  "command": "--since 2026-11-11T17:20:48Z --external _tmp/v96_gate_external.json --generation v95 --probe _tmp/v96_live_probe_20261112.json",
+  "verdict": "OPEN_NEXT_VERSION",
+  "triggered": [
+   "T1",
+   "T2",
+   "T5"
+  ],
+  "card": "outputs/T1-B_闸门核查_v96_20261112.json / .html"
+ },
+ "t1": {
+  "id": "Tom 新真回函",
+  "at": "2026-11-12 01:43:57 (北京时间 GMT+8；UTC 2026-11-11T17:43:57Z)",
+  "message_id": "msg_Vp8WUUUmPtgvLZgyTmnVmVJ05oTUQYXA_kFtXIAnMOxlfg",
+  "subject": "回复：【生产表】v95并行变更与404告警",
+  "genuine": true,
+  "has_attachments": false,
+  "in_reply_to_exactly_matches_v95_rfc": true,
+  "new_conditions_count": 6,
+  "newly_added_vs_v95": 3
+ },
+ "t2": {
+  "id": "真实数据事件",
+  "events": [
+   "主库「请假」lastRow 613→615（v95 基线→本代，2026-11-12 06:30:29 北京盯梢捕获、08:28:25 现场 probe 复核、08:30:21 现场取回 A608:O615 全 15 列）：新增 row614 与 row615 两笔「系统同步请假」记录，非本方写入，写入主体与业务有效性不确认",
+   "主库页签 41→43（2026-11-12 08:30:28 北京盯梢捕获、08:28:25 现场 probe 复核）：新增「按月考勤_重算前_20261112」「月度视图_重算前_20261112」两张每日重算镜像页签，同时 11-09 一对轮替消失；按盯梢已登记 B 类每日镜像，非结构改动、非本方写入、不推定创建主体",
+   "🔴 工具边界主动披露：tools/_zc_state/t1b-watch-readings.json 基线已被 08:00:30 盯梢自动推进为 615/15 · 43/16，故闸门自动 diff 会判「与基线一致」；本方按 v95 承接代基线 613/15 · 41/16 显式登记本 data_events，不静默沿用、不把自动推进当作无事件",
+   "生产表 DB_工时流水 11445/18 未变，A11440:Q11445 现场全列复采尾行仍为 2026-11-11 09:19:16Z 批次 ⇒ 本轮零生产写；读数不变不排除覆盖写入、删除或回滚，不建立稳定窗口"
+  ],
+  "baseline_note": "盯梢基线已自动推进至 615/43，自动 diff 判空属工具边界；本方按 v95 承接代基线 613/41 显式登记，不静默沿用"
+ },
+ "t5": {
+  "id": "新失败运行记录",
+  "count": 18,
+  "all_http_404": true,
+  "tools": [
+   "bd-drain",
+   "numberlock-fixwatch",
+   "pclist-harvest"
+  ],
+  "first": "2026-11-12 01:35:14",
+  "last": "2026-11-12 08:05:15"
+ },
+ "t3": {
+  "new_commits": 0,
+  "new_issues": 0,
+  "new_prs": 0,
+  "remote_drift": false
+ },
+ "t4": {
+  "conflict": false,
+  "both_live_docs": "HISTORY_INTACT"
+ },
+ "expired_readings_not_reused": [
+  "01:08 v95 判定",
+  "19:16 v94 判定",
+  "13:34 NO_TRIGGER"
+ ],
+ "values_are_final": false
+}

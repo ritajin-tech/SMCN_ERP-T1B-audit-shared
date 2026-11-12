@@ -1,0 +1,156 @@
+{
+ "capture_beijing": "2026-11-12 08:36:27",
+ "since": "2026-11-11T17:20:48Z（v95 回函发出时点）",
+ "new_fail_count": 18,
+ "all_http_404": true,
+ "tools": [
+  "bd-drain",
+  "numberlock-fixwatch",
+  "pclist-harvest"
+ ],
+ "reproduced_symptom_only": {
+  "count": 18,
+  "records": [
+   {
+    "time": "2026-11-12 01:35:14 北京",
+    "task": "bd-drain",
+    "seconds": "14.1",
+    "detail": "队列探头失败（GAS 不可达）: <HTTPError 404: 'Not Found'>",
+    "classification": "REPRODUCED_SYMPTOM_ONLY"
+   },
+   {
+    "time": "2026-11-12 02:05:15 北京",
+    "task": "bd-drain",
+    "seconds": "15.1",
+    "detail": "队列探头失败（GAS 不可达）: <HTTPError 404: 'Not Found'>",
+    "classification": "REPRODUCED_SYMPTOM_ONLY"
+   },
+   {
+    "time": "2026-11-12 02:35:15 北京",
+    "task": "bd-drain",
+    "seconds": "14.5",
+    "detail": "队列探头失败（GAS 不可达）: <HTTPError 404: 'Not Found'>",
+    "classification": "REPRODUCED_SYMPTOM_ONLY"
+   },
+   {
+    "time": "2026-11-12 03:05:15 北京",
+    "task": "bd-drain",
+    "seconds": "14.5",
+    "detail": "队列探头失败（GAS 不可达）: <HTTPError 404: 'Not Found'>",
+    "classification": "REPRODUCED_SYMPTOM_ONLY"
+   },
+   {
+    "time": "2026-11-12 03:10:06 北京",
+    "task": "pclist-harvest",
+    "seconds": "5.8",
+    "detail": "请求失败: <HTTPError 404: 'Not Found'>",
+    "classification": "REPRODUCED_SYMPTOM_ONLY"
+   },
+   {
+    "time": "2026-11-12 03:35:15 北京",
+    "task": "bd-drain",
+    "seconds": "14.4",
+    "detail": "队列探头失败（GAS 不可达）: <HTTPError 404: 'Not Found'>",
+    "classification": "REPRODUCED_SYMPTOM_ONLY"
+   },
+   {
+    "time": "2026-11-12 04:05:15 北京",
+    "task": "bd-drain",
+    "seconds": "14.5",
+    "detail": "队列探头失败（GAS 不可达）: <HTTPError 404: 'Not Found'>",
+    "classification": "REPRODUCED_SYMPTOM_ONLY"
+   },
+   {
+    "time": "2026-11-12 04:06:03 北京",
+    "task": "numberlock-fixwatch",
+    "seconds": "0.9",
+    "detail": "vercheck 探针失败: <HTTPError 404: 'Not Found'>",
+    "classification": "REPRODUCED_SYMPTOM_ONLY"
+   },
+   {
+    "time": "2026-11-12 04:35:15 北京",
+    "task": "bd-drain",
+    "seconds": "14.4",
+    "detail": "队列探头失败（GAS 不可达）: <HTTPError 404: 'Not Found'>",
+    "classification": "REPRODUCED_SYMPTOM_ONLY"
+   },
+   {
+    "time": "2026-11-12 05:05:14 北京",
+    "task": "bd-drain",
+    "seconds": "13.8",
+    "detail": "队列探头失败（GAS 不可达）: <HTTPError 404: 'Not Found'>",
+    "classification": "REPRODUCED_SYMPTOM_ONLY"
+   },
+   {
+    "time": "2026-11-12 05:10:06 北京",
+    "task": "pclist-harvest",
+    "seconds": "5.9",
+    "detail": "请求失败: <HTTPError 404: 'Not Found'>",
+    "classification": "REPRODUCED_SYMPTOM_ONLY"
+   },
+   {
+    "time": "2026-11-12 05:35:16 北京",
+    "task": "bd-drain",
+    "seconds": "15.7",
+    "detail": "队列探头失败（GAS 不可达）: <HTTPError 404: 'Not Found'>",
+    "classification": "REPRODUCED_SYMPTOM_ONLY"
+   },
+   {
+    "time": "2026-11-12 06:05:15 北京",
+    "task": "bd-drain",
+    "seconds": "14.3",
+    "detail": "队列探头失败（GAS 不可达）: <HTTPError 404: 'Not Found'>",
+    "classification": "REPRODUCED_SYMPTOM_ONLY"
+   },
+   {
+    "time": "2026-11-12 06:35:15 北京",
+    "task": "bd-drain",
+    "seconds": "14.4",
+    "detail": "队列探头失败（GAS 不可达）: <HTTPError 404: 'Not Found'>",
+    "classification": "REPRODUCED_SYMPTOM_ONLY"
+   },
+   {
+    "time": "2026-11-12 07:05:15 北京",
+    "task": "bd-drain",
+    "seconds": "14.2",
+    "detail": "队列探头失败（GAS 不可达）: <HTTPError 404: 'Not Found'>",
+    "classification": "REPRODUCED_SYMPTOM_ONLY"
+   },
+   {
+    "time": "2026-11-12 07:10:06 北京",
+    "task": "pclist-harvest",
+    "seconds": "5.6",
+    "detail": "请求失败: <HTTPError 404: 'Not Found'>",
+    "classification": "REPRODUCED_SYMPTOM_ONLY"
+   },
+   {
+    "time": "2026-11-12 07:35:14 北京",
+    "task": "bd-drain",
+    "seconds": "14.1",
+    "detail": "队列探头失败（GAS 不可达）: <HTTPError 404: 'Not Found'>",
+    "classification": "REPRODUCED_SYMPTOM_ONLY"
+   },
+   {
+    "time": "2026-11-12 08:05:15 北京",
+    "task": "bd-drain",
+    "seconds": "14.3",
+    "detail": "队列探头失败（GAS 不可达）: <HTTPError 404: 'Not Found'>",
+    "classification": "REPRODUCED_SYMPTOM_ONLY"
+   }
+  ]
+ },
+ "not_reproduced_at_other_time": {
+  "count": 1,
+  "note": "08:00:30 北京 t1b-watch OK、08:28:25 现场 probe 成功；不同时点不同链路不同端点，不得据此判先前告警误报"
+ },
+ "indeterminate": {
+  "count": 0,
+  "note": "未取得服务端日志与配置版本的时段按 Tom 口径保持无法判断，不并入症状可复现计数"
+ },
+ "overall_verdict": "NO_BLANKET_CLASSIFICATION__NEITHER_REGRESSION_NOR_FALSE_POSITIVE",
+ "disclosed_in_prev_generation": 12,
+ "tool_limitation": "闸门脚本只读取 since 当日日志；11-11 日志中的 12 条已在 v95 逐条披露，本代 18 条全部来自 11-12 日志，未静默丢弃",
+ "zero_fix": true,
+ "zero_batch_handling": true,
+ "values_are_final": false
+}
