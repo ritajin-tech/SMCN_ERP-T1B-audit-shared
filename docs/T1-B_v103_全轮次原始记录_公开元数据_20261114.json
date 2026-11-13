@@ -1,0 +1,1217 @@
+{
+  "classification": "PUBLIC_SAFE__METADATA_ONLY__NO_PERSONNEL_DETAIL",
+  "build_time_utc": "2026-11-13T16:18:14Z",
+  "build_time_local": "2026-11-14 00:18:14",
+  "read_only": true,
+  "controlled_snapshot_path": "_tmp/t1b_round_register_20261114_0015.json",
+  "controlled_snapshot_bytes": 61619,
+  "controlled_snapshot_sha256": "548736acdbd558f59f98ba43b09be026ce3a589e6c75803da6332aaead20795a",
+  "source_file_count": 116,
+  "source_files": [
+    {
+      "path": "_tmp/probe_live_20261112_2345.json",
+      "bytes": 8604,
+      "sha256": "f6761abd4f9eecce72fd34450a37ef9b9c108b4e1cd126fec6e2303cf16a2cf1",
+      "kind": "json"
+    },
+    {
+      "path": "_tmp/probe_live_20261113_0030.json",
+      "bytes": 8604,
+      "sha256": "546573748edfcc691f37561708a3014f9d910e3692a20a451f6cf8eda07afd08",
+      "kind": "json"
+    },
+    {
+      "path": "_tmp/probe_live_20261113_0040.json",
+      "bytes": 8604,
+      "sha256": "dfd721d6414f050c5e20c07a1f8d9055d8ab435c40552971f0287706cf4182ed",
+      "kind": "json"
+    },
+    {
+      "path": "_tmp/probe_live_20261113_1025.json",
+      "bytes": 8688,
+      "sha256": "546257e3c50d66ffb62ca42e8d98a55224256e0a63d962e982e5b3174bdf87cb",
+      "kind": "json"
+    },
+    {
+      "path": "_tmp/probe_live_20261114_0011.json",
+      "bytes": 8688,
+      "sha256": "b7858e127475ce4b1cbb79bb68be75004379422ff044720259237183cd10f04d",
+      "kind": "json"
+    },
+    {
+      "path": "outputs/T1-B_盯梢触发_20261108_1538.md",
+      "bytes": 1209,
+      "sha256": "fdc028c3532971ab8937442eace0ad752de774772327829680ebdd770108f314",
+      "kind": "md"
+    },
+    {
+      "path": "outputs/T1-B_盯梢触发_20261109_0830.md",
+      "bytes": 1248,
+      "sha256": "f0df5b1d79027df579cb5497804b7fc8eb84b9f82e4bc3695215295b6c646e1d",
+      "kind": "md"
+    },
+    {
+      "path": "outputs/T1-B_盯梢触发_20261109_1030.md",
+      "bytes": 1209,
+      "sha256": "2c68df0f0d6d93f6e3bf23c640dcbdbb328a54ce91b31631f30ca162aca6bf56",
+      "kind": "md"
+    },
+    {
+      "path": "outputs/T1-B_盯梢触发_20261109_1430.md",
+      "bytes": 1209,
+      "sha256": "62b308462024fc2f8a7fd160912fb8dfc5a0ee1b67e2afd83abd07d043932e6c",
+      "kind": "md"
+    },
+    {
+      "path": "outputs/T1-B_盯梢触发_20261109_1530.md",
+      "bytes": 1209,
+      "sha256": "bf0eb46f7191dd29fa0a1bb66197510b9fa85824cbdef45f5bd20b33bb00a245",
+      "kind": "md"
+    },
+    {
+      "path": "outputs/T1-B_盯梢触发_20261109_1600.md",
+      "bytes": 1209,
+      "sha256": "1963455eb839dcbc925751288ea71fec03de669c43894d6437771e4a7ea7e9c8",
+      "kind": "md"
+    },
+    {
+      "path": "outputs/T1-B_盯梢触发_20261109_1730.md",
+      "bytes": 1209,
+      "sha256": "1b4654ffaf5c9463b8f5b32fddf84674fd01f609f911d38c69ca1df798fcd81c",
+      "kind": "md"
+    },
+    {
+      "path": "outputs/T1-B_盯梢触发_20261109_1800.md",
+      "bytes": 1209,
+      "sha256": "71bf204766a425459ac95b1140119c1ca5813dc06b8366883356b937e1a56c8e",
+      "kind": "md"
+    },
+    {
+      "path": "outputs/T1-B_盯梢触发_20261110_0700.md",
+      "bytes": 1207,
+      "sha256": "f92730480937d050f616cc1c97b18a21104067d38a88cc37942781a554cc1bac",
+      "kind": "md"
+    },
+    {
+      "path": "outputs/T1-B_盯梢触发_20261110_0830.md",
+      "bytes": 1248,
+      "sha256": "6fe7121599552db8b427ac5f438fbdbd6d48d4e2547d6b3dc0fcae3fdb3b9dfb",
+      "kind": "md"
+    },
+    {
+      "path": "outputs/T1-B_盯梢触发_20261110_1130.md",
+      "bytes": 1209,
+      "sha256": "396d1bef96f1101cde98ffbacf463da0a199d49a6db9f31c846caad8ca22b031",
+      "kind": "md"
+    },
+    {
+      "path": "outputs/T1-B_盯梢触发_20261110_1730.md",
+      "bytes": 1209,
+      "sha256": "7b6dbb0b92b255f4350377d7dc2d948dfcf0c3194c2b7582a66d8904eeebad94",
+      "kind": "md"
+    },
+    {
+      "path": "outputs/T1-B_盯梢触发_20261110_1800.md",
+      "bytes": 1209,
+      "sha256": "15520cccf7d8a72dc8713c4ea2b2ca97d042208483db03ead73409abb4917868",
+      "kind": "md"
+    },
+    {
+      "path": "outputs/T1-B_盯梢触发_20261110_1830.md",
+      "bytes": 1209,
+      "sha256": "9f7f2866fe1c6723f2162636645773606413887fc6c237141321672ecb5e20c7",
+      "kind": "md"
+    },
+    {
+      "path": "outputs/T1-B_盯梢触发_20261110_2030.md",
+      "bytes": 1209,
+      "sha256": "6ec1d694e59638078c9b7f1026ddd0364412f84fc6cd7b56a799805e67753ce2",
+      "kind": "md"
+    },
+    {
+      "path": "outputs/T1-B_盯梢触发_20261110_2100.md",
+      "bytes": 1209,
+      "sha256": "c352ae3f63f15c70ecb155d1302eda3325edc8536167078cf2fb9ee71d5166e0",
+      "kind": "md"
+    },
+    {
+      "path": "outputs/T1-B_盯梢触发_20261111_0630.md",
+      "bytes": 1207,
+      "sha256": "7cc7479dd745473c328960db53aec0759ba84c76ff5807da7d9964eeb28ba900",
+      "kind": "md"
+    },
+    {
+      "path": "outputs/T1-B_盯梢触发_20261111_0830.md",
+      "bytes": 1248,
+      "sha256": "38f87d5dab7c155fd148e9cec43cc6594cfdbffc3ac77b45a373b0972ec0ce46",
+      "kind": "md"
+    },
+    {
+      "path": "outputs/T1-B_盯梢触发_20261111_1030.md",
+      "bytes": 1209,
+      "sha256": "68eb208878f01e12483d4a3d9c073ac8e3c5a7264307a60c759c41edeb132ff9",
+      "kind": "md"
+    },
+    {
+      "path": "outputs/T1-B_盯梢触发_20261111_1230.md",
+      "bytes": 1209,
+      "sha256": "d0f8451351a9bb999833e52baf85a83ce4d096fbb1fffaa97af1bf234bb4b7c3",
+      "kind": "md"
+    },
+    {
+      "path": "outputs/T1-B_盯梢触发_20261111_1730.md",
+      "bytes": 1209,
+      "sha256": "3c0a113cec5d10b21c2ab75808300601c5dbd5892c62d1dc04aa8624aa1dc46f",
+      "kind": "md"
+    },
+    {
+      "path": "outputs/T1-B_盯梢触发_20261111_1800.md",
+      "bytes": 1209,
+      "sha256": "320d123bc06b3511069b47e8e92bba51a8d5891ba6428172e8960a127f6ee016",
+      "kind": "md"
+    },
+    {
+      "path": "outputs/T1-B_盯梢触发_20261111_1830.md",
+      "bytes": 1209,
+      "sha256": "baf134fcae349e3bfc2475d362ba1a01036dfdec7ed037d67e264cfacd493bd1",
+      "kind": "md"
+    },
+    {
+      "path": "outputs/T1-B_盯梢触发_20261112_0630.md",
+      "bytes": 1207,
+      "sha256": "9ae69acb08838bffc929d60cbd85365520eb118777487f57b99c9efae2feb7af",
+      "kind": "md"
+    },
+    {
+      "path": "outputs/T1-B_盯梢触发_20261112_0830.md",
+      "bytes": 1248,
+      "sha256": "1d4d8d071a0d23198ad94e5f3f1580d702f2e9c6ff6f3e7c5a1549143ae7bd59",
+      "kind": "md"
+    },
+    {
+      "path": "outputs/T1-B_盯梢触发_20261112_1030.md",
+      "bytes": 1209,
+      "sha256": "b0e405198e3ca103127e2101a016cdddde2abbc373b80b64ba7be67136dc3c55",
+      "kind": "md"
+    },
+    {
+      "path": "outputs/T1-B_盯梢触发_20261112_1100.md",
+      "bytes": 1209,
+      "sha256": "a53374c264609961adb6804444f995c8f8cfb6df510938f51f6f987efd427894",
+      "kind": "md"
+    },
+    {
+      "path": "outputs/T1-B_盯梢触发_20261112_1330.md",
+      "bytes": 1209,
+      "sha256": "39ed5f4d1f99409591fa9cb534a263313b716648660df14c626683e4c8792df4",
+      "kind": "md"
+    },
+    {
+      "path": "outputs/T1-B_盯梢触发_20261112_1630.md",
+      "bytes": 1209,
+      "sha256": "4be7fdb2aec883d88f2d930cbd9307726bd10ec4f3c329ed67180f725ce1e587",
+      "kind": "md"
+    },
+    {
+      "path": "outputs/T1-B_盯梢触发_20261112_1730.md",
+      "bytes": 1209,
+      "sha256": "ecdac46e6620285f8946b01826afc372ffe712bfd088253921a4fb6c06d0e256",
+      "kind": "md"
+    },
+    {
+      "path": "outputs/T1-B_盯梢触发_20261112_1800.md",
+      "bytes": 1209,
+      "sha256": "3af44601e21f9295a064718754c375c8324bf3aae9dcbadbe331c17b2bd96755",
+      "kind": "md"
+    },
+    {
+      "path": "outputs/T1-B_盯梢触发_20261112_1830.md",
+      "bytes": 1209,
+      "sha256": "1c8a1e6d444709248a20d434afda08fb6264f828941fb5be0e9221c39f15fc2f",
+      "kind": "md"
+    },
+    {
+      "path": "outputs/T1-B_盯梢触发_20261113_0630.md",
+      "bytes": 1207,
+      "sha256": "59d3db4a218b643d4e1a14a62acc408a7a5b244be7aea7b0388764990571a98d",
+      "kind": "md"
+    },
+    {
+      "path": "outputs/T1-B_盯梢触发_20261113_0830.md",
+      "bytes": 1248,
+      "sha256": "0fa6a46ec3b142b148208754f2bc9ee044717e5d0afd5abb8f0862574e4fdf25",
+      "kind": "md"
+    },
+    {
+      "path": "outputs/T1-B_盯梢触发_20261113_1100.md",
+      "bytes": 1209,
+      "sha256": "21d1f21d8171c880f96ea5992b2bc02484a22185b543431cd51e5278ffc54c0b",
+      "kind": "md"
+    },
+    {
+      "path": "outputs/T1-B_盯梢触发_20261113_1400.md",
+      "bytes": 1209,
+      "sha256": "7381cceae1312c8e8004e590546458fa7d688232f5062d4e812328777adcd931",
+      "kind": "md"
+    },
+    {
+      "path": "outputs/T1-B_盯梢触发_20261113_1500.md",
+      "bytes": 1209,
+      "sha256": "b281f949640a0e9d00d9caa3881fe4d171b655cf93502a1f48819327f256cb3c",
+      "kind": "md"
+    },
+    {
+      "path": "outputs/T1-B_盯梢触发_20261113_1530.md",
+      "bytes": 1209,
+      "sha256": "14df02fdb296dc1b5c417e0f90516045583b554f5f73eba40b220228c4321584",
+      "kind": "md"
+    },
+    {
+      "path": "outputs/T1-B_盯梢触发_20261113_1730.md",
+      "bytes": 1209,
+      "sha256": "608a899ed72112effce44d0a41703b798d98cf81b53363e30113063b0622e69d",
+      "kind": "md"
+    },
+    {
+      "path": "outputs/T1-B_盯梢触发_20261113_1800.md",
+      "bytes": 1209,
+      "sha256": "b9cb0871ee64a0ed62752d0a372bae4947393baa1c41a3d3ae9853ba4d3ab0a1",
+      "kind": "md"
+    },
+    {
+      "path": "outputs/T1-B_盯梢触发_20261113_1830.md",
+      "bytes": 1209,
+      "sha256": "79a758144adfe1187ffffe689930cb316976d3c12efb5bec49c382536772f3ad",
+      "kind": "md"
+    },
+    {
+      "path": "tools/_probe_all_deployments.json",
+      "bytes": 24845,
+      "sha256": "ed09ca28cb42384d17aa8b537a6f7858e4586643a9db00c165ee18397a7274ce",
+      "kind": "json"
+    },
+    {
+      "path": "tools/_zc_logs/timing_bd-drain.csv",
+      "bytes": 16942,
+      "sha256": "2ffb568c73e92c8f37c7279933c21a64fc059efcee36ddef26a3152707440731",
+      "kind": "csv"
+    },
+    {
+      "path": "tools/_zc_logs/timing_goal-board.csv",
+      "bytes": 49,
+      "sha256": "b5cd3d7d8d2c1e9bb280e9d06f3768613f7f0c6c228d5e98104e636abe968c5a",
+      "kind": "csv"
+    },
+    {
+      "path": "tools/_zc_logs/timing_memory-backup.csv",
+      "bytes": 381,
+      "sha256": "7c0faa61dff1819fa67ca4b096d30d644609b6cf5216bb524583be994f6f9ca2",
+      "kind": "csv"
+    },
+    {
+      "path": "tools/_zc_logs/timing_mirror-check.csv",
+      "bytes": 76,
+      "sha256": "0e49a2be2b94f159a094dae0a4e716a7e8f9f1361e82d264e7032c903fb269c1",
+      "kind": "csv"
+    },
+    {
+      "path": "tools/_zc_logs/timing_nps-receipt.csv",
+      "bytes": 16841,
+      "sha256": "42abc51f13c49b070016c9228b10145ae95504cd9842efa80f3d9620a2178ad0",
+      "kind": "csv"
+    },
+    {
+      "path": "tools/_zc_logs/timing_nps-survey-guard.csv",
+      "bytes": 130,
+      "sha256": "099b449f669908ac917af5b5ad3a0e805b648274f5507b743d2456291933cb9b",
+      "kind": "csv"
+    },
+    {
+      "path": "tools/_zc_logs/timing_numberlock-fixwatch.csv",
+      "bytes": 402,
+      "sha256": "d6fe3c300203ba80e023f532c0110decb8a5097f1d7536cacd15d3edb7107b6c",
+      "kind": "csv"
+    },
+    {
+      "path": "tools/_zc_logs/timing_pclist-harvest.csv",
+      "bytes": 4337,
+      "sha256": "2f34c3840bdd8e8fdd03fa3b5641cbeab998c7aaad437113bb9b16f554a476a9",
+      "kind": "csv"
+    },
+    {
+      "path": "tools/_zc_logs/timing_personnel-audit.csv",
+      "bytes": 51,
+      "sha256": "8ab0869ed56445f8409b1abff4738240dc21e15f18b8ec679344553caf97add6",
+      "kind": "csv"
+    },
+    {
+      "path": "tools/_zc_logs/timing_pm-selfcheck.csv",
+      "bytes": 162,
+      "sha256": "73acac1d54008e5131dbcfddf8818cfd29d1b45c8bb67100acff24252970c8d0",
+      "kind": "csv"
+    },
+    {
+      "path": "tools/_zc_logs/timing_pmlist-refresh.csv",
+      "bytes": 8987,
+      "sha256": "08ec60072c06e1492bb8a3c2e5a3700b4dec021fde33c91d7a07b02194ec4bf0",
+      "kind": "csv"
+    },
+    {
+      "path": "tools/_zc_logs/timing_sheets-qc.csv",
+      "bytes": 130,
+      "sha256": "51b893eeeb66753204129a433e613f03db16baf46228f422afa344955a1be163",
+      "kind": "csv"
+    },
+    {
+      "path": "tools/_zc_logs/timing_t1b-watch.csv",
+      "bytes": 7519,
+      "sha256": "7da1add5f45a835322d4e0519f912ddde2855079c317ce0556afca56a828459e",
+      "kind": "csv"
+    },
+    {
+      "path": "tools/_zc_logs/timing_threecolor-watchdog.csv",
+      "bytes": 51,
+      "sha256": "8292ce43c003a7d9c08acb0c62aa652c560b8b56c8bd3726b9c0e7a67895666e",
+      "kind": "csv"
+    },
+    {
+      "path": "tools/_zc_logs/timing_ts-content-guard.csv",
+      "bytes": 76,
+      "sha256": "b828d44116a50f58a8af27ff80a8957573fad71a837c17f9d9abcfc847b0f563",
+      "kind": "csv"
+    },
+    {
+      "path": "tools/_zc_logs/timing_ts-daily.csv",
+      "bytes": 195,
+      "sha256": "8a820aed1357c895e30b7c09e3fed0aeaa763b05304f3d76828e907fd045ecbe",
+      "kind": "csv"
+    },
+    {
+      "path": "tools/_zc_logs/timing_ts-deploy-watchdog.csv",
+      "bytes": 751,
+      "sha256": "6e1d659c1a97c423151cfa9ecb0085a45733606616279a6f44b9ccc8839158ea",
+      "kind": "csv"
+    },
+    {
+      "path": "tools/_zc_logs/timing_ts-export.csv",
+      "bytes": 386,
+      "sha256": "0033eef47120432a9841f482eff8ec5018bd33d3c98524cd46a5d62eb7d07c90",
+      "kind": "csv"
+    },
+    {
+      "path": "tools/_zc_logs/timing_ts-health.csv",
+      "bytes": 17336,
+      "sha256": "646c55f90286c16d97c02e8a228bfb1748124490378488c00e43958cb6b4737b",
+      "kind": "csv"
+    },
+    {
+      "path": "tools/_zc_logs/timing_vo-pd-scan.csv",
+      "bytes": 78,
+      "sha256": "175ac0cdfc9c67d7665b612bde12a3e73db9d7730bac64150c3046a453bb8f02",
+      "kind": "csv"
+    },
+    {
+      "path": "tools/_zc_logs/告警_2026-10-15.md",
+      "bytes": 7955,
+      "sha256": "95b0f43e39a08a6ee8efcb6305458e9cdb725fbf2748d650200ccee6e6736aa6",
+      "kind": "md"
+    },
+    {
+      "path": "tools/_zc_logs/告警_2026-10-16.md",
+      "bytes": 2264,
+      "sha256": "c320acc1bb309da972b09af93204473f631a51c1f59a23fd1f4c53d5d57e3e59",
+      "kind": "md"
+    },
+    {
+      "path": "tools/_zc_logs/告警_2026-10-18.md",
+      "bytes": 215,
+      "sha256": "ef3b8e137afaeb34d460d976d0d5c6726af85c12354ad8465ddaa3a22e5fba1c",
+      "kind": "md"
+    },
+    {
+      "path": "tools/_zc_logs/告警_2026-10-19.md",
+      "bytes": 1403,
+      "sha256": "3d9e2a133ca6b3b3a0015ad5cfd90d51b47934941e5be43f3d55b48f32ca2fcf",
+      "kind": "md"
+    },
+    {
+      "path": "tools/_zc_logs/告警_2026-10-20.md",
+      "bytes": 1779,
+      "sha256": "e8172078e627971e66ab1f990c31e605899c8d5b82dff908bda7dc3bd2f5bed9",
+      "kind": "md"
+    },
+    {
+      "path": "tools/_zc_logs/告警_2026-10-21.md",
+      "bytes": 920,
+      "sha256": "b32faefd1e1e9073426fd33cf5be1a3a34bec312395e056aaf409beec505096c",
+      "kind": "md"
+    },
+    {
+      "path": "tools/_zc_logs/告警_2026-10-22.md",
+      "bytes": 118,
+      "sha256": "d47294d859d6b53d2a69738f532ae3ef0b880d8d99b8b3026b36decbbead0c64",
+      "kind": "md"
+    },
+    {
+      "path": "tools/_zc_logs/告警_2026-10-23.md",
+      "bytes": 1491,
+      "sha256": "a400e6296d694a8551b2e22c24423abfcc27ef6da4a34df6430f57aaa2517784",
+      "kind": "md"
+    },
+    {
+      "path": "tools/_zc_logs/告警_2026-10-26.md",
+      "bytes": 419,
+      "sha256": "042502ee662aaf34d20036db0f0a4f2bf82e4f4a81db3f0c06e1c6feec265a80",
+      "kind": "md"
+    },
+    {
+      "path": "tools/_zc_logs/告警_2026-10-31.md",
+      "bytes": 377,
+      "sha256": "022a7b4b780ff27874190ba7daf4a6aa50f00e006fae42cf892943c7cbaf7ba5",
+      "kind": "md"
+    },
+    {
+      "path": "tools/_zc_logs/告警_2026-11-01.md",
+      "bytes": 1151,
+      "sha256": "c265bed8420eb1265df0ef2d1cb3c48c2aa14a4a2a788c37e7ba6af9eb87989e",
+      "kind": "md"
+    },
+    {
+      "path": "tools/_zc_logs/告警_2026-11-02.md",
+      "bytes": 920,
+      "sha256": "e43e9df5c206417d1fdcb836f0c48bd7cde11cee6c5e4cd2cb2ebb400f734d56",
+      "kind": "md"
+    },
+    {
+      "path": "tools/_zc_logs/告警_2026-11-03.md",
+      "bytes": 463,
+      "sha256": "f951d21e66a7c1d6cba58827ae5fe14302667a80ecf2e12bb5a86610c4caf721",
+      "kind": "md"
+    },
+    {
+      "path": "tools/_zc_logs/告警_2026-11-04.md",
+      "bytes": 492,
+      "sha256": "f28dc5f3714f60159cd779c39e537b789dd703c19ffc69bb54a0429ed7dcf4f3",
+      "kind": "md"
+    },
+    {
+      "path": "tools/_zc_logs/告警_2026-11-05.md",
+      "bytes": 928,
+      "sha256": "753fefd5e50cb25284d5b3aaf97ed557a664a69945cd491ec7b6b15b2a7a8304",
+      "kind": "md"
+    },
+    {
+      "path": "tools/_zc_logs/告警_2026-11-06.md",
+      "bytes": 1467,
+      "sha256": "be9113e04f3512d5d7664fe339570d685895ea29c5b9742c0ffcbc5f7c5abcf7",
+      "kind": "md"
+    },
+    {
+      "path": "tools/_zc_logs/告警_2026-11-08.md",
+      "bytes": 441,
+      "sha256": "ef10c77bf8573f96f5bc0baae62d594f0b48b2c2d59b56ef9d271fe20995fa00",
+      "kind": "md"
+    },
+    {
+      "path": "tools/_zc_logs/告警_2026-11-09.md",
+      "bytes": 682,
+      "sha256": "3ef1b2b6b932f8828b1c21c9824b1939ff83b0c4359bf99331af29ef42489c39",
+      "kind": "md"
+    },
+    {
+      "path": "tools/_zc_logs/告警_2026-11-10.md",
+      "bytes": 292,
+      "sha256": "c42a0d681d68a695e80f30664dd148f603cfaa9e76d49b53a7d1e7fe8ef4db65",
+      "kind": "md"
+    },
+    {
+      "path": "tools/_zc_logs/告警_2026-11-11.md",
+      "bytes": 2254,
+      "sha256": "a18304ade545bfe95e4441f0e9f3477555002bcb3a631480580d8a087cc3548b",
+      "kind": "md"
+    },
+    {
+      "path": "tools/_zc_logs/告警_2026-11-12.md",
+      "bytes": 667,
+      "sha256": "1c86756f3f016e99f964e4b2cc8fd3156a3ae0b982dc96e7f2d96a3792e41ddd",
+      "kind": "md"
+    },
+    {
+      "path": "tools/_zc_logs/告警_2026-11-13.md",
+      "bytes": 2545,
+      "sha256": "a4a9048df24cf31df0eea43c370f6aaac3c03192cebf0097c4237cce62229ac1",
+      "kind": "md"
+    },
+    {
+      "path": "tools/_zc_logs/告警_2026-11-14.md",
+      "bytes": 174,
+      "sha256": "b454ffc6fe96b37ea90156f6c0241cf6641112d41c39fc7aedbe1ced0349c1b2",
+      "kind": "md"
+    },
+    {
+      "path": "tools/_zc_state/_alerted.json",
+      "bytes": 2327,
+      "sha256": "4fcf13db849dcd6cb3edb8e7f663d4b971430bcad4825dfed9d6c0d927b2a093",
+      "kind": "json"
+    },
+    {
+      "path": "tools/_zc_state/bd-drain.json",
+      "bytes": 249,
+      "sha256": "0f0fddce13d11f5de7c5ddfffa20c21403cdf7a3c6806f5fb349dbb5f844bdf6",
+      "kind": "json"
+    },
+    {
+      "path": "tools/_zc_state/gas-claim.json",
+      "bytes": 225,
+      "sha256": "57a4b74bc2dc499574966a52620d9a496f3c3b9d1858f3f93d429404178a098c",
+      "kind": "json"
+    },
+    {
+      "path": "tools/_zc_state/goal-board.json",
+      "bytes": 228,
+      "sha256": "78971f9ebcb4709b4afef571befa3d9c8da41c3393c9751e67192ea5417fa259",
+      "kind": "json"
+    },
+    {
+      "path": "tools/_zc_state/memory-backup.json",
+      "bytes": 247,
+      "sha256": "318aa94d81c6a16d76773d237c9ff700f43a92e0ff5f1da3df287566507eb265",
+      "kind": "json"
+    },
+    {
+      "path": "tools/_zc_state/mirror-check.json",
+      "bytes": 258,
+      "sha256": "b03ff2ac107e11b0798927c24797e269fe206f2c8be15d7d05634172de4943eb",
+      "kind": "json"
+    },
+    {
+      "path": "tools/_zc_state/nps-receipt.json",
+      "bytes": 246,
+      "sha256": "b67be0d6f38775b2f3e891d6fc572b79ad1143a379c8626c857a54e03bb2ce58",
+      "kind": "json"
+    },
+    {
+      "path": "tools/_zc_state/nps-survey-guard.json",
+      "bytes": 255,
+      "sha256": "503dacd183526f0f57c7af221ce266739a5f7538fbfd569c16968ad2804447b0",
+      "kind": "json"
+    },
+    {
+      "path": "tools/_zc_state/nps_survey_audit.json",
+      "bytes": 85,
+      "sha256": "319ff5e596921c7b3fc2130360e018453cb5dc69aebd8786e8b100ed29fbd20f",
+      "kind": "json"
+    },
+    {
+      "path": "tools/_zc_state/numberlock-fixwatch-applied.json",
+      "bytes": 29307,
+      "sha256": "30e890aec9522695269a7a6400bf711cc1566bd85e0394558e95858214fd61c4",
+      "kind": "json"
+    },
+    {
+      "path": "tools/_zc_state/numberlock-fixwatch.json",
+      "bytes": 240,
+      "sha256": "7013dffc76551c0f61f7c8398da90b872cf8dbe1110b92c5adeb3f634009d80f",
+      "kind": "json"
+    },
+    {
+      "path": "tools/_zc_state/pclist-harvest.json",
+      "bytes": 228,
+      "sha256": "312f72175d512c7a569cead8e0d1c8d44a34fb4c3b684713cff57bb6fe58e0b2",
+      "kind": "json"
+    },
+    {
+      "path": "tools/_zc_state/personnel-audit.json",
+      "bytes": 334,
+      "sha256": "1e0a87643a1eb9288c8333df4d72e66bf7630d835890102c5c9ff3fb812439d2",
+      "kind": "json"
+    },
+    {
+      "path": "tools/_zc_state/pm-selfcheck.json",
+      "bytes": 236,
+      "sha256": "d996b05b66df0f41a32275876deee8b7f7c6ac6cb42926acb769a41005e9d584",
+      "kind": "json"
+    },
+    {
+      "path": "tools/_zc_state/pmlist-refresh.json",
+      "bytes": 293,
+      "sha256": "8d876616e1c3b1348271f9c9ce2a48b851c6a9f2ca4ac2693362940ab0fcc695",
+      "kind": "json"
+    },
+    {
+      "path": "tools/_zc_state/sheets-qc.json",
+      "bytes": 239,
+      "sha256": "2d6f11e4e2c7cd528e9115f9d8a4febb0b25df39e3b441adfa61f8a6384528e9",
+      "kind": "json"
+    },
+    {
+      "path": "tools/_zc_state/t1b-watch-readings.json",
+      "bytes": 226,
+      "sha256": "a6d63adc0e6e8cafc3c3a86fe089fa7c728a20f0329e4214c96ee76cf89013fc",
+      "kind": "json"
+    },
+    {
+      "path": "tools/_zc_state/t1b-watch.json",
+      "bytes": 328,
+      "sha256": "0c49de958bbfa65392cf25f66d2f9a38796b703e6a0de83b6bbe80b9a2eb23db",
+      "kind": "json"
+    },
+    {
+      "path": "tools/_zc_state/threecolor-watchdog.json",
+      "bytes": 281,
+      "sha256": "09787bdb09c4c7c4354f452732a66c230ab137a63ba13d9ea712fd1b8ada81af",
+      "kind": "json"
+    },
+    {
+      "path": "tools/_zc_state/ts-content-guard-baseline.json",
+      "bytes": 467,
+      "sha256": "6d68f07add66a40712cd5b0b69346a12fb7c9eed286aae0203a530db00b93992",
+      "kind": "json"
+    },
+    {
+      "path": "tools/_zc_state/ts-content-guard.json",
+      "bytes": 395,
+      "sha256": "6cf027b049cd405ec6c99a7ec8ec095ff738633f3c79b414617437f661dd0133",
+      "kind": "json"
+    },
+    {
+      "path": "tools/_zc_state/ts-daily.json",
+      "bytes": 201,
+      "sha256": "1a4e35a8f0f9944b8f2b99b60de06f67815fbdea618e3d8e84c899ed9abf373d",
+      "kind": "json"
+    },
+    {
+      "path": "tools/_zc_state/ts-deploy-watchdog.json",
+      "bytes": 215,
+      "sha256": "80efe8a00b9c8e3d6aa81db85e2550299a96a6d4dfcc04d85facce074165311e",
+      "kind": "json"
+    },
+    {
+      "path": "tools/_zc_state/ts-export.json",
+      "bytes": 254,
+      "sha256": "80f0800dacd4e3982112ed8290946f9b50e454c8e6ad1d3de51057f40019f7a9",
+      "kind": "json"
+    },
+    {
+      "path": "tools/_zc_state/ts-health.json",
+      "bytes": 193,
+      "sha256": "15232e40aeb40d85da43cd796ea5eeb18d4ea7fda55f168eb4365faea5340b89",
+      "kind": "json"
+    },
+    {
+      "path": "tools/_zc_state/vo-pd-scan.json",
+      "bytes": 282,
+      "sha256": "e054a2ff5c1dfa804fa74ab841d01d832488058682ab6ed82df4448d8e342aeb",
+      "kind": "json"
+    }
+  ],
+  "watch_round_count": 9,
+  "watch_rounds": [
+    {
+      "round_time_local": "2026-11-13 06:30:28",
+      "level": "实质变化",
+      "change_fields": [
+        "master_leave"
+      ],
+      "source_path": "outputs/T1-B_盯梢触发_20261113_0630.md",
+      "source_sha256": "59d3db4a218b643d4e1a14a62acc408a7a5b244be7aea7b0388764990571a98d",
+      "permission_scope": {
+        "round_record": "LOCAL_READABLE",
+        "write_subject_and_permission_context": "CHANNEL_OWNER_ATTESTATION_REQUIRED"
+      },
+      "attribution": "SOURCE_NOT_ATTESTED"
+    },
+    {
+      "round_time_local": "2026-11-13 08:30:30",
+      "level": "信息级（多为每日重算镜像，预期内）",
+      "change_fields": [
+        "sheet_counts"
+      ],
+      "source_path": "outputs/T1-B_盯梢触发_20261113_0830.md",
+      "source_sha256": "0fa6a46ec3b142b148208754f2bc9ee044717e5d0afd5abb8f0862574e4fdf25",
+      "permission_scope": {
+        "round_record": "LOCAL_READABLE",
+        "write_subject_and_permission_context": "CHANNEL_OWNER_ATTESTATION_REQUIRED"
+      },
+      "attribution": "SOURCE_NOT_ATTESTED"
+    },
+    {
+      "round_time_local": "2026-11-13 11:00:29",
+      "level": "实质变化",
+      "change_fields": [
+        "production"
+      ],
+      "source_path": "outputs/T1-B_盯梢触发_20261113_1100.md",
+      "source_sha256": "21d1f21d8171c880f96ea5992b2bc02484a22185b543431cd51e5278ffc54c0b",
+      "permission_scope": {
+        "round_record": "LOCAL_READABLE",
+        "write_subject_and_permission_context": "CHANNEL_OWNER_ATTESTATION_REQUIRED"
+      },
+      "attribution": "SOURCE_NOT_ATTESTED"
+    },
+    {
+      "round_time_local": "2026-11-13 14:00:34",
+      "level": "实质变化",
+      "change_fields": [
+        "production"
+      ],
+      "source_path": "outputs/T1-B_盯梢触发_20261113_1400.md",
+      "source_sha256": "7381cceae1312c8e8004e590546458fa7d688232f5062d4e812328777adcd931",
+      "permission_scope": {
+        "round_record": "LOCAL_READABLE",
+        "write_subject_and_permission_context": "CHANNEL_OWNER_ATTESTATION_REQUIRED"
+      },
+      "attribution": "SOURCE_NOT_ATTESTED"
+    },
+    {
+      "round_time_local": "2026-11-13 15:00:29",
+      "level": "实质变化",
+      "change_fields": [
+        "production"
+      ],
+      "source_path": "outputs/T1-B_盯梢触发_20261113_1500.md",
+      "source_sha256": "b281f949640a0e9d00d9caa3881fe4d171b655cf93502a1f48819327f256cb3c",
+      "permission_scope": {
+        "round_record": "LOCAL_READABLE",
+        "write_subject_and_permission_context": "CHANNEL_OWNER_ATTESTATION_REQUIRED"
+      },
+      "attribution": "SOURCE_NOT_ATTESTED"
+    },
+    {
+      "round_time_local": "2026-11-13 15:30:28",
+      "level": "实质变化",
+      "change_fields": [
+        "production"
+      ],
+      "source_path": "outputs/T1-B_盯梢触发_20261113_1530.md",
+      "source_sha256": "14df02fdb296dc1b5c417e0f90516045583b554f5f73eba40b220228c4321584",
+      "permission_scope": {
+        "round_record": "LOCAL_READABLE",
+        "write_subject_and_permission_context": "CHANNEL_OWNER_ATTESTATION_REQUIRED"
+      },
+      "attribution": "SOURCE_NOT_ATTESTED"
+    },
+    {
+      "round_time_local": "2026-11-13 17:30:27",
+      "level": "实质变化",
+      "change_fields": [
+        "production"
+      ],
+      "source_path": "outputs/T1-B_盯梢触发_20261113_1730.md",
+      "source_sha256": "608a899ed72112effce44d0a41703b798d98cf81b53363e30113063b0622e69d",
+      "permission_scope": {
+        "round_record": "LOCAL_READABLE",
+        "write_subject_and_permission_context": "CHANNEL_OWNER_ATTESTATION_REQUIRED"
+      },
+      "attribution": "SOURCE_NOT_ATTESTED"
+    },
+    {
+      "round_time_local": "2026-11-13 18:00:27",
+      "level": "实质变化",
+      "change_fields": [
+        "production"
+      ],
+      "source_path": "outputs/T1-B_盯梢触发_20261113_1800.md",
+      "source_sha256": "b9cb0871ee64a0ed62752d0a372bae4947393baa1c41a3d3ae9853ba4d3ab0a1",
+      "permission_scope": {
+        "round_record": "LOCAL_READABLE",
+        "write_subject_and_permission_context": "CHANNEL_OWNER_ATTESTATION_REQUIRED"
+      },
+      "attribution": "SOURCE_NOT_ATTESTED"
+    },
+    {
+      "round_time_local": "2026-11-13 18:30:41",
+      "level": "实质变化",
+      "change_fields": [
+        "production"
+      ],
+      "source_path": "outputs/T1-B_盯梢触发_20261113_1830.md",
+      "source_sha256": "79a758144adfe1187ffffe689930cb316976d3c12efb5bec49c382536772f3ad",
+      "permission_scope": {
+        "round_record": "LOCAL_READABLE",
+        "write_subject_and_permission_context": "CHANNEL_OWNER_ATTESTATION_REQUIRED"
+      },
+      "attribution": "SOURCE_NOT_ATTESTED"
+    }
+  ],
+  "alert_count": 9,
+  "alerts": [
+    {
+      "alert_time_local": "2026-11-13 00:05:15",
+      "task_or_title": "bd-drain 连续失败需人工排查",
+      "error_sha256": "acebe7a54471e8b18e6a39f7ae414254008374bc9627b9f9314a66e8034d7254",
+      "source_path": "tools/_zc_logs/告警_2026-11-13.md",
+      "source_sha256": "a4a9048df24cf31df0eea43c370f6aaac3c03192cebf0097c4237cce62229ac1",
+      "permission_scope": {
+        "error_text": "LOCAL_READABLE",
+        "server_side_execution_log_and_root_cause": "CHANNEL_OWNER_ATTESTATION_REQUIRED"
+      },
+      "disposition": "OBSERVED_ALERT_UNVERIFIED__ZERO_FIX"
+    },
+    {
+      "alert_time_local": "2026-11-13 01:10:05",
+      "task_or_title": "pclist-harvest 连续失败需人工排查",
+      "error_sha256": "3bd57a88f3130670dcb278ef8956c462ed871d7f6277da839cc220bede881be1",
+      "source_path": "tools/_zc_logs/告警_2026-11-13.md",
+      "source_sha256": "a4a9048df24cf31df0eea43c370f6aaac3c03192cebf0097c4237cce62229ac1",
+      "permission_scope": {
+        "error_text": "LOCAL_READABLE",
+        "server_side_execution_log_and_root_cause": "CHANNEL_OWNER_ATTESTATION_REQUIRED"
+      },
+      "disposition": "OBSERVED_ALERT_UNVERIFIED__ZERO_FIX"
+    },
+    {
+      "alert_time_local": "2026-11-13 06:30:28",
+      "task_or_title": "T1-B 只读盯梢检出关键读数变化",
+      "error_sha256": "2b60591fa9dc358785085bafce541fb70c1214c96fd68de83bc6d36c7de3cf7d",
+      "source_path": "tools/_zc_logs/告警_2026-11-13.md",
+      "source_sha256": "a4a9048df24cf31df0eea43c370f6aaac3c03192cebf0097c4237cce62229ac1",
+      "permission_scope": {
+        "error_text": "LOCAL_READABLE",
+        "server_side_execution_log_and_root_cause": "CHANNEL_OWNER_ATTESTATION_REQUIRED"
+      },
+      "disposition": "OBSERVED_ALERT_UNVERIFIED__ZERO_FIX"
+    },
+    {
+      "alert_time_local": "2026-11-13 10:50:04",
+      "task_or_title": "VO→PD 闸门扫描脚本失败（friday_scan.py）",
+      "error_sha256": "fe8d782dbc6b1fb6b46f54e229881bccd95ea5e807ea81e121f6aadaeadfa04c",
+      "source_path": "tools/_zc_logs/告警_2026-11-13.md",
+      "source_sha256": "a4a9048df24cf31df0eea43c370f6aaac3c03192cebf0097c4237cce62229ac1",
+      "permission_scope": {
+        "error_text": "LOCAL_READABLE",
+        "server_side_execution_log_and_root_cause": "CHANNEL_OWNER_ATTESTATION_REQUIRED"
+      },
+      "disposition": "OBSERVED_ALERT_UNVERIFIED__ZERO_FIX"
+    },
+    {
+      "alert_time_local": "2026-11-13 10:50:41",
+      "task_or_title": "VO→PD 闸门扫描脚本失败（friday_check.py）",
+      "error_sha256": "b332e5b5b8c4c1c2e14846c0131409d6525bbd3ecdd06b9521bdeb25a3f96fe6",
+      "source_path": "tools/_zc_logs/告警_2026-11-13.md",
+      "source_sha256": "a4a9048df24cf31df0eea43c370f6aaac3c03192cebf0097c4237cce62229ac1",
+      "permission_scope": {
+        "error_text": "LOCAL_READABLE",
+        "server_side_execution_log_and_root_cause": "CHANNEL_OWNER_ATTESTATION_REQUIRED"
+      },
+      "disposition": "OBSERVED_ALERT_UNVERIFIED__ZERO_FIX"
+    },
+    {
+      "alert_time_local": "2026-11-13 10:50:44",
+      "task_or_title": "vo-pd-scan 连续失败需人工排查",
+      "error_sha256": "60be7b3034043c1783d92d859d1bd0ffaa21dd62cb17b48b136c176b59834c66",
+      "source_path": "tools/_zc_logs/告警_2026-11-13.md",
+      "source_sha256": "a4a9048df24cf31df0eea43c370f6aaac3c03192cebf0097c4237cce62229ac1",
+      "permission_scope": {
+        "error_text": "LOCAL_READABLE",
+        "server_side_execution_log_and_root_cause": "CHANNEL_OWNER_ATTESTATION_REQUIRED"
+      },
+      "disposition": "OBSERVED_ALERT_UNVERIFIED__ZERO_FIX"
+    },
+    {
+      "alert_time_local": "2026-11-13 14:04:51",
+      "task_or_title": "pmlist-refresh 耗时接近 GAS 6 分钟上限（需优化 refreshcentral）",
+      "error_sha256": "706f51a442186080697bb121e9b367f8bc87d4f9fa784c6b1f8a06d1f89b44d8",
+      "source_path": "tools/_zc_logs/告警_2026-11-13.md",
+      "source_sha256": "a4a9048df24cf31df0eea43c370f6aaac3c03192cebf0097c4237cce62229ac1",
+      "permission_scope": {
+        "error_text": "LOCAL_READABLE",
+        "server_side_execution_log_and_root_cause": "CHANNEL_OWNER_ATTESTATION_REQUIRED"
+      },
+      "disposition": "OBSERVED_ALERT_UNVERIFIED__ZERO_FIX"
+    },
+    {
+      "alert_time_local": "2026-11-13 16:27:15",
+      "task_or_title": "numberlock-fixwatch 连续失败需人工排查",
+      "error_sha256": "466f81700430df6718007efb84f91a194c5e71e1d737cc5838efe0b3c873fc3e",
+      "source_path": "tools/_zc_logs/告警_2026-11-13.md",
+      "source_sha256": "a4a9048df24cf31df0eea43c370f6aaac3c03192cebf0097c4237cce62229ac1",
+      "permission_scope": {
+        "error_text": "LOCAL_READABLE",
+        "server_side_execution_log_and_root_cause": "CHANNEL_OWNER_ATTESTATION_REQUIRED"
+      },
+      "disposition": "OBSERVED_ALERT_UNVERIFIED__ZERO_FIX"
+    },
+    {
+      "alert_time_local": "2026-11-14 00:05:15",
+      "task_or_title": "bd-drain 连续失败需人工排查",
+      "error_sha256": "acebe7a54471e8b18e6a39f7ae414254008374bc9627b9f9314a66e8034d7254",
+      "source_path": "tools/_zc_logs/告警_2026-11-14.md",
+      "source_sha256": "b454ffc6fe96b37ea90156f6c0241cf6641112d41c39fc7aedbe1ced0349c1b2",
+      "permission_scope": {
+        "error_text": "LOCAL_READABLE",
+        "server_side_execution_log_and_root_cause": "CHANNEL_OWNER_ATTESTATION_REQUIRED"
+      },
+      "disposition": "OBSERVED_ALERT_UNVERIFIED__ZERO_FIX"
+    }
+  ],
+  "timing_task_count": 12,
+  "timing_tasks": [
+    {
+      "task": "bd-drain",
+      "run_count": 10,
+      "last_run": "2026-11-14 00:05:15",
+      "source_sha256": "2ffb568c73e92c8f37c7279933c21a64fc059efcee36ddef26a3152707440731"
+    },
+    {
+      "task": "memory-backup",
+      "run_count": 1,
+      "last_run": "2026-11-13 11:50:13",
+      "source_sha256": "7c0faa61dff1819fa67ca4b096d30d644609b6cf5216bb524583be994f6f9ca2"
+    },
+    {
+      "task": "nps-receipt",
+      "run_count": 10,
+      "last_run": "2026-11-14 00:10:06",
+      "source_sha256": "42abc51f13c49b070016c9228b10145ae95504cd9842efa80f3d9620a2178ad0"
+    },
+    {
+      "task": "numberlock-fixwatch",
+      "run_count": 1,
+      "last_run": "2026-11-13 16:27:15",
+      "source_sha256": "d6fe3c300203ba80e023f532c0110decb8a5097f1d7536cacd15d3edb7107b6c"
+    },
+    {
+      "task": "pclist-harvest",
+      "run_count": 10,
+      "last_run": "2026-11-13 23:10:05",
+      "source_sha256": "2f34c3840bdd8e8fdd03fa3b5641cbeab998c7aaad437113bb9b16f554a476a9"
+    },
+    {
+      "task": "pm-selfcheck",
+      "run_count": 2,
+      "last_run": "2026-11-13 11:37:42",
+      "source_sha256": "73acac1d54008e5131dbcfddf8818cfd29d1b45c8bb67100acff24252970c8d0"
+    },
+    {
+      "task": "pmlist-refresh",
+      "run_count": 10,
+      "last_run": "2026-11-14 00:03:28",
+      "source_sha256": "08ec60072c06e1492bb8a3c2e5a3700b4dec021fde33c91d7a07b02194ec4bf0"
+    },
+    {
+      "task": "t1b-watch",
+      "run_count": 10,
+      "last_run": "2026-11-14 00:00:34",
+      "source_sha256": "7da1add5f45a835322d4e0519f912ddde2855079c317ce0556afca56a828459e"
+    },
+    {
+      "task": "ts-deploy-watchdog",
+      "run_count": 4,
+      "last_run": "2026-11-13 19:00:03",
+      "source_sha256": "6e1d659c1a97c423151cfa9ecb0085a45733606616279a6f44b9ccc8839158ea"
+    },
+    {
+      "task": "ts-export",
+      "run_count": 1,
+      "last_run": "2026-11-13 07:50:18",
+      "source_sha256": "0033eef47120432a9841f482eff8ec5018bd33d3c98524cd46a5d62eb7d07c90"
+    },
+    {
+      "task": "ts-health",
+      "run_count": 10,
+      "last_run": "2026-11-14 00:15:11",
+      "source_sha256": "646c55f90286c16d97c02e8a228bfb1748124490378488c00e43958cb6b4737b"
+    },
+    {
+      "task": "vo-pd-scan",
+      "run_count": 1,
+      "last_run": "2026-11-13 10:50:44",
+      "source_sha256": "175ac0cdfc9c67d7665b612bde12a3e73db9d7730bac64150c3046a453bb8f02"
+    }
+  ],
+  "state_file_count": 26,
+  "state_files": [
+    {
+      "path": "tools/_zc_state/_alerted.json",
+      "bytes": 2327,
+      "sha256": "4fcf13db849dcd6cb3edb8e7f663d4b971430bcad4825dfed9d6c0d927b2a093",
+      "last_run": null,
+      "last_ok": null
+    },
+    {
+      "path": "tools/_zc_state/bd-drain.json",
+      "bytes": 249,
+      "sha256": "0f0fddce13d11f5de7c5ddfffa20c21403cdf7a3c6806f5fb349dbb5f844bdf6",
+      "last_run": "2026-11-14T00:05:15",
+      "last_ok": false
+    },
+    {
+      "path": "tools/_zc_state/gas-claim.json",
+      "bytes": 225,
+      "sha256": "57a4b74bc2dc499574966a52620d9a496f3c3b9d1858f3f93d429404178a098c",
+      "last_run": "2026-10-25T15:00:38",
+      "last_ok": true
+    },
+    {
+      "path": "tools/_zc_state/goal-board.json",
+      "bytes": 228,
+      "sha256": "78971f9ebcb4709b4afef571befa3d9c8da41c3393c9751e67192ea5417fa259",
+      "last_run": "2026-11-11T10:22:33",
+      "last_ok": true
+    },
+    {
+      "path": "tools/_zc_state/memory-backup.json",
+      "bytes": 247,
+      "sha256": "318aa94d81c6a16d76773d237c9ff700f43a92e0ff5f1da3df287566507eb265",
+      "last_run": "2026-11-13T11:50:13",
+      "last_ok": true
+    },
+    {
+      "path": "tools/_zc_state/mirror-check.json",
+      "bytes": 258,
+      "sha256": "b03ff2ac107e11b0798927c24797e269fe206f2c8be15d7d05634172de4943eb",
+      "last_run": "2026-11-09T13:25:00",
+      "last_ok": true
+    },
+    {
+      "path": "tools/_zc_state/nps-receipt.json",
+      "bytes": 246,
+      "sha256": "b67be0d6f38775b2f3e891d6fc572b79ad1143a379c8626c857a54e03bb2ce58",
+      "last_run": "2026-11-14T00:10:06",
+      "last_ok": true
+    },
+    {
+      "path": "tools/_zc_state/nps-survey-guard.json",
+      "bytes": 255,
+      "sha256": "503dacd183526f0f57c7af221ce266739a5f7538fbfd569c16968ad2804447b0",
+      "last_run": "2026-11-12T09:52:56",
+      "last_ok": true
+    },
+    {
+      "path": "tools/_zc_state/nps_survey_audit.json",
+      "bytes": 85,
+      "sha256": "319ff5e596921c7b3fc2130360e018453cb5dc69aebd8786e8b100ed29fbd20f",
+      "last_run": null,
+      "last_ok": null
+    },
+    {
+      "path": "tools/_zc_state/numberlock-fixwatch-applied.json",
+      "bytes": 29307,
+      "sha256": "30e890aec9522695269a7a6400bf711cc1566bd85e0394558e95858214fd61c4",
+      "last_run": null,
+      "last_ok": null
+    },
+    {
+      "path": "tools/_zc_state/numberlock-fixwatch.json",
+      "bytes": 240,
+      "sha256": "7013dffc76551c0f61f7c8398da90b872cf8dbe1110b92c5adeb3f634009d80f",
+      "last_run": "2026-11-13T16:27:15",
+      "last_ok": false
+    },
+    {
+      "path": "tools/_zc_state/pclist-harvest.json",
+      "bytes": 228,
+      "sha256": "312f72175d512c7a569cead8e0d1c8d44a34fb4c3b684713cff57bb6fe58e0b2",
+      "last_run": "2026-11-13T23:10:05",
+      "last_ok": false
+    },
+    {
+      "path": "tools/_zc_state/personnel-audit.json",
+      "bytes": 334,
+      "sha256": "1e0a87643a1eb9288c8333df4d72e66bf7630d835890102c5c9ff3fb812439d2",
+      "last_run": "2026-11-11T12:19:30",
+      "last_ok": false
+    },
+    {
+      "path": "tools/_zc_state/pm-selfcheck.json",
+      "bytes": 236,
+      "sha256": "d996b05b66df0f41a32275876deee8b7f7c6ac6cb42926acb769a41005e9d584",
+      "last_run": "2026-11-13T11:37:42",
+      "last_ok": true
+    },
+    {
+      "path": "tools/_zc_state/pmlist-refresh.json",
+      "bytes": 293,
+      "sha256": "8d876616e1c3b1348271f9c9ce2a48b851c6a9f2ca4ac2693362940ab0fcc695",
+      "last_run": "2026-11-14T00:03:28",
+      "last_ok": true
+    },
+    {
+      "path": "tools/_zc_state/sheets-qc.json",
+      "bytes": 239,
+      "sha256": "2d6f11e4e2c7cd528e9115f9d8a4febb0b25df39e3b441adfa61f8a6384528e9",
+      "last_run": "2026-11-09T08:50:07",
+      "last_ok": true
+    },
+    {
+      "path": "tools/_zc_state/t1b-watch-readings.json",
+      "bytes": 226,
+      "sha256": "a6d63adc0e6e8cafc3c3a86fe089fa7c728a20f0329e4214c96ee76cf89013fc",
+      "last_run": null,
+      "last_ok": null
+    },
+    {
+      "path": "tools/_zc_state/t1b-watch.json",
+      "bytes": 328,
+      "sha256": "0c49de958bbfa65392cf25f66d2f9a38796b703e6a0de83b6bbe80b9a2eb23db",
+      "last_run": "2026-11-14T00:00:34",
+      "last_ok": true
+    },
+    {
+      "path": "tools/_zc_state/threecolor-watchdog.json",
+      "bytes": 281,
+      "sha256": "09787bdb09c4c7c4354f452732a66c230ab137a63ba13d9ea712fd1b8ada81af",
+      "last_run": "2026-11-11T11:22:58",
+      "last_ok": false
+    },
+    {
+      "path": "tools/_zc_state/ts-content-guard-baseline.json",
+      "bytes": 467,
+      "sha256": "6d68f07add66a40712cd5b0b69346a12fb7c9eed286aae0203a530db00b93992",
+      "last_run": null,
+      "last_ok": null
+    },
+    {
+      "path": "tools/_zc_state/ts-content-guard.json",
+      "bytes": 395,
+      "sha256": "6cf027b049cd405ec6c99a7ec8ec095ff738633f3c79b414617437f661dd0133",
+      "last_run": "2026-11-11T18:07:02",
+      "last_ok": true
+    },
+    {
+      "path": "tools/_zc_state/ts-daily.json",
+      "bytes": 201,
+      "sha256": "1a4e35a8f0f9944b8f2b99b60de06f67815fbdea618e3d8e84c899ed9abf373d",
+      "last_run": "2026-11-12T11:30:44",
+      "last_ok": true
+    },
+    {
+      "path": "tools/_zc_state/ts-deploy-watchdog.json",
+      "bytes": 215,
+      "sha256": "80efe8a00b9c8e3d6aa81db85e2550299a96a6d4dfcc04d85facce074165311e",
+      "last_run": "2026-11-13T19:00:03",
+      "last_ok": true
+    },
+    {
+      "path": "tools/_zc_state/ts-export.json",
+      "bytes": 254,
+      "sha256": "80f0800dacd4e3982112ed8290946f9b50e454c8e6ad1d3de51057f40019f7a9",
+      "last_run": "2026-11-13T07:50:18",
+      "last_ok": true
+    },
+    {
+      "path": "tools/_zc_state/ts-health.json",
+      "bytes": 193,
+      "sha256": "15232e40aeb40d85da43cd796ea5eeb18d4ea7fda55f168eb4365faea5340b89",
+      "last_run": "2026-11-14T00:15:11",
+      "last_ok": true
+    },
+    {
+      "path": "tools/_zc_state/vo-pd-scan.json",
+      "bytes": 282,
+      "sha256": "e054a2ff5c1dfa804fa74ab841d01d832488058682ab6ed82df4448d8e342aeb",
+      "last_run": "2026-11-13T10:50:44",
+      "last_ok": false
+    }
+  ],
+  "permission_scope_enum": {
+    "LOCAL_READABLE": "本机只读可得：零积分盯梢/告警/时序/状态/部署探针原件与其字节、SHA-256。仅为我方现场自测登记，不构成 Tom 独立核验。",
+    "CHANNEL_OWNER_ATTESTATION_REQUIRED": "须通道所有者具名说明：服务端执行日志、写入主体与权限上下文、404 根因、授权有效区间、告警连续性。我方不代填、不推定。",
+    "NOT_OBTAINED__DO_NOT_FABRICATE": "当前未取得且不得补造：授权原件及时间冲突解释、业务签署件、操作者书面确认、条件格式历史原件、真人登录态与手机端、d50e795 内容核验。"
+  },
+  "personnel_detail_uploaded": false,
+  "personnel_detail_note": "含姓名/电话/邮箱的人员明细、逐行原件、稳定键原文、本机受控快照全文一律不进公开库；须经有权负责人批准受控渠道、交付清单与接收人后交付。",
+  "sha256_note": "哈希一致只支持字节一致，不证明真实性、授权或业务正确；仅当由 Tom 从经授权受控渠道独立取得原始字节并比对匹配后，方可由 Tom 书写「字节一致」结论，我方不预填、不暗示、不预设允许取值。",
+  "attestation": "OUR_OWN_MEASUREMENT_ONLY__NOT_INDEPENDENTLY_VERIFIED"
+}

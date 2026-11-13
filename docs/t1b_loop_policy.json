@@ -1,0 +1,48 @@
+{
+  "_purpose": "T1-B 防循环收敛判据（v103 立，机器可读，供下一轮闸门外部源与会话侧引用）。回应 Rita 三提醒中的「不要回去 / 加速修复」，以及 Tom 连续四封维持边界函可能造成的无限开代。",
+  "version": "1.0",
+  "effective_generation": "v103",
+  "effective_at": "2026-11-14 00:1x 北京",
+  "owner": "rita.jin@spacematrix.com",
+  "status": "PROPOSED__AWAITING_TOM_WRITTEN_EDIT",
+  "_note": "本文件是我方提出的流程规则，不是验收结论、不构成授权；Tom 可在表 K / V15-V20 就地改字提交，我方不代判、不代签。",
+  "problem": "自 v99 起，Tom 每封回函均为「已全文阅读 + 维持边界 + 不构成验收或授权」。若每封都开新承接代，线程将无限循环且永远不进入技术审核；这与 Rita「不要回去 / 加速修复」直接冲突。",
+  "trigger_definitions": {
+    "T1_NEW_GENUINE_MAIL_WITH_SUBSTANCE": "Tom 真函（正文以「Rita，」开头、in_reply_to 精确等于我方上一代回函 rfc）且含实质新条件、新驳回理由或具体核验结果。仅重复既有边界、仅写「已阅/未核验/维持原判」不算实质新。",
+    "T2_NEW_DATA_EVENT": "生产表或主库只读探针相对本代基线出现真实行数/列数/页签变化，或出现新的可由本机原件固定的运行记录。",
+    "T3_SHARED_REPO_EDIT": "GitHub 共享库出现新 commit / issue / PR / 就地编辑或远端漂移。",
+    "T4_LIVE_DOC_CONFLICT": "现行活文档之间出现真实矛盾，需新增文字更正。",
+    "T5_NEW_FAILURE_RUN": "since 之后出现必须主动披露的新失败运行记录或新告警类型。既有任务名的新运行实例按「逐轮登记」处理，不单独作为开代理由，但必须如实列在本代记录链中。"
+  },
+  "no_trigger_rule": {
+    "condition": "下一封 Tom 函仅重复既有边界（对应 C 类维持项、待证清单、事故状态），且 T2/T3/T4/T5 全 CLEAR，且表 E-H / 表 I-K / V9-V20 无具体编辑落地",
+    "gate_verdict": "NO_TRIGGER",
+    "action": [
+      "只在当日日志与本机登记卡留痕，逐字保全该函全文与线程头",
+      "不新开承接代、不发布新文档、不发空函、不重复回函",
+      "把「已登记、未开代」写入下一轮外部源，供审计可查"
+    ]
+  },
+  "open_rule": {
+    "condition": "T1/T2/T3/T4/T5 任一 TRIGGER",
+    "gate_verdict": "OPEN_NEXT_VERSION",
+    "action": [
+      "以现行承接代为基线重跑 tools/t1b_gate_check.py（外部源现场复采）",
+      "只做增量承接：不重开系统大局、不重发上一代、不删改历史对象",
+      "把新条件落成实物与可就地编辑靶子后发布共享库并精确回函"
+    ]
+  },
+  "rita_override": {
+    "condition": "Rita 本人显式下达「看完后直接回函、不要问我」",
+    "action": "即使闸门判 NO_TRIGGER 也按其授权回函，但回函须显式标注「状态同步·非承接版」，不新开代、不发布新版本文档，并在外发留痕中登记该 override 及其依据的原话时点。"
+  },
+  "unchanged": [
+    "事故 OPEN / HOLD-NO-GO / 阶段一 PASS 暂缓不变",
+    "欠项 R1-R4 / N1 / N5 / N6 / D1 不新增、不关闭",
+    "W1 授权原始记录 / W2 业务真值与 8h 口径签署件 / W5 操作者书面确认须本人出面，我方不代签不补造",
+    "业务项仍按「Tom 技术审核通过 → Rita 拍板」门控",
+    "不改链接：三个 deploymentId 与入口 URL 逐字不变、部署恒 3、零 GAS push/deploy",
+    "零生产写 / 零主库写 / 零人工试提交 / 零修复重启 / 零清理回滚 / 零历史对象删改"
+  ],
+  "review_target": "请 Tom 在表 K / V15-V20 给出具体文字：是否认可本收敛判据、若认可以哪一版为冻结基线、若不认可请写明替代规则与理由（要具体编辑，不要 Yes/No）。"
+}
