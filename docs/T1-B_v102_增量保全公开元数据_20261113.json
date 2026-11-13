@@ -1,0 +1,44 @@
+{
+  "classification": "PUBLIC_SAFE__METADATA_ONLY__NO_PERSONNEL_DETAIL",
+  "probe_time_local": "2026-11-13 10:42:54",
+  "probe_time_utc": "2026-11-13T02:42:54Z",
+  "read_only": true,
+  "ssid_masked": "1oxPj0mz…Py44",
+  "sheet": "请假",
+  "a1": "A610:O625",
+  "rows_returned": 16,
+  "new_rows_range": "616-619",
+  "stable_key_column": "H（去重键）",
+  "stable_key_definition": "id|date|name（原值含姓名，仅本机受控）",
+  "read_source": "hktool inspectWorkbook (mode=values)",
+  "controlled_snapshot_path": "_tmp/t1b_increment_snapshot_20261113_1042.json",
+  "controlled_snapshot_sha256": "d53c7ab09ade08b35dc69a3369333325d10ba0abb7870f591279d51967c7eacc",
+  "per_row_sha256": [
+    {
+      "row": 616,
+      "sha256": "b7f200158065bed653e67f846efbb3ed488041dd3bb07390e09ed39faa3aa1ab",
+      "stable_key_sha256": "1b7e0904fd9a9b05ad6480b332401a53645ea6d82616cbb6f9de20b9cd57879c",
+      "cell_count": 15
+    },
+    {
+      "row": 617,
+      "sha256": "0df494621ebc3c53a2a15bcc9de3b6428350c682942f16cfba8c3492ab0d9694",
+      "stable_key_sha256": "ab1c55fc84b9acd4d3b4f76c4952047cbb061b7076682bd35106362e129d135e",
+      "cell_count": 15
+    },
+    {
+      "row": 618,
+      "sha256": "d72f31439feaa772aca2bd4352411595c66709acc6ec6544ee8ea0f1bab70d3e",
+      "stable_key_sha256": "95727d3365fa728bbf4731f5910c93c445d71e94990da05ba3a16af94a76ca89",
+      "cell_count": 15
+    },
+    {
+      "row": 619,
+      "sha256": "2d9b17fa4a6be7f8cec55ee2a602c54b9adf8f5ab949ad2e9a4b6c61b3e3f6e3",
+      "stable_key_sha256": "e446bd396400fd9ccc5d8842475b58cf3bd529e8d31c4c59ccfa30097fff9817",
+      "cell_count": 15
+    }
+  ],
+  "boundary": "原值/姓名/日期/去重键原文只留本机受控快照，须经有权负责人批准的受控渠道并指定接收人后交付",
+  "sha256_note": "哈希一致只支持字节一致，不证明真实性、授权或业务正确；须由独立取得字节并匹配方写「字节一致」结论"
+}

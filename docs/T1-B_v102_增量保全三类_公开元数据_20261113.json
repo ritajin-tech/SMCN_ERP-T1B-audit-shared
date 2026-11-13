@@ -1,0 +1,100 @@
+{
+  "classification": "PUBLIC_SAFE__METADATA_ONLY__NO_PERSONNEL_DETAIL",
+  "build_time_local": "2026-11-13 10:56:42",
+  "build_time_utc": "2026-11-13T02:56:42Z",
+  "read_only": true,
+  "classes": [
+    {
+      "class": "A",
+      "object": "主库「请假」新增 616–619 四行",
+      "observed_time_local": "2026-11-13 06:30:28",
+      "source_status": "SOURCE_NOT_ATTESTED",
+      "stable_key_definition": "H 列去重键 id|date|name（原值含姓名，仅本机受控）",
+      "stable_key_sha256": [
+        "1b7e0904fd9a9b05ad6480b332401a53645ea6d82616cbb6f9de20b9cd57879c",
+        "ab1c55fc84b9acd4d3b4f76c4952047cbb061b7076682bd35106362e129d135e",
+        "95727d3365fa728bbf4731f5910c93c445d71e94990da05ba3a16af94a76ca89",
+        "e446bd396400fd9ccc5d8842475b58cf3bd529e8d31c4c59ccfa30097fff9817"
+      ],
+      "controlled_snapshot_sha256": "d53c7ab09ade08b35dc69a3369333325d10ba0abb7870f591279d51967c7eacc",
+      "obtainable_now": [
+        "对应时间",
+        "读源",
+        "列数",
+        "每行 sha256",
+        "稳定键 sha256"
+      ],
+      "not_obtainable_now": [
+        "来源链路（人事同步／写入主体／执行日志）",
+        "业务有效性",
+        "授权文件"
+      ],
+      "tom_verification": "待填（由 Tom 独立取得字节并匹配后填写，我方不预填结论）"
+    },
+    {
+      "class": "B",
+      "object": "主库新增两个每日镜像页签",
+      "observed_time_local": "2026-11-13 08:30:30",
+      "source_status": "SOURCE_NOT_ATTESTED",
+      "stable_key_definition": "ssid|tab_name（页签名去重键）",
+      "stable_key_sha256": [
+        "45b361162f9aa3fa92a6d727bb5eff61bfa73cc6e294b7d399ff75f3f8e5c4b9",
+        "6bb8e46308d50ba58b4b2e77cddef20480d42be6a91ea0b5e5eb5ebef50f1c45"
+      ],
+      "controlled_snapshot_sha256": "546257e3c50d66ffb62ca42e8d98a55224256e0a63d962e982e5b3174bdf87cb",
+      "obtainable_now": [
+        "对应时间",
+        "页签名",
+        "页签计数",
+        "读源",
+        "页签清单 sha256"
+      ],
+      "not_obtainable_now": [
+        "创建主体与触发脚本",
+        "创建时的服务端日志",
+        "是否含数据写入",
+        "业务用途裁定"
+      ],
+      "tom_verification": "待填（由 Tom 独立取得字节并匹配后填写，我方不预填结论）"
+    },
+    {
+      "class": "C",
+      "object": "10:15:12 ts-health 单轮健康告警",
+      "observed_time_local": "2026-11-13 10:15:12",
+      "source_status": "NOT_ATTESTED",
+      "stable_key_definition": "task|run_time_local|severity|consecutive_failures",
+      "stable_key_sha256": "1e44420368a854db45096b37a4dc7d6c57413b45703d82953477d81711efd8d4",
+      "controlled_snapshot_sha256": "b9e7675655668d4a6441fc06f673c875afef65b15d4a0db0853877e0b700774b",
+      "obtainable_now": [
+        "对应时间",
+        "任务名",
+        "现象文本",
+        "单轮状态",
+        "后续轮状态",
+        "本地日志文件 sha256"
+      ],
+      "not_obtainable_now": [
+        "服务端日志",
+        "权限上下文",
+        "请求响应标识",
+        "是否连续失败的独立核验",
+        "根因",
+        "真人提交记录"
+      ],
+      "tom_verification": "待填（由通道所有者具名说明日志与权限上下文可得范围，见 v102 表 F）"
+    }
+  ],
+  "after_gate_new_failures": {
+    "time_local": [
+      "2026-11-13 10:50:04",
+      "2026-11-13 10:50:41",
+      "2026-11-13 10:50:44"
+    ],
+    "status": "OBSERVED_ALERT_UNVERIFIED__AFTER_GATE",
+    "alert_md_sha256": "8633c2c7bc4fcaef7ae2f8a3b435dd11f0ce5ee919302f316c1db68fd5fd9a12",
+    "note": "BD VO→PD 闸门扫描脚本（friday_scan.py / friday_check.py）只读失败，非生产写、非 GAS/部署；零修复、零重启、不推定根因；v102 闸门 T5 TRIGGER 已主动披露"
+  },
+  "controlled_register_path": "_tmp/t1b_increment_register_20261113_1055.json",
+  "controlled_register_sha256": "bf55c650b7159eb6e892e40fe5de01b5477d05a35bd23f67899188848f56c13d",
+  "sha256_note": "哈希一致只支持字节一致，不证明真实性、授权或业务正确；仅当独立取得字节且匹配时才写「字节一致」"
+}
