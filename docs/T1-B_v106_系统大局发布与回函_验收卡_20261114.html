@@ -1,0 +1,72 @@
+<!DOCTYPE html><html lang="zh-CN"><head><meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1"><title>T1-B v106 系统大局发布与回函 · 验收卡</title>
+<style>
+:root{--bg:#f4f5f7;--card:#fff;--ink:#1f2430;--muted:#5c6575;--line:#dfe3ea;
+--vi:#b31e3e;--gray:#f4f5f7;--yellow:#fff9e6;--green:#e8f5e9;--red:#fadbd8;
+--ok:#1b7f4b;--warn:#9a6a00}
+*{box-sizing:border-box}body{margin:0;padding:28px 20px 60px;background:var(--bg);color:var(--ink);
+font-family:"Segoe UI","PingFang SC","Microsoft YaHei",system-ui,sans-serif;line-height:1.62}
+.wrap{max-width:1080px;margin:0 auto}header{border-left:5px solid var(--vi);padding:4px 0 4px 18px;margin-bottom:22px}
+h1{font-size:23px;margin:0 0 6px}.sub{color:var(--muted);font-size:13px}
+.card{background:var(--card);border:1px solid var(--line);border-radius:10px;padding:18px 20px;margin:14px 0;box-shadow:0 1px 3px rgba(20,30,50,.04)}
+h2{font-size:17px;margin:0 0 12px;padding-bottom:8px;border-bottom:1px solid var(--line)}
+table{width:100%;border-collapse:collapse;font-size:13px;margin:8px 0}
+th,td{border:1px solid var(--line);padding:8px 10px;text-align:left;vertical-align:top}th{background:var(--gray);font-weight:600}
+.pill{display:inline-block;padding:2px 9px;border-radius:20px;font-size:12px;font-weight:600;margin-right:6px}
+.p-ok{background:var(--green);color:var(--ok)}.p-bad{background:var(--red);color:var(--vi)}.p-gray{background:var(--gray);color:var(--muted)}
+.ok{color:var(--ok);font-weight:600}.bad{color:var(--vi);font-weight:600}
+.grid{display:grid;grid-template-columns:repeat(auto-fit,minmax(200px,1fr));gap:12px}
+.metric{background:var(--gray);border-radius:8px;padding:12px 14px}.metric .n{font-size:19px;font-weight:700;color:var(--vi)}
+.metric .l{font-size:12px;color:var(--muted)}ul{margin:8px 0;padding-left:20px}li{margin:5px 0}
+.note{background:var(--yellow);border-left:4px solid #e0bd52;padding:10px 14px;border-radius:6px;font-size:13px}
+footer{margin-top:26px;color:var(--muted);font-size:12px;text-align:center}
+a{color:var(--vi)}
+</style></head><body><div class="wrap">
+<header><h1>T1-B v106 系统大局发布与回函 · 验收卡</h1>
+<div class="sub">第 32 代承接 · 父 v105 = cb2d218 · 挂 Tom 17:28:15 北京《回复：【生产表】v105 规则撤回与证据边界》· 只读 / 零积分 / 不换链接 · 2026-11-14 17:5x 北京</div></header>
+
+<div class="card"><h2>闸门判定</h2>
+<div class="note"><span class="pill p-ok">OPEN_NEXT_VERSION</span> <strong>T1 触发，T2–T5 全清。</strong>
+Tom 17:28 对 v105 的回复首次提出一条对【本方】的具体新请求（具名说明可得及不可得范围）并枚举待证项 → 构成实质新，开 v106。生产表/主库读数=基线（T2 真 CLEAR）、GitHub 零新增零漂移（T3 CLEAR）、活文档无矛盾（T4 CLEAR）、今日 FAIL 均为已披露同类 404 监测无新故障类型（T5 CLEAR）。</div>
+<table><tr><th>触发</th><th>结果</th><th>实证</th></tr>
+<tr><td class="k">T1 Tom 实质新真回函</td><td class="bad">🔴 触发</td><td>msg_LTP032VKK 17:28:15Z，含具体新请求＋待证枚举，in_reply_to=v105 rfc 线程承接</td></tr>
+<tr><td class="k">T2 生产表/主库数据事件</td><td class="ok">✅ 无</td><td>11513/18 · 625/15 · 页签 47/16 · 部署 3，与基线逐项一致</td></tr>
+<tr><td class="k">T3 共享库新编辑/漂移</td><td class="ok">✅ 无</td><td>commits/issues/PR 0；HEAD=remote=cb2d218 零漂移</td></tr>
+<tr><td class="k">T4 活文档矛盾</td><td class="ok">✅ 无</td><td>复核 v105 主文档/表P/EP/K-6/loop_policy 无矛盾</td></tr>
+<tr><td class="k">T5 新失败运行披露</td><td class="ok">✅ 无</td><td>今日 FAIL 均为已披露同类 404 监测，无新故障类型</td></tr>
+</table></div>
+
+<div class="card"><h2>v106 交付物（已发布至 GitHub 共享库）</h2>
+<table><tr><th>文件</th><th>作用</th></tr>
+<tr><td class="k"><code>T1-B_v106_外发授权留痕_20261114.json</code></td><td>✅ 直接回答 Tom「具名说明可得及不可得范围」：7 类待证项＋22 禁止串边界＋红线逐项具名</td></tr>
+<tr><td class="k"><code>T1-B_v106_表Q与具名说明_可就地编辑_20261114.md</code></td><td>✅ 表 Q-1～Q-4 留白，请 Tom 在共享库直接改字回填（具体编辑、不要 Yes/No）</td></tr>
+<tr><td class="k"><code>T1-B_v106_承接Tom_v105回复_系统大局与具体编辑_20261114.md</code></td><td>✅ 逐点回应 7 项＋系统大局＋三提醒＋红线实证＋范围声明</td></tr>
+<tr><td class="k"><code>T1-B_v106_闸门核查_20261114.html/.json</code></td><td>✅ 五类触发逐项判定与逐源打勾（可审计）</td></tr>
+<tr><td class="k"><code>T1-B_v106_公开库边界检查_20261114.json</code></td><td>✅ 22 禁止串 × v106 文件 0 命中 PASS</td></tr>
+</table></div>
+
+<div class="card"><h2>三提醒（照带）</h2>
+<ul>
+<li><strong>不要回退</strong>：K-6 维持 WITHDRAWN_PER_TOM_1220，不重开；v99–v105 全部靶位与证据链原样保留。</li>
+<li><strong>记进度（v106＝第 32 代承接）</strong>：累计 32 代全部双通道读回、字节一致、边界 0 命中、红线全守；本代新增「具名说明」长期通道。</li>
+<li><strong>加速修复</strong>：① GAS 端点 404 连续性未自愈，请恢复可达性或决策；② 表 Q-2 五项前置条件＋表 Q-3 独立核验请具名回填，这是解锁收敛讨论的唯一前提。</li>
+</ul></div>
+
+<div class="card"><h2>红线 · 不改链接（实证）</h2>
+<div class="grid">
+<div class="metric"><div class="n">0</div><div class="l">13 项目 deploymentId DIFF</div></div>
+<div class="metric"><div class="n">3</div><div class="l">ts-manager 部署恒 3</div></div>
+<div class="metric"><div class="n">@212</div><div class="l">团队入口 GET 三次 200</div></div>
+<div class="metric"><div class="n">零</div><div class="l">push/deploy/换链/生产写/主库写/清理回滚</div></div>
+</div>
+<ul style="margin-top:12px">
+<li>本代仅向 GitHub 共享库推送文档/元数据，不触碰任何 GAS/Web App 部署链接。</li>
+<li>零生产写、零主库写、零结构列宽改动、零降告警覆盖、零历史对象删改。</li>
+</ul></div>
+
+<div class="card"><h2>范围声明</h2>
+<div class="note">已实测：Tom 17:28 新函全文与线程头、GitHub 三通道零新增＋本地 git 零漂移、生产表/主库只读探针（18:00，=基线）、当日 47 FAIL 均为已披露同类 404 监测、13 项目部署与入口三次 GET、收敛判据原文、loop_policy 逐字节一致。
+<strong>未读/未宣称</strong>：真人实屏、手机端、同事筛选视图、服务端日志与权限上下文（超只读授权）、Tom 本方独立核验结论（待具名回填）。不宣称「故障已解决」「已验收」「已授权」。</div></div>
+
+<footer>全部时间以北京时间 GMT+8 优先、UTC 括号附注 · 事故 OPEN · HOLD-NO-GO · 阶段一 PASS 暂缓 · M2 未签 · TS_WRITE_FREEZE=1 原样维持 · 本卡不构成验收、解冻或生产授权 · v106 回函已直发 Tom（THREAD PASS，不再问 Rita）</footer>
+</div></body></html>
