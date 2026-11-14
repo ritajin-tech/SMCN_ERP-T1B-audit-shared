@@ -1,0 +1,51 @@
+<!DOCTYPE html><html lang="zh-CN"><head><meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1"><title>T1-B v107 验收卡 · 承接 Tom 18:32 对 v106 回复</title>
+<style>body{font-family:-apple-system,"PingFang SC","Microsoft YaHei",sans-serif;margin:0;background:#f5f6f8;color:#1f2937;padding:24px}.wrap{max-width:920px;margin:0 auto}.card{background:#fff;border:1px solid #e5e7eb;border-radius:12px;padding:20px 22px;margin-bottom:16px;box-shadow:0 1px 3px rgba(0,0,0,.05)}h1{font-size:21px;margin:0 0 4px}.sub{color:#6b7280;font-size:13px;margin-bottom:0}.pill{display:inline-block;padding:3px 10px;border-radius:999px;font-size:12px;font-weight:600}.p-ok{background:#dcfce7;color:#166534}.p-warn{background:#fef9c3;color:#854d0e}h2{font-size:15px;margin:18px 0 8px;border-left:4px solid #2563eb;padding-left:8px}table{width:100%;border-collapse:collapse;font-size:12.5px}th,td{border:1px solid #e5e7eb;padding:6px 8px;text-align:left;vertical-align:top}th{background:#f3f4f6}.ok{color:#166534;font-weight:600}.bad{color:#b91c1c;font-weight:600}.remind{background:#eff6ff;border:1px solid #bfdbfe;color:#1e3a8a}h3{font-size:13px;margin:10px 0 4px}.mono{font-family:ui-monospace,SFMono-Regular,Menlo,monospace;font-size:11.5px}.foot{color:#9ca3af;font-size:11.5px;margin-top:8px}</style></head>
+<body><div class="wrap">
+<div class="card"><h1>T1-B v107 · 验收卡</h1><div class="sub">承接 Tom 18:32 北京对 v106 的回复（msg_cDCPrvRE9X…）｜ 第 33 代承接 ｜ 闸门 OPEN_NEXT_VERSION</div>
+<div style="margin-top:10px"><span class="pill p-ok">T1 触发</span> <span class="pill p-warn">T2–T5 全 CLEAR</span></div></div>
+
+<div class="card"><h2>闸门逐项</h2>
+<table><tr><th>触发</th><th>结果</th><th>实证</th></tr>
+<tr><td>T1 Tom 实质新真回函</td><td class="bad">TRIGGER</td><td>Tom 18:32 新函：要求逐件属性矩阵（4 问），声明未经其独立核验不能填通过</td></tr>
+<tr><td>T2 生产表/主库数据事件</td><td class="ok">CLEAR</td><td>11513/18 · 625/15 · 页签 47/16 · 部署 3，全与基线一致</td></tr>
+<tr><td>T3 共享库编辑/PR/issue/漂移</td><td class="ok">CLEAR</td><td>GitHub 自 858da62 后 0 commit / 0 issue / 0 PR，dirty=0</td></tr>
+<tr><td>T4 活文档矛盾</td><td class="ok">CLEAR</td><td>v106 各件与更早各代一致；Tom 新函系对交付物再质疑，非提案被推翻</td></tr>
+<tr><td>T5 未披露失败运行</td><td class="ok">CLEAR</td><td>今日 52 条 FAIL 均属已披露同类 404 监测（bd-drain40/pclist-harvest10/numberlock-fixwatch1/ts-health1），无新故障类型</td></tr>
+</table></div>
+
+<div class="card"><h2>对 Tom 18:32 指认的诚实纠正</h2>
+<h3>① 「条件格式历史原件」措辞过当</h3><p style="font-size:12.5px;margin:2px 0">我方只读通道不持有全量版本链；实际持有＝<b>当前状态（只读可取）＋ 2026-11-12 修复验收卡（97/97 =TRUE 前后对照）</b>。已拆为矩阵第 2、3 项。</p>
+<h3>② 「404 日志」与「服务端日志」字面混淆</h3><p style="font-size:12.5px;margin:2px 0">404 日志＝<b>我方客户端探针</b>失败原文（持有）；服务端日志及权限上下文＝<b>GAS/服务端侧</b>（不可得）。已拆清（矩阵第 1、7 项）。<b>非逻辑矛盾，系表述不严谨，已纠正。</b></p></div>
+
+<div class="card"><h2>逐件属性矩阵（答 Tom 4 问）</h2>
+<table><tr><th>#</th><th>证据项</th><th>类型</th><th>可得范围</th></tr>
+<tr><td>1</td><td>404 失败原文（客户端探针）</td><td>客户端探针日志</td><td class="ok">本方可得</td></tr>
+<tr><td>2</td><td>条件格式当前状态</td><td>条件格式当前配置</td><td class="ok">本方可得</td></tr>
+<tr><td>3</td><td>条件格式 11-12 前后对照</td><td>条件格式前后配置</td><td class="ok">本方可得</td></tr>
+<tr><td>4</td><td>d50e795 固定提交</td><td>Git 对象</td><td class="ok">本方可得</td></tr>
+<tr><td>5</td><td>原始字节受控快照</td><td>受控快照字节</td><td class="ok">本方可得</td></tr>
+<tr><td>6</td><td>操作者确认/业务签署</td><td>业务签署件</td><td class="ok">本方可得</td></tr>
+<tr><td>7</td><td><b>服务端日志及权限上下文</b></td><td><b>服务端原始日志</b></td><td class="bad">本方不可得</td></tr>
+<tr><td>8</td><td>1615 行清理授权及时间差异</td><td>对方系统侧记录</td><td class="bad">待你方核验</td></tr>
+<tr><td>9</td><td>规则原文/监测覆盖/现场状态</td><td>声明性核验项</td><td class="bad">待你方核验</td></tr>
+<tr><td>10</td><td>22 禁止串边界</td><td>边界控制元数据</td><td class="ok">本方可得</td></tr>
+</table><div class="foot">完整机器可读版：T1-B_v107_证据可得性逐件属性矩阵_20261114.json</div></div>
+
+<div class="card remind"><h2>三提醒（照带）</h2>
+<p style="font-size:13px;margin:4px 0"><b>1. 不要回退</b>：K-6 撤回（WITHDRAWN_PER_TOM_1220）是既定结论，你重申条件不构成恢复授权；v99–v106 全部靶位与证据链原样保留。</p>
+<p style="font-size:13px;margin:4px 0"><b>2. 记进度（v107＝第 33 代）</b>：累计 33 代双通道读回、字节一致、边界 0 命中、红线全守；本代新增「逐件属性矩阵」彻底拆清字面歧义。</p>
+<p style="font-size:13px;margin:4px 0"><b>3. 加速修复</b>：① GAS 端点 404 连续性未自愈，请恢复可达性或给决策；② 表 Q 逐件核验结论（具体，不要「待核」）请具名回填。</p></div>
+
+<div class="card"><h2>红线 · 不改链接（实证）</h2>
+<table><tr><th>项</th><th>值</th></tr>
+<tr><td>13 项目 deploymentId 差异</td><td class="ok">DIFF = 0</td></tr>
+<tr><td>ts-manager 部署</td><td class="ok">恒 3</td></tr>
+<tr><td>团队入口 AKfycbzUyhyK… @212</td><td class="ok">独立 GET 三次 HTTP 200</td></tr>
+<tr><td>生产写 / 主库写 / 试提交 / 修复重启 / 降覆盖 / 历史删改 / 换链接</td><td class="ok">全部零</td></tr>
+</table><div class="foot">本 v107 仅向 GitHub 共享库推送文档/元数据，不触碰任何 GAS/Web App 部署链接。</div></div>
+
+<div class="card"><h2>给 Tom 的下一步（具体编辑，不要 Yes/No）</h2>
+<p style="font-size:13px">打开 <span class="mono">T1-B_v107_表Q与逐件属性矩阵_可就地编辑_20261114.md</span>，把 _Q1–Q10 / Q-K6 / Q-R1–R5 全部改字回填具体结论，commit 即视为正式「大局系统还复」，本方自动复采并开 v108。</p>
+<p class="foot">本函不构成验收或授权。所有文件已发布至 ritajin-tech/SMCN_ERP-T1B-audit-shared（docs/）。</p></div>
+</div></body></html>

@@ -1,0 +1,114 @@
+{
+  "purpose": "v107 · 直接答 Tom 2026-11-14 18:32 北京《回复：【生产表】v106 证据可取得性与安全边界》的逐件属性要求：① 具体原件；② 采集主体与时间；③ 可得范围；④ 是服务端原始日志还是条件格式前后配置（或其余类型）。本文件并诚实纠正 v106《具名说明》两处措辞过当。",
+  "honest_corrections_on_v106": [
+    {
+      "v106_phrase": "条件格式历史原件（obtainable）",
+      "correction": "我方只读通道并不持有『条件格式历史原件』（完整版本链）。实际持有＝当前条件格式状态（只读可取）＋ 2026-11-12 修复验收卡（97/97 条 =TRUE 锁死底色的前后对照证据）。本矩阵据此拆分，不再使用『历史原件』表述。",
+      "why": "『历史原件』易被理解为全量版本回溯，超出我方只读授权范围；属 v106 措辞过当，此处纠正。"
+    },
+    {
+      "v106_phrase": "404 日志（obtainable）与 服务端日志及权限上下文（unobtainable）并列",
+      "correction": "两者并非同类：『404 日志』＝我方客户端只读探针的 HTTP 404 失败原文（我方持有）；『服务端日志及权限上下文』＝GAS/服务端侧的请求执行记录（我方不可得）。v106 两处都带『日志』二字造成字面混淆，本矩阵将二者彻底拆清并各自标注类型。",
+      "why": "Tom 指认的『一处说已保全、一处说待核』并非逻辑矛盾，而是字面歧义；拆清后无矛盾。"
+    }
+  ],
+  "per_item_matrix": [
+    {
+      "item": "404 失败原文日志（我方客户端只读探针）",
+      "type": "客户端探针日志（CLIENT_PROBE_LOG，非服务端日志）",
+      "specific_original": "tools/_zc_logs/2026-11-14.log 中 bd-drain / pclist-harvest / numberlock-fixwatch 多轮 HTTP 404 原文行；outputs/T1-B_v107_闸门核查_20261114.json 逐轮登记",
+      "collected_by": "ZC_t1b-watch 零积分盯梢（rita.jin 授权下的每 30 分只读巡检）",
+      "collected_at": "自 2026-11-14 07:05 起每 30 分一轮，迄今持续未自愈；最近一轮 19:30 探针仍 404",
+      "obtainable_scope": "本方可得（OBTAINABLE__CLIENT_SIDE）",
+      "note": "连续性＝同端点同权限同条件复现；根因不在本方权限内。我方不试提交/修复/重启。Tom 亦确认『正常 GET 不证明故障解决』。"
+    },
+    {
+      "item": "条件格式当前状态（只读可取）",
+      "type": "条件格式当前配置（CF_CURRENT_STATE）",
+      "specific_original": "生产表/主库只读探针读取的列宽/底色/条件格式现状；_tmp/t1b_watch_probe.json",
+      "collected_by": "rita.jin 授权的只读探针（hktool/numberlock 只读通道、probe_v59_live_state.py）",
+      "collected_at": "最近一次 2026-11-14 19:30 探针；基线状态全天稳定",
+      "obtainable_scope": "本方可得（OBTAINABLE）",
+      "note": "零列宽改动（红线：列宽神圣不可动）。"
+    },
+    {
+      "item": "条件格式前后对照证据（11-12 修复）",
+      "type": "条件格式前后配置对照（CF_BEFORE_AFTER）",
+      "specific_original": "outputs/Registry_修复完成验收卡_20261112.html（97/97 条 =TRUE 锁死底色修复前后对照）",
+      "collected_by": "rita.jin 授权下的只读修复留证（2026-11-12 执行，零列宽改动）",
+      "collected_at": "2026-11-12 修复完成并留证；v107 复采仍有效",
+      "obtainable_scope": "本方可得（OBTAINABLE）",
+      "note": "这是『前后对照』证据，非全量历史版本链；v106『历史原件』表述过当，此处纠正。"
+    },
+    {
+      "item": "d50e795（固定提交）",
+      "type": "Git 对象（GIT_OBJECT）",
+      "specific_original": "_tmp/audit_shared 本地镜像：git cat-file -t d50e795 ⇒ commit",
+      "collected_by": "本地 git（rita.jin 授权镜像 ritajin-tech/SMCN_ERP-T1B-audit-shared）",
+      "collected_at": "2026-11-14 多次复采（v105/v106/v107 一致）；类型仍为 commit，零改动零删除",
+      "obtainable_scope": "本方可得（OBTAINABLE）",
+      "note": "与 v105/v106 一致，未漂移。"
+    },
+    {
+      "item": "原始字节（受控快照与证据包）",
+      "type": "受控快照字节（CONTROLLED_SNAPSHOT_BYTES）",
+      "specific_original": "outputs/T1-B_v105_全轮次登记_公开元数据_20261114.json（字节/SHA-256）；_tmp/t1b_increment_snapshot_20261114_1153.json",
+      "collected_by": "t1b_evidence_fix.py ＋ t1b_increment_snapshot.py（逐字节固定 SHA-256）",
+      "collected_at": "v100–v107 历轮证据包与受控快照均逐字节固定并 SHA-256 登记",
+      "obtainable_scope": "本方可得（OBTAINABLE）",
+      "note": "未改动任何历史对象，可复采可比对。"
+    },
+    {
+      "item": "操作者确认 / 业务签署",
+      "type": "业务签署件（BUSINESS_SIGNATURE）",
+      "specific_original": "本承接链 v99–v107 全部由 rita.jin 显式授权执行；外发总闸按显式授权直发",
+      "collected_by": "rita.jin（SMCN ERP 负责人，业务授权人）",
+      "collected_at": "各代回函时点（v99 起逐代具名）",
+      "obtainable_scope": "本方可得（OBTAINABLE_BY_PRINCIPAL）",
+      "note": "未授权动作一律不执行（PD 写/生产写/主库写/清理回滚均零发生）。"
+    },
+    {
+      "item": "服务端日志及权限上下文（GAS/服务端侧）",
+      "type": "服务端原始日志（SERVER_ORIGINAL_LOG，本方不可得）",
+      "specific_original": "GAS/服务端请求执行记录与权限审计日志",
+      "collected_by": "须由通道所有者（Google 服务端 / 有权方）具名说明",
+      "collected_at": "—（本方只读授权不可达）",
+      "obtainable_scope": "不可得（UNOBTAINABLE__SERVER_SIDE）",
+      "note": "超出本只读授权范围；本方已具名保全可得部分（客户端 404 探针日志），不可得部分由通道所有者说明。Tom 17:28/18:32 两函均确认此部分须经其独立核验。"
+    },
+    {
+      "item": "1615 行清理授权及时间差异",
+      "type": "对方系统侧记录（COUNTERPART_SYSTEM_RECORD，待 Tom 核验）",
+      "specific_original": "该清理的授权来源与时间差异记录（对方系统侧）",
+      "collected_by": "待 Tom 本方独立核验后回填",
+      "collected_at": "—",
+      "obtainable_scope": "待核验（SOURCE_NOT_ATTESTED__AWAIT_TOM_VERIFY）",
+      "note": "本方可确认『未发生任何 1615 行清理/删除』（零清理回滚、零历史对象删改，红线固化）；但『该清理的授权来源与时间差异』属对方系统侧，须 Tom 具名核验。"
+    },
+    {
+      "item": "规则原文 / 监测覆盖 / 现场状态（Tom 本方独立核验）",
+      "type": "声明性核验项（DECLARATIVE_VERIFICATION，待 Tom 核验）",
+      "specific_original": "K-6 撤回与其他规则原文、本方监测覆盖清单、现场状态",
+      "collected_by": "待 Tom 本方独立核验后回填",
+      "collected_at": "—",
+      "obtainable_scope": "待核验（SOURCE_NOT_ATTESTED__AWAIT_TOM_VERIFY）",
+      "note": "Tom 17:28 函明言『规则原文、监测覆盖及现场状态尚未经本方独立核验』。本方可提供本方监测覆盖清单（v105 系统大局主文档）供其核验，但核验结论须 Tom 具名回填，本方不代判。"
+    },
+    {
+      "item": "22 禁止串边界（人员明细）",
+      "type": "边界控制元数据（BOUNDARY_METADATA）",
+      "specific_original": "_tmp/t1b_increment_snapshot_20261114_1153.json（22 条禁止串受控快照，含姓名不进公开库）",
+      "collected_by": "t1b_public_boundary_check.py（扫描待发文件，0 命中）",
+      "collected_at": "v107 边界检查 2026-11-14 20:xx（22 禁止串 × v107 待发文件 0 命中）",
+      "obtainable_scope": "本方可得（OBTAINABLE）",
+      "note": "公开库只留路径/字节数/SHA-256/采集时点/稳定键哈希等元数据；含姓名/联系方式/个人金融信息的原件一律不进 public GitHub。"
+    }
+  ],
+  "summary_for_tom": "以上逐件矩阵已按你 4 问（具体原件/采集主体+时间/可得范围/类型）拆清；并纠正 v106 两处措辞过当（『条件格式历史原件』实为当前状态+11-12前后对照卡；『404日志』与『服务端日志』已拆为客户端探针日志 vs 服务端原始日志两类）。可得＝①404客户端探针日志 ②条件格式当前状态 ③条件格式11-12前后对照卡 ④d50e795 ⑤原始字节受控快照 ⑥操作者确认/业务签署 ⑦22禁止串边界元数据。不可得/待你方核验＝⑧服务端日志及权限上下文 ⑨1615行清理授权及时间差异 ⑩规则原文/监测覆盖/现场状态。请按附表 Q 逐件具名回填核验结论（具体，不要只写通过/待核）。本函不构成验收或授权。",
+  "redline_no_link_change": {
+    "deployment_diff_count_13_projects": 0,
+    "ts_manager_deployments_total": 3,
+    "team_entry_deploymentId": "AKfycbzUyhyK… @212（独立 GET 三次 HTTP 200）",
+    "note": "零新建/删除部署、零 URL 变更、零 GAS push/deploy、零生产写、零主库写、零结构改动、零清理回滚、零历史对象删改。本 v107 仅向 GitHub 共享库推送文档/元数据，不触碰任何 GAS/Web App 部署链接。"
+  }
+}
