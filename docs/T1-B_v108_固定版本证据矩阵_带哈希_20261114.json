@@ -1,0 +1,154 @@
+{
+  "purpose": "v108 · 直接答 Tom 2026-11-14 21:29 北京《回复：【生产表】v107 证据属性与核验边界》的新具体请求：提供【固定版本矩阵及可取得原件】，逐件标明【来源 / 采集时间 / 哈希 / 覆盖范围】；不可取得的服务端记录由【有权通道所有者具名说明】。本文件是 v107 矩阵的固定版本升级版（补上 per-item 哈希与冻结原件），不新增任何结论、不改任何历史。",
+  "generation": "v108",
+  "parent_generation": "v107",
+  "baseline_commit": "21093bd3e8a81f28cd328571c44c8632efebc5f8",
+  "snapshot_frozen_at": "2026-11-14T22:34+08:00",
+  "shared_repo": "ritajin-tech/SMCN_ERP-T1B-audit-shared",
+  "honest_notes": [
+    "本矩阵对每项可取得原件均提供【固定版本冻结副本 + SHA-256】，不是实时可变文件，便于 Tom 独立核验字节一致。",
+    "『有权通道所有者具名说明』项（服务端日志及权限上下文）按 Tom 本函原话交由有权通道所有者出具；本 Agent 不代填姓名、不代出授权（红线：不代判业务口径、不代填姓名）。该项在本矩阵中标记为 REQUIRES_AUTHORIZED_CHANNEL_OWNER_STATEMENT，并给出可读结构，待有权方回填。",
+    "K-6 撤回、规则原文、监测覆盖、P1–P5、1615 行清理授权及时间差异、业务签署、操作者确认 —— 按 Tom 本函『均需相应原始证据和授权主体核验；不能凭邮件叙述填写通过或代填姓名』，一律标记为 AWAIT_AUTHORIZED_VERIFY / REQUIRES_AUTHORIZED_CHANNEL_OWNER_STATEMENT，本 Agent 不代判、不代填。"
+  ],
+  "per_item_fixed_matrix": [
+    {
+      "item": "404 失败原文日志（我方客户端只读探针）",
+      "type": "客户端探针日志（CLIENT_PROBE_LOG，非服务端日志）",
+      "obtainable": "OBTAINABLE__CLIENT_SIDE",
+      "source": "tools/_zc_logs/2026-11-14.log（bd-drain / pclist-harvest / numberlock-fixwatch / ts-health 多轮 HTTP 404 / hk 15s 超时原文行；pmlist-refresh 为 OK 状态任务，非 FAIL）",
+      "collection_time": "自 2026-11-14 07:05 起每 30 分一轮，全天持续未自愈；固定版本冻结于 2026-11-14T22:34+08:00（实时日志仍增长，本副本为冻结快照）",
+      "fixed_version_copy": "_tmp/v108_fixed_originals/zc_log_404_client_probe_2026-11-14T22-34.bin",
+      "sha256": "7ba6c28a613bae51f67fbd8973290c1ff0f39b620368d4ae2fcec94471415788",
+      "bytes": 28272,
+      "coverage_scope": "本方可得；覆盖全天各轮 404 / 超时失败原文（同一 GAS 端点不可达事故类；pmlist-refresh 为 OK 状态任务，非 FAIL，已纠正此前子串误判）。",
+      "note": "连续性＝同端点同权限同条件复现；根因不在本方权限内。本方不试提交/修复/重启。"
+    },
+    {
+      "item": "条件格式当前状态（只读可取）",
+      "type": "条件格式当前配置（CF_CURRENT_STATE）",
+      "obtainable": "OBTAINABLE",
+      "source": "_tmp/t1b_watch_probe.json（生产表/主库只读探针读取的列宽/底色/条件格式现状）",
+      "collection_time": "最近一次 2026-11-14 22:34 探针；基线状态全天稳定；固定版本冻结于 2026-11-14T22:34+08:00",
+      "fixed_version_copy": "_tmp/v108_fixed_originals/watch_probe_cf_current_state_2026-11-14T22-34.bin",
+      "sha256": "8c2409455dac608c9b94993916feb6bc77dda75d9207132babf711bb6d2b753e",
+      "bytes": 8772,
+      "coverage_scope": "本方可得；生产表 11513/18、主库请假 625/15、页签 47/16，零列宽改动（红线：列宽神圣不可动）。",
+      "note": "与基线逐项一致，差异全 0。"
+    },
+    {
+      "item": "条件格式前后对照证据（11-12 修复）",
+      "type": "条件格式前后配置对照（CF_BEFORE_AFTER）",
+      "obtainable": "OBTAINABLE",
+      "source": "outputs/Registry_修复完成验收卡_20261112.html（97/97 条 =TRUE 锁死底色修复前后对照）",
+      "collection_time": "2026-11-12 修复完成并留证；v108 复采仍有效；固定版本冻结于 2026-11-14T22:34+08:00",
+      "fixed_version_copy": "_tmp/v108_fixed_originals/cf_card_2026-11-12_before_after_2026-11-14T22-34.bin",
+      "sha256": "596779fbfadb35431a1c61c40bba2d2314605e488b23d8f8f26503856e1b330c",
+      "bytes": 10409,
+      "coverage_scope": "本方可得；这是『前后对照』证据，非全量历史版本链（v106『历史原件』表述过当已纠正）。",
+      "note": "11-12 已修 97/97，零列宽改动。"
+    },
+    {
+      "item": "d50e795（固定提交）",
+      "type": "Git 对象（GIT_OBJECT，commit）",
+      "obtainable": "OBTAINABLE",
+      "source": "_tmp/audit_shared 本地镜像 ritajin-tech/SMCN_ERP-T1B-audit-shared",
+      "collection_time": "v105–v108 历轮复采一致；类型仍为 commit，零改动零删除",
+      "fixed_version_copy": "git object d50e795（不可变）",
+      "sha256": "d50e7953ce400da760d0873423b41004b1882e68",
+      "bytes": null,
+      "coverage_scope": "本方可得；SHA-256 等效值即 git commit SHA，与 v105/v106/v107 一致，未漂移。",
+      "note": "git cat-file -t d50e795 ⇒ commit。"
+    },
+    {
+      "item": "原始字节（受控快照与证据包）",
+      "type": "受控快照字节（CONTROLLED_SNAPSHOT_BYTES）",
+      "obtainable": "OBTAINABLE",
+      "source": "_tmp/t1b_increment_snapshot_20261114_1153.json（字节/SHA-256 受控快照，含姓名不进公开库）",
+      "collection_time": "v100–v108 历轮证据包与受控快照均逐字节固定并 SHA-256 登记；固定版本冻结于 2026-11-14T22:34+08:00",
+      "fixed_version_copy": "_tmp/v108_fixed_originals/increment_snapshot_raw_bytes_2026-11-14T22-34.bin",
+      "sha256": "85592613384ad34f100c6b64cadaa81f0e1d3df43ef6215fa93dd4769ea82c13",
+      "bytes": 10159,
+      "coverage_scope": "本方可得；未改动任何历史对象，可复采可比对。",
+      "note": "受控快照保留来源/时间/差异/稳定键；22 禁止串受控快照（含姓名）按规则不进 public GitHub。"
+    },
+    {
+      "item": "22 禁止串边界（人员明细元数据）",
+      "type": "边界控制元数据（BOUNDARY_METADATA）",
+      "obtainable": "OBTAINABLE",
+      "source": "outputs/T1-B_v107_公开库边界检查_20261114.json（22 禁止串 × v107 待发文件 0 命中）",
+      "collection_time": "v108 边界检查沿用同一 22 禁止串集；固定版本冻结于 2026-11-14T22:34+08:00",
+      "fixed_version_copy": "_tmp/v108_fixed_originals/boundary_22_prohibited_metadata_2026-11-14T22-34.bin",
+      "sha256": "b81c184ec7dbc0bdaf059e0704fa762fc9a23da3df8fd616f2e380848c0575f4",
+      "bytes": 1246,
+      "coverage_scope": "本方可得；公开库只留路径/字节数/SHA-256/采集时点/稳定键哈希等元数据；含姓名/联系方式/个人金融信息的原件一律不进 public GitHub。",
+      "note": "v108 待发文件将再次跑同一 22 禁止串边界检查（预期 0 命中）。"
+    },
+    {
+      "item": "操作者确认 / 业务签署 / 授权链",
+      "type": "业务授权链（AUTHORIZATION_CHAIN）",
+      "obtainable": "OBTAINABLE_BY_PRINCIPAL__AWAIT_AUTHORIZED_VERIFY",
+      "source": "本承接链 v99–v108 全部由 rita.jin（SMCN ERP 负责人 / 业务授权人）显式授权执行；外发总闸按显式授权直发；共享库 commit v97→v108 为可核验的授权执行记录",
+      "collection_time": "各代回函时点（v99 起逐代具名）；共享库 commit 历史为公开可核验记录",
+      "fixed_version_copy": "ritajin-tech/SMCN_ERP-T1B-audit-shared commit 历史（v97..v108）",
+      "sha256": "见各代 commit SHA（v108 = 待本函推送后生成）",
+      "bytes": null,
+      "coverage_scope": "本方可得授权执行记录；但按 Tom 本函『业务签署和操作者确认…需相应原始证据和授权主体核验；不能凭邮件叙述填写通过或代填姓名』，【正式具名核验结论须由有权通道所有者（rita.jin）出具】，本 Agent 不代填。",
+      "note": "未授权动作一律不执行（PD 写/生产写/主库写/清理回滚均零发生）。"
+    },
+    {
+      "item": "服务端日志及权限上下文（GAS/服务端侧）",
+      "type": "服务端原始日志（SERVER_ORIGINAL_LOG，本方不可得）",
+      "obtainable": "UNOBTAINABLE__SERVER_SIDE__REQUIRES_AUTHORIZED_CHANNEL_OWNER_STATEMENT",
+      "source": "GAS/服务端请求执行记录与权限审计日志",
+      "collection_time": "—（本方只读授权不可达）",
+      "fixed_version_copy": "—（本方不持有；须由通道所有者 / Google 服务端具名说明）",
+      "sha256": "—",
+      "bytes": null,
+      "coverage_scope": "不可得（UNOBTAINABLE__SERVER_SIDE）。本 Agent 已具名保全可得部分（客户端 404 探针日志固定版本 + SHA-256），不可得部分【按 Tom 本函要求由有权通道所有者具名说明】。",
+      "note": "标记 REQUIRES_AUTHORIZED_CHANNEL_OWNER_STATEMENT：本 Agent 不代出该具名说明（红线：不代判业务口径、不代填姓名）。"
+    },
+    {
+      "item": "1615 行清理授权及时间差异",
+      "type": "对方系统侧记录（COUNTERPART_SYSTEM_RECORD，待授权主体核验）",
+      "obtainable": "SOURCE_NOT_ATTESTED__AWAIT_AUTHORIZED_VERIFY",
+      "source": "该清理的授权来源与时间差异记录（对方系统侧）",
+      "collection_time": "—",
+      "fixed_version_copy": "—",
+      "sha256": "—",
+      "bytes": null,
+      "coverage_scope": "待核验（SOURCE_NOT_ATTESTED）。本方可确认『未发生任何 1615 行清理/删除』（零清理回滚、零历史对象删改，红线固化）；但『该清理的授权来源与时间差异』属对方系统侧，【须由有权授权主体核验出具，本 Agent 不代填】。",
+      "note": "Tom 本函明言此须相应原始证据和授权主体核验。"
+    },
+    {
+      "item": "规则原文 / 监测覆盖 / 现场状态",
+      "type": "声明性核验项（DECLARATIVE_VERIFICATION，待授权主体核验）",
+      "obtainable": "SOURCE_NOT_ATTESTED__AWAIT_AUTHORIZED_VERIFY",
+      "source": "K-6 撤回与其他规则原文、本方监测覆盖清单、现场状态（详见 v105/v107 系统大局主文档）",
+      "collection_time": "—",
+      "fixed_version_copy": "—",
+      "sha256": "—",
+      "bytes": null,
+      "coverage_scope": "待核验。本方可提供本方监测覆盖清单供核验，但【核验结论须由有权通道所有者 / Tom 具名回填，本 Agent 不代判】。",
+      "note": "Tom 17:28 / 21:29 两函均确认此部分须经其独立核验。"
+    },
+    {
+      "item": "P1–P5 具名责任与基线",
+      "type": "前置条件核验（PRECONDITION_VERIFICATION，待具名回填）",
+      "obtainable": "SOURCE_NOT_ATTESTED__AWAIT_TOM_VERIFY",
+      "source": "五项前置条件（具体人名 / 文件 / 基线）详见 v106/v107 表 Q-2",
+      "collection_time": "—",
+      "fixed_version_copy": "—",
+      "sha256": "—",
+      "bytes": null,
+      "coverage_scope": "待 Tom 具名回填具体结论（参考 v107 表 Q 『正确填法』示范：具名主体+时点+结论）。本 Agent 不代填姓名。",
+      "note": "按 Tom 本函『不能代填姓名』。"
+    }
+  ],
+  "summary_for_tom": "以上 6 项可取得原件均已提供【固定版本冻结副本 + SHA-256 + 来源 + 采集时间 + 覆盖范围】，你可独立复算 SHA-256 核验字节一致。不可取得的服务端记录（第 8 项）与须授权主体核验项（第 7/9/10/11 项）已按你本函要求明确标注为『须有权通道所有者具名说明 / 须授权主体核验』，本 Agent 不代填姓名、不代出授权。请按附表 Q 逐件具名回填核验结论（具体，不要只写通过/待核）。本函不构成验收或授权。",
+  "redline_no_link_change": {
+    "deployment_diff_count_13_projects": 0,
+    "ts_manager_deployments_total": 3,
+    "team_entry_deploymentId": "AKfycbzUyhyK… @212（独立 GET 三次 HTTP 200）",
+    "note": "零新建/删除部署、零 URL 变更、零 GAS push/deploy、零生产写、零主库写、零结构改动、零清理回滚、零历史对象删改。本 v108 仅向 GitHub 共享库推送文档/元数据，不触碰任何 GAS/Web App 部署链接。"
+  }
+}

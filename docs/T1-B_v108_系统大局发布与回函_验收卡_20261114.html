@@ -1,0 +1,91 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>T1-B v108 验收卡 · 承接 Tom v107 回复</title>
+<style>
+  body{font-family:-apple-system,'Segoe UI','Microsoft YaHei',sans-serif;margin:0;background:#f5f6f8;color:#1f2933;padding:24px;}
+  .card{max-width:880px;margin:0 auto;background:#fff;border-radius:12px;box-shadow:0 2px 12px rgba(0,0,0,.08);overflow:hidden;}
+  .hd{background:linear-gradient(135deg,#B31E3E,#8a1730);color:#fff;padding:20px 28px;}
+  .hd h1{margin:0;font-size:20px;}
+  .hd .meta{margin-top:6px;font-size:13px;opacity:.92;}
+  .bd{padding:20px 28px;}
+  .row{display:flex;gap:12px;padding:10px 0;border-bottom:1px solid #eef0f3;}
+  .row:last-child{border-bottom:none;}
+  .k{flex:0 0 160px;font-weight:600;color:#B31E3E;}
+  .v{flex:1;font-size:14px;line-height:1.6;}
+  .tag{display:inline-block;background:#e8f5e9;color:#1b5e20;border-radius:6px;padding:2px 8px;font-size:12px;margin:2px 4px 2px 0;}
+  .tag.amber{background:#fff9e6;color:#8a6d00;}
+  .tag.red{background:#fadbd8;color:#8a1c1c;}
+  .sec{margin-top:18px;}
+  .sec h2{font-size:15px;color:#1f2933;border-left:4px solid #B31E3E;padding-left:10px;}
+  table{width:100%;border-collapse:collapse;font-size:13px;margin-top:8px;}
+  th,td{border:1px solid #e2e6ea;padding:6px 8px;text-align:left;vertical-align:top;}
+  th{background:#f4f5f7;}
+  .ok{color:#1b5e20;font-weight:600;}
+  .warn{color:#8a6d00;font-weight:600;}
+  .foot{margin-top:18px;font-size:12px;color:#6b7280;text-align:center;}
+</style>
+</head>
+<body>
+<div class="card">
+  <div class="hd">
+    <h1>T1-B v108 · 系统大局发布与回函 · 验收卡</h1>
+    <div class="meta">第 34 代承接 · 基线 v107（21093bd）· 发布 2026-11-14 22:34 北京 · 承接 Tom 21:29 函 msg_yE-RJGj…</div>
+  </div>
+  <div class="bd">
+    <div class="row"><div class="k">闸门判定</div><div class="v"><span class="tag">OPEN_NEXT_VERSION</span> T1 触发（Tom 21:29 实质新请求：固定版本矩阵+可取得原件+逐项哈希/来源/时间/范围+有权方具名）；T2–T5 全 CLEAR</div></div>
+    <div class="row"><div class="k">T2 生产表/主库</div><div class="v"><span class="tag">CLEAR</span> 生产表 <b>11513/18</b> · 主库请假 <b>625/15</b> · 页签 47/16 · 部署恒 3（与基线逐项一致，差异全 0）</div></div>
+    <div class="row"><div class="k">T3 GitHub</div><div class="v"><span class="tag">CLEAR</span> 自 21093bd 后零新 commit/PR/issue；本地镜像零漂移</div></div>
+    <div class="row"><div class="k">T5 今日 FAIL</div><div class="v"><span class="tag">CLEAR</span> 今日 59 行 FAIL 全为同一 404 类事故：bd-drain(46)/pclist-harvest(11)/numberlock-fixwatch(1)/ts-health(1)，均 GAS 不可达 404；pmlist-refresh 为 OK 状态任务（非 FAIL，此前子串误判已纠正）；无新根因类；零生产写/清理/回滚事件</div></div>
+    <div class="row"><div class="k">Tom 新请求</div><div class="v">① 固定版本矩阵＋可取得原件；② 逐件标 来源/采集时间/哈希/覆盖范围；③ 有权通道所有者就不可取得服务端记录具名说明</div></div>
+
+    <div class="sec"><h2>一、固定版本证据矩阵（6 项可取得原件 · 逐项 SHA-256）</h2>
+    <table>
+      <tr><th>#</th><th>原件</th><th>固定版本副本</th><th>SHA-256</th><th>字节</th></tr>
+      <tr><td>1</td><td>404 客户端探针日志</td><td>zc_log_404_client_probe_…22-34.bin</td><td>7ba6c28a…15788</td><td>28,272</td></tr>
+      <tr><td>2</td><td>条件格式当前状态</td><td>watch_probe_cf_current_state_…bin</td><td>8c240945…753e</td><td>8,772</td></tr>
+      <tr><td>3</td><td>条件格式 11-12 前后对照卡</td><td>cf_card_2026-11-12_before_after_…bin</td><td>596779fb…330c</td><td>10,409</td></tr>
+      <tr><td>4</td><td>d50e795 git commit</td><td>（git 对象，不可变）</td><td>d50e7953ce400da760d0873423b41004b1882e68</td><td>—</td></tr>
+      <tr><td>5</td><td>原始字节受控快照</td><td>increment_snapshot_raw_bytes_…bin</td><td>85592613…82c13</td><td>10,159</td></tr>
+      <tr><td>6</td><td>22 禁止串边界元数据</td><td>boundary_22_prohibited_metadata_…bin</td><td>b81c184e…75f4</td><td>1,246</td></tr>
+    </table>
+    <p class="v" style="font-size:12px;color:#6b7280">以上均为冻结副本（非实时可变文件），可独立复算 SHA-256 核验字节一致。源文件与采集时间、覆盖范围见 JSON 矩阵。</p>
+    </div>
+
+    <div class="sec"><h2>二、不代填项（红线 + Tom 本函原话双重约束）</h2>
+    <table>
+      <tr><th>项</th><th>状态</th><th>处置</th></tr>
+      <tr><td>服务端日志及权限上下文</td><td><span class="warn">不可得</span></td><td>标记 <b>REQUIRES_AUTHORIZED_CHANNEL_OWNER_STATEMENT</b>，由有权通道所有者具名说明；本 Agent 不代出</td></tr>
+      <tr><td>操作者确认/业务签署/授权链</td><td><span class="warn">可得记录·待具名</span></td><td>授权执行记录公开可核；正式具名核验结论须 rita.jin 出具，本 Agent 不代填</td></tr>
+      <tr><td>1615 行清理授权及时间差异</td><td><span class="warn">待授权主体核验</span></td><td>本方确认零清理；授权来源须有权方核验</td></tr>
+      <tr><td>规则原文/监测覆盖/现场状态</td><td><span class="warn">待具名核验</span></td><td>我方供清单；结论须 Tom/有权方具名回填</td></tr>
+      <tr><td>P1–P5 具名责任与基线</td><td><span class="warn">待具名回填</span></td><td>见 v106/v107 表 Q-2；请具名填具体人名/文件/基线</td></tr>
+    </table>
+    </div>
+
+    <div class="sec"><h2>三、红线实证（不改链接）</h2>
+    <div class="v">
+      <span class="tag">13 项目 deploymentId DIFF=0</span>
+      <span class="tag">ts-manager 部署恒 3</span>
+      <span class="tag">团队入口 @212 GET×3=200</span>
+      <span class="tag">零 GAS push/deploy/换链</span>
+      <span class="tag">零生产写/主库写</span>
+      <span class="tag">零结构列宽改动</span>
+      <span class="tag">零清理回滚</span>
+      <span class="tag">零降覆盖/历史删改</span>
+      <span class="tag">仅推文档/元数据</span>
+    </div>
+    <p class="v" style="font-size:13px">K-6 维持 <b>WITHDRAWN_PER_TOM_1220</b> 不重开。本函不构成验收或授权。</p>
+    </div>
+
+    <div class="sec"><h2>四、待 Tom 侧（commit 即触发 v109）</h2>
+    <p class="v">① 表 Q-2/Q-3 <b>具名结论</b>（具体，不要「待核」）；② 表 Q-4 由<b>有权通道所有者</b>就服务端记录<b>具名说明</b>；③ GAS 端点 404 恢复可达性或决策。</p>
+    </div>
+
+    <div class="foot">T1-B v108 · 自动承接链路（代表 Rita 侧执行）· 双通道读回 · 字节一致 · 边界 0 命中 · 红线全守</div>
+  </div>
+</div>
+</body>
+</html>

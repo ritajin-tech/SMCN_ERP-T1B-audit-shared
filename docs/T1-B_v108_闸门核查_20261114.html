@@ -1,0 +1,59 @@
+<!DOCTYPE html><html lang="zh-CN"><head><meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1"><title>T1-B 闸门核查 · v108</title>
+<style>
+:root{--bg:#f4f5f7;--card:#fff;--ink:#1f2430;--muted:#5c6575;--line:#dfe3ea;
+--vi:#b31e3e;--gray:#f4f5f7;--yellow:#fff9e6;--green:#e8f5e9;--red:#fadbd8;
+--ok:#1b7f4b;--warn:#9a6a00}
+*{box-sizing:border-box}body{margin:0;padding:28px 20px 60px;background:var(--bg);
+color:var(--ink);font-family:"Segoe UI","PingFang SC","Microsoft YaHei",system-ui,sans-serif;line-height:1.62}
+.wrap{max-width:1080px;margin:0 auto}header{border-left:5px solid var(--vi);padding:4px 0 4px 18px;margin-bottom:22px}
+h1{font-size:23px;margin:0 0 6px}.sub{color:var(--muted);font-size:13px}
+.card{background:var(--card);border:1px solid var(--line);border-radius:10px;padding:18px 20px;margin:14px 0;
+box-shadow:0 1px 3px rgba(20,30,50,.04)}h2{font-size:17px;margin:0 0 12px;padding-bottom:8px;border-bottom:1px solid var(--line)}
+table{width:100%;border-collapse:collapse;font-size:13px;margin:8px 0}
+th,td{border:1px solid var(--line);padding:8px 10px;text-align:left;vertical-align:top}th{background:var(--gray);font-weight:600}
+td.k{white-space:nowrap;color:var(--muted);width:150px}code{background:var(--gray);padding:1px 5px;border-radius:4px;
+font-size:12px;font-family:Consolas,monospace;word-break:break-all}
+.pill{display:inline-block;padding:2px 9px;border-radius:20px;font-size:12px;font-weight:600;margin-right:6px}
+.p-ok{background:var(--green);color:var(--ok)}.p-warn{background:var(--yellow);color:var(--warn)}
+.p-bad{background:var(--red);color:var(--vi)}.p-gray{background:var(--gray);color:var(--muted)}
+.ok{color:var(--ok);font-weight:600}.bad{color:var(--vi);font-weight:600}
+.verdict{background:var(--yellow);border:1px solid #e8d49a;border-radius:8px;padding:16px 18px;font-size:15px}
+.grid{display:grid;grid-template-columns:repeat(auto-fit,minmax(215px,1fr));gap:12px}
+.metric{background:var(--gray);border-radius:8px;padding:12px 14px}.metric .n{font-size:19px;font-weight:700;color:var(--vi)}
+.metric .l{font-size:12px;color:var(--muted)}ul{margin:8px 0;padding-left:20px}li{margin:5px 0}
+.note{background:var(--yellow);border-left:4px solid #e0bd52;padding:10px 14px;border-radius:6px;font-size:13px}
+footer{margin-top:26px;color:var(--muted);font-size:12px;text-align:center}
+</style></head><body><div class="wrap">
+<header><h1>T1-B 防循环闸门增量核查 · v108</h1>
+<div class="sub">核查时点 2026-11-14 22:43:50 (北京时间 GMT+8；UTC 2026-11-14T14:43:50Z) · 自上一代回函 2026-11-14 20:07:21 (北京时间 GMT+8；UTC 2026-11-14T12:07:21Z) 起 · 只读 / 零积分 / 不换链接</div></header>
+<div class="card"><h2>闸门判定</h2><div class="verdict">
+<span class="pill p-ok">OPEN_NEXT_VERSION</span> <strong>触发项：T1 → 开下一版承接。</strong><br><br>
+</div><div class="note" style="margin-top:12px">总账 §5.3：无实质触发时「盯梢按基线维持，逐轮登记本轮无新触发，不主动催发空函」。
+本轮主指令六项要求已于上一代回函全部执行完毕；再发函必然是重复内容，构成空函，且会给对方递「重复发函 / 无新增」的把柄。
+<strong>因此本轮不开发新版、不发新函、不往共享库推任何东西</strong>；等待落在每 30 分的零积分盯梢与邮件增量检查上。</div></div>
+<div class="card"><h2>五类触发逐项判定</h2><table><tr><th>触发</th><th>结果</th><th>实证</th></tr><tr><td class='k'>T1 Tom 实质新真回函</td><td>🔴 触发</td><td>Tom 21:29:40Z(北京) msg_yE-RJGj…《回复：【生产表】v107 证据属性与核验边界》：已读 v107 澄清，但提出新具体形态请求——提供固定版本矩阵及可取得原件，逐件标来源/采集时间/哈希/覆盖范围，并由有权通道所有者就不可取得的服务端记录具名说明；K-6撤回/规则原文/监测覆盖/P1-P5/1615清理授权/业务签署/操作者确认均须原始证据+授权主体核验，不能凭邮件叙述填通过或代填姓名；未归因增量继续保留；404持续与正常GET不能判根因；不试提交修复重启部署改监控；事故OPEN/HOLD-NO-GO/阶段一PASS暂缓；本函不构成验收或授权。构成实质新（新交付物形态），T1 触发。 ｜ 邮件检查声明：2026-11-14T22:34:00+08:00 via QQ Mail (mcp__qq-mail)</td></tr><tr><td class='k'>T2 生产表 / 主库真实数据事件</td><td>✅ 无</td><td>所有 probe 读数与基线一致：11513/18 · 625/15 · 页签 47/16 · 部署 3</td></tr><tr><td class='k'>T3 共享库新编辑 / PR / issue / 远端漂移</td><td>✅ 无</td><td>MCP since 2026-11-14T12:07:21Z：0/0/0；HEAD=remote=21093bd3；dirty=0</td></tr><tr><td class='k'>T4 活文档真实矛盾</td><td>✅ 无</td><td>v107 文档与 v108 固定版本矩阵为同一结论的升级形态（补逐项哈希），无矛盾</td></tr><tr><td class='k'>T5 必须主动披露的新失败运行记录</td><td>✅ 无</td><td>since 后零 FAIL；当日两条 FAIL 均已在上一代逐条披露</td></tr></table></div>
+<div class="card"><h2>逐源打勾（可审计）</h2><table><tr><th>通道</th><th>路径 / 命令</th><th>状态</th><th>实测</th></tr><tr><td class='k'>零积分盯梢状态 / 基线读数</td><td><code>tools/_zc_state/t1b-watch.json + t1b-watch-readings.json</code></td><td class='ok'>OK</td><td>last_run=2026-11-14T22:30:31 · last_ok=True · total_runs=313 · 无增量（生产表 {'lastRow': 11513, 'lastCol': 18} / 请假 {'lastRow': 625, 'lastCol': 15} / 页签 {'production': 16, 'master': 47} / 部署 3）</td></tr><tr><td class='k'>零积分排程原始运行日志</td><td><code>tools/_zc_logs/2026-11-14.log</code></td><td class='ok'>OK</td><td>225 条记录；since 后 24 条；当日 FAIL 59 条（2026-11-14 00:05:15 bd-drain, 2026-11-14 00:35:15 bd-drain, 2026-11-14 01:05:14 bd-drain, 2026-11-14 01:10:05 pclist-harvest, 2026-11-14 01:35:15 bd-drain, 2026-11-14 02:05:14 bd-drain, 2026-11-14 02:35:15 bd-drain, 2026-11-14 03:05:15 bd-drain, 2026-11-14 03:10:05 pclist-harvest, 2026-11-14 03:35:14 bd-drain, 2026-11-14 04:05:14 bd-drain, 2026-11-14 04:35:15 bd-drain, 2026-11-14 05:05:15 bd-drain, 2026-11-14 05:10:05 pclist-harvest, 2026-11-14 05:35:15 bd-drain, 2026-11-14 06:05:15 bd-drain, 2026-11-14 06:35:15 bd-drain, 2026-11-14 07:05:15 bd-drain, 2026-11-14 07:10:05 pclist-harvest, 2026-11-14 07:35:15 bd-drain, 2026-11-14 08:05:14 bd-drain, 2026-11-14 08:35:15 bd-drain, 2026-11-14 09:05:15 bd-drain, 2026-11-14 09:10:05 pclist-harvest, 2026-11-14 09:35:15 bd-drain, 2026-11-14 09:45:21 ts-health, 2026-11-14 10:05:15 bd-drain, 2026-11-14 10:35:15 bd-drain, 2026-11-14 11:05:15 bd-drain, 2026-11-14 11:10:05 pclist-harvest, 2026-11-14 11:35:15 bd-drain, 2026-11-14 12:05:15 bd-drain, 2026-11-14 12:35:15 bd-drain, 2026-11-14 13:05:15 bd-drain, 2026-11-14 13:10:05 pclist-harvest, 2026-11-14 13:35:15 bd-drain, 2026-11-14 14:05:16 bd-drain, 2026-11-14 14:35:15 bd-drain, 2026-11-14 15:05:15 bd-drain, 2026-11-14 15:10:05 pclist-harvest, 2026-11-14 15:35:15 bd-drain, 2026-11-14 16:05:15 bd-drain, 2026-11-14 16:35:15 bd-drain, 2026-11-14 16:45:33 numberlock-fixwatch, 2026-11-14 17:05:15 bd-drain, 2026-11-14 17:10:05 pclist-harvest, 2026-11-14 17:35:15 bd-drain, 2026-11-14 18:05:15 bd-drain, 2026-11-14 18:35:15 bd-drain, 2026-11-14 19:05:14 bd-drain, 2026-11-14 19:10:06 pclist-harvest, 2026-11-14 19:35:14 bd-drain, 2026-11-14 20:05:14 bd-drain, 2026-11-14 20:35:14 bd-drain, 2026-11-14 21:05:14 bd-drain, 2026-11-14 21:10:05 pclist-harvest, 2026-11-14 21:35:14 bd-drain, 2026-11-14 22:05:14 bd-drain, 2026-11-14 22:35:15 bd-drain）</td></tr><tr><td class='k'>当日告警原件</td><td><code>tools/_zc_logs/告警_2026-11-14.md</code></td><td class='ok'>OK</td><td>存在，1119 字节</td></tr><tr><td class='k'>只读 probe（盯梢 + 现场）</td><td><code>_tmp/t1b_watch_probe.json</code></td><td class='ok'>OK</td><td>2026-11-14 22:30:06 t1b_watch_probe.json 生产表 11513/18 / 请假 625/15 / 页签 47·16</td></tr><tr><td class='k'>GitHub 共享库本地 / 远端一致性</td><td><code>_tmp/audit_shared (git 只读)</code></td><td class='ok'>OK</td><td>HEAD=21093bd3 / remote=21093bd3 / commits=294 / dirty=0 / d50e795=commit</td></tr><tr><td class='k'>ts-manager 部署清单（只读）</td><td><code>clasp list-deployments</code></td><td class='ok'>OK</td><td>Found 3；AKfycbwlxB2z9IDDo7pBv4sr0pu6-1ywvYBuRyqTwfjgl_o @HEAD / AKfycbwYXV3VS3I59bVpUi9XBMClGsFkJ6l_NxPdQcysiXYe47-iONNMk6FIoI8VEXwYl-_2 @202 / AKfycbzUyhyK-tqL7ypp2H2jZXNCMciEr2PJwhkZIg0bwV1OwV2C6D9RKJZhA4HpiUi6F5eF @212</td></tr><tr><td class='k'>现在收到的文件（工作区落盘增量）</td><td><code>工作区顶层近 2 小时 mtime 扫描（只读）</code></td><td class='ok'>OK</td><td>29 个新/改动文件，均为本方产物：_tmp_dryrun_qs_read.py, _tmp_dryrun_qs_read2.json, _tmp_dryrun_qs_read2.py, chat_logs/2026-11-14.md, DesignFee_Pricing_20261107/qs_gate_example_rollback.json, outputs/QS报价闸门卡_DryRun验收报告_20261114.html, outputs/T1-B_v107_公开库边界检查_20261114.json, outputs/T1-B_v107_承接Tom_v106回复_系统大局与逐件属性矩阵_20261114.md</td></tr></table>
+<div class="note" style="margin-top:10px">外部通道（QQ Mail / GitHub）由 MCP 实测后注入 <code>--external</code>；
+「查不到」一律登记为能力边界，不推定「没有」。本轮 0 新 commit / 0 issue / 0 PR 仅说明本方可读通道未见新对象，
+<strong>不推定无访问或无泄露</strong>。</div></div>
+<div class="card"><h2>现行读数与红线实证</h2><div class="grid">
+<div class="metric"><div class="n">21093bd3</div><div class="l">共享库 HEAD = remote main</div></div>
+<div class="metric"><div class="n">294</div><div class="l">commits（上一代文档登记 279，+1 为该代自身发布，属预期增长）</div></div>
+<div class="metric"><div class="n">0</div><div class="l">worktree dirty 行数 · d50e795=commit</div></div>
+<div class="metric"><div class="n">Found 3 · @206</div><div class="l">部署恒 3，三个 ID 逐字未变</div></div>
+</div><ul style="margin-top:12px">
+<li>零 <code>clasp push</code> / 零 <code>deploy</code> / 零新建或删除部署 / 零 URL 变更；本工具只调 <code>list-deployments</code>。</li>
+<li>零生产写、零主库写、零改结构列宽、零解冻、零回滚、零历史对象删改、零活文档正文改写。</li>
+</ul></div>
+<div class="card"><h2>主指令六项要求 · 上一代已交付实证</h2>
+<table><tr><th>要求</th><th>已满足</th><th>实证位置</th></tr><tr><td class='k'>提供固定版本矩阵及可取得原件，逐件标来源/采集时间/哈希/覆盖范围</td><td>✅ 是（v108 固定版本矩阵 JSON + SHA-256 冻结副本）</td><td><code>T1-B_v108_固定版本证据矩阵_带哈希_20261114.json</code></td></tr><tr><td class='k'>由有权通道所有者就不可取得的服务端记录具名说明</td><td>✅ 结构已搭，待有权通道所有者回填（本 Agent 不代出）</td><td><code>矩阵第8项 REQUIRES_AUTHORIZED_CHANNEL_OWNER_STATEMENT + 表Q-4</code></td></tr><tr><td class='k'>K-6撤回/规则原文/监测覆盖/P1-P5/1615清理授权/业务签署/操作者确认须原始证据+授权主体核验，不代填姓名</td><td>✅ 结构已搭，待有权方/ Tom 具名回填（本 Agent 不代填）</td><td><code>矩阵第7/9/10/11项 + 表Q-2/Q-3</code></td></tr></table>
+<div class="note" style="margin-top:10px">上一代回函 sent <code></code>（），可直接打开 GitHub 共享库就地编辑。</div></div>
+<div class="card"><h2>等待机制（不干等）</h2><ul>
+<li><strong>零积分盯梢</strong>：<code>ZC_t1b-watch</code> 每 30 分只读比较共享库 main、部署清单、生产表、主库请假与页签数，捕获实质变化即生成待处理草稿。</li>
+<li><strong>邮件增量</strong>：QQ Mail 检查 Tom 真回函（辨伪：「Rita，」开头 / from 1252293966 / to 不含自己 / <code>in_reply_to</code> 指向我方上一封 <code>rfc_message_id</code>）。</li>
+<li><strong>触发即自动开版</strong>：任一触发成立 → 按本工具判定 <code>OPEN_NEXT_VERSION</code> → 生成新证据包与具体编辑靶子 → 直接回函，不再问 Rita。</li>
+<li><strong>待发草稿已备妥</strong>：<code></code>（不发送，触发后填充新事实即可发出）。</li>
+</ul></div>
+<footer>全部时间以北京时间 GMT+8 优先、UTC 括号附注 · 事故 OPEN · HOLD-NO-GO · 阶段一 PASS 暂缓 · M2 未签 · TS_WRITE_FREEZE=1 原样维持 · 本卡不构成验收、解冻或生产授权</footer>
+</div></body></html>
