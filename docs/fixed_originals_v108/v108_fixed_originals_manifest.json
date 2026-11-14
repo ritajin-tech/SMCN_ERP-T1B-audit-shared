@@ -1,0 +1,37 @@
+{
+  "zc_log_404_client_probe": {
+    "fixed_copy": "C:/Users/rita.jin/WorkBuddy/SMCN_ERP\\_tmp\\v108_fixed_originals\\zc_log_404_client_probe_2026-11-14T22-34.bin",
+    "sha256": "7ba6c28a613bae51f67fbd8973290c1ff0f39b620368d4ae2fcec94471415788",
+    "bytes": 28272,
+    "original": "C:/Users/rita.jin/WorkBuddy/SMCN_ERP\\tools\\_zc_logs\\2026-11-14.log"
+  },
+  "watch_probe_cf_current_state": {
+    "fixed_copy": "C:/Users/rita.jin/WorkBuddy/SMCN_ERP\\_tmp\\v108_fixed_originals\\watch_probe_cf_current_state_2026-11-14T22-34.bin",
+    "sha256": "8c2409455dac608c9b94993916feb6bc77dda75d9207132babf711bb6d2b753e",
+    "bytes": 8772,
+    "original": "C:/Users/rita.jin/WorkBuddy/SMCN_ERP\\_tmp\\t1b_watch_probe.json"
+  },
+  "cf_card_2026-11-12_before_after": {
+    "fixed_copy": "C:/Users/rita.jin/WorkBuddy/SMCN_ERP\\_tmp\\v108_fixed_originals\\cf_card_2026-11-12_before_after_2026-11-14T22-34.bin",
+    "sha256": "596779fbfadb35431a1c61c40bba2d2314605e488b23d8f8f26503856e1b330c",
+    "bytes": 10409,
+    "original": "C:/Users/rita.jin/WorkBuddy/SMCN_ERP\\outputs\\Registry_修复完成验收卡_20261112.html"
+  },
+  "increment_snapshot_raw_bytes": {
+    "fixed_copy": "C:/Users/rita.jin/WorkBuddy/SMCN_ERP\\_tmp\\v108_fixed_originals\\increment_snapshot_raw_bytes_2026-11-14T22-34.bin",
+    "sha256": "85592613384ad34f100c6b64cadaa81f0e1d3df43ef6215fa93dd4769ea82c13",
+    "bytes": 10159,
+    "original": "C:/Users/rita.jin/WorkBuddy/SMCN_ERP\\_tmp\\t1b_increment_snapshot_20261114_1153.json"
+  },
+  "boundary_22_prohibited_metadata": {
+    "fixed_copy": "C:/Users/rita.jin/WorkBuddy/SMCN_ERP\\_tmp\\v108_fixed_originals\\boundary_22_prohibited_metadata_2026-11-14T22-34.bin",
+    "sha256": "b81c184ec7dbc0bdaf059e0704fa762fc9a23da3df8fd616f2e380848c0575f4",
+    "bytes": 1246,
+    "original": "C:/Users/rita.jin/WorkBuddy/SMCN_ERP\\outputs\\T1-B_v107_公开库边界检查_20261114.json"
+  },
+  "d50e795_git_object": {
+    "type": "commit",
+    "sha256_equivalent": "d50e7953ce400da760d0873423b41004b1882e68",
+    "note": "git commit object, immutable"
+  }
+}

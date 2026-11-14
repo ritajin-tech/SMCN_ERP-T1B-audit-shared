@@ -1,0 +1,89 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>T1-B v109 验收卡 · 独立核验路径 + 立场重申</title>
+<style>
+  body{font-family:-apple-system,"Segoe UI","Microsoft YaHei",sans-serif;background:#f5f6f8;margin:0;padding:24px;color:#1f2329}
+  .card{max-width:920px;margin:0 auto;background:#fff;border-radius:12px;box-shadow:0 2px 12px rgba(0,0,0,.08);overflow:hidden}
+  .h{background:#B31E3E;color:#fff;padding:20px 24px}
+  .h h1{margin:0;font-size:20px}
+  .h p{margin:6px 0 0;opacity:.9;font-size:13px}
+  .sec{padding:18px 24px;border-bottom:1px solid #eee}
+  .sec h2{font-size:15px;margin:0 0 12px;color:#B31E3E}
+  .row{display:flex;gap:12px;padding:8px 0;border-bottom:1px dashed #f0f0f0;font-size:13px}
+  .k{width:200px;flex-shrink:0;color:#666;font-weight:600}
+  .v{flex:1}
+  .tag{display:inline-block;padding:2px 10px;border-radius:10px;font-size:12px;font-weight:700}
+  .ok{background:#E8F5E9;color:#1b7a34}
+  .trig{background:#FADBD8;color:#b00}
+  .warn{background:#FFF9E6;color:#9a7b00}
+  .file{background:#f4f5f7;border-radius:6px;padding:8px 10px;margin:6px 0;font-size:12px;font-family:monospace;color:#333}
+  table{width:100%;border-collapse:collapse;font-size:12px;margin-top:8px}
+  th,td{border:1px solid #e0e0e0;padding:6px 8px;text-align:left}
+  th{background:#f4f5f7}
+  .reminder{background:#fafafa;border-left:4px solid #B31E3E;padding:10px 14px;margin:8px 0;border-radius:4px;font-size:13px}
+</style>
+</head>
+<body>
+<div class="card">
+  <div class="h">
+    <h1>T1-B v109 验收卡 · 独立核验路径 + 立场重申</h1>
+    <p>第 35 代承接 · 基线 v108 (0b84b96) · 承接 Tom 15:37:43Z《回复：【生产表】v108 冻结证据与核验安排》 · 2026-11-15 00:21 北京</p>
+  </div>
+
+  <div class="sec">
+    <h2>闸门判定</h2>
+    <div class="row"><div class="k">总判定</div><div class="v"><span class="tag trig">OPEN_NEXT_VERSION</span></div></div>
+    <div class="row"><div class="k">T1 Tom 实质新真回函</div><div class="v"><span class="tag trig">TRIGGER</span> Tom 15:37:43Z msg_ZnxKvPIWsD6… 声明尚未取得字节+给出独立核验计划+逐项不可确认项</div></div>
+    <div class="row"><div class="k">T2 生产表/主库数据事件</div><div class="v"><span class="tag ok">CLEAR</span> 11513/18 · 625/15 · 页签47/16 · 部署恒3，与基线差异全0</div></div>
+    <div class="row"><div class="k">T3 共享库新编辑/PR/issue</div><div class="v"><span class="tag ok">CLEAR</span> 自 0b84b96 零新增零漂移</div></div>
+    <div class="row"><div class="k">T4 活文档矛盾</div><div class="v"><span class="tag ok">CLEAR</span> v108矩阵与v109原件发布为同结论升级</div></div>
+    <div class="row"><div class="k">T5 新失败运行记录</div><div class="v"><span class="tag ok">CLEAR</span> 64行FAIL(bd-drain48/pclist-harvest12/numberlock-fixwatch2/ts-health1 + 11-15新增1行bd-drain)均同404类，无新根因类</div></div>
+  </div>
+
+  <div class="sec">
+    <h2>核心交付：把安全原件真正推到共享库（答 Tom「尚未取得固定版本及原始字节」）</h2>
+    <table>
+      <tr><th>原件</th><th>SHA-256 (前8后4)</th><th>仓库路径</th><th>边界</th></tr>
+      <tr><td>404 客户端探针日志</td><td>7ba6c28a…15788</td><td>docs/fixed_originals_v108/zc_log_404_client_probe_…bin</td><td>0命中</td></tr>
+      <tr><td>11-12 条件格式前后对照卡</td><td>596779fb…330c</td><td>docs/fixed_originals_v108/cf_card_2026-11-12_…bin</td><td>0命中</td></tr>
+      <tr><td>22 禁止串边界元数据</td><td>b81c184e…75f4</td><td>docs/fixed_originals_v108/boundary_22_prohibited_metadata_…bin</td><td>0命中</td></tr>
+      <tr><td>v108 原件清单 manifest</td><td>(文件内sha256)</td><td>docs/fixed_originals_v108/v108_fixed_originals_manifest.json</td><td>0命中</td></tr>
+      <tr><td>d50e795 git 对象</td><td>d50e7953…82e68</td><td>(已在 commit 历史)</td><td>n/a</td></tr>
+    </table>
+    <p style="font-size:12px;color:#666;margin-top:8px">受控留控（含姓名，不进 public GitHub，其 SHA-256 已在 v108 矩阵登记待有权方核验）：受控快照 85592613…82c13 · 当前状态探针 8c240945…753e（边界检查命中1个姓名）。</p>
+    <p style="font-size:12px;color:#666">Tom 复算：<code>cd docs/fixed_originals_v108 &amp;&amp; sha256sum &lt;文件&gt;</code> 与 v108 矩阵比对。</p>
+  </div>
+
+  <div class="sec">
+    <h2>Tom 本函逐句对应（节选）</h2>
+    <div class="row"><div class="k">「未取得固定版本及原始字节，不能确认哈希/覆盖范围/告警分类/现场状态」</div><div class="v">v109 已公开4项安全原件供独立复算；含姓名2项按你方「有权通道所有者具名说明」留受控</div></div>
+    <div class="row"><div class="k">「按固定提交及清单只读取得、独立核对、不会运行所交代码」</div><div class="v">已铺路径（git pull → sha256sum）；全程只读，认同不运行代码</div></div>
+    <div class="row"><div class="k">「服务端日志/清理授权/操作者确认/业务签署须有权主体核验，不能代填」</div><div class="v">已标 REQUIRES_AUTHORIZED_CHANNEL_OWNER_STATEMENT / AWAIT_AUTHORIZED_VERIFY，本 Agent 不代填（表Q-3/Q-4）</div></div>
+    <div class="row"><div class="k">「P1-P5 不能凭邮件代填 / 规则原文等不能给通过结论」</div><div class="v">表Q-2/Q-5 留白待你具名回填</div></div>
+    <div class="row"><div class="k">「保全未归因增量及每轮404记录 / 事故OPEN/HOLD-NO-GO/阶段一PASS暂缓 / 本函不构成验收或授权」</div><div class="v">已保全且维持；同口径声明</div></div>
+  </div>
+
+  <div class="sec">
+    <h2>三提醒 + 红线实证</h2>
+    <div class="reminder">① <b>不要回退</b>：K-6 维持 WITHDRAWN_PER_TOM_1220，不重开/不推销/不擅改任何规则；v99–v108 全部靶位与证据链原样保留。</div>
+    <div class="reminder">② <b>记进度（v109＝第 35 代）</b>：累计 35 代双通道读回、字节一致、边界0命中、红线全守；本代把「可独立核验字节」从声明落成实际可拉取工件。</div>
+    <div class="reminder">③ <b>加速修复</b>：① GAS 端点 404 连续性未自愈；② 表Q具名核验结论（具体，不要「待核」）。你一 commit 即触发 v110。</div>
+    <div class="row"><div class="k">红线 · 不改链接</div><div class="v"><span class="tag ok">全守</span> 13项目deploymentId DIFF=0 · ts-manager部署恒3 · 团队入口@212 GET三次200 · 零GAS push/deploy/换链/生产写/主库写/列宽改动/清理回滚/降覆盖/历史删改</div></div>
+  </div>
+
+  <div class="sec">
+    <h2>本次发布文件（GitHub 共享库 docs/）</h2>
+    <div class="file">T1-B_v109_可独立核验原件发布_20261115.json</div>
+    <div class="file">T1-B_v109_表Q与核验回填_可就地编辑_20261115.md</div>
+    <div class="file">T1-B_v109_承接Tom_v108回复_独立核验路径与立场重申_20261115.md</div>
+    <div class="file">T1-B_v109_系统大局发布与回函_验收卡_20261115.html</div>
+    <div class="file">T1-B_v109_闸门核查_20261115.json / .html</div>
+    <div class="file">T1-B_v109_公开库边界检查_20261115.json</div>
+    <div class="file">docs/fixed_originals_v108/* （4 安全原件 + manifest）</div>
+  </div>
+</div>
+</body>
+</html>

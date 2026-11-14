@@ -1,0 +1,78 @@
+{
+  "purpose": "v109 · 直接回应 Tom 2026-11-14 15:37:43Z《回复：【生产表】v108 冻结证据与核验安排》的核心声明：『我尚未取得对应固定版本及原始字节，不能确认哈希、覆盖范围、告警分类或现场状态。下一步将按固定提交及清单只读取得可访问工件，独立核对原始字节、哈希、采集时间与覆盖范围。』——本文件把 v108 矩阵中声明『可取得』的 6 项原件中【不含 22 禁止串（人员姓名）】的 4 项，实际推送到 GitHub 共享库 docs/fixed_originals_v108/，使 Tom 能独立 pull 并复算 SHA-256；另 2 项（含姓名）按边界纪律与 Tom 本函『由有权通道所有者具名说明』要求留在受控通道。",
+  "generation": "v109",
+  "baseline_commit": "0b84b9663763dc2850c721cb08bd933aa333436d",
+  "shared_repo": "ritajin-tech/SMCN_ERP-T1B-audit-shared",
+  "published_to_public_docs": [
+    {
+      "item": "404 失败原文日志（客户端只读探针）",
+      "repo_path": "docs/fixed_originals_v108/zc_log_404_client_probe_2026-11-14T22-34.bin",
+      "sha256": "7ba6c28a613bae51f67fbd8973290c1ff0f39b620368d4ae2fcec94471415788",
+      "bytes": 28272,
+      "rehash_cmd": "sha256sum docs/fixed_originals_v108/zc_log_404_client_probe_2026-11-14T22-34.bin",
+      "matches_v108_matrix": true,
+      "boundary_check": "0 hits（22 禁止串）"
+    },
+    {
+      "item": "条件格式前后对照证据（11-12 修复，97/97 =TRUE 前后对照）",
+      "repo_path": "docs/fixed_originals_v108/cf_card_2026-11-12_before_after_2026-11-14T22-34.bin",
+      "sha256": "596779fbfadb35431a1c61c40bba2d2314605e488b23d8f8f26503856e1b330c",
+      "bytes": 10409,
+      "rehash_cmd": "sha256sum docs/fixed_originals_v108/cf_card_2026-11-12_before_after_2026-11-14T22-34.bin",
+      "matches_v108_matrix": true,
+      "boundary_check": "0 hits（22 禁止串）"
+    },
+    {
+      "item": "22 禁止串边界控制元数据",
+      "repo_path": "docs/fixed_originals_v108/boundary_22_prohibited_metadata_2026-11-14T22-34.bin",
+      "sha256": "b81c184ec7dbc0bdaf059e0704fa762fc9a23da3df8fd616f2e380848c0575f4",
+      "bytes": 1246,
+      "rehash_cmd": "sha256sum docs/fixed_originals_v108/boundary_22_prohibited_metadata_2026-11-14T22-34.bin",
+      "matches_v108_matrix": true,
+      "boundary_check": "0 hits（22 禁止串，即本文件自身定义该集合）"
+    },
+    {
+      "item": "v108 固定版本原件清单（本批 6 项 SHA-256 汇总）",
+      "repo_path": "docs/fixed_originals_v108/v108_fixed_originals_manifest.json",
+      "sha256": "见文件内 sha256 字段（由本地 _tmp/v108_fixed_originals/v108_fixed_originals_manifest.json 推送，字节一致）",
+      "bytes": 2099,
+      "rehash_cmd": "sha256sum docs/fixed_originals_v108/v108_fixed_originals_manifest.json",
+      "matches_v108_matrix": true,
+      "boundary_check": "0 hits（22 禁止串）"
+    },
+    {
+      "item": "d50e795 固定提交（Git 对象，commit，不可变）",
+      "repo_path": "（已在共享库 commit 历史中，git cat-file -t d50e795 = commit）",
+      "sha256": "d50e7953ce400da760d0873423b41004b1882e68",
+      "bytes": null,
+      "rehash_cmd": "git -C <local-mirror> cat-file -t d50e795 && git rev-parse d50e795",
+      "matches_v108_matrix": true,
+      "boundary_check": "n/a"
+    }
+  ],
+  "held_in_controlled_channel": [
+    {
+      "item": "原始字节受控快照（含人员姓名明细）",
+      "reason": "该快照定义并包含 22 禁止串（人员姓名/联系方式/个人金融信息）；按公开库边界纪律与 Tom 本函『由有权通道所有者具名说明』要求，原件一律不进 public GitHub。其 SHA-256（85592613384ad34f100c6b64cadaa81f0e1d3df43ef6215fa93dd4769ea82c13）与字节数（10159）已在 v108 矩阵登记，由有权通道所有者核验。",
+      "sha256_in_matrix": "85592613384ad34f100c6b64cadaa81f0e1d3df43ef6215fa93dd4769ea82c13"
+    },
+    {
+      "item": "条件格式当前状态探针（watch_probe）",
+      "reason": "本次边界检查对该文件命中 1 个禁止串（1 个人员姓名出现在 sheet 元数据/值中）；按公开库边界纪律不进 public GitHub。其 SHA-256（8c2409455dac608c9b94993916feb6bc77dda75d9207132babf711bb6d2b753e）与字节数（8772）已在 v108 矩阵登记，由有权通道所有者核验。",
+      "sha256_in_matrix": "8c2409455dac608c9b94993916feb6bc77dda75d9207132babf711bb6d2b753e"
+    }
+  ],
+  "verification_protocol_for_tom": {
+    "step1": "git clone / pull ritajin-tech/SMCN_ERP-T1B-audit-shared（HEAD = 0b84b96 之上新增 v109 commit）",
+    "step2": "cd docs/fixed_originals_v108 && 对上列 4 项文件执行 sha256sum，逐字节比对 v108 矩阵登记的 SHA-256",
+    "step3": "比对一致 ⇒ 字节层面确认『固定版本原件』即 Tom 所称『原始字节』；比对不一致 ⇒ 立即在共享库开 issue 指明哪个文件 hash mismatch",
+    "step4": "受控两项（含姓名）不在此仓库；其核验走 Tom 指定的『有权通道所有者具名说明』通道，本方不代出",
+    "note": "以上为只读核验，不运行所交任何代码（与 Tom 本函『不会运行所交代码』一致）。"
+  },
+  "redline_no_link_change": {
+    "deployment_diff_count_13_projects": 0,
+    "ts_manager_deployments_total": 3,
+    "team_entry_deploymentId": "AKfycbzUyhyK… @212（独立 GET 三次 HTTP 200）",
+    "note": "本 v109 仅向 GitHub 共享库推送文档/元数据/安全原件字节，不触碰任何 GAS/Web App 部署链接。"
+  }
+}

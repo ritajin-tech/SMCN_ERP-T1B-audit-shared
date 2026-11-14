@@ -1,0 +1,224 @@
+[2026-11-14 00:00:34] t1b-watch      OK (34.5s) 无增量（生产表 {'lastRow': 11513, 'lastCol': 18} / 请假 {'lastRow': 619, 'lastCol': 15} / 页签 {'production': 16, 'master': 45} / 部署 3）
+[2026-11-14 00:03:28] pmlist-refresh OK (208.1s) ⚠ 慢跑 208s |  refreshProjectSummary completed updateTotalSummary completed refreshFinanceOverview completed
+[2026-11-14 00:05:15] bd-drain       FAIL (14.2s) 队列探头失败（GAS 不可达）: <HTTPError 404: 'Not Found'>
+[2026-11-14 00:10:06] nps-receipt    OK (5.9s) [2026-11-13T16:10:06.697Z] ✅ 无新增打开事件，无需动作
+[2026-11-14 00:15:11] ts-health      OK (11.4s) ✅ 全部正常
+[2026-11-14 00:30:28] t1b-watch      OK (27.5s) 无增量（生产表 {'lastRow': 11513, 'lastCol': 18} / 请假 {'lastRow': 619, 'lastCol': 15} / 页签 {'production': 16, 'master': 45} / 部署 3）
+[2026-11-14 00:35:15] bd-drain       FAIL (14.2s) 队列探头失败（GAS 不可达）: <HTTPError 404: 'Not Found'>
+[2026-11-14 00:40:06] nps-receipt    OK (5.7s) [2026-11-13T16:40:06.476Z] ✅ 无新增打开事件，无需动作
+[2026-11-14 00:45:10] ts-health      OK (10.3s) ✅ 全部正常
+[2026-11-14 01:00:03] ts-deploy-watchdog OK (2.3s) ts-manager webapp OK (HTTP 200)
+[2026-11-14 01:00:28] t1b-watch      OK (27.7s) 无增量（生产表 {'lastRow': 11513, 'lastCol': 18} / 请假 {'lastRow': 619, 'lastCol': 15} / 页签 {'production': 16, 'master': 45} / 部署 3）
+[2026-11-14 01:02:41] pmlist-refresh OK (161.2s)  refreshProjectSummary completed updateTotalSummary completed refreshFinanceOverview completed
+[2026-11-14 01:05:14] bd-drain       FAIL (14.2s) 队列探头失败（GAS 不可达）: <HTTPError 404: 'Not Found'>
+[2026-11-14 01:10:05] pclist-harvest FAIL (5.6s) 请求失败: <HTTPError 404: 'Not Found'>
+[2026-11-14 01:10:07] nps-receipt    OK (6.5s) [2026-11-13T17:10:07.314Z] ✅ 无新增打开事件，无需动作
+[2026-11-14 01:15:10] ts-health      OK (10.3s) ✅ 全部正常
+[2026-11-14 01:30:32] t1b-watch      OK (31.5s) 无增量（生产表 {'lastRow': 11513, 'lastCol': 18} / 请假 {'lastRow': 619, 'lastCol': 15} / 页签 {'production': 16, 'master': 45} / 部署 3）
+[2026-11-14 01:35:15] bd-drain       FAIL (14.2s) 队列探头失败（GAS 不可达）: <HTTPError 404: 'Not Found'>
+[2026-11-14 01:40:05] nps-receipt    OK (5.0s) [2026-11-13T17:40:05.825Z] ✅ 无新增打开事件，无需动作
+[2026-11-14 01:45:12] ts-health      OK (11.8s) ✅ 全部正常
+[2026-11-14 02:00:31] t1b-watch      OK (30.7s) 无增量（生产表 {'lastRow': 11513, 'lastCol': 18} / 请假 {'lastRow': 619, 'lastCol': 15} / 页签 {'production': 16, 'master': 45} / 部署 3）
+[2026-11-14 02:02:24] pmlist-refresh OK (143.4s)  refreshProjectSummary completed updateTotalSummary completed refreshFinanceOverview completed
+[2026-11-14 02:05:14] bd-drain       FAIL (14.2s) 队列探头失败（GAS 不可达）: <HTTPError 404: 'Not Found'>
+[2026-11-14 02:10:05] nps-receipt    OK (4.5s) [2026-11-13T18:10:05.297Z] ✅ 无新增打开事件，无需动作
+[2026-11-14 02:15:12] ts-health      OK (12.1s) ✅ 全部正常
+[2026-11-14 02:30:29] t1b-watch      OK (29.5s) 无增量（生产表 {'lastRow': 11513, 'lastCol': 18} / 请假 {'lastRow': 619, 'lastCol': 15} / 页签 {'production': 16, 'master': 45} / 部署 3）
+[2026-11-14 02:35:15] bd-drain       FAIL (14.2s) 队列探头失败（GAS 不可达）: <HTTPError 404: 'Not Found'>
+[2026-11-14 02:40:05] nps-receipt    OK (4.3s) [2026-11-13T18:40:05.109Z] ✅ 无新增打开事件，无需动作
+[2026-11-14 02:45:11] ts-health      OK (11.6s) ✅ 全部正常
+[2026-11-14 03:00:30] t1b-watch      OK (30.2s) 无增量（生产表 {'lastRow': 11513, 'lastCol': 18} / 请假 {'lastRow': 619, 'lastCol': 15} / 页签 {'production': 16, 'master': 45} / 部署 3）
+[2026-11-14 03:03:32] pmlist-refresh OK (211.5s) ⚠ 慢跑 211s |  refreshProjectSummary completed updateTotalSummary completed refreshFinanceOverview completed
+[2026-11-14 03:05:15] bd-drain       FAIL (14.5s) 队列探头失败（GAS 不可达）: <HTTPError 404: 'Not Found'>
+[2026-11-14 03:10:04] nps-receipt    OK (4.1s) [2026-11-13T19:10:04.974Z] ✅ 无新增打开事件，无需动作
+[2026-11-14 03:10:05] pclist-harvest FAIL (5.6s) 请求失败: <HTTPError 404: 'Not Found'>
+[2026-11-14 03:15:11] ts-health      OK (11.3s) ✅ 全部正常
+[2026-11-14 03:30:35] t1b-watch      OK (35.4s) 无增量（生产表 {'lastRow': 11513, 'lastCol': 18} / 请假 {'lastRow': 619, 'lastCol': 15} / 页签 {'production': 16, 'master': 45} / 部署 3）
+[2026-11-14 03:35:14] bd-drain       FAIL (14.1s) 队列探头失败（GAS 不可达）: <HTTPError 404: 'Not Found'>
+[2026-11-14 03:40:05] nps-receipt    OK (4.3s) [2026-11-13T19:40:05.108Z] ✅ 无新增打开事件，无需动作
+[2026-11-14 03:45:10] ts-health      OK (10.4s) ✅ 全部正常
+[2026-11-14 04:00:29] t1b-watch      OK (29.2s) 无增量（生产表 {'lastRow': 11513, 'lastCol': 18} / 请假 {'lastRow': 619, 'lastCol': 15} / 页签 {'production': 16, 'master': 45} / 部署 3）
+[2026-11-14 04:02:36] pmlist-refresh OK (156.0s)  refreshProjectSummary completed updateTotalSummary completed refreshFinanceOverview completed
+[2026-11-14 04:05:14] bd-drain       FAIL (14.0s) 队列探头失败（GAS 不可达）: <HTTPError 404: 'Not Found'>
+[2026-11-14 04:10:05] nps-receipt    OK (4.9s) [2026-11-13T20:10:05.783Z] ✅ 无新增打开事件，无需动作
+[2026-11-14 04:15:10] ts-health      OK (10.6s) ✅ 全部正常
+[2026-11-14 04:30:30] t1b-watch      OK (30.1s) 无增量（生产表 {'lastRow': 11513, 'lastCol': 18} / 请假 {'lastRow': 619, 'lastCol': 15} / 页签 {'production': 16, 'master': 45} / 部署 3）
+[2026-11-14 04:35:15] bd-drain       FAIL (14.1s) 队列探头失败（GAS 不可达）: <HTTPError 404: 'Not Found'>
+[2026-11-14 04:40:05] nps-receipt    OK (4.5s) [2026-11-13T20:40:05.408Z] ✅ 无新增打开事件，无需动作
+[2026-11-14 04:45:11] ts-health      OK (11.3s) ✅ 全部正常
+[2026-11-14 05:00:30] t1b-watch      OK (29.8s) 无增量（生产表 {'lastRow': 11513, 'lastCol': 18} / 请假 {'lastRow': 619, 'lastCol': 15} / 页签 {'production': 16, 'master': 45} / 部署 3）
+[2026-11-14 05:03:40] pmlist-refresh OK (220.0s) ⚠ 慢跑 220s |  refreshProjectSummary completed updateTotalSummary completed refreshFinanceOverview completed
+[2026-11-14 05:05:15] bd-drain       FAIL (14.2s) 队列探头失败（GAS 不可达）: <HTTPError 404: 'Not Found'>
+[2026-11-14 05:10:04] nps-receipt    OK (3.8s) [2026-11-13T21:10:04.675Z] ✅ 无新增打开事件，无需动作
+[2026-11-14 05:10:05] pclist-harvest FAIL (5.6s) 请求失败: <HTTPError 404: 'Not Found'>
+[2026-11-14 05:15:10] ts-health      OK (10.3s) ✅ 全部正常
+[2026-11-14 05:30:31] t1b-watch      OK (31.1s) 无增量（生产表 {'lastRow': 11513, 'lastCol': 18} / 请假 {'lastRow': 619, 'lastCol': 15} / 页签 {'production': 16, 'master': 45} / 部署 3）
+[2026-11-14 05:35:15] bd-drain       FAIL (14.2s) 队列探头失败（GAS 不可达）: <HTTPError 404: 'Not Found'>
+[2026-11-14 05:40:05] nps-receipt    OK (4.3s) [2026-11-13T21:40:05.210Z] ✅ 无新增打开事件，无需动作
+[2026-11-14 05:45:10] ts-health      OK (9.8s) ✅ 全部正常
+[2026-11-14 06:00:31] t1b-watch      OK (30.8s) 无增量（生产表 {'lastRow': 11513, 'lastCol': 18} / 请假 {'lastRow': 619, 'lastCol': 15} / 页签 {'production': 16, 'master': 45} / 部署 3）
+[2026-11-14 06:03:42] pmlist-refresh OK (221.8s) ⚠ 慢跑 222s |  refreshProjectSummary completed updateTotalSummary completed refreshFinanceOverview completed
+[2026-11-14 06:05:15] bd-drain       FAIL (14.2s) 队列探头失败（GAS 不可达）: <HTTPError 404: 'Not Found'>
+[2026-11-14 06:10:05] nps-receipt    OK (4.2s) [2026-11-13T22:10:05.060Z] ✅ 无新增打开事件，无需动作
+[2026-11-14 06:15:10] ts-health      OK (10.2s) ✅ 全部正常
+[2026-11-14 06:30:30] t1b-watch      OK (29.8s) 检出 1 项变化（实质变化），已生成待处理草稿: T1-B_盯梢触发_20261114_0630.md
+[2026-11-14 06:35:15] bd-drain       FAIL (14.1s) 队列探头失败（GAS 不可达）: <HTTPError 404: 'Not Found'>
+[2026-11-14 06:40:05] nps-receipt    OK (4.2s) [2026-11-13T22:40:05.085Z] ✅ 无新增打开事件，无需动作
+[2026-11-14 06:45:10] ts-health      OK (10.0s) ✅ 全部正常
+[2026-11-14 07:00:02] ts-deploy-watchdog OK (1.8s) ts-manager webapp OK (HTTP 200)
+[2026-11-14 07:00:28] t1b-watch      OK (27.8s) 无增量（生产表 {'lastRow': 11513, 'lastCol': 18} / 请假 {'lastRow': 625, 'lastCol': 15} / 页签 {'production': 16, 'master': 45} / 部署 3）
+[2026-11-14 07:02:11] pmlist-refresh OK (130.9s)  refreshProjectSummary completed updateTotalSummary completed refreshFinanceOverview completed
+[2026-11-14 07:05:15] bd-drain       FAIL (14.5s) 队列探头失败（GAS 不可达）: <HTTPError 404: 'Not Found'>
+[2026-11-14 07:10:05] nps-receipt    OK (4.3s) [2026-11-13T23:10:05.218Z] ✅ 无新增打开事件，无需动作
+[2026-11-14 07:10:05] pclist-harvest FAIL (5.6s) 请求失败: <HTTPError 404: 'Not Found'>
+[2026-11-14 07:15:11] ts-health      OK (11.5s) ✅ 全部正常
+[2026-11-14 07:30:28] t1b-watch      OK (28.3s) 无增量（生产表 {'lastRow': 11513, 'lastCol': 18} / 请假 {'lastRow': 625, 'lastCol': 15} / 页签 {'production': 16, 'master': 45} / 部署 3）
+[2026-11-14 07:31:56] pm-selfcheck   OK (114.0s) ✅ PM 自查已发 10 封；Rita 回执按 receipt_mode=exception_only 静默（审计已留痕）。
+[2026-11-14 07:35:15] bd-drain       FAIL (14.2s) 队列探头失败（GAS 不可达）: <HTTPError 404: 'Not Found'>
+[2026-11-14 07:40:05] nps-receipt    OK (4.1s) [2026-11-13T23:40:05.056Z] ✅ 无新增打开事件，无需动作
+[2026-11-14 07:45:12] ts-health      OK (11.7s) ✅ 全部正常
+[2026-11-14 07:50:17] ts-export      OK (15.7s) OUTPUT=C:/Users/rita.jin/WorkBuddy/工时表导出\工时表明细_今日.xlsx
+[2026-11-14 08:00:29] t1b-watch      OK (28.5s) 无增量（生产表 {'lastRow': 11513, 'lastCol': 18} / 请假 {'lastRow': 625, 'lastCol': 15} / 页签 {'production': 16, 'master': 45} / 部署 3）
+[2026-11-14 08:04:40] pmlist-refresh OK (279.4s) ⚠ 慢跑 273s |  refreshProjectSummary completed updateTotalSummary completed refreshFinanceOverview completed
+[2026-11-14 08:05:14] bd-drain       FAIL (14.1s) 队列探头失败（GAS 不可达）: <HTTPError 404: 'Not Found'>
+[2026-11-14 08:10:05] nps-receipt    OK (4.4s) [2026-11-14T00:10:05.366Z] ✅ 无新增打开事件，无需动作
+[2026-11-14 08:15:11] ts-health      OK (10.8s) ✅ 全部正常
+[2026-11-14 08:30:26] t1b-watch      OK (25.6s) 检出 1 项变化（信息级（多为每日重算镜像，预期内）），已生成待处理草稿: T1-B_盯梢触发_20261114_0830.md
+[2026-11-14 08:35:15] bd-drain       FAIL (14.4s) 队列探头失败（GAS 不可达）: <HTTPError 404: 'Not Found'>
+[2026-11-14 08:40:05] nps-receipt    OK (4.2s) [2026-11-14T00:40:05.156Z] ✅ 无新增打开事件，无需动作
+[2026-11-14 08:45:11] ts-health      OK (10.9s) ✅ 全部正常
+[2026-11-14 09:00:28] t1b-watch      OK (28.2s) 无增量（生产表 {'lastRow': 11513, 'lastCol': 18} / 请假 {'lastRow': 625, 'lastCol': 15} / 页签 {'production': 16, 'master': 47} / 部署 3）
+[2026-11-14 09:03:12] pmlist-refresh OK (192.0s) ⚠ 慢跑 192s |  refreshProjectSummary completed updateTotalSummary completed refreshFinanceOverview completed
+[2026-11-14 09:05:15] bd-drain       FAIL (14.3s) 队列探头失败（GAS 不可达）: <HTTPError 404: 'Not Found'>
+[2026-11-14 09:10:04] nps-receipt    OK (3.9s) [2026-11-14T01:10:04.852Z] ✅ 无新增打开事件，无需动作
+[2026-11-14 09:10:05] pclist-harvest FAIL (5.4s) 请求失败: <HTTPError 404: 'Not Found'>
+[2026-11-14 09:15:13] ts-health      OK (12.9s) ✅ 全部正常
+[2026-11-14 09:30:29] t1b-watch      OK (28.5s) 无增量（生产表 {'lastRow': 11513, 'lastCol': 18} / 请假 {'lastRow': 625, 'lastCol': 15} / 页签 {'production': 16, 'master': 47} / 部署 3）
+[2026-11-14 09:35:15] bd-drain       FAIL (14.3s) 队列探头失败（GAS 不可达）: <HTTPError 404: 'Not Found'>
+[2026-11-14 09:40:04] nps-receipt    OK (3.7s) [2026-11-14T01:40:04.656Z] ✅ 无新增打开事件，无需动作
+[2026-11-14 09:45:21] ts-health      FAIL (21.5s) ⚠ 告警（单轮，待连续失败阈值触发邮件）:   - 数据检查异常: hk 15s 超时
+[2026-11-14 10:00:28] t1b-watch      OK (27.9s) 无增量（生产表 {'lastRow': 11513, 'lastCol': 18} / 请假 {'lastRow': 625, 'lastCol': 15} / 页签 {'production': 16, 'master': 47} / 部署 3）
+[2026-11-14 10:01:57] pmlist-refresh OK (116.6s)  refreshProjectSummary completed updateTotalSummary completed refreshFinanceOverview completed
+[2026-11-14 10:05:15] bd-drain       FAIL (14.4s) 队列探头失败（GAS 不可达）: <HTTPError 404: 'Not Found'>
+[2026-11-14 10:10:05] nps-receipt    OK (4.3s) [2026-11-14T02:10:05.284Z] ✅ 无新增打开事件，无需动作
+[2026-11-14 10:15:12] ts-health      OK (12.2s) ✅ 全部正常
+[2026-11-14 10:30:27] t1b-watch      OK (26.7s) 无增量（生产表 {'lastRow': 11513, 'lastCol': 18} / 请假 {'lastRow': 625, 'lastCol': 15} / 页签 {'production': 16, 'master': 47} / 部署 3）
+[2026-11-14 10:35:15] bd-drain       FAIL (14.3s) 队列探头失败（GAS 不可达）: <HTTPError 404: 'Not Found'>
+[2026-11-14 10:40:05] nps-receipt    OK (4.6s) [2026-11-14T02:40:05.553Z] ✅ 无新增打开事件，无需动作
+[2026-11-14 10:45:11] ts-health      OK (11.5s) ✅ 全部正常
+[2026-11-14 11:00:29] t1b-watch      OK (28.7s) 无增量（生产表 {'lastRow': 11513, 'lastCol': 18} / 请假 {'lastRow': 625, 'lastCol': 15} / 页签 {'production': 16, 'master': 47} / 部署 3）
+[2026-11-14 11:01:06] pmlist-refresh OK (66.1s)  refreshProjectSummary completed updateTotalSummary completed refreshFinanceOverview completed
+[2026-11-14 11:05:15] bd-drain       FAIL (14.5s) 队列探头失败（GAS 不可达）: <HTTPError 404: 'Not Found'>
+[2026-11-14 11:10:05] nps-receipt    OK (4.2s) [2026-11-14T03:10:05.129Z] ✅ 无新增打开事件，无需动作
+[2026-11-14 11:10:05] pclist-harvest FAIL (5.7s) 请求失败: <HTTPError 404: 'Not Found'>
+[2026-11-14 11:15:13] ts-health      OK (13.4s) ✅ 全部正常
+[2026-11-14 11:30:29] t1b-watch      OK (29.2s) 无增量（生产表 {'lastRow': 11513, 'lastCol': 18} / 请假 {'lastRow': 625, 'lastCol': 15} / 页签 {'production': 16, 'master': 47} / 部署 3）
+[2026-11-14 11:35:15] bd-drain       FAIL (14.3s) 队列探头失败（GAS 不可达）: <HTTPError 404: 'Not Found'>
+[2026-11-14 11:40:05] nps-receipt    OK (4.2s) [2026-11-14T03:40:05.165Z] ✅ 无新增打开事件，无需动作
+[2026-11-14 11:45:12] ts-health      OK (11.9s) ✅ 全部正常
+[2026-11-14 11:50:10] memory-backup  OK (9.1s) chat_logs:0个 add:rc=0 commit:rc=0 pull:rc=0 commit2:rc=1 push:rc=0
+[2026-11-14 12:00:25] t1b-watch      OK (25.1s) 无增量（生产表 {'lastRow': 11513, 'lastCol': 18} / 请假 {'lastRow': 625, 'lastCol': 15} / 页签 {'production': 16, 'master': 47} / 部署 3）
+[2026-11-14 12:01:41] pmlist-refresh OK (101.1s)  refreshProjectSummary completed updateTotalSummary completed refreshFinanceOverview completed
+[2026-11-14 12:05:15] bd-drain       FAIL (14.3s) 队列探头失败（GAS 不可达）: <HTTPError 404: 'Not Found'>
+[2026-11-14 12:10:05] nps-receipt    OK (4.7s) [2026-11-14T04:10:05.700Z] ✅ 无新增打开事件，无需动作
+[2026-11-14 12:15:10] ts-health      OK (10.0s) ✅ 全部正常
+[2026-11-14 12:30:25] t1b-watch      OK (25.2s) 无增量（生产表 {'lastRow': 11513, 'lastCol': 18} / 请假 {'lastRow': 625, 'lastCol': 15} / 页签 {'production': 16, 'master': 47} / 部署 3）
+[2026-11-14 12:35:15] bd-drain       FAIL (14.4s) 队列探头失败（GAS 不可达）: <HTTPError 404: 'Not Found'>
+[2026-11-14 12:40:05] nps-receipt    OK (4.9s) [2026-11-14T04:40:05.915Z] ✅ 无新增打开事件，无需动作
+[2026-11-14 12:45:10] ts-health      OK (10.5s) ✅ 全部正常
+[2026-11-14 13:00:03] ts-deploy-watchdog OK (2.3s) ts-manager webapp OK (HTTP 200)
+[2026-11-14 13:00:26] t1b-watch      OK (25.4s) 无增量（生产表 {'lastRow': 11513, 'lastCol': 18} / 请假 {'lastRow': 625, 'lastCol': 15} / 页签 {'production': 16, 'master': 47} / 部署 3）
+[2026-11-14 13:02:30] pmlist-refresh OK (149.5s)  refreshProjectSummary completed updateTotalSummary completed refreshFinanceOverview completed
+[2026-11-14 13:05:15] bd-drain       FAIL (14.2s) 队列探头失败（GAS 不可达）: <HTTPError 404: 'Not Found'>
+[2026-11-14 13:10:05] nps-receipt    OK (4.5s) [2026-11-14T05:10:05.488Z] ✅ 无新增打开事件，无需动作
+[2026-11-14 13:10:05] pclist-harvest FAIL (5.5s) 请求失败: <HTTPError 404: 'Not Found'>
+[2026-11-14 13:15:10] ts-health      OK (10.1s) ✅ 全部正常
+[2026-11-14 13:30:30] t1b-watch      OK (29.5s) 无增量（生产表 {'lastRow': 11513, 'lastCol': 18} / 请假 {'lastRow': 625, 'lastCol': 15} / 页签 {'production': 16, 'master': 47} / 部署 3）
+[2026-11-14 13:35:15] bd-drain       FAIL (14.4s) 队列探头失败（GAS 不可达）: <HTTPError 404: 'Not Found'>
+[2026-11-14 13:40:04] nps-receipt    OK (4.0s) [2026-11-14T05:40:04.970Z] ✅ 无新增打开事件，无需动作
+[2026-11-14 13:45:12] ts-health      OK (12.0s) ✅ 全部正常
+[2026-11-14 14:00:29] t1b-watch      OK (28.5s) 无增量（生产表 {'lastRow': 11513, 'lastCol': 18} / 请假 {'lastRow': 625, 'lastCol': 15} / 页签 {'production': 16, 'master': 47} / 部署 3）
+[2026-11-14 14:01:07] pmlist-refresh OK (66.4s)  refreshProjectSummary completed updateTotalSummary completed refreshFinanceOverview completed
+[2026-11-14 14:05:16] bd-drain       FAIL (15.1s) 队列探头失败（GAS 不可达）: <HTTPError 404: 'Not Found'>
+[2026-11-14 14:10:05] nps-receipt    OK (4.0s) [2026-11-14T06:10:05.008Z] ✅ 无新增打开事件，无需动作
+[2026-11-14 14:15:12] ts-health      OK (12.0s) ✅ 全部正常
+[2026-11-14 14:30:28] t1b-watch      OK (28.1s) 无增量（生产表 {'lastRow': 11513, 'lastCol': 18} / 请假 {'lastRow': 625, 'lastCol': 15} / 页签 {'production': 16, 'master': 47} / 部署 3）
+[2026-11-14 14:35:15] bd-drain       FAIL (14.3s) 队列探头失败（GAS 不可达）: <HTTPError 404: 'Not Found'>
+[2026-11-14 14:40:05] nps-receipt    OK (4.5s) [2026-11-14T06:40:05.531Z] ✅ 无新增打开事件，无需动作
+[2026-11-14 14:45:12] ts-health      OK (11.7s) ✅ 全部正常
+[2026-11-14 15:00:35] t1b-watch      OK (35.0s) 无增量（生产表 {'lastRow': 11513, 'lastCol': 18} / 请假 {'lastRow': 625, 'lastCol': 15} / 页签 {'production': 16, 'master': 47} / 部署 3）
+[2026-11-14 15:01:37] pmlist-refresh OK (96.8s)  refreshProjectSummary completed updateTotalSummary completed refreshFinanceOverview completed
+[2026-11-14 15:05:15] bd-drain       FAIL (14.2s) 队列探头失败（GAS 不可达）: <HTTPError 404: 'Not Found'>
+[2026-11-14 15:10:05] nps-receipt    OK (4.9s) [2026-11-14T07:10:05.908Z] ✅ 无新增打开事件，无需动作
+[2026-11-14 15:10:05] pclist-harvest FAIL (5.7s) 请求失败: <HTTPError 404: 'Not Found'>
+[2026-11-14 15:15:10] ts-health      OK (10.4s) ✅ 全部正常
+[2026-11-14 15:30:27] t1b-watch      OK (27.2s) 无增量（生产表 {'lastRow': 11513, 'lastCol': 18} / 请假 {'lastRow': 625, 'lastCol': 15} / 页签 {'production': 16, 'master': 47} / 部署 3）
+[2026-11-14 15:35:15] bd-drain       FAIL (14.2s) 队列探头失败（GAS 不可达）: <HTTPError 404: 'Not Found'>
+[2026-11-14 15:40:04] nps-receipt    OK (3.7s) [2026-11-14T07:40:04.681Z] ✅ 无新增打开事件，无需动作
+[2026-11-14 15:45:10] ts-health      OK (10.3s) ✅ 全部正常
+[2026-11-14 16:00:30] t1b-watch      OK (29.8s) 无增量（生产表 {'lastRow': 11513, 'lastCol': 18} / 请假 {'lastRow': 625, 'lastCol': 15} / 页签 {'production': 16, 'master': 47} / 部署 3）
+[2026-11-14 16:02:13] pmlist-refresh OK (132.4s)  refreshProjectSummary completed updateTotalSummary completed refreshFinanceOverview completed
+[2026-11-14 16:05:15] bd-drain       FAIL (14.5s) 队列探头失败（GAS 不可达）: <HTTPError 404: 'Not Found'>
+[2026-11-14 16:10:05] nps-receipt    OK (4.3s) [2026-11-14T08:10:05.324Z] ✅ 无新增打开事件，无需动作
+[2026-11-14 16:15:10] ts-health      OK (10.2s) ✅ 全部正常
+[2026-11-14 16:30:29] t1b-watch      OK (28.2s) 无增量（生产表 {'lastRow': 11513, 'lastCol': 18} / 请假 {'lastRow': 625, 'lastCol': 15} / 页签 {'production': 16, 'master': 47} / 部署 3）
+[2026-11-14 16:35:15] bd-drain       FAIL (14.2s) 队列探头失败（GAS 不可达）: <HTTPError 404: 'Not Found'>
+[2026-11-14 16:40:05] nps-receipt    OK (4.0s) [2026-11-14T08:40:04.990Z] ✅ 无新增打开事件，无需动作
+[2026-11-14 16:45:11] ts-health      OK (11.5s) ✅ 全部正常
+[2026-11-14 16:45:33] numberlock-fixwatch FAIL (0.8s) vercheck 探针失败: <HTTPError 404: 'Not Found'>
+[2026-11-14 17:00:24] t1b-watch      OK (23.7s) 无增量（生产表 {'lastRow': 11513, 'lastCol': 18} / 请假 {'lastRow': 625, 'lastCol': 15} / 页签 {'production': 16, 'master': 47} / 部署 3）
+[2026-11-14 17:01:01] pmlist-refresh OK (60.8s)  refreshProjectSummary completed updateTotalSummary completed refreshFinanceOverview completed
+[2026-11-14 17:05:15] bd-drain       FAIL (14.5s) 队列探头失败（GAS 不可达）: <HTTPError 404: 'Not Found'>
+[2026-11-14 17:10:05] nps-receipt    OK (4.1s) [2026-11-14T09:10:05.187Z] ✅ 无新增打开事件，无需动作
+[2026-11-14 17:10:05] pclist-harvest FAIL (5.6s) 请求失败: <HTTPError 404: 'Not Found'>
+[2026-11-14 17:15:11] ts-health      OK (11.0s) ✅ 全部正常
+[2026-11-14 17:30:28] t1b-watch      OK (27.8s) 无增量（生产表 {'lastRow': 11513, 'lastCol': 18} / 请假 {'lastRow': 625, 'lastCol': 15} / 页签 {'production': 16, 'master': 47} / 部署 3）
+[2026-11-14 17:35:15] bd-drain       FAIL (14.0s) 队列探头失败（GAS 不可达）: <HTTPError 404: 'Not Found'>
+[2026-11-14 17:40:05] nps-receipt    OK (4.6s) [2026-11-14T09:40:05.620Z] ✅ 无新增打开事件，无需动作
+[2026-11-14 17:45:12] ts-health      OK (12.1s) ✅ 全部正常
+[2026-11-14 18:00:31] t1b-watch      OK (30.1s) 无增量（生产表 {'lastRow': 11513, 'lastCol': 18} / 请假 {'lastRow': 625, 'lastCol': 15} / 页签 {'production': 16, 'master': 47} / 部署 3）
+[2026-11-14 18:01:42] pmlist-refresh OK (101.5s)  refreshProjectSummary completed updateTotalSummary completed refreshFinanceOverview completed
+[2026-11-14 18:05:15] bd-drain       FAIL (14.3s) 队列探头失败（GAS 不可达）: <HTTPError 404: 'Not Found'>
+[2026-11-14 18:10:05] nps-receipt    OK (4.3s) [2026-11-14T10:10:05.388Z] ✅ 无新增打开事件，无需动作
+[2026-11-14 18:15:11] ts-health      OK (10.7s) ✅ 全部正常
+[2026-11-14 18:30:29] t1b-watch      OK (28.2s) 无增量（生产表 {'lastRow': 11513, 'lastCol': 18} / 请假 {'lastRow': 625, 'lastCol': 15} / 页签 {'production': 16, 'master': 47} / 部署 3）
+[2026-11-14 18:35:15] bd-drain       FAIL (14.2s) 队列探头失败（GAS 不可达）: <HTTPError 404: 'Not Found'>
+[2026-11-14 18:40:05] nps-receipt    OK (4.6s) [2026-11-14T10:40:05.665Z] ✅ 无新增打开事件，无需动作
+[2026-11-14 18:45:10] ts-health      OK (10.2s) ✅ 全部正常
+[2026-11-14 19:00:03] ts-deploy-watchdog OK (2.3s) ts-manager webapp OK (HTTP 200)
+[2026-11-14 19:00:29] t1b-watch      OK (29.0s) 无增量（生产表 {'lastRow': 11513, 'lastCol': 18} / 请假 {'lastRow': 625, 'lastCol': 15} / 页签 {'production': 16, 'master': 47} / 部署 3）
+[2026-11-14 19:02:40] pmlist-refresh OK (159.2s)  refreshProjectSummary completed updateTotalSummary completed refreshFinanceOverview completed
+[2026-11-14 19:05:14] bd-drain       FAIL (14.3s) 队列探头失败（GAS 不可达）: <HTTPError 404: 'Not Found'>
+[2026-11-14 19:10:05] nps-receipt    OK (4.1s) [2026-11-14T11:10:05.160Z] ✅ 无新增打开事件，无需动作
+[2026-11-14 19:10:06] pclist-harvest FAIL (5.8s) 请求失败: <HTTPError 404: 'Not Found'>
+[2026-11-14 19:15:11] ts-health      OK (10.6s) ✅ 全部正常
+[2026-11-14 19:30:32] t1b-watch      OK (32.0s) 无增量（生产表 {'lastRow': 11513, 'lastCol': 18} / 请假 {'lastRow': 625, 'lastCol': 15} / 页签 {'production': 16, 'master': 47} / 部署 3）
+[2026-11-14 19:35:14] bd-drain       FAIL (14.1s) 队列探头失败（GAS 不可达）: <HTTPError 404: 'Not Found'>
+[2026-11-14 19:40:05] nps-receipt    OK (4.1s) [2026-11-14T11:40:05.231Z] ✅ 无新增打开事件，无需动作
+[2026-11-14 19:45:12] ts-health      OK (11.8s) ✅ 全部正常
+[2026-11-14 20:00:26] t1b-watch      OK (25.5s) 无增量（生产表 {'lastRow': 11513, 'lastCol': 18} / 请假 {'lastRow': 625, 'lastCol': 15} / 页签 {'production': 16, 'master': 47} / 部署 3）
+[2026-11-14 20:01:09] pmlist-refresh OK (68.9s)  refreshProjectSummary completed updateTotalSummary completed refreshFinanceOverview completed
+[2026-11-14 20:05:14] bd-drain       FAIL (14.4s) 队列探头失败（GAS 不可达）: <HTTPError 404: 'Not Found'>
+[2026-11-14 20:10:05] nps-receipt    OK (4.3s) [2026-11-14T12:10:05.430Z] ✅ 无新增打开事件，无需动作
+[2026-11-14 20:15:13] ts-health      OK (12.9s) ✅ 全部正常
+[2026-11-14 20:30:32] t1b-watch      OK (31.2s) 无增量（生产表 {'lastRow': 11513, 'lastCol': 18} / 请假 {'lastRow': 625, 'lastCol': 15} / 页签 {'production': 16, 'master': 47} / 部署 3）
+[2026-11-14 20:35:14] bd-drain       FAIL (14.2s) 队列探头失败（GAS 不可达）: <HTTPError 404: 'Not Found'>
+[2026-11-14 20:40:04] nps-receipt    OK (4.2s) [2026-11-14T12:40:04.254Z] ✅ 无新增打开事件，无需动作
+[2026-11-14 20:45:12] ts-health      OK (12.3s) ✅ 全部正常
+[2026-11-14 21:00:30] t1b-watch      OK (29.5s) 无增量（生产表 {'lastRow': 11513, 'lastCol': 18} / 请假 {'lastRow': 625, 'lastCol': 15} / 页签 {'production': 16, 'master': 47} / 部署 3）
+[2026-11-14 21:01:39] pmlist-refresh OK (98.7s)  refreshProjectSummary completed updateTotalSummary completed refreshFinanceOverview completed
+[2026-11-14 21:05:14] bd-drain       FAIL (14.0s) 队列探头失败（GAS 不可达）: <HTTPError 404: 'Not Found'>
+[2026-11-14 21:10:04] nps-receipt    OK (4.8s) [2026-11-14T13:10:04.886Z] ✅ 无新增打开事件，无需动作
+[2026-11-14 21:10:05] pclist-harvest FAIL (5.5s) 请求失败: <HTTPError 404: 'Not Found'>
+[2026-11-14 21:15:10] ts-health      OK (10.2s) ✅ 全部正常
+[2026-11-14 21:30:28] t1b-watch      OK (27.6s) 无增量（生产表 {'lastRow': 11513, 'lastCol': 18} / 请假 {'lastRow': 625, 'lastCol': 15} / 页签 {'production': 16, 'master': 47} / 部署 3）
+[2026-11-14 21:35:14] bd-drain       FAIL (14.2s) 队列探头失败（GAS 不可达）: <HTTPError 404: 'Not Found'>
+[2026-11-14 21:40:04] nps-receipt    OK (4.2s) [2026-11-14T13:40:04.318Z] ✅ 无新增打开事件，无需动作
+[2026-11-14 21:45:10] ts-health      OK (10.4s) ✅ 全部正常
+[2026-11-14 22:00:29] t1b-watch      OK (28.4s) 无增量（生产表 {'lastRow': 11513, 'lastCol': 18} / 请假 {'lastRow': 625, 'lastCol': 15} / 页签 {'production': 16, 'master': 47} / 部署 3）
+[2026-11-14 22:02:34] pmlist-refresh OK (153.6s)  refreshProjectSummary completed updateTotalSummary completed refreshFinanceOverview completed
+[2026-11-14 22:05:14] bd-drain       FAIL (14.3s) 队列探头失败（GAS 不可达）: <HTTPError 404: 'Not Found'>
+[2026-11-14 22:10:04] nps-receipt    OK (4.7s) [2026-11-14T14:10:04.893Z] ✅ 无新增打开事件，无需动作
+[2026-11-14 22:15:11] ts-health      OK (10.6s) ✅ 全部正常
+[2026-11-14 22:30:31] t1b-watch      OK (30.2s) 无增量（生产表 {'lastRow': 11513, 'lastCol': 18} / 请假 {'lastRow': 625, 'lastCol': 15} / 页签 {'production': 16, 'master': 47} / 部署 3）
+[2026-11-14 22:35:15] bd-drain       FAIL (14.5s) 队列探头失败（GAS 不可达）: <HTTPError 404: 'Not Found'>

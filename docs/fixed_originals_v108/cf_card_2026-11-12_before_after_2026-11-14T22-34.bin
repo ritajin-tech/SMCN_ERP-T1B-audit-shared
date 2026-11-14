@@ -1,0 +1,125 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+<meta charset="utf-8">
+<title>Registry 链接/文字/颜色 — 修复完成验收卡（2026-11-12）</title>
+<style>
+  :root{--vi:#B31E3E;--ink:#1c2330;--sub:#5b6675;--line:#e3e7ed;--bg:#f7f8fa;
+        --white:#ffffff;--gray:#F4F5F7;--yellow:#FFF9E6;--green:#E8F5E9;--red:#FADBD8}
+  *{box-sizing:border-box}
+  body{margin:0;padding:32px 22px 60px;background:var(--bg);color:var(--ink);
+       font:14px/1.7 -apple-system,"Segoe UI","Microsoft YaHei",sans-serif}
+  .wrap{max-width:980px;margin:0 auto}
+  header{background:var(--vi);color:#fff;border-radius:12px 12px 0 0;padding:24px 28px}
+  header h1{margin:0 0 6px;font-size:23px;letter-spacing:.3px}
+  header .meta{opacity:.9;font-size:12.5px}
+  .body{background:#fff;border:1px solid var(--line);border-top:0;border-radius:0 0 12px 12px;padding:26px 28px 30px}
+  h2{font-size:16.5px;margin:26px 0 12px;padding-left:11px;border-left:4px solid var(--vi)}
+  h2:first-child{margin-top:0}
+  .big{background:#eaf6ee;border:1px solid #bfe3cc;border-radius:10px;padding:18px 20px;margin-bottom:18px}
+  .big .t{font-size:19px;font-weight:700;color:#17693a;margin-bottom:8px}
+  table{width:100%;border-collapse:collapse;margin:10px 0 16px;font-size:13px}
+  th,td{border:1px solid var(--line);padding:9px 11px;text-align:left;vertical-align:top}
+  th{background:#f1f3f6;font-weight:600;color:#3a4554}
+  td.k{width:190px;font-weight:600;background:#fafbfc}
+  .ok{color:#17693a;font-weight:600}.bad{color:#b3261e;font-weight:600}.warn{color:#9a6700;font-weight:600}
+  code{background:#f3f5f8;padding:1px 5px;border-radius:4px;font-size:12px}
+  .sw{display:inline-block;width:13px;height:13px;border:1px solid #ccd2da;border-radius:3px;vertical-align:-2px;margin-right:5px}
+  .notice{background:#fff8e8;border-left:4px solid #e0a800;padding:12px 15px;border-radius:0 8px 8px 0;margin:14px 0}
+  .g{background:#eef7f1;border-left-color:#2e8b57}
+  ul{margin:8px 0 8px 20px;padding:0}li{margin:5px 0}
+  footer{margin-top:26px;padding-top:14px;border-top:1px solid var(--line);color:var(--sub);font-size:12px}
+  .talk{background:#f6f8fb;border:1px dashed #b9c3d0;border-radius:9px;padding:15px 18px;font-size:13.5px}
+</style>
+</head>
+<body><div class="wrap">
+<header>
+  <h1>Registry 链接 / 文字 / 颜色 — 修复完成验收卡</h1>
+  <div class="meta">2026-11-11 23:46 → 11-12 00:18 北京（GMT+8；UTC 11-11T15:46–16:18Z）　·　生产写已由 Rita 授权　·　零换链</div>
+</header>
+<div class="body">
+
+<div class="big">
+  <div class="t">✅ 已修好：全表 97 行 97/97 合规，0 违规、0 绿底、0 残片、0 裸 URL</div>
+  这次不是"等下一轮自愈"，是<b>线上已实际写入并逐格读回验证</b>。之前查不到的颜色轴，这次通过在脚本内部读
+  <code>getBackgrounds()</code> / <code>getFontColors()</code> 建了长期只读取证通道，不再靠肉眼或截图推断。
+</div>
+
+<h2>一、真正的根因（之前四缺陷之外漏掉的第五层）</h2>
+<p>Registry 表上挂着 <b>18 条条件格式规则，全部是 <code>CUSTOM_FORMULA =TRUE</code> 无条件生效</b>：
+A/B/D/G 列刷灰、C 列刷黄、E/F 列刷绿（<code>=ISFORMULA(E2)</code> / <code>=ISFORMULA(F2)</code>），
+范围止于第 97 行。<b>条件格式优先级高于脚本写入的单元格底色</b>，所以刷色永远被压住——
+这解释了为什么自愈只刷动了第 98 行（不在规则范围内）。</p>
+<div class="notice">
+  <b>写入回读自测（铁证）</b>：修复前把 A2 写成 <code>#ff0000</code>，立刻读回仍是 <code>#f4f5f7</code>
+  ⇒ <code>writeTookEffect=false</code>；修复后同样自测读回 <code>#ff0000</code> ⇒ <code>true</code>。
+  之前"值自愈 ≠ 格式自愈"的说法在这一层被闭环证实。
+</div>
+<table>
+  <tr><th>层</th><th>缺陷</th><th>本次处置</th></tr>
+  <tr><td>D1</td><td>分片批 <code>return</code> 跳过健康检查，状态变、颜色不跟随</td><td class="ok">H1 挂载：分片批也刷四色</td></tr>
+  <tr><td>D2</td><td>健康检查只有「成功」分支重置字色，绿字永久残留</td><td class="ok">H2 挂载：统一重刷，每个分支都重置字色/字重</td></tr>
+  <tr><td>D3</td><td><code>isUrl</code> 只认完整 URL，C 列残片清不掉</td><td class="ok">新增清残片函数，本次实清 2 格</td></tr>
+  <tr><td>D4</td><td>一键修复只重包 E/F/G，不碰 C 列与底色</td><td class="ok">H3 挂载：连颜色一起修</td></tr>
+  <tr><td><b>D5（新）</b></td><td><b>数据区条件格式按列锁死底色，压过一切脚本写色</b></td><td class="ok"><b>删 9 条数据区规则、留 9 条表头规则；每轮刷色自动免疫</b></td></tr>
+</table>
+
+<h2>二、四色规范落地（整行 A:F 统一，规范里没有绿色）</h2>
+<table>
+  <tr><th>状态</th><th>底色</th><th>C 列字</th><th>本次结果</th></tr>
+  <tr><td>成功同步</td><td><span class="sw" style="background:#FFFFFF"></span>白 <code>#FFFFFF</code></td><td>黑 normal</td><td>93 行</td></tr>
+  <tr><td>待补全（编号或 PM 链接空，含「跳过」）</td><td><span class="sw" style="background:#FFF9E6"></span>黄 <code>#FFF9E6</code></td><td>黑 normal</td><td>2 行（R95 / R98）</td></tr>
+  <tr><td>失败</td><td><span class="sw" style="background:#FADBD8"></span>红 <code>#FADBD8</code></td><td>红加粗 <code>#C5221F</code></td><td>0 行</td></tr>
+  <tr><td>其他</td><td><span class="sw" style="background:#F4F5F7"></span>灰 <code>#F4F5F7</code></td><td>黑 normal</td><td>2 行</td></tr>
+</table>
+<p>截图对应的 93–98 行：R93/94/96/97 成功 → 整行白；R95/R98「跳过：无有效台账链接」→ 整行浅黄
+（这是 <b>PM 台账未建的业务正常状态</b>，按规范就该黄，不是链接坏）。</p>
+
+<h2>三、验收数据（独立调用读回，不复用写入返回）</h2>
+<table>
+  <tr><td class="k">逐格检查范围</td><td>第 2–98 行 × A:F 背景 + C 列字色/字重 + C/E/F 值与公式，共 <b>97 行</b></td></tr>
+  <tr><td class="k">修复前</td><td class="bad">9/9 抽样行全不合规；按列灰/黄/绿、<code>#16a085</code> 绿字、非规范红 <code>#f4cccc</code></td></tr>
+  <tr><td class="k">修复后</td><td class="ok">violations 0 / compliant 97 / 非规范色 0 / 绿底 0 / C 列残片 0 / 裸 URL 0</td></tr>
+  <tr><td class="k">条件格式</td><td class="ok">18 → 9（只保留表头 A1:I1 规则，表头颜色未被破坏）；写入回读 <code>true</code></td></tr>
+  <tr><td class="k">幂等复跑</td><td class="ok">免疫版再跑一次：<code>cfPurged: 0</code>、仍 97/97 合规，证明不会反复写、不会复发</td></tr>
+</table>
+
+<h2>四、不换链接 · 红线复核</h2>
+<table>
+  <tr><td class="k">部署数量</td><td class="ok">推前 3 → 推后 3 → 终态 3（<code>@HEAD</code> / <code>@420</code> / <code>@425</code>）</td></tr>
+  <tr><td class="k">日常主链接</td><td class="ok"><code>AKfycbymjl4W3ic6…GFb1CA</code> 逐字未变，仅原地更新版本 420→421→422→423→424→425</td></tr>
+  <tr><td class="k">访问权限</td><td class="ok"><code>ANYONE_ANONYMOUS / USER_DEPLOYING</code> 前后一致</td></tr>
+  <tr><td class="k">列宽</td><td class="ok">新增代码 <code>setColumnWidth</code> 调用数 0；既有调用均带 <code>skipWidths=true</code></td></tr>
+  <tr><td class="k">推前校验</td><td class="ok">线上 HEAD 哈希与本地快照一致 → 按字节最小插入 → 18 文件 <code>node --check</code> 全过</td></tr>
+  <tr><td class="k">另一 @420 部署</td><td>原样保留，作为即时回滚点</td></tr>
+</table>
+
+<h2>五、长期通道（以后同类问题不用再查截图）</h2>
+<ul>
+  <li><code>?action=regstyle</code> — 三合一幂等自愈：清 C 列残片 → 重包 E/F/G 短标签 → 整行四色（含条件格式免疫）</li>
+  <li><code>?action=regstyleverify</code> — <b>只读</b>逐格回读背景色/字色/字重/值/公式，自动判合规并列违规清单</li>
+  <li><code>?action=regstylediag</code> — 条件格式 / banding / 保护范围明细 + 写入回读自测</li>
+  <li><code>?action=regstylefix</code> — 细查与根治（<code>dry=1</code> 默认只读，<code>dry=0</code> 才写）</li>
+  <li>自动挂载 H1/H2/H3：分片批、最终批、一键修复轮次都会刷色，不再出现「状态变了颜色没跟」</li>
+</ul>
+<div class="notice g"><b>防复发核实</b>：全库代码检索确认<b>没有任何函数重建 Registry 的数据区条件格式规则</b>
+（<code>_AUTO_COL_REGISTRY</code> 只管 <code>Total Summary</code>），这 9 条是历史遗留静态规则；
+另外每轮刷色函数已内置免疫，即便日后有人手工加回，下一轮也会自动清掉。</div>
+
+<h2>六、可以直接发给艾瑞克的话</h2>
+<div class="talk">表格已经修好了，你刷新一下就能看到。之前链接显示成一长串网址、状态栏有怪字符、颜色一串灰一串绿，
+是系统里一组老的格式规则把底色按列锁死了，跟你的操作没关系，也不用你补任何东西、不用重填、不用点按钮。
+现在整行颜色统一按我们的规则来了：成功是白、待补全是浅黄、失败是浅红；链接也都变回「📋 PM台账 / 📊 QS台账」短标签。
+后面每轮同步会自动跟着刷，不会再变回去。</div>
+
+<h2>七、范围声明</h2>
+<p><b>查了</b>：线上真实 HEAD 全量源码（18 文件）与哈希比对、5 处代码段、条件格式 18 条规则类型与范围、
+本表保护范围、写入回读自测、全表 97 行逐格背景/字色/字重/值/公式（修复前后各一次）、部署清单与 URL/权限、
+全库条件格式重建源检索、19 文件语法全检、dry-run 先行。<br>
+<b>没查</b>：条件格式规则的创建历史与创建人、20:00/22:42/22:53 各轮 GAS 执行日志与触发器、
+其他页签的格式规则、真人打开表格的视觉呈现（本次以脚本内逐格读数为验收依据）。<br>
+<b>本卡结论只对 2026-11-12 00:18 北京这次现场读数成立</b>；生产代码与格式均为实际写入，非计划或草稿。
+Donaldson 主数据那条线按 Rita 指示本轮不管、零写入。</p>
+
+<footer>SMCN Ops · Registry 修复完成验收卡 · 生成于 2026-11-12 00:18 北京时间（GMT+8；UTC 2026-11-11T16:18Z）</footer>
+</div></div></body></html>
