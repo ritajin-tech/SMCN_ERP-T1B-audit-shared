@@ -1,0 +1,56 @@
+{
+  "classification": "PUBLIC_SAFE__METADATA_ONLY__NO_PERSONNEL_DETAIL",
+  "probe_time_local": "2026-11-14 11:54:18",
+  "probe_time_utc": "2026-11-14T03:54:18Z",
+  "read_only": true,
+  "ssid_masked": "1oxPj0mz…Py44",
+  "sheet": "请假",
+  "a1": "A610:O625",
+  "rows_returned": 16,
+  "new_rows_range": "620-625",
+  "stable_key_column": "H（去重键）",
+  "stable_key_definition": "id|date|name（原值含姓名，仅本机受控）",
+  "read_source": "hktool inspectWorkbook (mode=values)",
+  "controlled_snapshot_path": "_tmp/t1b_increment_snapshot_20261114_1153.json",
+  "controlled_snapshot_sha256": "78b2a7da7cf4a9d498181c76e681250c938c28d9d2bf999d9b9c92a0e6e261fe",
+  "per_row_sha256": [
+    {
+      "row": 620,
+      "sha256": "c3ade06af0745ec305113921f0919b6b471ca6184a12862db1b8fad82dc6b5a8",
+      "stable_key_sha256": "e99768212c081590e84f1dd0aacc07459bacef13d80f5397cbfe12902f9d1db1",
+      "cell_count": 15
+    },
+    {
+      "row": 621,
+      "sha256": "0a714d66b8fdc5a1a68143f4fc61a6042fde0c4e9852dbb31a501f41287b0d51",
+      "stable_key_sha256": "519b923d387bf926b25c71120009e4353bc3319ae963eef4f517905ed428dbca",
+      "cell_count": 15
+    },
+    {
+      "row": 622,
+      "sha256": "361fdb1d6b8726b3878d33c5d72fa5308a5d673bc789daa466a04b3486ab336d",
+      "stable_key_sha256": "1ffc42c6d2569a1bfe1af823075d4753af4578813abd377e92f9492e2068b9de",
+      "cell_count": 15
+    },
+    {
+      "row": 623,
+      "sha256": "240e81f5e3b87bacbd1eb9ca97a35e1082e7355aa7dd2622b6dd698cfec7a5b4",
+      "stable_key_sha256": "455f8facafcb4008986fa8f42e69c04ea37c6c9fb338517bd944a4b31a3ecb69",
+      "cell_count": 15
+    },
+    {
+      "row": 624,
+      "sha256": "471a2ed35ce979f6af62c6a6bcfcb4643d8eeb594e4f1b2d74a7c1735bdf9adc",
+      "stable_key_sha256": "8fed2b3eabe7795c4ee16749b60e8aa8c2650bc70a4974d7c9fc7b79f3209656",
+      "cell_count": 15
+    },
+    {
+      "row": 625,
+      "sha256": "57c4098f5f13fad384b7ba58c7eb1c509bfdfd431bca4688836a7b77eba0c89b",
+      "stable_key_sha256": "0e300ecfa6bc25278cdc1bfca5f73cc13f6bc9e3add2c410feac5a54c18c3e73",
+      "cell_count": 15
+    }
+  ],
+  "boundary": "原值/姓名/日期/去重键原文只留本机受控快照，须经有权负责人批准的受控渠道并指定接收人后交付",
+  "sha256_note": "哈希一致只支持字节一致，不证明真实性、授权或业务正确；须由独立取得字节并匹配方写「字节一致」结论"
+}
