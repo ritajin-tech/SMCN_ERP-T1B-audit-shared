@@ -1,0 +1,33 @@
+{
+  "tool": "tools/t1b_public_boundary_check.py",
+  "checked_at_local": "2026-11-14 17:07:17",
+  "controlled_source": "_tmp/t1b_increment_snapshot_20261114_1153.json",
+  "secret_string_count": 22,
+  "secret_strings_not_logged": true,
+  "note": "禁止串由现场受控快照抽取，本报告不回写任何禁止串原文，避免二次泄露",
+  "files": [
+    {
+      "file": "outputs/T1-B_v105_撤回K6与系统大局_20261114.md",
+      "bytes": 29043,
+      "hits": []
+    },
+    {
+      "file": "outputs/T1-B_v105_表P与K6撤回_可就地编辑_20261114.md",
+      "bytes": 13709,
+      "hits": []
+    },
+    {
+      "file": "outputs/T1-B_v105_全轮次登记_公开元数据_20261114.json",
+      "bytes": 38436,
+      "hits": []
+    },
+    {
+      "file": "outputs/T1-B_v105_增量差异与异常升级路径_公开元数据_20261114.json",
+      "bytes": 6855,
+      "hits": []
+    }
+  ],
+  "findings": [],
+  "verdict": "PASS__NO_PERSONNEL_DETAIL",
+  "boundary": "公开库只留路径／字节数／SHA-256／采集时点／稳定键哈希等元数据"
+}

@@ -1,0 +1,206 @@
+{
+  "generation": "v105",
+  "build_time_utc": "2026-11-14T09:04:18Z",
+  "build_time_local": "2026-11-14 17:04:18",
+  "classification": "PUBLIC_SAFE__METADATA_ONLY__NO_PERSONNEL_DETAIL",
+  "purpose": "落实 Tom 12:20 真函：例行镜像及伴生行变化保留来源/时间/差异/异常升级路径；不将未归因增量自动排除。",
+  "policy": {
+    "k6_status": "WITHDRAWN_PER_TOM_1220",
+    "loop_policy_modified": false,
+    "alert_coverage_reduced": false,
+    "unattributed_increment_auto_excluded": false,
+    "note": "v104 的 K-6 T2 收窄提案已按 Tom 实质驳回主动撤回；tools/t1b_loop_policy.json 原文零改动。撤回后 NO_TRIGGER 仍不可达，缺陷如实登记为未解决，我方不擅自修补。"
+  },
+  "baseline_probe": {
+    "file": "_tmp/probe_live_20261114_1151.json",
+    "sha256": "bcf4e033e0cc8410293222f0606466c8fb91cd4dc962e69ee62616bad31fb151",
+    "production": "11513/18",
+    "master_leave": "625/15",
+    "tabs_production": 16,
+    "tabs_master": 47,
+    "collected_at_local": "见工件原文"
+  },
+  "current_probe": {
+    "file": "_tmp/probe_live_20261114_1657.json",
+    "sha256": "41e9fd57cd6537623ba6e4d07c84a35cf6aaac093b6dccb4353056aa97e0f643",
+    "production": "11513/18",
+    "master_leave": "625/15",
+    "tabs_production": 16,
+    "tabs_master": 47,
+    "collected_at_local": "见工件原文"
+  },
+  "diff_fields": [
+    {
+      "field": "production",
+      "baseline": "11513/18",
+      "current": "11513/18",
+      "changed": false,
+      "delta": "0"
+    },
+    {
+      "field": "master_leave",
+      "baseline": "625/15",
+      "current": "625/15",
+      "changed": false,
+      "delta": "0"
+    },
+    {
+      "field": "tabs_production",
+      "baseline": 16,
+      "current": 16,
+      "changed": false,
+      "delta": "0"
+    },
+    {
+      "field": "tabs_master",
+      "baseline": 47,
+      "current": 47,
+      "changed": false,
+      "delta": "0"
+    }
+  ],
+  "all_readings_unchanged": true,
+  "source_attestation": "SOURCE_NOT_ATTESTED",
+  "watch_originals": [
+    {
+      "file": "outputs/T1-B_盯梢触发_20261114_0630.md",
+      "bytes": 1207,
+      "sha256": "a2f0cdf99b62bb74b3ad437c9de9bd34539d9dab385c9865070b5b6201186301"
+    },
+    {
+      "file": "outputs/T1-B_盯梢触发_20261114_0830.md",
+      "bytes": 1248,
+      "sha256": "bf26a9a69af5d333e374a6029d37b54888d5847b4fc7ec563f4431847d1e3242"
+    }
+  ],
+  "alerts": [
+    {
+      "time_local": "2026-11-14 00:05:15",
+      "title": "bd-drain 连续失败需人工排查"
+    },
+    {
+      "time_local": "2026-11-14 01:10:05",
+      "title": "pclist-harvest 连续失败需人工排查"
+    },
+    {
+      "time_local": "2026-11-14 06:30:25",
+      "title": "T1-B 只读盯梢检出关键读数变化"
+    },
+    {
+      "time_local": "2026-11-14 08:04:34",
+      "title": "pmlist-refresh 耗时接近 GAS 6 分钟上限（需优化 refreshcentral）"
+    },
+    {
+      "time_local": "2026-11-14 16:45:33",
+      "title": "numberlock-fixwatch 连续失败需人工排查"
+    }
+  ],
+  "log_round_counts": {
+    "ok": 126,
+    "fail": 44,
+    "note": "只读监测记录；不认定自愈、不认定真人提交、不替代独立核验"
+  },
+  "preconditions_pending": [
+    {
+      "id": "P1",
+      "name": "有权负责人",
+      "required": "具名 + 授权范围 + 授权时点（须书面）",
+      "status": "PENDING_TOM_WRITTEN_CONFIRMATION",
+      "filled_by_us": false
+    },
+    {
+      "id": "P2",
+      "name": "书面分类依据",
+      "required": "例行镜像 / 伴生行 / 未归因增量 的分类判据全文",
+      "status": "PENDING_TOM_WRITTEN_CONFIRMATION",
+      "filled_by_us": false
+    },
+    {
+      "id": "P3",
+      "name": "固定基线",
+      "required": "冻结基线的 commit / 探针工件 / 生效时点",
+      "status": "PENDING_TOM_WRITTEN_CONFIRMATION",
+      "filled_by_us": false
+    },
+    {
+      "id": "P4",
+      "name": "回看与异常触发标准",
+      "required": "回看窗口、异常判定阈值、触发后的升级对象",
+      "status": "PENDING_TOM_WRITTEN_CONFIRMATION",
+      "filled_by_us": false
+    },
+    {
+      "id": "P5",
+      "name": "经验证",
+      "required": "谁验证、验证方法、验证记录与验收判据",
+      "status": "PENDING_TOM_WRITTEN_CONFIRMATION",
+      "filled_by_us": false
+    }
+  ],
+  "escalation_paths": [
+    {
+      "id": "EP-1",
+      "when": "生产表 DB_工时流水 lastRow / lastCol 相对冻结基线变化",
+      "keep": [
+        "来源",
+        "采集时间",
+        "差异值",
+        "本机受控快照 sha256",
+        "读源与范围"
+      ],
+      "escalate_to": "T2 实质数据事件 → 以现行代为基线重跑外部源闸门 → 逐轮登记",
+      "auto_exclude": false
+    },
+    {
+      "id": "EP-2",
+      "when": "主库「请假」出现行数 / 列数变化（含 B 类镜像伴生追加）",
+      "keep": [
+        "来源",
+        "采集时间",
+        "差异值",
+        "稳定键 sha256",
+        "每行 sha256"
+      ],
+      "escalate_to": "一律逐轮登记并标 SOURCE_NOT_ATTESTED → 由通道所有者具名说明写入主体",
+      "auto_exclude": false
+    },
+    {
+      "id": "EP-3",
+      "when": "页签增删，无论是否属于一对 *_重算前_YYYYMMDD 每日镜像",
+      "keep": [
+        "来源",
+        "采集时间",
+        "页签全量清单差异",
+        "盯梢原件路径与 sha256"
+      ],
+      "escalate_to": "逐轮登记 → 未经 P1–P5 全部书面确认前，不作为「可收敛」依据",
+      "auto_exclude": false
+    },
+    {
+      "id": "EP-4",
+      "when": "任一任务出现 FAIL / 404 / 耗时风险告警（含既有任务名的新实例）",
+      "keep": [
+        "任务名",
+        "运行时间",
+        "错误文本",
+        "时序 CSV 行",
+        "状态文件"
+      ],
+      "escalate_to": "OBSERVED_ALERT_UNVERIFIED 逐轮登记 → 零修复、不推定根因、不认定自愈",
+      "auto_exclude": false
+    },
+    {
+      "id": "EP-5",
+      "when": "任何一项无法归因（写入主体 / 权限上下文 / 业务有效性不明）",
+      "keep": [
+        "缺口描述",
+        "不可得范围枚举",
+        "本机可得证据清单"
+      ],
+      "escalate_to": "NOT_ATTESTED 保留 → 不得自动排除、不得计入收敛条件",
+      "auto_exclude": false
+    }
+  ],
+  "escalation_note": "以上为声明性枚举，只规定『出现时保留什么、升级给谁』，不执行任何动作、不自动排除任何增量；P1–P5 全部书面确认并经验证前不讨论收敛。",
+  "personnel_detail_uploaded": false
+}
