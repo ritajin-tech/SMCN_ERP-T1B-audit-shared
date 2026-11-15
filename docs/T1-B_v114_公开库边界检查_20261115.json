@@ -1,0 +1,48 @@
+{
+  "tool": "tools/t1b_public_boundary_check.py",
+  "checked_at_local": "2026-11-15 12:55:41",
+  "controlled_source": "_tmp/t1b_increment_snapshot_20261114_1153.json",
+  "secret_string_count": 22,
+  "secret_strings_not_logged": true,
+  "note": "禁止串由现场受控快照抽取，本报告不回写任何禁止串原文，避免二次泄露",
+  "files": [
+    {
+      "file": "_tmp/audit_shared/docs/T1-B_v114_完善解决方案_双通道补齐_状态同步非承接版_20261115.md",
+      "bytes": 18754,
+      "hits": []
+    },
+    {
+      "file": "_tmp/audit_shared/docs/T1-B_v114_表T_双通道补齐_可就地编辑底本_20261115.md",
+      "bytes": 8932,
+      "hits": []
+    },
+    {
+      "file": "_tmp/audit_shared/docs/T1-B_v114_全盘逐源诊断_发布形态收窄_20261115.json",
+      "bytes": 5875,
+      "hits": []
+    },
+    {
+      "file": "_tmp/audit_shared/docs/T1-B_v114_override留痕与外发授权_20261115.json",
+      "bytes": 5935,
+      "hits": []
+    },
+    {
+      "file": "_tmp/audit_shared/docs/T1-B_v114_闸门核查_20261115.json",
+      "bytes": 30126,
+      "hits": []
+    },
+    {
+      "file": "_tmp/audit_shared/docs/T1-B_v114_闸门核查_20261115.html",
+      "bytes": 14748,
+      "hits": []
+    },
+    {
+      "file": "_tmp/audit_shared/docs/T1-B_v114_验收卡_状态同步非承接版_20261115.html",
+      "bytes": 9190,
+      "hits": []
+    }
+  ],
+  "findings": [],
+  "verdict": "PASS__NO_PERSONNEL_DETAIL",
+  "boundary": "公开库只留路径／字节数／SHA-256／采集时点／稳定键哈希等元数据"
+}

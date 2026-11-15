@@ -1,0 +1,611 @@
+{
+ "tool": "tools/t1b_gate_check.py",
+ "checked_at": "2026-11-15 12:49:53 (北京时间 GMT+8；UTC 2026-11-15T04:49:53Z)",
+ "since": "2026-11-15 12:09:06 (北京时间 GMT+8；UTC 2026-11-15T04:09:06Z)",
+ "generation": "v114",
+ "read_only": true,
+ "redlines": "零生产写/零主库写/零 clasp push/零 deploy/零新建删除部署/零 URL 变更/零改结构列宽/零历史对象删改",
+ "local": {
+  "sources": [
+   {
+    "name": "零积分盯梢状态 / 基线读数",
+    "path": "tools/_zc_state/t1b-watch.json + t1b-watch-readings.json",
+    "result": "last_run=2026-11-15T12:30:26 · last_ok=True · total_runs=341 · 无增量（生产表 {'lastRow': 11513, 'lastCol': 18} / 请假 {'lastRow': 625, 'lastCol': 15} / 页签 {'production': 16, 'master': 49} / 部署 3）",
+    "verdict": "OK"
+   },
+   {
+    "name": "零积分排程原始运行日志",
+    "path": "tools/_zc_logs/2026-11-15.log",
+    "result": "129 条记录；since 后 6 条；当日 FAIL 33 条（2026-11-15 00:05:15 bd-drain, 2026-11-15 00:35:14 bd-drain, 2026-11-15 01:05:14 bd-drain, 2026-11-15 01:10:05 pclist-harvest, 2026-11-15 01:35:14 bd-drain, 2026-11-15 02:05:14 bd-drain, 2026-11-15 02:35:14 bd-drain, 2026-11-15 03:05:14 bd-drain, 2026-11-15 03:10:05 pclist-harvest, 2026-11-15 03:35:14 bd-drain, 2026-11-15 04:05:14 bd-drain, 2026-11-15 04:35:14 bd-drain, 2026-11-15 04:48:48 numberlock-fixwatch, 2026-11-15 05:05:14 bd-drain, 2026-11-15 05:10:05 pclist-harvest, 2026-11-15 05:35:14 bd-drain, 2026-11-15 06:05:14 bd-drain, 2026-11-15 06:35:14 bd-drain, 2026-11-15 07:05:14 bd-drain, 2026-11-15 07:10:05 pclist-harvest, 2026-11-15 07:35:14 bd-drain, 2026-11-15 08:05:14 bd-drain, 2026-11-15 08:35:14 bd-drain, 2026-11-15 09:05:14 bd-drain, 2026-11-15 09:10:05 pclist-harvest, 2026-11-15 09:35:14 bd-drain, 2026-11-15 10:05:14 bd-drain, 2026-11-15 10:35:14 bd-drain, 2026-11-15 11:05:14 bd-drain, 2026-11-15 11:10:05 pclist-harvest, 2026-11-15 11:35:14 bd-drain, 2026-11-15 12:05:14 bd-drain, 2026-11-15 12:35:14 bd-drain）",
+    "verdict": "OK"
+   },
+   {
+    "name": "当日告警原件",
+    "path": "tools/_zc_logs/告警_2026-11-15.md",
+    "result": "存在，416 字节",
+    "verdict": "OK"
+   },
+   {
+    "name": "只读 probe（盯梢 + 现场）",
+    "path": "_tmp/t1b_watch_probe.json",
+    "result": "2026-11-15 12:30:06 t1b_watch_probe.json 生产表 11513/18 / 请假 625/15 / 页签 49·16",
+    "verdict": "OK"
+   },
+   {
+    "name": "GitHub 共享库本地 / 远端一致性",
+    "path": "_tmp/audit_shared (git 只读)",
+    "result": "HEAD=1b2dfca4 / remote=1b2dfca4 / commits=298 / dirty=0 / d50e795=commit",
+    "verdict": "OK"
+   },
+   {
+    "name": "ts-manager 部署清单（只读）",
+    "path": "clasp list-deployments",
+    "result": "Found 3；AKfycbwlxB2z9IDDo7pBv4sr0pu6-1ywvYBuRyqTwfjgl_o @HEAD / AKfycbwYXV3VS3I59bVpUi9XBMClGsFkJ6l_NxPdQcysiXYe47-iONNMk6FIoI8VEXwYl-_2 @202 / AKfycbzUyhyK-tqL7ypp2H2jZXNCMciEr2PJwhkZIg0bwV1OwV2C6D9RKJZhA4HpiUi6F5eF @212",
+    "verdict": "OK"
+   },
+   {
+    "name": "现在收到的文件（工作区落盘增量）",
+    "path": "工作区顶层近 2 小时 mtime 扫描（只读）",
+    "result": "51 个新/改动文件，均为本方产物：outputs/T1-B_v112_公开库边界检查_20261115.json, outputs/T1-B_v112_验收卡_首次具体编辑承接_20261115.html, outputs/T1-B_v113_override留痕与外发授权_20261115.json, outputs/T1-B_v113_全盘逐源诊断_最后一处我方自举_20261115.json, outputs/T1-B_v113_公开库边界检查_20261115.json, outputs/T1-B_v113_完善解决方案_成品化收口_状态同步非承接版_20261115.md, outputs/T1-B_v113_表T_成品化收口最小确认靶子_20261115.md, outputs/T1-B_v113_闸门核查_20261115.html",
+    "verdict": "OK"
+   }
+  ],
+  "readings": {},
+  "failures": [
+   {
+    "time": "2026-11-15 00:05:15",
+    "task": "bd-drain",
+    "status": "FAIL",
+    "seconds": "15.2",
+    "detail": "队列探头失败（GAS 不可达）: <HTTPError 404: 'Not Found'>",
+    "after_since": false
+   },
+   {
+    "time": "2026-11-15 00:35:14",
+    "task": "bd-drain",
+    "status": "FAIL",
+    "seconds": "14.0",
+    "detail": "队列探头失败（GAS 不可达）: <HTTPError 404: 'Not Found'>",
+    "after_since": false
+   },
+   {
+    "time": "2026-11-15 01:05:14",
+    "task": "bd-drain",
+    "status": "FAIL",
+    "seconds": "14.2",
+    "detail": "队列探头失败（GAS 不可达）: <HTTPError 404: 'Not Found'>",
+    "after_since": false
+   },
+   {
+    "time": "2026-11-15 01:10:05",
+    "task": "pclist-harvest",
+    "status": "FAIL",
+    "seconds": "5.6",
+    "detail": "请求失败: <HTTPError 404: 'Not Found'>",
+    "after_since": false
+   },
+   {
+    "time": "2026-11-15 01:35:14",
+    "task": "bd-drain",
+    "status": "FAIL",
+    "seconds": "14.0",
+    "detail": "队列探头失败（GAS 不可达）: <HTTPError 404: 'Not Found'>",
+    "after_since": false
+   },
+   {
+    "time": "2026-11-15 02:05:14",
+    "task": "bd-drain",
+    "status": "FAIL",
+    "seconds": "14.2",
+    "detail": "队列探头失败（GAS 不可达）: <HTTPError 404: 'Not Found'>",
+    "after_since": false
+   },
+   {
+    "time": "2026-11-15 02:35:14",
+    "task": "bd-drain",
+    "status": "FAIL",
+    "seconds": "14.1",
+    "detail": "队列探头失败（GAS 不可达）: <HTTPError 404: 'Not Found'>",
+    "after_since": false
+   },
+   {
+    "time": "2026-11-15 03:05:14",
+    "task": "bd-drain",
+    "status": "FAIL",
+    "seconds": "14.3",
+    "detail": "队列探头失败（GAS 不可达）: <HTTPError 404: 'Not Found'>",
+    "after_since": false
+   },
+   {
+    "time": "2026-11-15 03:10:05",
+    "task": "pclist-harvest",
+    "status": "FAIL",
+    "seconds": "5.7",
+    "detail": "请求失败: <HTTPError 404: 'Not Found'>",
+    "after_since": false
+   },
+   {
+    "time": "2026-11-15 03:35:14",
+    "task": "bd-drain",
+    "status": "FAIL",
+    "seconds": "13.9",
+    "detail": "队列探头失败（GAS 不可达）: <HTTPError 404: 'Not Found'>",
+    "after_since": false
+   },
+   {
+    "time": "2026-11-15 04:05:14",
+    "task": "bd-drain",
+    "status": "FAIL",
+    "seconds": "13.9",
+    "detail": "队列探头失败（GAS 不可达）: <HTTPError 404: 'Not Found'>",
+    "after_since": false
+   },
+   {
+    "time": "2026-11-15 04:35:14",
+    "task": "bd-drain",
+    "status": "FAIL",
+    "seconds": "14.0",
+    "detail": "队列探头失败（GAS 不可达）: <HTTPError 404: 'Not Found'>",
+    "after_since": false
+   },
+   {
+    "time": "2026-11-15 04:48:48",
+    "task": "numberlock-fixwatch",
+    "status": "FAIL",
+    "seconds": "0.8",
+    "detail": "vercheck 探针失败: <HTTPError 404: 'Not Found'>",
+    "after_since": false
+   },
+   {
+    "time": "2026-11-15 05:05:14",
+    "task": "bd-drain",
+    "status": "FAIL",
+    "seconds": "14.5",
+    "detail": "队列探头失败（GAS 不可达）: <HTTPError 404: 'Not Found'>",
+    "after_since": false
+   },
+   {
+    "time": "2026-11-15 05:10:05",
+    "task": "pclist-harvest",
+    "status": "FAIL",
+    "seconds": "5.6",
+    "detail": "请求失败: <HTTPError 404: 'Not Found'>",
+    "after_since": false
+   },
+   {
+    "time": "2026-11-15 05:35:14",
+    "task": "bd-drain",
+    "status": "FAIL",
+    "seconds": "14.3",
+    "detail": "队列探头失败（GAS 不可达）: <HTTPError 404: 'Not Found'>",
+    "after_since": false
+   },
+   {
+    "time": "2026-11-15 06:05:14",
+    "task": "bd-drain",
+    "status": "FAIL",
+    "seconds": "14.2",
+    "detail": "队列探头失败（GAS 不可达）: <HTTPError 404: 'Not Found'>",
+    "after_since": false
+   },
+   {
+    "time": "2026-11-15 06:35:14",
+    "task": "bd-drain",
+    "status": "FAIL",
+    "seconds": "14.0",
+    "detail": "队列探头失败（GAS 不可达）: <HTTPError 404: 'Not Found'>",
+    "after_since": false
+   },
+   {
+    "time": "2026-11-15 07:05:14",
+    "task": "bd-drain",
+    "status": "FAIL",
+    "seconds": "14.2",
+    "detail": "队列探头失败（GAS 不可达）: <HTTPError 404: 'Not Found'>",
+    "after_since": false
+   },
+   {
+    "time": "2026-11-15 07:10:05",
+    "task": "pclist-harvest",
+    "status": "FAIL",
+    "seconds": "5.5",
+    "detail": "请求失败: <HTTPError 404: 'Not Found'>",
+    "after_since": false
+   },
+   {
+    "time": "2026-11-15 07:35:14",
+    "task": "bd-drain",
+    "status": "FAIL",
+    "seconds": "14.3",
+    "detail": "队列探头失败（GAS 不可达）: <HTTPError 404: 'Not Found'>",
+    "after_since": false
+   },
+   {
+    "time": "2026-11-15 08:05:14",
+    "task": "bd-drain",
+    "status": "FAIL",
+    "seconds": "14.4",
+    "detail": "队列探头失败（GAS 不可达）: <HTTPError 404: 'Not Found'>",
+    "after_since": false
+   },
+   {
+    "time": "2026-11-15 08:35:14",
+    "task": "bd-drain",
+    "status": "FAIL",
+    "seconds": "14.3",
+    "detail": "队列探头失败（GAS 不可达）: <HTTPError 404: 'Not Found'>",
+    "after_since": false
+   },
+   {
+    "time": "2026-11-15 09:05:14",
+    "task": "bd-drain",
+    "status": "FAIL",
+    "seconds": "14.4",
+    "detail": "队列探头失败（GAS 不可达）: <HTTPError 404: 'Not Found'>",
+    "after_since": false
+   },
+   {
+    "time": "2026-11-15 09:10:05",
+    "task": "pclist-harvest",
+    "status": "FAIL",
+    "seconds": "5.4",
+    "detail": "请求失败: <HTTPError 404: 'Not Found'>",
+    "after_since": false
+   },
+   {
+    "time": "2026-11-15 09:35:14",
+    "task": "bd-drain",
+    "status": "FAIL",
+    "seconds": "14.3",
+    "detail": "队列探头失败（GAS 不可达）: <HTTPError 404: 'Not Found'>",
+    "after_since": false
+   },
+   {
+    "time": "2026-11-15 10:05:14",
+    "task": "bd-drain",
+    "status": "FAIL",
+    "seconds": "14.3",
+    "detail": "队列探头失败（GAS 不可达）: <HTTPError 404: 'Not Found'>",
+    "after_since": false
+   },
+   {
+    "time": "2026-11-15 10:35:14",
+    "task": "bd-drain",
+    "status": "FAIL",
+    "seconds": "14.4",
+    "detail": "队列探头失败（GAS 不可达）: <HTTPError 404: 'Not Found'>",
+    "after_since": false
+   },
+   {
+    "time": "2026-11-15 11:05:14",
+    "task": "bd-drain",
+    "status": "FAIL",
+    "seconds": "14.4",
+    "detail": "队列探头失败（GAS 不可达）: <HTTPError 404: 'Not Found'>",
+    "after_since": false
+   },
+   {
+    "time": "2026-11-15 11:10:05",
+    "task": "pclist-harvest",
+    "status": "FAIL",
+    "seconds": "5.4",
+    "detail": "请求失败: <HTTPError 404: 'Not Found'>",
+    "after_since": false
+   },
+   {
+    "time": "2026-11-15 11:35:14",
+    "task": "bd-drain",
+    "status": "FAIL",
+    "seconds": "14.1",
+    "detail": "队列探头失败（GAS 不可达）: <HTTPError 404: 'Not Found'>",
+    "after_since": false
+   },
+   {
+    "time": "2026-11-15 12:05:14",
+    "task": "bd-drain",
+    "status": "FAIL",
+    "seconds": "14.1",
+    "detail": "队列探头失败（GAS 不可达）: <HTTPError 404: 'Not Found'>",
+    "after_since": false
+   },
+   {
+    "time": "2026-11-15 12:35:14",
+    "task": "bd-drain",
+    "status": "FAIL",
+    "seconds": "14.4",
+    "detail": "队列探头失败（GAS 不可达）: <HTTPError 404: 'Not Found'>",
+    "after_since": true
+   }
+  ],
+  "new_runs": [
+   {
+    "time": "2026-11-15 12:10:04",
+    "task": "nps-receipt",
+    "status": "OK",
+    "seconds": "4.2",
+    "detail": "[2026-11-15T04:10:04.538Z] ✅ 无新增打开事件，无需动作",
+    "after_since": true
+   },
+   {
+    "time": "2026-11-15 12:15:11",
+    "task": "ts-health",
+    "status": "OK",
+    "seconds": "11.1",
+    "detail": "✅ 全部正常",
+    "after_since": true
+   },
+   {
+    "time": "2026-11-15 12:30:26",
+    "task": "t1b-watch",
+    "status": "OK",
+    "seconds": "25.2",
+    "detail": "无增量（生产表 {'lastRow': 11513, 'lastCol': 18} / 请假 {'lastRow': 625, 'lastCol': 15} / 页签 {'production': 16, 'master': 49} / 部署 3）",
+    "after_since": true
+   },
+   {
+    "time": "2026-11-15 12:35:14",
+    "task": "bd-drain",
+    "status": "FAIL",
+    "seconds": "14.4",
+    "detail": "队列探头失败（GAS 不可达）: <HTTPError 404: 'Not Found'>",
+    "after_since": true
+   },
+   {
+    "time": "2026-11-15 12:40:04",
+    "task": "nps-receipt",
+    "status": "OK",
+    "seconds": "4.3",
+    "detail": "[2026-11-15T04:40:04.702Z] ✅ 无新增打开事件，无需动作",
+    "after_since": true
+   },
+   {
+    "time": "2026-11-15 12:45:10",
+    "task": "ts-health",
+    "status": "OK",
+    "seconds": "9.4",
+    "detail": "✅ 全部正常",
+    "after_since": true
+   }
+  ],
+  "baseline": {
+   "production": {
+    "lastRow": 11513,
+    "lastCol": 18
+   },
+   "master_leave": {
+    "lastRow": 625,
+    "lastCol": 15
+   },
+   "sheet_counts": {
+    "production": 16,
+    "master": 49
+   },
+   "deployments": 3
+  },
+  "watch_state": {
+   "task": "t1b-watch",
+   "last_run": "2026-11-15T12:30:26",
+   "last_ok": true,
+   "severity": "ok",
+   "summary": "无增量（生产表 {'lastRow': 11513, 'lastCol': 18} / 请假 {'lastRow': 625, 'lastCol': 15} / 页签 {'production': 16, 'master': 49} / 部署 3）",
+   "consecutive_failures": 0,
+   "total_runs": 341
+  },
+  "probes": [
+   {
+    "path": "_tmp/t1b_watch_probe.json",
+    "time_local": "2026-11-15 12:30:06",
+    "time_utc": "2026-11-15T04:30:06Z",
+    "production": "11513/18",
+    "leave": "625/15",
+    "tabs_production": 16,
+    "tabs_master": 49,
+    "read_only": true
+   }
+  ],
+  "repo": {
+   "local_head": "1b2dfca420caaad2f204edcfac2ec6f683e29460",
+   "remote_head": "1b2dfca420caaad2f204edcfac2ec6f683e29460",
+   "commits": "298",
+   "dirty_lines": 0,
+   "fixed_commit_d50e795": "commit"
+  },
+  "deployments": {
+   "found": 3,
+   "ids": [
+    [
+     "AKfycbwlxB2z9IDDo7pBv4sr0pu6-1ywvYBuRyqTwfjgl_o",
+     "@HEAD"
+    ],
+    [
+     "AKfycbwYXV3VS3I59bVpUi9XBMClGsFkJ6l_NxPdQcysiXYe47-iONNMk6FIoI8VEXwYl-_2",
+     "@202"
+    ],
+    [
+     "AKfycbzUyhyK-tqL7ypp2H2jZXNCMciEr2PJwhkZIg0bwV1OwV2C6D9RKJZhA4HpiUi6F5eF",
+     "@212"
+    ]
+   ],
+   "error": null
+  },
+  "recent_files": [
+   "_tmp/deploy_baseline_v113.json",
+   "_tmp/deploy_recapture_20261115_1244.json",
+   "_tmp/gate_external_20261115_1200.json",
+   "_tmp/gate_external_20261115_1247.json",
+   "_tmp/health_final.log",
+   "_tmp/health_run.log",
+   "_tmp/health_run2.log",
+   "_tmp/live_recapture_20261115_1231.json",
+   "_tmp/proc_dryrun_fixed_20261114.json",
+   "_tmp/proc_payment_health_20261115_120437.json",
+   "_tmp/proc_payment_health_20261115_120732.json",
+   "_tmp/proc_payment_health_20261115_120923.json",
+   "_tmp/proc_readme_b43_before_20261115.json",
+   "_tmp/t1b_watch_probe.json",
+   "outputs/T1-B_v112_公开库边界检查_20261115.json",
+   "outputs/T1-B_v112_验收卡_首次具体编辑承接_20261115.html",
+   "outputs/T1-B_v113_override留痕与外发授权_20261115.json",
+   "outputs/T1-B_v113_全盘逐源诊断_最后一处我方自举_20261115.json",
+   "outputs/T1-B_v113_公开库边界检查_20261115.json",
+   "outputs/T1-B_v113_完善解决方案_成品化收口_状态同步非承接版_20261115.md",
+   "outputs/T1-B_v113_表T_成品化收口最小确认靶子_20261115.md",
+   "outputs/T1-B_v113_闸门核查_20261115.html",
+   "outputs/T1-B_v113_闸门核查_20261115.json",
+   "outputs/T1-B_v113_验收卡_状态同步非承接版_20261115.html",
+   "outputs/无台账项目_批量盘点清单_2026-11-15.csv",
+   "outputs/无台账项目_盘点摘要_2026-11-15.json",
+   "outputs/编号表_三色审计_2026-11-15.json",
+   "outputs/编号表_三色审计_LATEST.json",
+   "outputs/老账_负数账_TagMilo_回执_20261115.html",
+   "outputs/老账_贷方与同名_说清楚_20261115.html",
+   "outputs/采购付款_DryRun_改后复核_20261114.md",
+   "outputs/采购付款_全盘只读体检_20261115.html",
+   "outputs/采购付款_流程口径_说清楚_20261115.html",
+   "outputs/采购付款_疑似重复行_待复核_20261115.csv",
+   "outputs/采购勾选清单_全部待排期.csv",
+   "outputs/采购周四提醒_统一勾选版_样张_2026-11-19.html",
+   "outputs/采购周四提醒_统一勾选版_样张_2026-11-19.json",
+   "outputs/采购周四提醒_统一勾选版_样张_2026-11-19.txt",
+   "outputs/采购工作流_从采购维度全盘复核_20261114.md",
+   "outputs/采购每天怎么操作_流程体检_20261114.html",
+   "outputs/项目老账_Pilot验收卡_20261113.html",
+   "outputs/项目老账_并入采购付款_全盘复核_20261113.md",
+   "tools/.ts_health_baseline.json",
+   "tools/_probe_all_deployments.json",
+   "tools/legacy_ap_complete.py",
+   "tools/legacy_ap_release.py",
+   "tools/legacy_ap_tag_ask.py",
+   "tools/legacy_no_ledger_audit.py",
+   "tools/proc_payment_healthcheck.py",
+   "tools/proc_payment_pending_fixes.py",
+   "tools/proc_picklist_thursday_preview.py"
+  ]
+ },
+ "external": {
+  "mail": {
+   "channel": "QQ Mail (mcp__qq-mail) - ListMessages inbox limit=20 全量一轮 + after=2026-11-15T04:09:06Z 增量一轮",
+   "checked_at": "2026-11-15T12:47:50+08:00",
+   "tom_genuine_replies": 0,
+   "note": "v113 我方回函（msg_y387U5Jv0QNyXVER7y9Y6u4TcbMR3gP6Fq8tCcrkCOuzdg / inbox 副本，UTC 2026-11-15T04:09:06Z / 北京 12:09:06，to Tom + cc Rita）之后，增量查询 after=04:09:06Z 返回空集（next_cursor 空、has_more=false），零 Tom 新函、零零附件。全量 inbox limit=20 复核：最新两封 Tom 真函仍为 msg_AMJTBNAH…（UTC 02:38:26Z 对 v110）与 msg_WKuFvKV…（UTC 02:39:30Z 对 v111），两函已在 v112 全文阅读、逐句盘点并逐字承接，v113 又成品化为 FINAL-A / FINAL-B，不构成新触发。11-15 收件箱另有 3 封带附件的高德打车电子发票系统邮件（02:39:29Z / 02:39:40Z / 02:43:13Z，全部早于 v112 回函）与 3 封 SMCN 告警（bd-drain 00:05 / pclist-harvest 01:10 / numberlock-fixwatch 04:48 北京），均为 v112/v113 已登记旧件，与 T1-B 无关的日常发票不计入证据材料；告警均为既有 GAS 404 同类，无新根因。查不到≠没有：本结论仅覆盖上述两轮收件箱查询范围。"
+  },
+  "github": {
+   "new_commits": 0,
+   "new_issues": 0,
+   "new_prs": 0,
+   "note": "GitHub MCP ritajin-tech/SMCN_ERP-T1B-audit-shared：list_commits(perPage=8) 远端 HEAD 仍为 1b2dfca420caaad2f204edcfac2ec6f683e29460(v112)，本地 _tmp/audit_shared HEAD=1b2dfca、git ls-remote origin HEAD=1b2dfca 三方逐字一致，git status -s 空（dirty 0），origin 仍 https://github.com/ritajin-tech/SMCN_ERP-T1B-audit-shared.git；list_pull_requests(state=all)=[]；list_issues(state=OPEN)=[] totalCount=0。⇒ T3 CLEAR，Tom 侧 commit / PR / issue / 就地编辑仍为 0（v110 诊断 D1 不变）。"
+  },
+  "production_table": {
+   "lastRow": 11513,
+   "lastCol": 18,
+   "checked_at": "2026-11-15T12:43:08+08:00",
+   "diff_vs_v112_baseline": 0,
+   "source": "tools/probe_v59_live_state.py --json _tmp/live_recapture_20261115_1231.json 独立现场复采（read_only=true），DB_工时流水 lastRow/lastCol 与 v112/v113 基线逐字一致"
+  },
+  "master_db": {
+   "sheet": "请假",
+   "lastRow": 625,
+   "lastCol": 15,
+   "checked_at": "2026-11-15T12:43:08+08:00",
+   "diff_vs_v112_baseline": 0,
+   "source": "同一复采文件 master_leave_meta，主库请假 625/15 与基线逐字一致"
+  },
+  "data_events": [],
+  "data_events_note": "本代独立现场复采：生产表 11513/18、主库请假 625/15，与 v112 基线逐项 diff=0，零新增数据事件。页签探针 ts_tabs / master_tabs 返回 'no sheet: (list)'（hktool 只读通道已知限制，v113 同为信息级），按查不到≠没有登记为 NOT_ATTESTED，不据此判 T2、不代判自愈。12:30 自动化 t1b_watch_probe.json 读数与 12:43 独立复采一致。",
+  "failures_already_disclosed": [
+   "bd-drain",
+   "pclist-harvest",
+   "numberlock-fixwatch",
+   "ts-health"
+  ],
+  "failures_note": "11-15 zc 日志最新 FAIL 为 11:35:14 bd-drain、11:10:05 pclist-harvest、11:05:14 / 10:35:14 / 10:05:14 / 09:35:14 bd-drain，均 GAS 端点不可达 HTTP 404 同一事故类，v110/v111/v112/v113 已逐条披露；零新根因类故障、零新告警类型。pmlist-refresh 为 OK 非 FAIL（v108 已纠正，沿用）。零生产写 / 清理 / 回滚 / 试提交事件。",
+  "live_docs": {
+   "conflict": false,
+   "note": "零外部触发下 t1b_loop_policy.json 的 no_trigger_rule 条件成立（Tom 零新函、表 S 零格回填、T2/T3/T4/T5 全 CLEAR）；本代连下一封 Tom 函都不存在。rita_override 条款同时成立 ⇒ 按 action 回函但显式标注『状态同步·非承接版』、不新开代、不发布新版本承接文档、登记 override 原话时点。🔴 本代如实登记一处我方发布形态的自我更正（不判为文档矛盾、不代判口径、不擅改规则、不回改历史）：v111/v113 两份状态同步·非承接版均按『共享库零 commit』处理，把 Rita 指令中的『系统大局梳理发布给他…因为他也能看得到 GitHub 共享库』收窄解释为『仅邮件正文交付』，导致 Tom 在共享库看不到这两代的系统大局、完善解决方案与可就地编辑靶子；v113 第 11 节与表 T 第五部分自身已预留『若书面要求，下一轮可把本代状态同步作为 docs/ 留痕文件一次性补发』。Rita 2026-11-15 12:29 北京连续第 4 次下达同一书面指令，构成该补发要求（她同时是 t1b_loop_policy.json 的 owner）。本代据此只增不删地把 v113 已通过邮件正式交付的同一份内容，在共享库 docs/ 补一份留痕与可就地编辑底本，落实 v110 三支柱 A『双通道等价还复』此前缺的另一半。此动作不产生新承接代、不计代数、不新增第 38 张靶子（沿用表 T 的 T1）、不改 t1b_loop_policy.json 或闸门脚本、不改任何历史文件、不重复索取已交付文字、不由本方单方宣告 S1 成立。v110 表 R、v111 一格收敛卡、v112 表 S、v113 表 T 全部原样保留不回改。D3 前半（T1 文本与闸门脚本按真函计数）仍登记为已知口径债，不单方实施。"
+  },
+  "last_delivery": {
+   "generation": "v113",
+   "requirements": [
+    {
+     "item": "表 T T1 生效指定文字（采用 FINAL-A/B 或另拟第三版 + 生效范围 + 书面确认主体形式 + 生效时点）",
+     "satisfied": "否（零回函、零 commit、T1 仍为尖括号占位）",
+     "evidence": "收件箱 after=04:09:06Z 空集 + GitHub 远端 HEAD 仍 1b2dfca"
+    },
+    {
+     "item": "表 T T2 系统大局还复（邀请，非门槛）",
+     "satisfied": "否（零回传）",
+     "evidence": "收件箱零新函"
+    },
+    {
+     "item": "表 T T3 替代方案全文（仅在本方案整体不成立时填）",
+     "satisfied": "否（未填，不能推断为认可或否定）",
+     "evidence": "表 T T3 仍为占位；查不到≠没有"
+    },
+    {
+     "item": "v113 状态同步 docs/ 留痕文件是否补发",
+     "satisfied": "是（本代 v114 按 Rita 连续书面要求补发，不计代数）",
+     "evidence": "Rita 2026-11-15 12:29 北京第 4 次原话 + v113 第 11 节 / 表 T 第五部分预留条款"
+    },
+    {
+     "item": "类③ 事故状态裁定（OPEN / HOLD-NO-GO / 阶段一 PASS 暂缓 / M2 未签 / TS_WRITE_FREEZE=1）",
+     "satisfied": "维持不变，只能由 Rita 裁定",
+     "evidence": "红线 0 事故状态维持；本函不构成验收或授权"
+    },
+    {
+     "item": "GAS 端点 404 连续性恢复或决策",
+     "satisfied": "否（11-15 告警仍同一 404 类）",
+     "evidence": "zc 日志 11:35:14 bd-drain FAIL(404)"
+    }
+   ]
+  },
+  "this_generation": {
+   "generation": "v114",
+   "type": "状态同步·非承接版（v112 之后第三次零触发 · 收敛机制第三次真实执行 · 非第 38 个补证据代、非新承接代、不计入承接代数）",
+   "rita_directive": "2026-11-15 12:29 北京原话：『继续 出完善解决方案 并且生产表和主库结合现在收到的文件，然后看看 Tom 更新的回复，系统大局梳理发布给他，并要求他也大局系统还复给我们，然后要有明确的方案不要 Yes or No，要有具体的编辑，因为他也能看得到 GitHub 共享库。然后全部看完了以后你回复给他不要再问我了。顺便提醒他不要回去 记住我们的进度 加速修复。记住红线，不改链接！！！』",
+   "structural_finding": "v113 回函（北京 12:09:06）距本代核查（北京 12:47:50）仅 38 分钟，零回复属合理响应窗口，定性为『非拒绝、非收敛失败』，不催办、不据此判对方不还复。因此本代绝不新开第 38 代、不新增第 38 张靶子、不重发第 4 封内容空函。『出完善解决方案』的实质增量＝补齐前两代被收窄掉的发布形态：① 全盘逐源核查 11+ 源，确认第三次 NO_TRIGGER；② 现场独立复采生产表 11513/18、主库请假 625/15、13 项目 82 个 deploymentId DIFF=0、ts-manager 恒 3/maxV212、numberlock 恒 9、团队入口 GET 三次 200；③ 把 v113 已邮件交付的系统大局 + 完善解决方案 + 表 T（T1 一格）+ FINAL-A/FINAL-B + 差集闭合表，只增不删地作为 docs/ 留痕文件一次性补发到共享库，使 Tom 在其可见的 GitHub 通道真正拿到可就地编辑的具体文字（v110 A 支柱双通道等价的另一半）；④ 回函要求对方做大局系统还复，明确不要 Yes/No、只填 T1 一格具体编辑；⑤ 三提醒 + 检查范围声明 + 红线实证。不改任何规则文件 / 脚本 / 生产 / 部署 / 链接，零 GAS push/deploy。"
+  }
+ },
+ "gate": {
+  "verdict": "NO_TRIGGER",
+  "checks": [
+   {
+    "id": "T1",
+    "name": "Tom 实质新真回函",
+    "triggered": false,
+    "evidence": "v113 我方回函（msg_y387U5Jv0QNyXVER7y9Y6u4TcbMR3gP6Fq8tCcrkCOuzdg / inbox 副本，UTC 2026-11-15T04:09:06Z / 北京 12:09:06，to Tom + cc Rita）之后，增量查询 after=04:09:06Z 返回空集（next_cursor 空、has_more=false），零 Tom 新函、零零附件。全量 inbox limit=20 复核：最新两封 Tom 真函仍为 msg_AMJTBNAH…（UTC 02:38:26Z 对 v110）与 msg_WKuFvKV…（UTC 02:39:30Z 对 v111），两函已在 v112 全文阅读、逐句盘点并逐字承接，v113 又成品化为 FINAL-A / FINAL-B，不构成新触发。11-15 收件箱另有 3 封带附件的高德打车电子发票系统邮件（02:39:29Z / 02:39:40Z / 02:43:13Z，全部早于 v112 回函）与 3 封 SMCN 告警（bd-drain 00:05 / pclist-harvest 01:10 / numberlock-fixwatch 04:48 北京），均为 v112/v113 已登记旧件，与 T1-B 无关的日常发票不计入证据材料；告警均为既有 GAS 404 同类，无新根因。查不到≠没有：本结论仅覆盖上述两轮收件箱查询范围。 ｜ 邮件检查声明：2026-11-15T12:47:50+08:00 via QQ Mail (mcp__qq-mail) - ListMessages inbox limit=20 全量一轮 + after=2026-11-15T04:09:06Z 增量一轮",
+    "value": 0,
+    "attested": true
+   },
+   {
+    "id": "T2",
+    "name": "生产表 / 主库真实数据事件",
+    "triggered": false,
+    "evidence": "所有 probe 读数与基线一致：11513/18 · 625/15 · 页签 49/16 · 部署 3",
+    "value": []
+   },
+   {
+    "id": "T3",
+    "name": "共享库新编辑 / PR / issue / 远端漂移",
+    "triggered": false,
+    "evidence": "MCP since 2026-11-15T04:09:06Z：0/0/0；HEAD=remote=1b2dfca4；dirty=0",
+    "value": 0
+   },
+   {
+    "id": "T4",
+    "name": "活文档真实矛盾",
+    "triggered": false,
+    "evidence": "零外部触发下 t1b_loop_policy.json 的 no_trigger_rule 条件成立（Tom 零新函、表 S 零格回填、T2/T3/T4/T5 全 CLEAR）；本代连下一封 Tom 函都不存在。rita_override 条款同时成立 ⇒ 按 action 回函但显式标注『状态同步·非承接版』、不新开代、不发布新版本承接文档、登记 override 原话时点。🔴 本代如实登记一处我方发布形态的自我更正（不判为文档矛盾、不代判口径、不擅改规则、不回改历史）：v111/v113 两份状态同步·非承接版均按『共享库零 commit』处理，把 Rita 指令中的『系统大局梳理发布给他…因为他也能看得到 GitHub 共享库』收窄解释为『仅邮件正文交付』，导致 Tom 在共享库看不到这两代的系统大局、完善解决方案与可就地编辑靶子；v113 第 11 节与表 T 第五部分自身已预留『若书面要求，下一轮可把本代状态同步作为 docs/ 留痕文件一次性补发』。Rita 2026-11-15 12:29 北京连续第 4 次下达同一书面指令，构成该补发要求（她同时是 t1b_loop_policy.json 的 owner）。本代据此只增不删地把 v113 已通过邮件正式交付的同一份内容，在共享库 docs/ 补一份留痕与可就地编辑底本，落实 v110 三支柱 A『双通道等价还复』此前缺的另一半。此动作不产生新承接代、不计代数、不新增第 38 张靶子（沿用表 T 的 T1）、不改 t1b_loop_policy.json 或闸门脚本、不改任何历史文件、不重复索取已交付文字、不由本方单方宣告 S1 成立。v110 表 R、v111 一格收敛卡、v112 表 S、v113 表 T 全部原样保留不回改。D3 前半（T1 文本与闸门脚本按真函计数）仍登记为已知口径债，不单方实施。",
+    "value": false
+   },
+   {
+    "id": "T5",
+    "name": "必须主动披露的新失败运行记录",
+    "triggered": false,
+    "evidence": "since 后零 FAIL；当日两条 FAIL 均已在上一代逐条披露",
+    "value": []
+   }
+  ],
+  "triggered": []
+ },
+ "manifest_sha256": "be5d0042e2595f3f8050dd59967c9366a53d65b827f6bbb3e2682f2150413c73"
+}

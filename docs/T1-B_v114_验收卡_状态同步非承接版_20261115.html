@@ -1,0 +1,93 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+<meta charset="utf-8">
+<title>T1-B v114 · 验收卡（状态同步·非承接版）</title>
+<style>
+  :root{ --gray:#F4F5F7; --yellow:#FFF9E6; --green:#E8F5E9; --red:#FADBD8; --vi:#B31E3E; --ink:#1f2328; --line:#d8dce2; }
+  *{box-sizing:border-box}
+  body{font-family:-apple-system,"Segoe UI","Microsoft YaHei",sans-serif;color:var(--ink);background:#fff;margin:0;padding:32px;line-height:1.65}
+  .wrap{max-width:960px;margin:0 auto}
+  h1{font-size:22px;border-left:5px solid var(--vi);padding-left:12px;margin:0 0 6px}
+  .sub{color:#5b6470;font-size:13px;margin-bottom:22px}
+  h2{font-size:16px;margin:26px 0 10px;padding-bottom:6px;border-bottom:1px solid var(--line)}
+  table{border-collapse:collapse;width:100%;font-size:13px;margin:10px 0}
+  th,td{border:1px solid var(--line);padding:8px 10px;text-align:left;vertical-align:top}
+  th{background:var(--gray);font-weight:600;width:28%}
+  .ok{background:var(--green)}.warn{background:var(--yellow)}.bad{background:var(--red)}.note{background:var(--gray)}
+  code{background:var(--gray);padding:1px 5px;border-radius:3px;font-size:12px}
+  .banner{background:var(--yellow);border-left:4px solid #d9a400;padding:12px 14px;margin:16px 0;font-size:14px}
+  .redline{background:var(--green);border-left:4px solid #2e7d32;padding:12px 14px;margin:16px 0;font-size:14px}
+  ul{margin:8px 0;padding-left:22px}li{margin:4px 0}
+  .foot{font-size:12px;color:#5b6470;border-top:1px solid var(--line);margin-top:28px;padding-top:12px}
+</style>
+</head>
+<body><div class="wrap">
+
+<h1>T1-B v114 · 验收卡</h1>
+<div class="sub">状态同步·非承接版（第三次零触发，不计入承接代数）｜北京 2026-11-15 12:47（GMT+8）／UTC 2026-11-15 04:47Z｜承接代基线 v112 = <code>1b2dfca</code>（第 37 代）</div>
+
+<div class="banner"><strong>先给结论：要不要补？</strong> 不用补第 38 代、不用改架构、不用改规则。要补的是一件被前两代收窄掉、Rita 已连续第 4 次点名的事 —— 把系统大局与可就地编辑的具体编辑<strong>真正发布到 Tom 能看到的 GitHub 共享库</strong>。本代不是第 4 封空函：内容不变、靶子不新增、代数不增加，只把 v113 已邮件交付的同一份内容只增不删地补发到 <code>docs/</code>。</div>
+
+<h2>1 · 闸门判定</h2>
+<table>
+<tr><th>工具</th><td><code>tools/t1b_gate_check.py --since 2026-11-15T04:09:06Z --generation v114</code></td></tr>
+<tr><th>结论</th><td class="warn"><strong>NO_TRIGGER</strong>（T1–T5 全 CLEAR，triggered=0，sources=7，new_runs_since=6）</td></tr>
+<tr><th>依据</th><td>v113 回函（北京 12:09:06）后零 Tom 新函、共享库零新 commit/PR/issue、现场读数零差异、无新失败类型、无活文档矛盾</td></tr>
+<tr><th>适用条款</th><td><code>no_trigger_rule</code> + <code>rita_override</code>（Rita 12:29 北京第 4 次原话「你回复给他不要再问我了」）</td></tr>
+</table>
+
+<h2>2 · 全盘逐源核查（只读）</h2>
+<table>
+<tr><th>QQ 收件箱增量 <code>after=04:09:06Z</code></th><td class="ok">空集，零 Tom 新函 / 零新附件</td></tr>
+<tr><th>QQ 收件箱全量 limit=20</th><td class="ok">最新两封 Tom 真函仍为 02:38:26Z / 02:39:30Z，v112 已承接、v113 已成品化</td></tr>
+<tr><th>GitHub commits / PR / issue</th><td class="ok">HEAD 仍 <code>1b2dfca</code>；本地=远端=<code>ls-remote</code>；dirty 0；PR/issue 空</td></tr>
+<tr><th>「现在收到的文件」</th><td class="ok">零 T1-B 相关新件；3 封发票 + 3 封告警均为已登记旧件；Downloads/Desktop 近 3 小时零新增</td></tr>
+<tr><th>生产表 DB_工时流水</th><td class="ok">现场独立复采 12:43:08 → <strong>11513 / 18</strong>，diff=0</td></tr>
+<tr><th>主库「请假」</th><td class="ok">同一复采 → <strong>625 / 15</strong>，diff=0</td></tr>
+<tr><th>页签读数</th><td class="note"><code>no sheet: (list)</code> 只读通道已知限制 → <code>NOT_ATTESTED</code>，不据此判 T2、不代判自愈</td></tr>
+<tr><th>11-15 告警</th><td class="note">bd-drain / pclist-harvest 均同一 GAS 404 类，无新根因</td></tr>
+<tr><th>闸门</th><td class="ok">NO_TRIGGER，T1–T5 全 CLEAR</td></tr>
+</table>
+
+<h2>3 · 本代实质增量：双通道补齐</h2>
+<table>
+<tr><th>诊断</th><td>v110 D1 指出通道错配（35 代要求 Tom 在 GitHub 就地改字，而他只用邮件）。但 v111 / v113 两份状态同步版共享库零 commit —— 那两代<strong>连供他就地编辑的底本都没放上共享库</strong>。Rita 连续第 4 次强调「他也能看得到 GitHub 共享库」，指的正是这个洞。</td></tr>
+<tr><th>动作</th><td class="ok">把系统大局 + 完善解决方案 + 差集闭合表补发为 <code>docs/</code> 留痕；把表 T（T1 一格）与 FINAL-A / FINAL-B 补发为 <code>docs/</code> 可就地编辑底本。</td></tr>
+<tr><th>通道等价</th><td>共享库改尖括号 commit ＝ 邮件正文改字回信，二者均为正式还复、无需 GitHub 写权限、不新建任何链接。</td></tr>
+<tr><th>不是新代</th><td>代数仍 37 代；零新证据、零新结论、零新增靶子（沿用 T1）、不回改 v110 表 R / v111 卡 / v112 表 S / v113 表 T。</td></tr>
+<tr><th>规则相容</th><td><code>no_trigger_rule</code> 的「不发布新文档」针对以新证据代名义开新文档；<code>rita_override</code> 的「不发布新版本文档」指不发布新版本承接文档。补发的是非承接版留痕，取舍依据已登记 override 留痕。</td></tr>
+</table>
+
+<h2>4 · 具体编辑要求（不要 Yes/No）</h2>
+<table>
+<tr><th>只填 T1 一格</th><td>① 采用 FINAL-A / FINAL-B / 另拟第三版（采用现成两版无需重贴）；② 生效范围逐字写出（T-β / <code>no_trigger_rule</code> / 两者，及是否适用 D3 前半口径债）；③ 书面确认主体与原件形式；④ 生效时点（北京 + UTC）。</td></tr>
+<tr><th>大局系统还复（邀请）</th><td>T2：全链现状逐项认定文字 + 剩余缺件责任归属表 + 对 v110/v112/v113/v114 的逐条具体编辑。若整体不成立，T3 给替代方案全文，勿只写「不认可」。</td></tr>
+<tr><th>不再重复索取</th><td class="ok">A 态（R7 两版、R8、R2、R4、书面限定）与 E 态（四项安全原件与 SHA-256 等）从请求清单移除。</td></tr>
+<tr><th>本方不代做</th><td>不代填姓名、不代选版本、不代判口径；S1 不由本方单方宣告；规则文件与闸门脚本逐字不动；不做未经授权的公开转录。</td></tr>
+</table>
+
+<h2>5 · 红线 · 不改链接（现场实证）</h2>
+<div class="redline">
+13 项目 <strong>82 个 deploymentId 现场复采与基线逐字 DIFF=0</strong>；ts-manager 部署恒 3 / maxV=212；numberlock 恒 9 / maxV=526；团队入口 <code>AKfycbzUyhyK…</code> @212 独立 GET 三次全 HTTP 200。共享库 origin 逐字不变。<br>
+零 GAS push / 零 deploy / 零换链 / 零新建或删除部署 / 零生产写 / 零主库写 / 零试提交 / 零修复重启 / 零清理回滚 / 零降告警覆盖 / 零历史删改 / 零列宽改动。共享库只向 <code>docs/</code> 新增留痕文件。
+</div>
+<table>
+<tr><th>事故状态</th><td class="warn">OPEN · HOLD-NO-GO · 阶段一 PASS 暂缓 · M2 未签 · <code>TS_WRITE_FREEZE=1</code> 全部维持，不以本方案换放行</td></tr>
+<tr><th>公开库边界</th><td class="ok">22 禁止串 × 待发布文件 → <strong>0 命中 PASS</strong></td></tr>
+<tr><th>响应窗口</th><td class="note">v113 回函距本代仅 38 分钟，零回复定性为正常响应窗口、非拒绝、不催办、不计入对方收敛表现</td></tr>
+</table>
+
+<h2>6 · 检查范围声明</h2>
+<p style="font-size:13px">本卡结论仅覆盖已实查的 13 个源（见第 2 节）。<strong>以下一律不作通过结论</strong>：来源真实性/完整性/生产状态；服务端日志及权限上下文；授权主体具名件；受控两项原始字节；事故状态裁定；协作者写权限（HTTP 403 未核验，不作有无推断）；两版 R7 的最终采用；公开转录授权；对方零回复的意图；页签读数（<code>NOT_ATTESTED</code>）。查不到不等于没有。<strong>本卡不构成验收或授权。</strong></p>
+
+<h2>7 · 三提醒</h2>
+<ul>
+<li><strong>不要回去</strong>：K-6 撤回不重开；v99–v113 全部靶位与证据链原样保留、不回改；不新增第 38 张靶子、不重复索取已交付文字。</li>
+<li><strong>记住我们的进度</strong>：承接代数仍为 <strong>37 代</strong>；v111 / v113 / v114 三份状态同步·非承接版均不计代数。296 commit 零漂移、82 个 deploymentId 零差异、FINAL-A / FINAL-B 并列保留。</li>
+<li><strong>加速修复</strong>：GAS 端点 404 连续性与 T1 生效指定文字；邮件正文改字即推进，无需 GitHub、无需写权限、无需长文。响应窗口内不催办。</li>
+</ul>
+
+<div class="foot">T1-B v114 · 状态同步·非承接版 · 北京 2026-11-15 12:47（GMT+8）／UTC 2026-11-15 04:47Z · 本函不构成验收或授权</div>
+
+</div></body></html>
