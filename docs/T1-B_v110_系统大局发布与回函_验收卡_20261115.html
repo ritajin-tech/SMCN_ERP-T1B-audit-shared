@@ -1,0 +1,114 @@
+<!DOCTYPE html>
+<html lang="zh-CN"><head><meta charset="utf-8"><title>T1-B v110 · 完善解决方案 · 验收卡</title>
+<style>
+body{font-family:-apple-system,"Segoe UI","Microsoft YaHei",sans-serif;background:#F4F5F7;color:#222;margin:0;padding:28px;line-height:1.65}
+.wrap{max-width:1080px;margin:0 auto}
+h1{font-size:22px;color:#B31E3E;margin:0 0 4px}
+.sub{color:#666;font-size:13px;margin-bottom:20px}
+.box{background:#fff;border:1px solid #e2e4e8;border-radius:8px;padding:16px 20px;margin-bottom:16px}
+h2{font-size:16px;margin:0 0 12px;padding-bottom:8px;border-bottom:1px solid #eee}
+table{border-collapse:collapse;width:100%;font-size:13px}
+th,td{border:1px solid #e2e4e8;padding:7px 9px;text-align:left;vertical-align:top}
+th{background:#F4F5F7;font-weight:600}
+.ok{background:#E8F5E9;color:#1b5e20;padding:2px 7px;border-radius:4px;font-weight:600;font-size:12px}
+.warn{background:#FFF9E6;color:#8a6d00;padding:2px 7px;border-radius:4px;font-weight:600;font-size:12px}
+.red{background:#FADBD8;color:#922;padding:2px 7px;border-radius:4px;font-weight:600;font-size:12px}
+.big{font-size:17px;font-weight:700;color:#B31E3E}
+code{background:#f2f3f5;padding:1px 5px;border-radius:3px;font-size:12px}
+ul{margin:6px 0 6px 18px;padding:0}li{margin:3px 0}
+.kv{display:grid;grid-template-columns:180px 1fr;gap:6px 12px;font-size:13px}
+.kv b{color:#555}
+</style></head><body><div class="wrap">
+
+<h1>T1-B v110 · 完善解决方案 —— 系统大局发布与回函验收卡</h1>
+<div class="sub">2026-11-15 09:55 北京时间（GMT+8；UTC 2026-11-15T01:55Z）· 第 36 代承接 · 基线 v109 <code>b5089e0</code></div>
+
+<div class="box" style="border-left:4px solid #B31E3E">
+<h2>结论先行：要补，但补的是「架构」，不是第 36 份证据</h2>
+<div class="big">35 代不收敛的根因已查实：还复入口架在错通道上。</div>
+<p style="margin:8px 0 0">共享库 <b>296 个 commit 的作者 100% 是 Rita 本人及其 agent</b>；Tom 的 commit / PR / issue / 就地编辑 <b>全部为 0</b>；他 35 代<b>每一封回函都走 QQ 邮件</b>。而每代都要求他「在 GitHub 共享库直接改字，commit 即视为正式还复」——协作者写权限查询还返回 HTTP 403（未核验，不作有无推断）。<b>再发第 36 张表 Q，数学上不会收敛。</b></p>
+<p style="margin:8px 0 0">v110 因此不补证据，改架构：<b>双通道等价还复</b>（邮件正文改字即正式还复，我方逐字转录）＋<b>验收责任三分类</b>（16 项待证钉到具体主体与具体回填格）＋<b>有限步收敛与两个终止条件</b>。<b>不换任何链接。</b></p>
+</div>
+
+<div class="box">
+<h2>一、逐源核查（可审计打勾）</h2>
+<table>
+<tr><th>#</th><th>逐源</th><th>结果</th><th>状态</th></tr>
+<tr><td>1</td><td>Tom 新真函（QQ Mail 全文）</td><td>《回复：【生产表】v109 原始工件与受控材料》UTC 11-14 16:32:15Z / 北京 11-15 00:32:15，<code>in_reply_to</code> 精确承接 v109 rfc</td><td><span class="ok">已核</span></td></tr>
+<tr><td>2</td><td>收件箱增量</td><td>3 封 11-15 系统告警（bd-drain / pclist-harvest / numberlock-fixwatch），均 404 同类，无新根因</td><td><span class="ok">已核</span></td></tr>
+<tr><td>3</td><td>GitHub 远端 / PR / issue</td><td>HEAD=<code>b5089e0</code> 与本地逐字一致，零漂移；PR=0，issue=0</td><td><span class="ok">已核</span></td></tr>
+<tr><td>4</td><td>共享库协作者写权限</td><td>HTTP 403 Resource not accessible by integration</td><td><span class="warn">未核验·不推断</span></td></tr>
+<tr><td>5</td><td>共享库全量作者</td><td>296 commit，10 种署名变体全为 Rita 侧；Tom 侧写入 0</td><td><span class="ok">已核</span></td></tr>
+<tr><td>6</td><td>生产表（现场只读）</td><td><code>DB_工时流水</code> 11513 行 / 18 列，与 v109 基线一致</td><td><span class="ok">已核</span></td></tr>
+<tr><td>7</td><td>主库（现场只读）</td><td><code>请假</code> 625 行 / 15 列，与 v109 基线一致</td><td><span class="ok">已核</span></td></tr>
+<tr><td>8</td><td>主库页签</td><td>47 → 49：新增成对 <code>按月考勤_重算前_20261115</code> / <code>月度视图_重算前_20261115</code>；10-15 起每日重算镜像既有模式，盯梢 08:30 判「信息级·预期内」；如实登记 <code>SOURCE_NOT_ATTESTED</code>，不代判自愈</td><td><span class="warn">信息级·已登记</span></td></tr>
+<tr><td>9</td><td>部署清单（现场只读）</td><td>13 项目 / <b>82 个 deploymentId 逐字 DIFF=0</b>；ts-manager 恒 3（maxV=212）、numberlock 恒 9</td><td><span class="ok">已核</span></td></tr>
+<tr><td>10</td><td>团队入口 @212</td><td>独立 GET ×3 = 200 / 200 / 200</td><td><span class="ok">已核</span></td></tr>
+<tr><td>11</td><td>闸门</td><td><code>OPEN_NEXT_VERSION</code>：T1 新真函、T2 页签信息级变化 TRIGGER；T3/T4/T5 CLEAR</td><td><span class="ok">已核</span></td></tr>
+<tr><td>12</td><td>公开库边界检查</td><td>22 禁止串 × 5 文件，<b>0 命中 PASS</b></td><td><span class="ok">PASS</span></td></tr>
+<tr><td>13</td><td>服务端日志 / 权限上下文 / 授权主体具名件 / 受控两项</td><td>本 Agent 不持有、不代出；标 REQUIRES_AUTHORIZED_CHANNEL_OWNER_STATEMENT / AWAIT_AUTHORIZED_VERIFY</td><td><span class="warn">未核验·不代填</span></td></tr>
+</table>
+</div>
+
+<div class="box">
+<h2>二、结构性根因（本代核心）</h2>
+<table>
+<tr><th>编号</th><th>根因</th><th>实证</th></tr>
+<tr><td><b>D1</b></td><td><b>通道错配</b>（最根本）</td><td>35 代把「解锁收敛的唯一前提」设成对方从未使用、且写权限未证实的动作（GitHub 就地改字）；Tom 35 代全部只用邮件</td></tr>
+<tr><td><b>D2</b></td><td>验收条件不可闭合且自举</td><td>16 项具名件的有权主体既非本 Agent 亦不在 Tom 手上；每代整体退回 → 下一封维持边界 → 又开代</td></tr>
+<tr><td><b>D3</b></td><td>触发规则与收敛判据冲突</td><td>T1 文本「重复边界不算实质新」vs 脚本「有真函即 TRIGGER」；NO_TRIGGER 依赖错通道表，事实上永不可达（v105 已登记 UNRESOLVED）</td></tr>
+<tr><td><b>D4</b></td><td>状态同步 vs 承接代口径漂移</td><td>rita_override 要求「状态同步·非承接版、不发布新文档」，实际 35 代均开代并发布</td></tr>
+</table>
+</div>
+
+<div class="box">
+<h2>三、完善解决方案（三根支柱）</h2>
+<div class="kv">
+<b>A · 双通道等价还复</b><div>① 共享库就地编辑（原样，链接不变）；② <b>QQ 邮件正文直接改字回信</b>即正式还复，我方逐字转录进共享库并标来源，不改一字、不代填结论、不代判口径。无需登录 GitHub、无需写权限、<b>不新建任何链接</b>。</div>
+<b>B · 验收责任三分类</b><div>类① 本方已交付只待复算（4 项原件+SHA、v108 矩阵、现场读数、404 保全）→ 表 R1/R5/R6；类② 必须有权主体具名（服务端日志→通道所有者；受控两项→Tom 方有权人员；清理授权/业务签署/操作者确认→rita.jin；P1–P5→各责任人）→ 表 R2/R3/R4，附具名模板；类③ 事故状态只能 Rita 裁定，维持不变。</div>
+<b>C · 有限步收敛</b><div>S1 任一格具体编辑 → S2 类①复算齐备 → S3 类②具名回填 → S4 三类齐备才讨论阶段一 PASS（能否 PASS 仍由 Tom 与 Rita 裁定）。终止条件：T-α 书面「本轮不进入验收」转收工监控态；T-β 纯维持边界函且表 R 零格落地 → NO_TRIGGER 只登记不发空函，Rita 若仍令回函则只发标注「非承接版」的状态同步函。</div>
+<b>规则不擅改</b><div><code>t1b_loop_policy.json</code> 逐字不动；K-6 撤回 <code>WITHDRAWN_PER_TOM_1220</code> 不重开；只在表 R7 提供可直接粘贴的收窄文字请 Tom 书面裁定。</div>
+</div>
+</div>
+
+<div class="box">
+<h2>四、要求 Tom「大局系统还复」—— 表 R · R1–R8（具体编辑，不要 Yes/No）</h2>
+<p style="margin:0 0 8px">每格必须含「主体 / 时点 / 具体结论或具体文字」，只写「通过 / 待核 / 须明确 / 维持边界」视为未落地。通道①或②均可。</p>
+<ul>
+<li><b>R1</b> 4 项安全原件 + <code>d50e795</code> 复算 SHA-256 与一致性结论</li>
+<li><b>R2</b> 服务端日志及权限上下文：由哪一位通道所有者、何种形式、何范围出具</li>
+<li><b>R3</b> 受控两项：有权人员核验路径与保全结论（不公开人员信息）</li>
+<li><b>R4</b> 清理授权 / 时间差异 / 业务签署 / 操作者确认 / P1–P5：逐项写「谁出、出什么原件」</li>
+<li><b>R5</b> 现场状态独立核验结论 &nbsp;<b>R6</b> 404 连续性与未归因增量保全认定</li>
+<li><b>R7</b> 收敛判据的<b>具体替代文字</b>（或写明冻结基线版本）&nbsp;<b>R8</b> 对本方案的<b>具体编辑</b>（删哪条、改哪句、换成什么文字；整体不成立须给替代方案全文）</li>
+</ul>
+</div>
+
+<div class="box">
+<h2>五、三提醒 · 红线</h2>
+<ul>
+<li><b>不要回去</b>：K-6 撤回不重开；v99–v109 全部靶位与证据链原样保留；不回退历史结论、不重推已撤回提案。</li>
+<li><b>记住进度</b>：v110 = 第 36 代；35 代双通道读回、字节一致、边界 0 命中、红线全守；296 commit 零漂移、82 个 deploymentId 零差异。</li>
+<li><b>加速修复</b>：① GAS 端点 404 连续性；② 表 R 任一格具体编辑。<b>一回信（邮件正文即可）即触发 S1</b>，无需登录 GitHub、无需写权限。</li>
+</ul>
+<hr style="border:0;border-top:1px solid #eee;margin:12px 0">
+<div class="kv">
+<b>不改链接（实证）</b><div>13 项目 82 个 deploymentId <b>DIFF=0</b>；ts-manager 部署恒 3 / maxV=212；团队入口 @212 GET 三次 200；共享库 origin 地址不变。</div>
+<b>零动作</b><div>零 GAS push / deploy / 换链 / 新建删除部署 / 生产写 / 主库写 / 试提交 / 修复重启 / 清理回滚 / 降覆盖 / 历史删改 / 列宽改动。</div>
+<b>事故状态</b><div><span class="red">OPEN · HOLD-NO-GO · 阶段一 PASS 暂缓 · M2 未签 · TS_WRITE_FREEZE=1</span> 全部维持。</div>
+<b>检查范围声明</b><div>结论仅限本方只读通道可核验范围；来源真实性 / 完整性 / 生产状态 / 服务端日志 / 权限上下文 / 授权主体具名件 / 受控两项 / 事故裁定一律不作通过结论；协作者写权限因 403 未核验，不作有无推断。</div>
+<b>免责</b><div>本代不构成验收或授权。</div>
+</div>
+</div>
+
+<div class="box" style="background:#FFF9E6;border-left:4px solid #e0b400">
+<h2>六、交付件</h2>
+<ul>
+<li><code>outputs/T1-B_v110_完善解决方案_系统大局与收敛执行方案_20261115.md</code>（主文档，已发布共享库 docs/）</li>
+<li><code>outputs/T1-B_v110_表R_双通道可就地编辑_具体编辑靶子_20261115.md</code>（可就地编辑靶子）</li>
+<li><code>outputs/T1-B_v110_全盘逐源诊断_结构死锁证据_20261115.json</code></li>
+<li><code>outputs/T1-B_v110_闸门核查_20261115.json / .html</code> · <code>outputs/T1-B_v110_公开库边界检查_20261115.json</code> · <code>outputs/T1-B_v110_外发授权留痕_20261115.json</code></li>
+</ul>
+</div>
+
+</div></body></html>

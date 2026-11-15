@@ -1,0 +1,46 @@
+{
+  "purpose": "v110 回函 Tom 的外发授权留痕。依据 Rita 2026-11-15 09:41 北京时点的显式指令『看完后直接回函、不要问我』，以及 docs/t1b_loop_policy.json 的 rita_override 条款。",
+  "generation": "v110",
+  "authorized_by": "rita.jin (Rita)",
+  "directive_at_local": "2026-11-15 09:41 (GMT+8)",
+  "directive_verbatim_fragments": [
+    "继续 出完善解决方案",
+    "生产表和主库结合现在收到的文件，然后看看 Tom 更新的回复，系统大局梳理发布给他",
+    "要求他也大局系统还复给我们，然后要有明确的方案不要 Yes or No，要有具体的编辑，因为他也能看得到 GitHub 共享库",
+    "然后全部看完了以后你回复给他不要再问我了",
+    "顺便提醒他不要回去 记住我们的进度 加速修复",
+    "记住红线，不改链接！！！"
+  ],
+  "override_applied": {
+    "clause": "docs/t1b_loop_policy.json : rita_override",
+    "condition": "Rita 本人显式下达『看完后直接回函、不要问我』",
+    "note": "本代闸门实测为 OPEN_NEXT_VERSION（T1 新真函 + T2 页签信息级变化），故 override 非必需；仍登记以留痕，且因 Rita 明确要求『出完善解决方案 / 系统大局梳理发布给他 / 要有具体编辑』，本代按正式承接版处理并发布新文档（与 rita_override 条款中『不发布新版本文档』的差异，系 Rita 本轮更具体的新授权覆盖，如实并列登记，不擅改规则原文）。"
+  },
+  "recipient": {
+    "to": [{"email": "1252293966@qq.com", "name": "Tom"}],
+    "cc": [{"email": "332721759@qq.com", "name": "Rita 瑞塔金"}],
+    "from_alias": "ritajin.muraya@qq.com",
+    "thread_in_reply_to": "<tencent_4682CC456080F90318339B6CB0F220006407@qq.com>",
+    "thread_subject": "Re: 回复：【生产表】v109 原始工件与受控材料"
+  },
+  "content_controls": {
+    "no_emoji": true,
+    "time_format": "北京时间(GMT+8)优先，UTC 括号附注，禁裸 Z",
+    "boundary": "公开库/邮件均不含 22 禁止串（人员姓名明细与稳定键原文）；受控两项留受控渠道",
+    "scope_declaration_attached": true,
+    "disclaimer": "本函不构成验收或授权",
+    "three_reminders": ["不要回去", "记住进度（第 36 代）", "加速修复"],
+    "redline": "不改链接；零 GAS push/deploy/换链、零生产写/主库写"
+  },
+  "sources_reviewed_before_send": [
+    "QQ Mail MCP GetMessage: msg_cbWxk5KFsOVKNbOu3qfqyZkpE906TrZHV_8PgWHHqghxyQ（Tom 新函全文）",
+    "QQ Mail MCP ListMessages inbox 25（11-15 告警 3 封，404 同类）",
+    "GitHub MCP list_commits / list_pull_requests / list_issues / list_repository_collaborators(403)",
+    "本地 git 全量 296 commit 作者分布",
+    "现场只读 probe_v59_live_state.py（生产表 11513/18 · 主库请假 625/15 · 页签 49/16）",
+    "现场只读 _probe_all_deployments.py（13 项目 82 ID DIFF=0）",
+    "tools/t1b_gate_check.py --generation v110 = OPEN_NEXT_VERSION",
+    "tools/t1b_public_boundary_check.py = PASS__NO_PERSONNEL_DETAIL"
+  ],
+  "disclaimer": "本文件不构成验收或授权。"
+}

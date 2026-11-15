@@ -1,0 +1,38 @@
+{
+  "tool": "tools/t1b_public_boundary_check.py",
+  "checked_at_local": "2026-11-15 10:00:36",
+  "controlled_source": "_tmp/t1b_increment_snapshot_20261114_1153.json",
+  "secret_string_count": 22,
+  "secret_strings_not_logged": true,
+  "note": "禁止串由现场受控快照抽取，本报告不回写任何禁止串原文，避免二次泄露",
+  "files": [
+    {
+      "file": "outputs/T1-B_v110_完善解决方案_系统大局与收敛执行方案_20261115.md",
+      "bytes": 17800,
+      "hits": []
+    },
+    {
+      "file": "outputs/T1-B_v110_表R_双通道可就地编辑_具体编辑靶子_20261115.md",
+      "bytes": 7270,
+      "hits": []
+    },
+    {
+      "file": "outputs/T1-B_v110_全盘逐源诊断_结构死锁证据_20261115.json",
+      "bytes": 12255,
+      "hits": []
+    },
+    {
+      "file": "outputs/T1-B_v110_外发授权留痕_20261115.json",
+      "bytes": 3153,
+      "hits": []
+    },
+    {
+      "file": "outputs/T1-B_v110_闸门核查_20261115.json",
+      "bytes": 45167,
+      "hits": []
+    }
+  ],
+  "findings": [],
+  "verdict": "PASS__NO_PERSONNEL_DETAIL",
+  "boundary": "公开库只留路径／字节数／SHA-256／采集时点／稳定键哈希等元数据"
+}

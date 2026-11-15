@@ -1,0 +1,1255 @@
+{
+ "tool": "tools/t1b_gate_check.py",
+ "checked_at": "2026-11-15 09:54:24 (北京时间 GMT+8；UTC 2026-11-15T01:54:24Z)",
+ "since": "2026-11-15 00:26:50 (北京时间 GMT+8；UTC 2026-11-14T16:26:50Z)",
+ "generation": "v110",
+ "read_only": true,
+ "redlines": "零生产写/零主库写/零 clasp push/零 deploy/零新建删除部署/零 URL 变更/零改结构列宽/零历史对象删改",
+ "local": {
+  "sources": [
+   {
+    "name": "零积分盯梢状态 / 基线读数",
+    "path": "tools/_zc_state/t1b-watch.json + t1b-watch-readings.json",
+    "result": "last_run=2026-11-15T09:30:25 · last_ok=True · total_runs=335 · 无增量（生产表 {'lastRow': 11513, 'lastCol': 18} / 请假 {'lastRow': 625, 'lastCol': 15} / 页签 {'production': 16, 'master': 49} / 部署 3）",
+    "verdict": "OK"
+   },
+   {
+    "name": "零积分排程原始运行日志",
+    "path": "tools/_zc_logs/2026-11-15.log",
+    "result": "100 条记录；since 后 95 条；当日 FAIL 26 条（2026-11-15 00:05:15 bd-drain, 2026-11-15 00:35:14 bd-drain, 2026-11-15 01:05:14 bd-drain, 2026-11-15 01:10:05 pclist-harvest, 2026-11-15 01:35:14 bd-drain, 2026-11-15 02:05:14 bd-drain, 2026-11-15 02:35:14 bd-drain, 2026-11-15 03:05:14 bd-drain, 2026-11-15 03:10:05 pclist-harvest, 2026-11-15 03:35:14 bd-drain, 2026-11-15 04:05:14 bd-drain, 2026-11-15 04:35:14 bd-drain, 2026-11-15 04:48:48 numberlock-fixwatch, 2026-11-15 05:05:14 bd-drain, 2026-11-15 05:10:05 pclist-harvest, 2026-11-15 05:35:14 bd-drain, 2026-11-15 06:05:14 bd-drain, 2026-11-15 06:35:14 bd-drain, 2026-11-15 07:05:14 bd-drain, 2026-11-15 07:10:05 pclist-harvest, 2026-11-15 07:35:14 bd-drain, 2026-11-15 08:05:14 bd-drain, 2026-11-15 08:35:14 bd-drain, 2026-11-15 09:05:14 bd-drain, 2026-11-15 09:10:05 pclist-harvest, 2026-11-15 09:35:14 bd-drain）",
+    "verdict": "OK"
+   },
+   {
+    "name": "当日告警原件",
+    "path": "tools/_zc_logs/告警_2026-11-15.md",
+    "result": "存在，416 字节",
+    "verdict": "OK"
+   },
+   {
+    "name": "只读 probe（盯梢 + 现场）",
+    "path": "_tmp/t1b_watch_probe.json",
+    "result": "2026-11-15 09:49:38 t1b_watch_probe.json 生产表 11513/18 / 请假 625/15 / 页签 49·16",
+    "verdict": "OK"
+   },
+   {
+    "name": "GitHub 共享库本地 / 远端一致性",
+    "path": "_tmp/audit_shared (git 只读)",
+    "result": "HEAD=b5089e02 / remote=b5089e02 / commits=296 / dirty=0 / d50e795=commit",
+    "verdict": "OK"
+   },
+   {
+    "name": "ts-manager 部署清单（只读）",
+    "path": "clasp list-deployments",
+    "result": "Found 3；AKfycbwlxB2z9IDDo7pBv4sr0pu6-1ywvYBuRyqTwfjgl_o @HEAD / AKfycbwYXV3VS3I59bVpUi9XBMClGsFkJ6l_NxPdQcysiXYe47-iONNMk6FIoI8VEXwYl-_2 @202 / AKfycbzUyhyK-tqL7ypp2H2jZXNCMciEr2PJwhkZIg0bwV1OwV2C6D9RKJZhA4HpiUi6F5eF @212",
+    "verdict": "OK"
+   },
+   {
+    "name": "现在收到的文件（工作区落盘增量）",
+    "path": "工作区顶层近 2 小时 mtime 扫描（只读）",
+    "result": "42 个新/改动文件，均为本方产物：DesignFee_Pricing_20261107/gen_v126_cells.py, DesignFee_Pricing_20261107/qs_fullflow_dryrun.py, DesignFee_Pricing_20261107/qs_fullflow_dryrun_evidence.json, DesignFee_Pricing_20261107/qs_fullflow_nav_fix.py, DesignFee_Pricing_20261107/qs_fullflow_nav_fix_before.json, DesignFee_Pricing_20261107/qs_gate_card_reveal.py, DesignFee_Pricing_20261107/qs_gate_copy_fix.py, DesignFee_Pricing_20261107/qs_gate_copy_fix_before.json",
+    "verdict": "OK"
+   }
+  ],
+  "readings": {},
+  "failures": [
+   {
+    "time": "2026-11-15 00:05:15",
+    "task": "bd-drain",
+    "status": "FAIL",
+    "seconds": "15.2",
+    "detail": "队列探头失败（GAS 不可达）: <HTTPError 404: 'Not Found'>",
+    "after_since": false
+   },
+   {
+    "time": "2026-11-15 00:35:14",
+    "task": "bd-drain",
+    "status": "FAIL",
+    "seconds": "14.0",
+    "detail": "队列探头失败（GAS 不可达）: <HTTPError 404: 'Not Found'>",
+    "after_since": true
+   },
+   {
+    "time": "2026-11-15 01:05:14",
+    "task": "bd-drain",
+    "status": "FAIL",
+    "seconds": "14.2",
+    "detail": "队列探头失败（GAS 不可达）: <HTTPError 404: 'Not Found'>",
+    "after_since": true
+   },
+   {
+    "time": "2026-11-15 01:10:05",
+    "task": "pclist-harvest",
+    "status": "FAIL",
+    "seconds": "5.6",
+    "detail": "请求失败: <HTTPError 404: 'Not Found'>",
+    "after_since": true
+   },
+   {
+    "time": "2026-11-15 01:35:14",
+    "task": "bd-drain",
+    "status": "FAIL",
+    "seconds": "14.0",
+    "detail": "队列探头失败（GAS 不可达）: <HTTPError 404: 'Not Found'>",
+    "after_since": true
+   },
+   {
+    "time": "2026-11-15 02:05:14",
+    "task": "bd-drain",
+    "status": "FAIL",
+    "seconds": "14.2",
+    "detail": "队列探头失败（GAS 不可达）: <HTTPError 404: 'Not Found'>",
+    "after_since": true
+   },
+   {
+    "time": "2026-11-15 02:35:14",
+    "task": "bd-drain",
+    "status": "FAIL",
+    "seconds": "14.1",
+    "detail": "队列探头失败（GAS 不可达）: <HTTPError 404: 'Not Found'>",
+    "after_since": true
+   },
+   {
+    "time": "2026-11-15 03:05:14",
+    "task": "bd-drain",
+    "status": "FAIL",
+    "seconds": "14.3",
+    "detail": "队列探头失败（GAS 不可达）: <HTTPError 404: 'Not Found'>",
+    "after_since": true
+   },
+   {
+    "time": "2026-11-15 03:10:05",
+    "task": "pclist-harvest",
+    "status": "FAIL",
+    "seconds": "5.7",
+    "detail": "请求失败: <HTTPError 404: 'Not Found'>",
+    "after_since": true
+   },
+   {
+    "time": "2026-11-15 03:35:14",
+    "task": "bd-drain",
+    "status": "FAIL",
+    "seconds": "13.9",
+    "detail": "队列探头失败（GAS 不可达）: <HTTPError 404: 'Not Found'>",
+    "after_since": true
+   },
+   {
+    "time": "2026-11-15 04:05:14",
+    "task": "bd-drain",
+    "status": "FAIL",
+    "seconds": "13.9",
+    "detail": "队列探头失败（GAS 不可达）: <HTTPError 404: 'Not Found'>",
+    "after_since": true
+   },
+   {
+    "time": "2026-11-15 04:35:14",
+    "task": "bd-drain",
+    "status": "FAIL",
+    "seconds": "14.0",
+    "detail": "队列探头失败（GAS 不可达）: <HTTPError 404: 'Not Found'>",
+    "after_since": true
+   },
+   {
+    "time": "2026-11-15 04:48:48",
+    "task": "numberlock-fixwatch",
+    "status": "FAIL",
+    "seconds": "0.8",
+    "detail": "vercheck 探针失败: <HTTPError 404: 'Not Found'>",
+    "after_since": true
+   },
+   {
+    "time": "2026-11-15 05:05:14",
+    "task": "bd-drain",
+    "status": "FAIL",
+    "seconds": "14.5",
+    "detail": "队列探头失败（GAS 不可达）: <HTTPError 404: 'Not Found'>",
+    "after_since": true
+   },
+   {
+    "time": "2026-11-15 05:10:05",
+    "task": "pclist-harvest",
+    "status": "FAIL",
+    "seconds": "5.6",
+    "detail": "请求失败: <HTTPError 404: 'Not Found'>",
+    "after_since": true
+   },
+   {
+    "time": "2026-11-15 05:35:14",
+    "task": "bd-drain",
+    "status": "FAIL",
+    "seconds": "14.3",
+    "detail": "队列探头失败（GAS 不可达）: <HTTPError 404: 'Not Found'>",
+    "after_since": true
+   },
+   {
+    "time": "2026-11-15 06:05:14",
+    "task": "bd-drain",
+    "status": "FAIL",
+    "seconds": "14.2",
+    "detail": "队列探头失败（GAS 不可达）: <HTTPError 404: 'Not Found'>",
+    "after_since": true
+   },
+   {
+    "time": "2026-11-15 06:35:14",
+    "task": "bd-drain",
+    "status": "FAIL",
+    "seconds": "14.0",
+    "detail": "队列探头失败（GAS 不可达）: <HTTPError 404: 'Not Found'>",
+    "after_since": true
+   },
+   {
+    "time": "2026-11-15 07:05:14",
+    "task": "bd-drain",
+    "status": "FAIL",
+    "seconds": "14.2",
+    "detail": "队列探头失败（GAS 不可达）: <HTTPError 404: 'Not Found'>",
+    "after_since": true
+   },
+   {
+    "time": "2026-11-15 07:10:05",
+    "task": "pclist-harvest",
+    "status": "FAIL",
+    "seconds": "5.5",
+    "detail": "请求失败: <HTTPError 404: 'Not Found'>",
+    "after_since": true
+   },
+   {
+    "time": "2026-11-15 07:35:14",
+    "task": "bd-drain",
+    "status": "FAIL",
+    "seconds": "14.3",
+    "detail": "队列探头失败（GAS 不可达）: <HTTPError 404: 'Not Found'>",
+    "after_since": true
+   },
+   {
+    "time": "2026-11-15 08:05:14",
+    "task": "bd-drain",
+    "status": "FAIL",
+    "seconds": "14.4",
+    "detail": "队列探头失败（GAS 不可达）: <HTTPError 404: 'Not Found'>",
+    "after_since": true
+   },
+   {
+    "time": "2026-11-15 08:35:14",
+    "task": "bd-drain",
+    "status": "FAIL",
+    "seconds": "14.3",
+    "detail": "队列探头失败（GAS 不可达）: <HTTPError 404: 'Not Found'>",
+    "after_since": true
+   },
+   {
+    "time": "2026-11-15 09:05:14",
+    "task": "bd-drain",
+    "status": "FAIL",
+    "seconds": "14.4",
+    "detail": "队列探头失败（GAS 不可达）: <HTTPError 404: 'Not Found'>",
+    "after_since": true
+   },
+   {
+    "time": "2026-11-15 09:10:05",
+    "task": "pclist-harvest",
+    "status": "FAIL",
+    "seconds": "5.4",
+    "detail": "请求失败: <HTTPError 404: 'Not Found'>",
+    "after_since": true
+   },
+   {
+    "time": "2026-11-15 09:35:14",
+    "task": "bd-drain",
+    "status": "FAIL",
+    "seconds": "14.3",
+    "detail": "队列探头失败（GAS 不可达）: <HTTPError 404: 'Not Found'>",
+    "after_since": true
+   }
+  ],
+  "new_runs": [
+   {
+    "time": "2026-11-15 00:30:27",
+    "task": "t1b-watch",
+    "status": "OK",
+    "seconds": "26.8",
+    "detail": "无增量（生产表 {'lastRow': 11513, 'lastCol': 18} / 请假 {'lastRow': 625, 'lastCol': 15} / 页签 {'production': 16, 'master': 47} / 部署 3）",
+    "after_since": true
+   },
+   {
+    "time": "2026-11-15 00:35:14",
+    "task": "bd-drain",
+    "status": "FAIL",
+    "seconds": "14.0",
+    "detail": "队列探头失败（GAS 不可达）: <HTTPError 404: 'Not Found'>",
+    "after_since": true
+   },
+   {
+    "time": "2026-11-15 00:40:04",
+    "task": "nps-receipt",
+    "status": "OK",
+    "seconds": "4.7",
+    "detail": "[2026-11-14T16:40:04.912Z] ✅ 无新增打开事件，无需动作",
+    "after_since": true
+   },
+   {
+    "time": "2026-11-15 00:45:10",
+    "task": "ts-health",
+    "status": "OK",
+    "seconds": "9.9",
+    "detail": "✅ 全部正常",
+    "after_since": true
+   },
+   {
+    "time": "2026-11-15 01:00:03",
+    "task": "ts-deploy-watchdog",
+    "status": "OK",
+    "seconds": "2.2",
+    "detail": "ts-manager webapp OK (HTTP 200)",
+    "after_since": true
+   },
+   {
+    "time": "2026-11-15 01:00:27",
+    "task": "t1b-watch",
+    "status": "OK",
+    "seconds": "27.1",
+    "detail": "无增量（生产表 {'lastRow': 11513, 'lastCol': 18} / 请假 {'lastRow': 625, 'lastCol': 15} / 页签 {'production': 16, 'master': 47} / 部署 3）",
+    "after_since": true
+   },
+   {
+    "time": "2026-11-15 01:02:48",
+    "task": "pmlist-refresh",
+    "status": "OK",
+    "seconds": "167.7",
+    "detail": "refreshProjectSummary completed updateTotalSummary completed refreshFinanceOverview completed",
+    "after_since": true
+   },
+   {
+    "time": "2026-11-15 01:05:14",
+    "task": "bd-drain",
+    "status": "FAIL",
+    "seconds": "14.2",
+    "detail": "队列探头失败（GAS 不可达）: <HTTPError 404: 'Not Found'>",
+    "after_since": true
+   },
+   {
+    "time": "2026-11-15 01:10:04",
+    "task": "nps-receipt",
+    "status": "OK",
+    "seconds": "4.4",
+    "detail": "[2026-11-14T17:10:04.557Z] ✅ 无新增打开事件，无需动作",
+    "after_since": true
+   },
+   {
+    "time": "2026-11-15 01:10:05",
+    "task": "pclist-harvest",
+    "status": "FAIL",
+    "seconds": "5.6",
+    "detail": "请求失败: <HTTPError 404: 'Not Found'>",
+    "after_since": true
+   },
+   {
+    "time": "2026-11-15 01:15:12",
+    "task": "ts-health",
+    "status": "OK",
+    "seconds": "12.2",
+    "detail": "✅ 全部正常",
+    "after_since": true
+   },
+   {
+    "time": "2026-11-15 01:30:26",
+    "task": "t1b-watch",
+    "status": "OK",
+    "seconds": "26.0",
+    "detail": "无增量（生产表 {'lastRow': 11513, 'lastCol': 18} / 请假 {'lastRow': 625, 'lastCol': 15} / 页签 {'production': 16, 'master': 47} / 部署 3）",
+    "after_since": true
+   },
+   {
+    "time": "2026-11-15 01:35:14",
+    "task": "bd-drain",
+    "status": "FAIL",
+    "seconds": "14.0",
+    "detail": "队列探头失败（GAS 不可达）: <HTTPError 404: 'Not Found'>",
+    "after_since": true
+   },
+   {
+    "time": "2026-11-15 01:40:04",
+    "task": "nps-receipt",
+    "status": "OK",
+    "seconds": "4.2",
+    "detail": "[2026-11-14T17:40:04.347Z] ✅ 无新增打开事件，无需动作",
+    "after_since": true
+   },
+   {
+    "time": "2026-11-15 01:45:12",
+    "task": "ts-health",
+    "status": "OK",
+    "seconds": "11.8",
+    "detail": "✅ 全部正常",
+    "after_since": true
+   },
+   {
+    "time": "2026-11-15 02:00:28",
+    "task": "t1b-watch",
+    "status": "OK",
+    "seconds": "27.8",
+    "detail": "无增量（生产表 {'lastRow': 11513, 'lastCol': 18} / 请假 {'lastRow': 625, 'lastCol': 15} / 页签 {'production': 16, 'master': 47} / 部署 3）",
+    "after_since": true
+   },
+   {
+    "time": "2026-11-15 02:01:39",
+    "task": "pmlist-refresh",
+    "status": "OK",
+    "seconds": "98.6",
+    "detail": "refreshProjectSummary completed updateTotalSummary completed refreshFinanceOverview completed",
+    "after_since": true
+   },
+   {
+    "time": "2026-11-15 02:05:14",
+    "task": "bd-drain",
+    "status": "FAIL",
+    "seconds": "14.2",
+    "detail": "队列探头失败（GAS 不可达）: <HTTPError 404: 'Not Found'>",
+    "after_since": true
+   },
+   {
+    "time": "2026-11-15 02:10:04",
+    "task": "nps-receipt",
+    "status": "OK",
+    "seconds": "4.2",
+    "detail": "[2026-11-14T18:10:04.444Z] ✅ 无新增打开事件，无需动作",
+    "after_since": true
+   },
+   {
+    "time": "2026-11-15 02:15:11",
+    "task": "ts-health",
+    "status": "OK",
+    "seconds": "11.0",
+    "detail": "✅ 全部正常",
+    "after_since": true
+   },
+   {
+    "time": "2026-11-15 02:30:29",
+    "task": "t1b-watch",
+    "status": "OK",
+    "seconds": "29.0",
+    "detail": "无增量（生产表 {'lastRow': 11513, 'lastCol': 18} / 请假 {'lastRow': 625, 'lastCol': 15} / 页签 {'production': 16, 'master': 47} / 部署 3）",
+    "after_since": true
+   },
+   {
+    "time": "2026-11-15 02:35:14",
+    "task": "bd-drain",
+    "status": "FAIL",
+    "seconds": "14.1",
+    "detail": "队列探头失败（GAS 不可达）: <HTTPError 404: 'Not Found'>",
+    "after_since": true
+   },
+   {
+    "time": "2026-11-15 02:40:04",
+    "task": "nps-receipt",
+    "status": "OK",
+    "seconds": "4.4",
+    "detail": "[2026-11-14T18:40:04.591Z] ✅ 无新增打开事件，无需动作",
+    "after_since": true
+   },
+   {
+    "time": "2026-11-15 02:45:13",
+    "task": "ts-health",
+    "status": "OK",
+    "seconds": "12.7",
+    "detail": "✅ 全部正常",
+    "after_since": true
+   },
+   {
+    "time": "2026-11-15 03:00:31",
+    "task": "t1b-watch",
+    "status": "OK",
+    "seconds": "30.2",
+    "detail": "无增量（生产表 {'lastRow': 11513, 'lastCol': 18} / 请假 {'lastRow': 625, 'lastCol': 15} / 页签 {'production': 16, 'master': 47} / 部署 3）",
+    "after_since": true
+   },
+   {
+    "time": "2026-11-15 03:01:04",
+    "task": "pmlist-refresh",
+    "status": "OK",
+    "seconds": "63.8",
+    "detail": "refreshProjectSummary completed updateTotalSummary completed refreshFinanceOverview completed",
+    "after_since": true
+   },
+   {
+    "time": "2026-11-15 03:05:14",
+    "task": "bd-drain",
+    "status": "FAIL",
+    "seconds": "14.3",
+    "detail": "队列探头失败（GAS 不可达）: <HTTPError 404: 'Not Found'>",
+    "after_since": true
+   },
+   {
+    "time": "2026-11-15 03:10:04",
+    "task": "nps-receipt",
+    "status": "OK",
+    "seconds": "4.6",
+    "detail": "[2026-11-14T19:10:04.841Z] ✅ 无新增打开事件，无需动作",
+    "after_since": true
+   },
+   {
+    "time": "2026-11-15 03:10:05",
+    "task": "pclist-harvest",
+    "status": "FAIL",
+    "seconds": "5.7",
+    "detail": "请求失败: <HTTPError 404: 'Not Found'>",
+    "after_since": true
+   },
+   {
+    "time": "2026-11-15 03:15:10",
+    "task": "ts-health",
+    "status": "OK",
+    "seconds": "10.3",
+    "detail": "✅ 全部正常",
+    "after_since": true
+   },
+   {
+    "time": "2026-11-15 03:30:28",
+    "task": "t1b-watch",
+    "status": "OK",
+    "seconds": "27.8",
+    "detail": "无增量（生产表 {'lastRow': 11513, 'lastCol': 18} / 请假 {'lastRow': 625, 'lastCol': 15} / 页签 {'production': 16, 'master': 47} / 部署 3）",
+    "after_since": true
+   },
+   {
+    "time": "2026-11-15 03:35:14",
+    "task": "bd-drain",
+    "status": "FAIL",
+    "seconds": "13.9",
+    "detail": "队列探头失败（GAS 不可达）: <HTTPError 404: 'Not Found'>",
+    "after_since": true
+   },
+   {
+    "time": "2026-11-15 03:40:04",
+    "task": "nps-receipt",
+    "status": "OK",
+    "seconds": "4.2",
+    "detail": "[2026-11-14T19:40:04.425Z] ✅ 无新增打开事件，无需动作",
+    "after_since": true
+   },
+   {
+    "time": "2026-11-15 03:45:10",
+    "task": "ts-health",
+    "status": "OK",
+    "seconds": "9.7",
+    "detail": "✅ 全部正常",
+    "after_since": true
+   },
+   {
+    "time": "2026-11-15 04:00:28",
+    "task": "t1b-watch",
+    "status": "OK",
+    "seconds": "27.1",
+    "detail": "无增量（生产表 {'lastRow': 11513, 'lastCol': 18} / 请假 {'lastRow': 625, 'lastCol': 15} / 页签 {'production': 16, 'master': 47} / 部署 3）",
+    "after_since": true
+   },
+   {
+    "time": "2026-11-15 04:02:29",
+    "task": "pmlist-refresh",
+    "status": "OK",
+    "seconds": "148.9",
+    "detail": "refreshProjectSummary completed updateTotalSummary completed refreshFinanceOverview completed",
+    "after_since": true
+   },
+   {
+    "time": "2026-11-15 04:05:14",
+    "task": "bd-drain",
+    "status": "FAIL",
+    "seconds": "13.9",
+    "detail": "队列探头失败（GAS 不可达）: <HTTPError 404: 'Not Found'>",
+    "after_since": true
+   },
+   {
+    "time": "2026-11-15 04:10:04",
+    "task": "nps-receipt",
+    "status": "OK",
+    "seconds": "4.1",
+    "detail": "[2026-11-14T20:10:04.358Z] ✅ 无新增打开事件，无需动作",
+    "after_since": true
+   },
+   {
+    "time": "2026-11-15 04:15:10",
+    "task": "ts-health",
+    "status": "OK",
+    "seconds": "9.5",
+    "detail": "✅ 全部正常",
+    "after_since": true
+   },
+   {
+    "time": "2026-11-15 04:30:29",
+    "task": "t1b-watch",
+    "status": "OK",
+    "seconds": "28.4",
+    "detail": "无增量（生产表 {'lastRow': 11513, 'lastCol': 18} / 请假 {'lastRow': 625, 'lastCol': 15} / 页签 {'production': 16, 'master': 47} / 部署 3）",
+    "after_since": true
+   },
+   {
+    "time": "2026-11-15 04:35:14",
+    "task": "bd-drain",
+    "status": "FAIL",
+    "seconds": "14.0",
+    "detail": "队列探头失败（GAS 不可达）: <HTTPError 404: 'Not Found'>",
+    "after_since": true
+   },
+   {
+    "time": "2026-11-15 04:40:04",
+    "task": "nps-receipt",
+    "status": "OK",
+    "seconds": "3.9",
+    "detail": "[2026-11-14T20:40:04.081Z] ✅ 无新增打开事件，无需动作",
+    "after_since": true
+   },
+   {
+    "time": "2026-11-15 04:45:10",
+    "task": "ts-health",
+    "status": "OK",
+    "seconds": "9.9",
+    "detail": "✅ 全部正常",
+    "after_since": true
+   },
+   {
+    "time": "2026-11-15 04:48:48",
+    "task": "numberlock-fixwatch",
+    "status": "FAIL",
+    "seconds": "0.8",
+    "detail": "vercheck 探针失败: <HTTPError 404: 'Not Found'>",
+    "after_since": true
+   },
+   {
+    "time": "2026-11-15 05:00:28",
+    "task": "t1b-watch",
+    "status": "OK",
+    "seconds": "27.8",
+    "detail": "无增量（生产表 {'lastRow': 11513, 'lastCol': 18} / 请假 {'lastRow': 625, 'lastCol': 15} / 页签 {'production': 16, 'master': 47} / 部署 3）",
+    "after_since": true
+   },
+   {
+    "time": "2026-11-15 05:01:10",
+    "task": "pmlist-refresh",
+    "status": "OK",
+    "seconds": "69.1",
+    "detail": "refreshProjectSummary completed updateTotalSummary completed refreshFinanceOverview completed",
+    "after_since": true
+   },
+   {
+    "time": "2026-11-15 05:05:14",
+    "task": "bd-drain",
+    "status": "FAIL",
+    "seconds": "14.5",
+    "detail": "队列探头失败（GAS 不可达）: <HTTPError 404: 'Not Found'>",
+    "after_since": true
+   },
+   {
+    "time": "2026-11-15 05:10:05",
+    "task": "nps-receipt",
+    "status": "OK",
+    "seconds": "5.0",
+    "detail": "[2026-11-14T21:10:05.284Z] ✅ 无新增打开事件，无需动作",
+    "after_since": true
+   },
+   {
+    "time": "2026-11-15 05:10:05",
+    "task": "pclist-harvest",
+    "status": "FAIL",
+    "seconds": "5.6",
+    "detail": "请求失败: <HTTPError 404: 'Not Found'>",
+    "after_since": true
+   },
+   {
+    "time": "2026-11-15 05:15:12",
+    "task": "ts-health",
+    "status": "OK",
+    "seconds": "12.3",
+    "detail": "✅ 全部正常",
+    "after_since": true
+   },
+   {
+    "time": "2026-11-15 05:30:29",
+    "task": "t1b-watch",
+    "status": "OK",
+    "seconds": "28.3",
+    "detail": "无增量（生产表 {'lastRow': 11513, 'lastCol': 18} / 请假 {'lastRow': 625, 'lastCol': 15} / 页签 {'production': 16, 'master': 47} / 部署 3）",
+    "after_since": true
+   },
+   {
+    "time": "2026-11-15 05:35:14",
+    "task": "bd-drain",
+    "status": "FAIL",
+    "seconds": "14.3",
+    "detail": "队列探头失败（GAS 不可达）: <HTTPError 404: 'Not Found'>",
+    "after_since": true
+   },
+   {
+    "time": "2026-11-15 05:40:04",
+    "task": "nps-receipt",
+    "status": "OK",
+    "seconds": "4.1",
+    "detail": "[2026-11-14T21:40:04.401Z] ✅ 无新增打开事件，无需动作",
+    "after_since": true
+   },
+   {
+    "time": "2026-11-15 05:45:12",
+    "task": "ts-health",
+    "status": "OK",
+    "seconds": "12.0",
+    "detail": "✅ 全部正常",
+    "after_since": true
+   },
+   {
+    "time": "2026-11-15 06:00:29",
+    "task": "t1b-watch",
+    "status": "OK",
+    "seconds": "28.3",
+    "detail": "无增量（生产表 {'lastRow': 11513, 'lastCol': 18} / 请假 {'lastRow': 625, 'lastCol': 15} / 页签 {'production': 16, 'master': 47} / 部署 3）",
+    "after_since": true
+   },
+   {
+    "time": "2026-11-15 06:01:59",
+    "task": "pmlist-refresh",
+    "status": "OK",
+    "seconds": "118.3",
+    "detail": "refreshProjectSummary completed updateTotalSummary completed refreshFinanceOverview completed",
+    "after_since": true
+   },
+   {
+    "time": "2026-11-15 06:05:14",
+    "task": "bd-drain",
+    "status": "FAIL",
+    "seconds": "14.2",
+    "detail": "队列探头失败（GAS 不可达）: <HTTPError 404: 'Not Found'>",
+    "after_since": true
+   },
+   {
+    "time": "2026-11-15 06:10:04",
+    "task": "nps-receipt",
+    "status": "OK",
+    "seconds": "4.1",
+    "detail": "[2026-11-14T22:10:04.415Z] ✅ 无新增打开事件，无需动作",
+    "after_since": true
+   },
+   {
+    "time": "2026-11-15 06:15:10",
+    "task": "ts-health",
+    "status": "OK",
+    "seconds": "9.9",
+    "detail": "✅ 全部正常",
+    "after_since": true
+   },
+   {
+    "time": "2026-11-15 06:30:26",
+    "task": "t1b-watch",
+    "status": "OK",
+    "seconds": "25.7",
+    "detail": "无增量（生产表 {'lastRow': 11513, 'lastCol': 18} / 请假 {'lastRow': 625, 'lastCol': 15} / 页签 {'production': 16, 'master': 47} / 部署 3）",
+    "after_since": true
+   },
+   {
+    "time": "2026-11-15 06:35:14",
+    "task": "bd-drain",
+    "status": "FAIL",
+    "seconds": "14.0",
+    "detail": "队列探头失败（GAS 不可达）: <HTTPError 404: 'Not Found'>",
+    "after_since": true
+   },
+   {
+    "time": "2026-11-15 06:40:04",
+    "task": "nps-receipt",
+    "status": "OK",
+    "seconds": "4.0",
+    "detail": "[2026-11-14T22:40:04.311Z] ✅ 无新增打开事件，无需动作",
+    "after_since": true
+   },
+   {
+    "time": "2026-11-15 06:45:11",
+    "task": "ts-health",
+    "status": "OK",
+    "seconds": "10.3",
+    "detail": "✅ 全部正常",
+    "after_since": true
+   },
+   {
+    "time": "2026-11-15 07:00:02",
+    "task": "ts-deploy-watchdog",
+    "status": "OK",
+    "seconds": "1.9",
+    "detail": "ts-manager webapp OK (HTTP 200)",
+    "after_since": true
+   },
+   {
+    "time": "2026-11-15 07:00:28",
+    "task": "t1b-watch",
+    "status": "OK",
+    "seconds": "27.2",
+    "detail": "无增量（生产表 {'lastRow': 11513, 'lastCol': 18} / 请假 {'lastRow': 625, 'lastCol': 15} / 页签 {'production': 16, 'master': 47} / 部署 3）",
+    "after_since": true
+   },
+   {
+    "time": "2026-11-15 07:02:56",
+    "task": "pmlist-refresh",
+    "status": "OK",
+    "seconds": "175.4",
+    "detail": "refreshProjectSummary completed updateTotalSummary completed refreshFinanceOverview completed",
+    "after_since": true
+   },
+   {
+    "time": "2026-11-15 07:05:14",
+    "task": "bd-drain",
+    "status": "FAIL",
+    "seconds": "14.2",
+    "detail": "队列探头失败（GAS 不可达）: <HTTPError 404: 'Not Found'>",
+    "after_since": true
+   },
+   {
+    "time": "2026-11-15 07:10:04",
+    "task": "nps-receipt",
+    "status": "OK",
+    "seconds": "4.2",
+    "detail": "[2026-11-14T23:10:04.475Z] ✅ 无新增打开事件，无需动作",
+    "after_since": true
+   },
+   {
+    "time": "2026-11-15 07:10:05",
+    "task": "pclist-harvest",
+    "status": "FAIL",
+    "seconds": "5.5",
+    "detail": "请求失败: <HTTPError 404: 'Not Found'>",
+    "after_since": true
+   },
+   {
+    "time": "2026-11-15 07:15:11",
+    "task": "ts-health",
+    "status": "OK",
+    "seconds": "10.4",
+    "detail": "✅ 全部正常",
+    "after_since": true
+   },
+   {
+    "time": "2026-11-15 07:30:26",
+    "task": "t1b-watch",
+    "status": "OK",
+    "seconds": "25.6",
+    "detail": "无增量（生产表 {'lastRow': 11513, 'lastCol': 18} / 请假 {'lastRow': 625, 'lastCol': 15} / 页签 {'production': 16, 'master': 47} / 部署 3）",
+    "after_since": true
+   },
+   {
+    "time": "2026-11-15 07:31:53",
+    "task": "pm-selfcheck",
+    "status": "OK",
+    "seconds": "111.3",
+    "detail": "✅ PM 自查已发 10 封；Rita 回执按 receipt_mode=exception_only 静默（审计已留痕）。",
+    "after_since": true
+   },
+   {
+    "time": "2026-11-15 07:35:14",
+    "task": "bd-drain",
+    "status": "FAIL",
+    "seconds": "14.3",
+    "detail": "队列探头失败（GAS 不可达）: <HTTPError 404: 'Not Found'>",
+    "after_since": true
+   },
+   {
+    "time": "2026-11-15 07:40:05",
+    "task": "nps-receipt",
+    "status": "OK",
+    "seconds": "4.7",
+    "detail": "[2026-11-14T23:40:04.997Z] ✅ 无新增打开事件，无需动作",
+    "after_since": true
+   },
+   {
+    "time": "2026-11-15 07:45:12",
+    "task": "ts-health",
+    "status": "OK",
+    "seconds": "11.5",
+    "detail": "✅ 全部正常",
+    "after_since": true
+   },
+   {
+    "time": "2026-11-15 07:50:18",
+    "task": "ts-export",
+    "status": "OK",
+    "seconds": "17.1",
+    "detail": "OUTPUT=C:/Users/rita.jin/WorkBuddy/工时表导出\\工时表明细_今日.xlsx",
+    "after_since": true
+   },
+   {
+    "time": "2026-11-15 08:00:27",
+    "task": "t1b-watch",
+    "status": "OK",
+    "seconds": "26.9",
+    "detail": "无增量（生产表 {'lastRow': 11513, 'lastCol': 18} / 请假 {'lastRow': 625, 'lastCol': 15} / 页签 {'production': 16, 'master': 47} / 部署 3）",
+    "after_since": true
+   },
+   {
+    "time": "2026-11-15 08:01:09",
+    "task": "pmlist-refresh",
+    "status": "OK",
+    "seconds": "68.5",
+    "detail": "refreshProjectSummary completed updateTotalSummary completed refreshFinanceOverview completed",
+    "after_since": true
+   },
+   {
+    "time": "2026-11-15 08:05:14",
+    "task": "bd-drain",
+    "status": "FAIL",
+    "seconds": "14.4",
+    "detail": "队列探头失败（GAS 不可达）: <HTTPError 404: 'Not Found'>",
+    "after_since": true
+   },
+   {
+    "time": "2026-11-15 08:10:04",
+    "task": "nps-receipt",
+    "status": "OK",
+    "seconds": "4.5",
+    "detail": "[2026-11-15T00:10:04.850Z] ✅ 无新增打开事件，无需动作",
+    "after_since": true
+   },
+   {
+    "time": "2026-11-15 08:15:11",
+    "task": "ts-health",
+    "status": "OK",
+    "seconds": "10.4",
+    "detail": "✅ 全部正常",
+    "after_since": true
+   },
+   {
+    "time": "2026-11-15 08:30:32",
+    "task": "t1b-watch",
+    "status": "OK",
+    "seconds": "31.6",
+    "detail": "检出 1 项变化（信息级（多为每日重算镜像，预期内）），已生成待处理草稿: T1-B_盯梢触发_20261115_0830.md",
+    "after_since": true
+   },
+   {
+    "time": "2026-11-15 08:35:14",
+    "task": "bd-drain",
+    "status": "FAIL",
+    "seconds": "14.3",
+    "detail": "队列探头失败（GAS 不可达）: <HTTPError 404: 'Not Found'>",
+    "after_since": true
+   },
+   {
+    "time": "2026-11-15 08:40:03",
+    "task": "nps-receipt",
+    "status": "OK",
+    "seconds": "3.7",
+    "detail": "[2026-11-15T00:40:03.979Z] ✅ 无新增打开事件，无需动作",
+    "after_since": true
+   },
+   {
+    "time": "2026-11-15 08:45:12",
+    "task": "ts-health",
+    "status": "OK",
+    "seconds": "12.0",
+    "detail": "✅ 全部正常",
+    "after_since": true
+   },
+   {
+    "time": "2026-11-15 09:00:29",
+    "task": "t1b-watch",
+    "status": "OK",
+    "seconds": "28.7",
+    "detail": "无增量（生产表 {'lastRow': 11513, 'lastCol': 18} / 请假 {'lastRow': 625, 'lastCol': 15} / 页签 {'production': 16, 'master': 49} / 部署 3）",
+    "after_since": true
+   },
+   {
+    "time": "2026-11-15 09:03:16",
+    "task": "pmlist-refresh",
+    "status": "OK",
+    "seconds": "195.9",
+    "detail": "⚠ 慢跑 196s |  refreshProjectSummary completed updateTotalSummary completed refreshFinanceOverview completed",
+    "after_since": true
+   },
+   {
+    "time": "2026-11-15 09:05:14",
+    "task": "bd-drain",
+    "status": "FAIL",
+    "seconds": "14.4",
+    "detail": "队列探头失败（GAS 不可达）: <HTTPError 404: 'Not Found'>",
+    "after_since": true
+   },
+   {
+    "time": "2026-11-15 09:10:05",
+    "task": "nps-receipt",
+    "status": "OK",
+    "seconds": "4.8",
+    "detail": "[2026-11-15T01:10:05.094Z] ✅ 无新增打开事件，无需动作",
+    "after_since": true
+   },
+   {
+    "time": "2026-11-15 09:10:05",
+    "task": "pclist-harvest",
+    "status": "FAIL",
+    "seconds": "5.4",
+    "detail": "请求失败: <HTTPError 404: 'Not Found'>",
+    "after_since": true
+   },
+   {
+    "time": "2026-11-15 09:15:12",
+    "task": "ts-health",
+    "status": "OK",
+    "seconds": "11.5",
+    "detail": "✅ 全部正常",
+    "after_since": true
+   },
+   {
+    "time": "2026-11-15 09:30:25",
+    "task": "t1b-watch",
+    "status": "OK",
+    "seconds": "24.8",
+    "detail": "无增量（生产表 {'lastRow': 11513, 'lastCol': 18} / 请假 {'lastRow': 625, 'lastCol': 15} / 页签 {'production': 16, 'master': 49} / 部署 3）",
+    "after_since": true
+   },
+   {
+    "time": "2026-11-15 09:35:14",
+    "task": "bd-drain",
+    "status": "FAIL",
+    "seconds": "14.3",
+    "detail": "队列探头失败（GAS 不可达）: <HTTPError 404: 'Not Found'>",
+    "after_since": true
+   },
+   {
+    "time": "2026-11-15 09:40:04",
+    "task": "nps-receipt",
+    "status": "OK",
+    "seconds": "3.7",
+    "detail": "[2026-11-15T01:40:04.016Z] ✅ 无新增打开事件，无需动作",
+    "after_since": true
+   },
+   {
+    "time": "2026-11-15 09:45:09",
+    "task": "ts-health",
+    "status": "OK",
+    "seconds": "9.1",
+    "detail": "✅ 全部正常",
+    "after_since": true
+   }
+  ],
+  "baseline": {
+   "production": {
+    "lastRow": 11513,
+    "lastCol": 18
+   },
+   "master_leave": {
+    "lastRow": 625,
+    "lastCol": 15
+   },
+   "sheet_counts": {
+    "production": 16,
+    "master": 49
+   },
+   "deployments": 3
+  },
+  "watch_state": {
+   "task": "t1b-watch",
+   "last_run": "2026-11-15T09:30:25",
+   "last_ok": true,
+   "severity": "ok",
+   "summary": "无增量（生产表 {'lastRow': 11513, 'lastCol': 18} / 请假 {'lastRow': 625, 'lastCol': 15} / 页签 {'production': 16, 'master': 49} / 部署 3）",
+   "consecutive_failures": 0,
+   "total_runs": 335
+  },
+  "probes": [
+   {
+    "path": "_tmp/t1b_watch_probe.json",
+    "time_local": "2026-11-15 09:49:38",
+    "time_utc": "2026-11-15T01:49:38Z",
+    "production": "11513/18",
+    "leave": "625/15",
+    "tabs_production": 16,
+    "tabs_master": 49,
+    "read_only": true
+   }
+  ],
+  "repo": {
+   "local_head": "b5089e0226db7e9f3e07d09419914a54ecb6e241",
+   "remote_head": "b5089e0226db7e9f3e07d09419914a54ecb6e241",
+   "commits": "296",
+   "dirty_lines": 0,
+   "fixed_commit_d50e795": "commit"
+  },
+  "deployments": {
+   "found": 3,
+   "ids": [
+    [
+     "AKfycbwlxB2z9IDDo7pBv4sr0pu6-1ywvYBuRyqTwfjgl_o",
+     "@HEAD"
+    ],
+    [
+     "AKfycbwYXV3VS3I59bVpUi9XBMClGsFkJ6l_NxPdQcysiXYe47-iONNMk6FIoI8VEXwYl-_2",
+     "@202"
+    ],
+    [
+     "AKfycbzUyhyK-tqL7ypp2H2jZXNCMciEr2PJwhkZIg0bwV1OwV2C6D9RKJZhA4HpiUi6F5eF",
+     "@212"
+    ]
+   ],
+   "error": null
+  },
+  "recent_files": [
+   "DesignFee_Pricing_20261107/_tmp_fullflow_dump.json",
+   "DesignFee_Pricing_20261107/_tmp_probe_fns.py",
+   "DesignFee_Pricing_20261107/_tmp_probe_notes.py",
+   "DesignFee_Pricing_20261107/_tmp_probe_vis.py",
+   "DesignFee_Pricing_20261107/_tmp_qs_copy_audit.json",
+   "DesignFee_Pricing_20261107/_tmp_qs_copy_audit.py",
+   "DesignFee_Pricing_20261107/gen_v126_cells.py",
+   "DesignFee_Pricing_20261107/qs_fullflow_dryrun.py",
+   "DesignFee_Pricing_20261107/qs_fullflow_dryrun_evidence.json",
+   "DesignFee_Pricing_20261107/qs_fullflow_nav_fix.py",
+   "DesignFee_Pricing_20261107/qs_fullflow_nav_fix_before.json",
+   "DesignFee_Pricing_20261107/qs_gate_card_reveal.py",
+   "DesignFee_Pricing_20261107/qs_gate_copy_fix.py",
+   "DesignFee_Pricing_20261107/qs_gate_copy_fix_before.json",
+   "DesignFee_Pricing_20261107/qs_gate_note_fix.py",
+   "DesignFee_Pricing_20261107/qs_gate_note_fix_before.json",
+   "DesignFee_Pricing_20261107/qs_v126_sync_fix.py",
+   "_tmp/gate_external_20261115_0949.json",
+   "_tmp/legacy_ap_release_before_r159.json",
+   "_tmp/release_supp_apply.log",
+   "_tmp/release_supp_apply2.log",
+   "_tmp/release_supp_complete.log",
+   "_tmp/release_supp_parallel.log",
+   "_tmp/t1b_watch_probe.json",
+   "outputs/QS报价闸门卡_说明体系收口_终态确认卡_20261115.html",
+   "outputs/T1-B_盯梢触发_20261115_0830.md",
+   "outputs/无台账项目_批量盘点与处置方案_2026-11-15.md",
+   "outputs/无台账项目_批量盘点清单_2026-11-15.csv",
+   "outputs/无台账项目_盘点摘要_2026-11-15.json",
+   "outputs/老账_付款申请周表_补充源页_20261115.csv",
+   "outputs/老账_贷方与同名_说清楚_20261115.html",
+   "outputs/老账_贷方冲销_待财务核实清单_20261115.csv",
+   "outputs/项目老账_并入采购付款_全盘复核_20261113.md",
+   "tools/.ts_health_baseline.json",
+   "tools/legacy_ap_release.py",
+   "tools/legacy_ap_rules.py",
+   "tools/legacy_ap_supp.py",
+   "tools/legacy_ap_supp_complete.py",
+   "tools/legacy_ap_supp_parallel.py",
+   "tools/legacy_no_ledger_audit.py",
+   "tools/quote_calculator.py",
+   "tools/thursday_digest_stage.py"
+  ]
+ },
+ "external": {
+  "mail": {
+   "channel": "QQ Mail (mcp__qq-mail)",
+   "checked_at": "2026-11-15T09:45:00+08:00",
+   "tom_genuine_replies": 1,
+   "note": "Tom 2026-11-14T16:32:15Z / 北京 11-15 00:32:15 msg_cbWxk5KF…《回复：【生产表】v109 原始工件与受控材料》，in_reply_to=<tencent_723495670B1F3EF06E79A55132FFDC5EA409@qq.com> 精确等于我方 v109 回函 rfc，线程承接成立。已全文阅读 v109；收到 v108 冻结副本先前未发布的更正、现已发布部分工件、含人员信息两项留受控的说明。立场：『文件是否可取得、其原始字节、哈希及覆盖范围仍须独立核验；不以邮件声明或哈希一致单独认定来源真实性、完整性或生产状态』；『下一步按固定提交只读核对清单及可取得工件，不运行仓库代码；受控两项请有权人员通过适当渠道保全并核验，不公开人员信息』；『服务端日志及权限上下文须有权通道所有者具名说明；清理授权和时间差异、业务签署、操作者确认、P1–P5 责任和基线，以及规则原文、监测覆盖和现场状态，仍需对应原始证据及授权主体核验，不能代填通过』；『未归因增量和 404 记录请继续保全，由有权负责人决定处置』；『事故 OPEN、HOLD/NO-GO、阶段一 PASS 暂缓；不试提交、修复、重启、生产写入、清理、回滚或部署。本函不构成验收或授权』。收件箱同时核到 11-15 系统告警 3 封（numberlock-fixwatch 04:48 / pclist-harvest 01:10 / bd-drain 00:05，均为既有 404 同类，无新根因）。"
+  },
+  "github": {
+   "new_commits": 0,
+   "new_issues": 0,
+   "new_prs": 0,
+   "note": "GitHub MCP ritajin-tech/SMCN_ERP-T1B-audit-shared：远端 HEAD=b5089e0226db7e9f3e07d09419914a54ecb6e241(v109)，与本地 _tmp/audit_shared HEAD 逐字一致，零漂移；list_pull_requests(all)=[]；list_issues(OPEN).totalCount=0；list_repository_collaborators 返回 HTTP 403 Resource not accessible by integration（协作者权限不可证实，如实标注不推断）。本地全量 git 核证：296 commit，git shortlog 作者 100% 为 rita.jin 本人及其 agent 的 10 种署名变体，committer email 去重全部为 Rita 侧/本地 agent；Tom 侧 commit/PR/issue/就地编辑 = 0。"
+  },
+  "production_table": {
+   "lastRow": 11513,
+   "lastCol": 18,
+   "checked_at": "2026-11-15T09:49:33+08:00",
+   "diff_vs_v109_baseline": 0
+  },
+  "master_db": {
+   "sheet": "请假",
+   "lastRow": 625,
+   "lastCol": 15,
+   "checked_at": "2026-11-15T09:49:33+08:00",
+   "diff_vs_v109_baseline": 0
+  },
+  "data_events": [
+   "信息级：主库页签 47→49，新增成对『按月考勤_重算前_20261115』『月度视图_重算前_20261115』，为 2026-10-15 起每日重算镜像既有模式；t1b-watch 08:30:32 判『信息级（多为每日重算镜像，预期内）』并生成 outputs/T1-B_盯梢触发_20261115_0830.md，09:00 与 09:30 稳定为 49。行数/列数/部署数零变化。来源 SOURCE_NOT_ATTESTED，不代判为自愈或真人提交。"
+  ],
+  "failures_already_disclosed": [
+   "bd-drain",
+   "pclist-harvest",
+   "numberlock-fixwatch",
+   "ts-health"
+  ],
+  "failures_note": "11-14 zc 日志 FAIL 63 行 + 11-15 新增若干行（bd-drain/pclist-harvest/numberlock-fixwatch/ts-health），全部为 GAS 端点不可达 HTTP 404 同一事故类，零新根因类故障；11-15 收件箱 3 封告警邮件佐证。零生产写/清理/回滚/试提交事件。pmlist-refresh 为 OK 非 FAIL（v108 已纠正误判，沿用）。",
+  "live_docs": {
+   "conflict": false,
+   "note": "v109 表 Q 与 v110 表 R 为同一核验要求的通道升级（新增邮件正文等价还复 + 具名模板），非矛盾；t1b_loop_policy.json 的 rita_override 条款与本轮 Rita 明确授权一致。"
+  },
+  "last_delivery": {
+   "generation": "v109",
+   "requirements": [
+    {
+     "item": "拉取 docs/fixed_originals_v108/ 4 项安全原件并复算 SHA-256（表 Q1）",
+     "satisfied": "否（Tom 本函仅声明『仍须独立核验』，未给出任一复算结果）",
+     "evidence": "msg_cbWxk5KFsOVKNbOu3qfqyZkpE906TrZHV_8PgWHHqghxyQ 全文"
+    },
+    {
+     "item": "表 Q2–Q6 具名回填（具体编辑，非 Yes/No）",
+     "satisfied": "否（零回填；35 代累计零就地编辑）",
+     "evidence": "共享库 296 commit 全 Rita 侧 / PR 0 / issue 0"
+    },
+    {
+     "item": "服务端日志及权限上下文由有权通道所有者具名说明",
+     "satisfied": "否（本函重申该要求，主体未出具）",
+     "evidence": "Tom 新函第 2 段"
+    },
+    {
+     "item": "清理授权/时间差异/业务签署/操作者确认/P1–P5 责任与基线由授权主体核验",
+     "satisfied": "否（本函重申『不能代填通过』）",
+     "evidence": "Tom 新函第 2 段"
+    },
+    {
+     "item": "GAS 端点 404 连续性恢复或给出决策",
+     "satisfied": "否（404 持续，11-15 告警邮件佐证）",
+     "evidence": "11-15 SMCN 告警邮件 3 封"
+    }
+   ]
+  },
+  "this_generation": {
+   "generation": "v110",
+   "type": "完善解决方案 / 收敛执行方案（非第 36 个补证据代）",
+   "rita_directive": "2026-11-15 09:41 北京原话：『继续 出完善解决方案 并且生产表和主库结合现在收到的文件，然后看看 Tom 更新的回复，系统大局梳理发布给他，并要求他也大局系统还复给我们，然后要有明确的方案不要 Yes or No，要有具体的编辑，因为他也能看得到 GitHub 共享库。然后全部看完了以后你回复给他不要再问我了。顺便提醒他不要回去 记住我们的进度 加速修复。记住红线，不改链接！！！』",
+   "structural_finding": "35 代不收敛的根因不是证据不足，而是通道架构错配：每代都要求 Tom 在 GitHub 共享库就地改字，但其 35 代全部只用 QQ 邮件回复，共享库 296 commit 零 Tom 写入，协作者权限 403 不可证实。v110 给出双通道等价还复（邮件正文逐字转录）+ 验收责任三分类 + 有限步收敛终止条件，全程不换任何链接。"
+  }
+ },
+ "gate": {
+  "verdict": "OPEN_NEXT_VERSION",
+  "checks": [
+   {
+    "id": "T1",
+    "name": "Tom 实质新真回函",
+    "triggered": true,
+    "evidence": "Tom 2026-11-14T16:32:15Z / 北京 11-15 00:32:15 msg_cbWxk5KF…《回复：【生产表】v109 原始工件与受控材料》，in_reply_to=<tencent_723495670B1F3EF06E79A55132FFDC5EA409@qq.com> 精确等于我方 v109 回函 rfc，线程承接成立。已全文阅读 v109；收到 v108 冻结副本先前未发布的更正、现已发布部分工件、含人员信息两项留受控的说明。立场：『文件是否可取得、其原始字节、哈希及覆盖范围仍须独立核验；不以邮件声明或哈希一致单独认定来源真实性、完整性或生产状态』；『下一步按固定提交只读核对清单及可取得工件，不运行仓库代码；受控两项请有权人员通过适当渠道保全并核验，不公开人员信息』；『服务端日志及权限上下文须有权通道所有者具名说明；清理授权和时间差异、业务签署、操作者确认、P1–P5 责任和基线，以及规则原文、监测覆盖和现场状态，仍需对应原始证据及授权主体核验，不能代填通过』；『未归因增量和 404 记录请继续保全，由有权负责人决定处置』；『事故 OPEN、HOLD/NO-GO、阶段一 PASS 暂缓；不试提交、修复、重启、生产写入、清理、回滚或部署。本函不构成验收或授权』。收件箱同时核到 11-15 系统告警 3 封（numberlock-fixwatch 04:48 / pclist-harvest 01:10 / bd-drain 00:05，均为既有 404 同类，无新根因）。 ｜ 邮件检查声明：2026-11-15T09:45:00+08:00 via QQ Mail (mcp__qq-mail)",
+    "value": 1,
+    "attested": true
+   },
+   {
+    "id": "T2",
+    "name": "生产表 / 主库真实数据事件",
+    "triggered": true,
+    "evidence": "所有 probe 读数与基线一致：11513/18 · 625/15 · 页签 49/16 · 部署 3",
+    "value": []
+   },
+   {
+    "id": "T3",
+    "name": "共享库新编辑 / PR / issue / 远端漂移",
+    "triggered": false,
+    "evidence": "MCP since 2026-11-14T16:26:50Z：0/0/0；HEAD=remote=b5089e02；dirty=0",
+    "value": 0
+   },
+   {
+    "id": "T4",
+    "name": "活文档真实矛盾",
+    "triggered": false,
+    "evidence": "v109 表 Q 与 v110 表 R 为同一核验要求的通道升级（新增邮件正文等价还复 + 具名模板），非矛盾；t1b_loop_policy.json 的 rita_override 条款与本轮 Rita 明确授权一致。",
+    "value": false
+   },
+   {
+    "id": "T5",
+    "name": "必须主动披露的新失败运行记录",
+    "triggered": false,
+    "evidence": "since 后零 FAIL；当日两条 FAIL 均已在上一代逐条披露",
+    "value": []
+   }
+  ],
+  "triggered": [
+   "T1",
+   "T2"
+  ]
+ },
+ "manifest_sha256": "3deca0ef08f591ee43e35ea8805b66da5a6b9775b85706b8337ba9ed1914145b"
+}

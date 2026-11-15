@@ -1,0 +1,145 @@
+{
+  "purpose": "v110 · 完善解决方案的证据基座。回应 Rita 2026-11-15 09:41『出完善解决方案』：不再补第 36 份证据，而是把 35 代不收敛的结构性根因逐源查实、可审计打勾，并给出可执行收口机制（双通道等价还复 / 验收责任三分类 / 有限步收敛与终止条件）。",
+  "generation": "v110",
+  "type": "完善解决方案 / 收敛执行方案（非补证据代）",
+  "generated_at_local": "2026-11-15 09:55 (GMT+8；UTC 2026-11-15T01:55Z)",
+  "baseline_commit": "b5089e0226db7e9f3e07d09419914a54ecb6e241",
+  "shared_repo": "ritajin-tech/SMCN_ERP-T1B-audit-shared",
+  "shared_repo_url_unchanged": true,
+
+  "scope_declaration": {
+    "note": "凡回函/PASS 必附检查范围声明；未核查项一律标 UNVERIFIED，不以『查不到』推定为『没有』。",
+    "verified": [
+      "QQ Mail MCP GetMessage 全文：Tom 新真函 1 封，逐句映射",
+      "QQ Mail MCP ListMessages(inbox,25)：3 封 11-15 系统告警（404 同类，无新根因），无其他新函/附件",
+      "GitHub MCP list_commits：远端 HEAD=b5089e0，与本地逐字一致，零漂移",
+      "GitHub MCP list_pull_requests(all)=0；list_issues(OPEN).totalCount=0",
+      "本地 git shortlog -sne --all / git log %ce：296 commit，作者 100% 为 rita.jin 本人及其 agent 的 10 种署名变体，Tom 侧写入 0",
+      "现场只读 probe_v59_live_state.py：生产表 DB_工时流水 11513/18、主库请假 625/15",
+      "现场只读：主库页签 47→49（新增成对『按月考勤_重算前_20261115』『月度视图_重算前_20261115』，10-15 起每日重算镜像既有模式，盯梢 08:30 判信息级·预期内）",
+      "现场只读 _probe_all_deployments.py：13 项目 82 个 deploymentId 逐字 DIFF=0；ts-manager 恒 3 (maxV=212)、numberlock 恒 9",
+      "团队入口 AKfycbzUyhyK… @212 独立 GET ×3 = HTTP 200/200/200",
+      "tools/t1b_gate_check.py --generation v110：OPEN_NEXT_VERSION（T1/T2 TRIGGER；T3/T4/T5 CLEAR）"
+    ],
+    "unverified": [
+      {"item": "共享库协作者写权限", "reason": "GitHub MCP list_repository_collaborators 返回 HTTP 403 Resource not accessible by integration", "status": "UNVERIFIED__NOT_INFERRED"},
+      {"item": "服务端日志及权限上下文可得范围", "reason": "须有权通道所有者具名；本 Agent 不持有不代出", "status": "REQUIRES_AUTHORIZED_CHANNEL_OWNER_STATEMENT"},
+      {"item": "受控两项原始字节（含人员姓名）", "reason": "按公开库边界纪律留受控渠道，SHA-256 已在 v108 矩阵登记", "status": "HELD_IN_CONTROLLED_CHANNEL"},
+      {"item": "清理授权/时间差异/业务签署/操作者确认/P1-P5 责任与基线", "reason": "须授权主体与原始记录核验", "status": "AWAIT_AUTHORIZED_VERIFY"},
+      {"item": "来源真实性/完整性/生产状态", "reason": "哈希一致只支持字节一致，不支持上述三项", "status": "NOT_ATTESTED_BY_DESIGN"}
+    ],
+    "incident_state_maintained": "OPEN · HOLD-NO-GO · 阶段一 PASS 暂缓 · M2 未签 · TS_WRITE_FREEZE=1"
+  },
+
+  "structural_root_causes": [
+    {
+      "id": "D1",
+      "name": "通道错配（最根本）",
+      "finding": "v75→v109 共 35 代，每代均在共享库发『表 Q/V/E-H/I-K/P，请 Tom 直接在 GitHub 共享库改字，commit 即视为正式还复』；但共享库 296 commit 作者 100% 为 rita.jin 本人及 agent，Tom 的 commit/PR/issue/就地编辑全部为 0，Tom 35 代每一封回函都走 QQ 邮件。协作者权限查询 403 不可证实。",
+      "evidence": ["git rev-list --count HEAD = 296", "git shortlog -sne --all = 10 种署名变体全为 Rita 侧", "git log --all --format=%ce | sort -u = 7 个邮箱全为 Rita 侧/本地 agent", "grep 'Tom' 在 commit 作者字段零命中（仅命中 commit message 文本）", "list_pull_requests(all)=[]", "list_issues(OPEN).totalCount=0", "list_repository_collaborators = HTTP 403"],
+      "conclusion": "把『解锁收敛的唯一前提』设成了对方从未使用、且写权限未证实的动作。不是 Tom 不还复，是还复入口架在错通道上。此为本代最重要的自我更正。"
+    },
+    {
+      "id": "D2",
+      "name": "验收条件不可闭合且自举",
+      "finding": "Tom 每代要求『有权通道所有者具名说明』『授权主体核验』共 16 项；这些主体（服务端日志所有者、清理授权签署人、业务签署人、P1-P5 责任人）既非本 Agent 亦不在 Tom 手上，本 Agent 受红线约束不代填姓名/不代判口径。每代整体退回对方 → 下一封维持边界 → 又开代。",
+      "conclusion": "球体在两方之间循环，无任一方拥有闭合它的权限。"
+    },
+    {
+      "id": "D3",
+      "name": "触发规则与收敛判据互相冲突",
+      "finding": "docs/t1b_loop_policy.json 的 T1 定义写明『仅重复既有边界不算实质新』，但闸门脚本按『有真函即 TRIGGER』判（v104 SC-5 已记录冲突）；no_trigger_rule 要求『表 E-H/I-K/V9-V20 无具体编辑落地』才 NO_TRIGGER，而这些表只存在于 D1 错通道 → NO_TRIGGER 事实上永不可达（v105 已把 K-6 撤回并登记 UNRESOLVED）。",
+      "conclusion": "规则文本与执行长期不一致，此前只『并列留证』，未给解法。"
+    },
+    {
+      "id": "D4",
+      "name": "状态同步 vs 承接代口径漂移",
+      "finding": "rita_override 条款规定『Rita 显式下达看完直接回函不要问我』时即使 NO_TRIGGER 也回函，但须标『状态同步·非承接版』、不新开代、不发布新版本文档；而实际 35 代均开代并发布。",
+      "conclusion": "制度与执行不一致，每代累积口径债。"
+    }
+  ],
+
+  "solution": {
+    "pillar_A": {
+      "name": "双通道等价还复（解开 D1，不换任何链接）",
+      "channel_1": "GitHub 共享库就地编辑 + commit（保持原样，链接不变）",
+      "channel_2": "QQ 邮件正文直接改字回信（无需登录 GitHub、无需写权限）；本方逐字转录进共享库并标 source=Tom 邮件 msg_id+时点，不改一字、不代填结论、不代判口径",
+      "link_change": false,
+      "note": "不以『Tom 没有写权限』为前提（403 为 UNVERIFIED）；只是在其实际使用 35 代的通道上补一条等价入口。"
+    },
+    "pillar_B": {
+      "name": "验收责任三分类（解开 D2）",
+      "class_1_already_delivered": ["4 项安全原件字节+SHA-256+d50e795", "v108 固定版本证据矩阵", "现场只读读数 11513/18·625/15·页签 49/16·82 个 deploymentId DIFF=0", "监测覆盖清单、各轮 404 与未归因增量保全记录"],
+      "class_2_requires_authorized_owner": {
+        "服务端日志及权限上下文": "GAS/服务端通道所有者 → 表 R·R2",
+        "受控两项保全与核验": "Tom 方有权人员（受控渠道）→ 表 R·R3",
+        "清理授权/时间差异/业务签署/操作者确认": "rita.jin（授权人）本人原始记录 → 表 R·R4",
+        "P1-P5 责任人和基线": "各 P 项对应责任人 → 表 R·R4（全 PENDING）"
+      },
+      "class_3_rita_ruling": "事故状态类 OPEN/HOLD-NO-GO/阶段一 PASS 暂缓/M2 未签/TS_WRITE_FREEZE=1 维持不变，裁定入口单列",
+      "key_change": "把『请有权通道所有者具名说明』的悬空请求，写成『哪一格、由谁、填什么文字』，使动作可被指派、可被完成、可被验证；本 Agent 仍一格不填。"
+    },
+    "pillar_C": {
+      "name": "有限步收敛与终止条件（解开 D3/D4）",
+      "steps": [
+        {"id": "S1", "trigger": "Tom 以通道①或②给出任一格具体编辑（非『待核/须明确/维持边界』）", "action": "本方转录留痕、逐格比对、开一次增量承接"},
+        {"id": "S2", "trigger": "类①复算结论齐备", "action": "出具字节/哈希/覆盖范围分歧清单（一致的、缺件的逐件列）"},
+        {"id": "S3", "trigger": "类②由有权主体具名回填", "action": "归档具名件，标 ATTESTED_BY_OWNER"},
+        {"id": "S4", "trigger": "三类齐备", "action": "才有资格讨论阶段一 PASS；能否 PASS 仍由 Tom 方与 Rita 裁定"}
+      ],
+      "termination": [
+        {"id": "T-alpha", "condition": "Tom 方或有权负责人书面写明『本轮不进入验收』", "action": "转收工监控态（稳定监控+接受风险挂起），只做只读登记，不再发布新承接版"},
+        {"id": "T-beta", "condition": "下一封仍为纯维持边界函且表 R 零格落地", "action": "按 no_trigger_rule 判 NO_TRIGGER，只登记不发空函；Rita 若仍下达直接回函，按 rita_override 只发状态同步函（明确标注非承接版）并登记 override 原话与时点"}
+      ],
+      "rule_not_self_modified": "t1b_loop_policy.json 逐字不动；K-6 撤回 WITHDRAWN_PER_TOM_1220 不重开；只在表 R·R7 提供可直接粘贴的收窄文字请 Tom 书面裁定。"
+    }
+  },
+
+  "tom_new_mail_mapping": {
+    "message_id": "msg_cbWxk5KFsOVKNbOu3qfqyZkpE906TrZHV_8PgWHHqghxyQ",
+    "subject": "回复：【生产表】v109 原始工件与受控材料",
+    "created_at_utc": "2026-11-14T16:32:15Z",
+    "created_at_local": "2026-11-15 00:32:15 (GMT+8)",
+    "in_reply_to": "<tencent_723495670B1F3EF06E79A55132FFDC5EA409@qq.com>",
+    "thread_valid": true,
+    "has_attachments": false,
+    "statements_mapped": [
+      "已全文阅读 v109；收到 v108 冻结副本先前未发布的更正、已发布部分工件、含姓名两项留受控",
+      "文件是否可取得、原始字节、哈希及覆盖范围仍须独立核验；不以邮件声明或哈希一致单独认定来源真实性/完整性/生产状态",
+      "按固定提交只读核对清单及可取得工件，不运行仓库代码",
+      "受控两项请有权人员通过适当渠道保全并核验，不公开人员信息",
+      "服务端日志及权限上下文须有权通道所有者具名说明；清理授权和时间差异、业务签署、操作者确认、P1-P5 责任和基线、规则原文、监测覆盖和现场状态仍需原始证据及授权主体核验，不能代填通过",
+      "未归因增量和 404 记录请继续保全，由有权负责人决定处置",
+      "事故 OPEN、HOLD/NO-GO、阶段一 PASS 暂缓；不试提交、修复、重启、生产写入、清理、回滚或部署；本函不构成验收或授权"
+    ]
+  },
+
+  "three_reminders": [
+    "不要回去：K-6 撤回 WITHDRAWN_PER_TOM_1220 不重开；v99–v109 全部靶位与证据链原样保留；不回退历史结论、不重推已撤回提案、不擅改规则",
+    "记住进度：v110 = 第 36 代；35 代双通道读回、字节一致、边界 0 命中、红线全守；共享库 296 commit 零漂移、82 个 deploymentId 零差异",
+    "加速修复：① GAS 端点 404 连续性（11-15 告警仍同一类）；② 表 R 任一格具体编辑。一回信（通道②即可）即触发 S1，无需登录 GitHub、无需写权限"
+  ],
+
+  "redlines": {
+    "deployment_id_diff": 0,
+    "projects_scanned": 13,
+    "deployment_ids_compared": 82,
+    "ts_manager_deployments": 3,
+    "ts_manager_max_version": 212,
+    "numberlock_deployments": 9,
+    "team_entry_http": [200, 200, 200],
+    "zero": ["GAS push", "deploy", "link change", "new/deleted deployment", "production write", "master-db write", "test submit", "fix/restart", "cleanup/rollback", "alert coverage reduction", "historical object edit/delete", "column width change"],
+    "note": "本代仅向共享库 docs/ 推送文档与元数据；仓库地址与 13 个 GAS deploymentId 逐字不变。"
+  },
+
+  "deliverables": [
+    "T1-B_v110_完善解决方案_系统大局与收敛执行方案_20261115.md",
+    "T1-B_v110_表R_双通道可就地编辑_具体编辑靶子_20261115.md",
+    "T1-B_v110_全盘逐源诊断_结构死锁证据_20261115.json",
+    "T1-B_v110_闸门核查_20261115.json / .html",
+    "T1-B_v110_公开库边界检查_20261115.json",
+    "T1-B_v110_外发授权留痕_20261115.json",
+    "T1-B_v110_系统大局发布与回函_验收卡_20261115.html"
+  ],
+  "disclaimer": "本文件不构成验收或授权。"
+}
