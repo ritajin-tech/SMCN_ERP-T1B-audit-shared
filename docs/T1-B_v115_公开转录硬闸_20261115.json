@@ -1,0 +1,120 @@
+{
+  "tool": "t1b_verbatim_transcript_guard",
+  "version": "1.0",
+  "checked_at_bj": "2026-11-15 14:48:21",
+  "checked_at_utc": "2026-11-15T06:48:21Z",
+  "read_only": true,
+  "policy": "deny-by-default：public 共享库发布前，任一对方邮件正文/摘录指纹命中即 BLOCK",
+  "controlled_config": "tools\\t1b_transcript_guard_patterns.json",
+  "controlled_patterns": 19,
+  "controlled_sha256": "cbbfcf208ba03dee68df14cf591ce37e2574c6ffdf78c540c0236f32fddd3ef7",
+  "authority": [
+    "2026-11-15T04:52:05Z 对 v112 函：对公开转录持书面否定立场，范围涉及邮件正文或摘录，留痕保存在受控往来，并要求先核实已公开内容与范围",
+    "2026-11-15T04:53:13Z 对 v113 函：对公开转录持书面否定立场；不以填格或自动触发作为验收条件",
+    "2026-11-15T05:48:54Z 对 v114 函：对公开转录持书面否定立场，范围涉及邮件正文或摘录；固定提交与文件尚未由对方独立取得核验；双通道等价、T1 触发、条款自动落地不因该函成立"
+  ],
+  "historical_scope": {
+    "first_public_verbatim_commit": "1b2dfca420caaad2f204edcfac2ec6f683e29460",
+    "first_public_verbatim_generation": "v112",
+    "continued_in_generation": "v114",
+    "commit_2a3ca06": "2a3ca06adb353c1800f603f8c93e06ba89f21f64",
+    "handling": "历史对象不删改、不 rewrite；v115 起零新增转录，处置选项由有权主体书面裁定。"
+  },
+  "verdict": "PASS",
+  "publish_files_checked": 11,
+  "publish_hit_total": 0,
+  "publish_detail": [
+    {
+      "file": "outputs/T1-B_v115_完善解决方案_公开转录边界认领与自动设定撤销_第38代真承接_20261115.md",
+      "bytes": 26296,
+      "sha256": "860f9b5e92b2f9518f844563d50129fa3e1288ba495f9ad6b6c198cfcc8148a2",
+      "hits": [],
+      "hit_total": 0,
+      "mode": "PUBLISH_GATE"
+    },
+    {
+      "file": "outputs/T1-B_v115_表U_具体编辑靶子_可就地编辑底本_20261115.md",
+      "bytes": 7258,
+      "sha256": "865faf84f48daf0477817a38d74d942f52474995df1e3f130e9ee8d4837e497c",
+      "hits": [],
+      "hit_total": 0,
+      "mode": "PUBLISH_GATE"
+    },
+    {
+      "file": "outputs/T1-B_v115_受控边界处置说明_只增不删_20261115.md",
+      "bytes": 5289,
+      "sha256": "8a4d4acd83641e0af4f06a45632b84ce8e72f6a75c020046efe5c98849268c28",
+      "hits": [],
+      "hit_total": 0,
+      "mode": "PUBLISH_GATE"
+    },
+    {
+      "file": "outputs/T1-B_v115_全盘逐源诊断_自动换算根因_20261115.json",
+      "bytes": 6992,
+      "sha256": "4442869e65caef49e279a80109fe09588878ebed550bb699a762737f3ca2ee1c",
+      "hits": [],
+      "hit_total": 0,
+      "mode": "PUBLISH_GATE"
+    },
+    {
+      "file": "outputs/T1-B_v115_公开转录范围核实_20261115.json",
+      "bytes": 11310,
+      "sha256": "855120ef6373d0d149f6c1c2d0e2811bb9f210bb532133f753d75e3ccd7a5196",
+      "hits": [],
+      "hit_total": 0,
+      "mode": "PUBLISH_GATE"
+    },
+    {
+      "file": "outputs/T1-B_v115_override留痕与外发授权_20261115.json",
+      "bytes": 3318,
+      "sha256": "7198b3c8731aa9b6b8e30ecb1b03f59f2216e83fac6719328154bb8bd3f182cf",
+      "hits": [],
+      "hit_total": 0,
+      "mode": "PUBLISH_GATE"
+    },
+    {
+      "file": "outputs/T1-B_v115_闸门结论摘要_公开留痕版_20261115.json",
+      "bytes": 2384,
+      "sha256": "fe33dbe7c64683e306801b7a5900d845f022d1e0f053b60e7cf603af5eac7d5d",
+      "hits": [],
+      "hit_total": 0,
+      "mode": "PUBLISH_GATE"
+    },
+    {
+      "file": "outputs/T1-B_v115_验收卡_第38代真承接_20261115.html",
+      "bytes": 9341,
+      "sha256": "5102e21ad67a98af7072ffb7b9ba31f06c69f3fa9b93a73f9ee8f97f302881a3",
+      "hits": [],
+      "hit_total": 0,
+      "mode": "PUBLISH_GATE"
+    },
+    {
+      "file": "outputs/T1-B_v115_可独立核验取数路径_20261115.json",
+      "bytes": 5854,
+      "sha256": "e8af93d9472bf47199f93a168ac3ca1cef7c34e90aefcfa2f3294455a5e364a6",
+      "hits": [],
+      "hit_total": 0,
+      "mode": "PUBLISH_GATE"
+    },
+    {
+      "file": "outputs/T1-B_v115_公开转录硬闸_20261115.json",
+      "bytes": 4092,
+      "sha256": "62140c97cbe798021d7a099b449788078ca5aa5a7d7a72752b28b2a93077ae6b",
+      "hits": [],
+      "hit_total": 0,
+      "mode": "PUBLISH_GATE"
+    },
+    {
+      "file": "outputs/T1-B_v115_公开库边界检查_20261115.json",
+      "bytes": 2085,
+      "sha256": "b313ce1f1e88a8b7c322af46c1a3c7ab56c26d52b7fdab2697524f744fa6d5bd",
+      "hits": [],
+      "hit_total": 0,
+      "mode": "PUBLISH_GATE"
+    }
+  ],
+  "historical_files_checked": 0,
+  "historical_hit_total": 0,
+  "historical_detail": [],
+  "note": "历史清点只用于出具范围核实报告，不改写、不删除、不 rewrite 任何既有对象；处置由有权主体书面裁定。"
+}

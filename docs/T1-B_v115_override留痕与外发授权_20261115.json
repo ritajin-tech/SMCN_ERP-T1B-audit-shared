@@ -1,0 +1,59 @@
+{
+  "tool": "T1-B v115 指令留痕与外发授权登记",
+  "generation": "v115",
+  "checked_at_bj": "2026-11-15 14:35",
+  "checked_at_utc": "2026-11-15T06:35Z",
+  "directive": {
+    "speaker": "Rita",
+    "at_bj": "2026-11-15 14:28",
+    "at_utc": "2026-11-15T06:28Z",
+    "verbatim": "继续 出完善解决方案 并且生产表和主库结合现在收到的文件，然后看看 Tom 更新的回复，系统大局梳理发布给他，并要求他也大局系统还复给我们，然后要有明确的方案不要 Yes or No，要有具体的编辑，因为他也能看得到 GitHub 共享库。然后全部看完了以后你回复给他不要再问我了。顺便提醒他不要回去 记住我们的进度 加速修复。记住红线，不改链接！！！",
+    "is_policy_owner": true,
+    "policy_file": "t1b_loop_policy.json"
+  },
+  "trigger_status": {
+    "type": "T1 真触发（三封新真函）",
+    "gate_verdict": "OPEN_NEXT_VERSION",
+    "no_trigger_rule_applies": false,
+    "rita_override_applies": false,
+    "note": "本代有真实新触发，按规则正常开第 38 代真承接；rita_override 的『零触发仍回函』条款本代不需要启用。Rita 指令中「你回复给他不要再问我了」仍作为外发的显式书面授权登记，不因本代是真触发而省略。"
+  },
+  "external_send_authorization": {
+    "basis": "Rita 本轮逐字授权「你回复给他不要再问我了」，且本代成品（共享库 docs/ 与本地 outputs/）已全部备好后再发",
+    "channel": "QQ Mail mcp__qq-mail__SendMessage",
+    "batch": "一批 1 封（红线 #10：Tag／点名外发＝一批 1 封、默认不自动发）",
+    "to": [{"email": "1252293966@qq.com", "name": "Tom"}],
+    "cc": [{"email": "332721759@qq.com", "name": "Rita"}],
+    "body_format": "PLAIN",
+    "emoji": false,
+    "time_format": "北京 GMT+8 优先 + UTC 括号附注，禁裸 Z",
+    "three_reminders": ["不要回去", "记住我们的进度（第 38 代）", "加速修复"],
+    "no_yes_no": true,
+    "require_concrete_edits": true,
+    "require_system_wide_reply": true,
+    "scope_statement_attached": true,
+    "ask_rita_again": false
+  },
+  "publish_authorization": {
+    "basis": "Rita 本轮逐字「系统大局梳理发布给他…因为他也能看得到 GitHub 共享库」",
+    "target": "ritajin-tech/SMCN_ERP-T1B-audit-shared docs/",
+    "mode": "只增不删新增 docs/ 留痕文件",
+    "origin_unchanged": true,
+    "zero_history_modification": true,
+    "zero_link_change": true,
+    "zero_gas_push_deploy": true,
+    "pre_publish_gates": [
+      {"gate": "t1b_public_boundary_check.py", "requirement": "22 禁止串 0 命中 PASS"},
+      {"gate": "t1b_verbatim_transcript_guard.py", "requirement": "19 指纹 0 命中 PASS（本代新增硬闸）"}
+    ]
+  },
+  "redline_ack": {
+    "no_link_change": "13 项目 82 个 deploymentId DIFF=0；ts-manager 恒 3；numberlock 恒 9；入口 GET 三次 200；origin 逐字不变",
+    "incident_state": "OPEN / HOLD-NO-GO / 阶段一 PASS 暂缓 / M2 未签 / TS_WRITE_FREEZE=1 维持，不以本方案换放行",
+    "no_production_write": true,
+    "no_master_write": true,
+    "no_trial_commit_fix_restart_cleanup_rollback": true,
+    "no_monitoring_coverage_reduction": true,
+    "no_column_width_change": true
+  }
+}

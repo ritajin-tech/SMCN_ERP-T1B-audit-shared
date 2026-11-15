@@ -1,0 +1,68 @@
+{
+  "tool": "tools/t1b_public_boundary_check.py",
+  "checked_at_local": "2026-11-15 14:48:20",
+  "controlled_source": "_tmp/t1b_increment_snapshot_20261114_1153.json",
+  "secret_string_count": 22,
+  "secret_strings_not_logged": true,
+  "note": "禁止串由现场受控快照抽取，本报告不回写任何禁止串原文，避免二次泄露",
+  "files": [
+    {
+      "file": "outputs/T1-B_v115_完善解决方案_公开转录边界认领与自动设定撤销_第38代真承接_20261115.md",
+      "bytes": 26296,
+      "hits": []
+    },
+    {
+      "file": "outputs/T1-B_v115_表U_具体编辑靶子_可就地编辑底本_20261115.md",
+      "bytes": 7258,
+      "hits": []
+    },
+    {
+      "file": "outputs/T1-B_v115_受控边界处置说明_只增不删_20261115.md",
+      "bytes": 5289,
+      "hits": []
+    },
+    {
+      "file": "outputs/T1-B_v115_全盘逐源诊断_自动换算根因_20261115.json",
+      "bytes": 6992,
+      "hits": []
+    },
+    {
+      "file": "outputs/T1-B_v115_公开转录范围核实_20261115.json",
+      "bytes": 11310,
+      "hits": []
+    },
+    {
+      "file": "outputs/T1-B_v115_override留痕与外发授权_20261115.json",
+      "bytes": 3318,
+      "hits": []
+    },
+    {
+      "file": "outputs/T1-B_v115_闸门结论摘要_公开留痕版_20261115.json",
+      "bytes": 2384,
+      "hits": []
+    },
+    {
+      "file": "outputs/T1-B_v115_验收卡_第38代真承接_20261115.html",
+      "bytes": 9341,
+      "hits": []
+    },
+    {
+      "file": "outputs/T1-B_v115_可独立核验取数路径_20261115.json",
+      "bytes": 5854,
+      "hits": []
+    },
+    {
+      "file": "outputs/T1-B_v115_公开转录硬闸_20261115.json",
+      "bytes": 4092,
+      "hits": []
+    },
+    {
+      "file": "outputs/T1-B_v115_公开库边界检查_20261115.json",
+      "bytes": 1701,
+      "hits": []
+    }
+  ],
+  "findings": [],
+  "verdict": "PASS__NO_PERSONNEL_DETAIL",
+  "boundary": "公开库只留路径／字节数／SHA-256／采集时点／稳定键哈希等元数据"
+}

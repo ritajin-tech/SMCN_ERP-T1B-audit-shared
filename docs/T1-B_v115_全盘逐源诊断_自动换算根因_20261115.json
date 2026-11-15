@@ -1,0 +1,74 @@
+{
+  "tool": "T1-B v115 全盘逐源诊断",
+  "generation": "v115",
+  "type": "第38代真承接",
+  "checked_at_bj": "2026-11-15 14:35",
+  "checked_at_utc": "2026-11-15T06:35Z",
+  "read_only": true,
+  "gate": {
+    "command": "python tools/t1b_gate_check.py --since 2026-11-15T04:59:08Z --external _tmp/gate_external_20261115_1435.json --generation v115 --out outputs/T1-B_v115_闸门核查_20261115",
+    "verdict": "OPEN_NEXT_VERSION",
+    "triggered": ["T1"],
+    "T1": "TRIGGER · 三封新真函（逐封 GetMessage 全文读回，rfc 各自独立、线程承接分别指向 v112/v113/v114）",
+    "T2": "CLEAR · 生产表 11513/18、主库请假 625/15 与基线 diff=0；页签 NOT_ATTESTED",
+    "T3": "CLEAR · GitHub 0 commit / 0 PR / 0 issue；HEAD=remote=2a3ca06；dirty=0",
+    "T4": "CLEAR · 无活文档真实矛盾；本代如实登记的是我方 commit message 与事实不符，属自认不实陈述，非文档间矛盾",
+    "T5": "CLEAR · since 后零 FAIL；当日既有 FAIL 均已在上一代逐条披露",
+    "sources": 7,
+    "new_runs_since": 18,
+    "probes": 1
+  },
+  "sources_checked": [
+    {"n": 1, "source": "QQ 收件箱全量 limit=25", "result": "三封新真函 + 1 封 14:04 新告警 + 已登记旧件", "status": "DONE"},
+    {"n": 2, "source": "三封新函 GetMessage 逐封全文", "result": "msg_QicC7EblqCgHv13O4l…(04:52:05Z) / msg_R8f_sHXcGdLZ0-v_hbDK9…(04:53:13Z) / msg_wLfKQeIei6GMCfeAhkES…(05:48:54Z) 全部读全", "status": "DONE"},
+    {"n": 3, "source": "GitHub commits perPage=6", "result": "HEAD 2a3ca06(v114)，下一条 1b2dfca(v112)，零新提交", "status": "DONE"},
+    {"n": 4, "source": "GitHub PR state=all", "result": "空集", "status": "DONE"},
+    {"n": 5, "source": "GitHub issue state=OPEN", "result": "totalCount=0", "status": "DONE"},
+    {"n": 6, "source": "共享库本地/远端/origin", "result": "三方一致、dirty=0、origin 逐字不变", "status": "DONE"},
+    {"n": 7, "source": "GitHub REST repos API", "result": "首次实证 private=false / visibility=public / default_branch=main", "status": "DONE", "significance": "直接改变公开转录边界的性质判定"},
+    {"n": 8, "source": "docs/ 全目录 256 件逐文件扫描", "result": "7 件命中 105 处（v112 5 件 86 处 + v114 2 件 19 处）", "status": "DONE"},
+    {"n": 9, "source": "v108 固定版本证据矩阵 per_item_fixed_matrix", "result": "P1–P5 定义=五项前置条件（具体人名/文件/基线，详见 v106/v107 表 Q-2）；状态 SOURCE_NOT_ATTESTED__AWAIT_TOM_VERIFY", "status": "DONE"},
+    {"n": 10, "source": "生产表现场独立复采", "result": "DB_工时流水 lastRow 11513 / lastCol 18，diff=0", "status": "DONE"},
+    {"n": 11, "source": "主库现场独立复采", "result": "请假 625 / 15，diff=0", "status": "DONE"},
+    {"n": 12, "source": "13 项目部署清单现场复采", "result": "82 个 deploymentId DIFF=0；ts-manager 恒 3、numberlock 恒 9", "status": "DONE"},
+    {"n": 13, "source": "团队入口 GET 三次", "result": "AKfycbzUyhyK… @212 三次 HTTP 200", "status": "DONE"},
+    {"n": 14, "source": "Downloads / Desktop 近 3 小时", "result": "零新增文件、零 T1-B 新附件", "status": "DONE"},
+    {"n": 15, "source": "11-15 告警与 zc 日志", "result": "既有均同一 404 类；14:04 pmlist-refresh 264s 为运行时长新观测，不同源，只登记不处置", "status": "DONE"},
+    {"n": 16, "source": "闸门 7 源", "result": "OPEN_NEXT_VERSION", "status": "DONE"}
+  ],
+  "root_cause_correction": {
+    "v110_D1": "35 代不收敛的结构性根因＝通道错配（296 commit 作者 100% Rita 侧及 agent；对方 commit/PR/issue/就地编辑为零；35 代全走邮件却每代要求 GitHub 就地改字）",
+    "v115_D1_prime": "不收敛的主因不是对方不肯改字，而是我方持续把『对方做了某个动作』自动解释为『对方认可某种结论』。通道错配是表象，自动换算才是机制。三封新函连续否定的正是双通道等价、T1 触发、单格填写、条款自动落地、公开转录这五个我方单方设定的自动部件。",
+    "evidence": "对 v113 函否定以填格或自动触发充当验收条件；对 v114 函明确我方单方定义的双通道等价、T1 触发与条款自动落地不因其回函而成立；三函均书面否定公开转录",
+    "direction": "v112 只拆掉转录与 S1 两个自动部件；v115 拆掉剩下三个（等价判定、触发判定、填格验收），并把『不公开转录』固化为发布前硬闸"
+  },
+  "priorities": [
+    {"rank": 1, "item": "公开转录越界 + 两处 commit message 不实陈述的认领与受控化", "action": "精确清点 7 件 105 处、如实认领、本代零新增转录、只增不删出处置说明、三选项交书面裁定、不删史不 rewrite"},
+    {"rank": 2, "item": "按对方具体文字撤销两个自动设定", "action": "撤销 v113/v114 的 T1 填格即推进与 v114 双通道等价；表 U 改为请给具体编辑文字；规则文件与闸门脚本逐字不动"},
+    {"rank": 3, "item": "补固定提交可独立核验取数路径", "action": "给 commit SHA / 文件清单 / raw 模板 / sha256sum 指令；不代对方核验、不把我方读回写成对方已核验"},
+    {"rank": 4, "item": "P1–P5 与具名待证项如实登记", "action": "沿用 v108 SOURCE_NOT_ATTESTED__AWAIT_TOM_VERIFY 与 AWAIT_AUTHORIZED_VERIFY；不代填姓名、不代出原件、不把查不到写成没有"}
+  ],
+  "new_long_term_channel": {
+    "script": "tools/t1b_verbatim_transcript_guard.py",
+    "config": "tools/t1b_transcript_guard_patterns.json",
+    "policy": "deny-by-default，19 个判重指纹，每次发布公开 docs/ 前强制扫描，命中即 BLOCK",
+    "why": "把『不公开转录对方邮件正文』从人工纪律变成可执行、可复核的自动闸门，避免再犯 v112/v114 同类越界",
+    "config_public": false
+  },
+  "redlines": {
+    "deployment_ids": "13 项目 82 个 DIFF=0",
+    "ts_manager_deployments": 3,
+    "numberlock_deployments": 9,
+    "team_entry_get": [200, 200, 200],
+    "gas_push": 0,
+    "gas_deploy": 0,
+    "link_change": 0,
+    "production_write": 0,
+    "master_write": 0,
+    "history_delete_or_modify": 0,
+    "column_width_change": 0,
+    "policy_or_gate_script_change": 0,
+    "incident_state": "OPEN / HOLD-NO-GO / 阶段一 PASS 暂缓 / M2 未签 / TS_WRITE_FREEZE=1 全部维持"
+  },
+  "scope_statement": "结论仅覆盖上述 16 个已实查源。来源真实性/完整性/生产状态、服务端日志与权限上下文、授权主体具名件、受控两项原始字节、事故状态裁定、协作者写权限（403 未核验）、两版条款最终采用、公开转录授权及追溯效力、对方零回复或零 GitHub 动作的意图、页签读数（NOT_ATTESTED）、14:04 运行时长预警根因，一律不作通过结论。查不到≠没有。本诊断不作为验收依据或授权文件。"
+}

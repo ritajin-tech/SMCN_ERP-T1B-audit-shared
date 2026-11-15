@@ -1,0 +1,377 @@
+{
+  "tool": "t1b_verbatim_transcript_guard",
+  "version": "1.0",
+  "checked_at_bj": "2026-11-15 14:47:32",
+  "checked_at_utc": "2026-11-15T06:47:32Z",
+  "read_only": true,
+  "policy": "deny-by-default：public 共享库发布前，任一对方邮件正文/摘录指纹命中即 BLOCK",
+  "controlled_config": "tools\\t1b_transcript_guard_patterns.json",
+  "controlled_patterns": 19,
+  "controlled_sha256": "cbbfcf208ba03dee68df14cf591ce37e2574c6ffdf78c540c0236f32fddd3ef7",
+  "authority": [
+    "2026-11-15T04:52:05Z 对 v112 函：对公开转录持书面否定立场，范围涉及邮件正文或摘录，留痕保存在受控往来，并要求先核实已公开内容与范围",
+    "2026-11-15T04:53:13Z 对 v113 函：对公开转录持书面否定立场；不以填格或自动触发作为验收条件",
+    "2026-11-15T05:48:54Z 对 v114 函：对公开转录持书面否定立场，范围涉及邮件正文或摘录；固定提交与文件尚未由对方独立取得核验；双通道等价、T1 触发、条款自动落地不因该函成立"
+  ],
+  "historical_scope": {
+    "first_public_verbatim_commit": "1b2dfca420caaad2f204edcfac2ec6f683e29460",
+    "first_public_verbatim_generation": "v112",
+    "continued_in_generation": "v114",
+    "commit_2a3ca06": "2a3ca06adb353c1800f603f8c93e06ba89f21f64",
+    "handling": "历史对象不删改、不 rewrite；v115 起零新增转录，处置选项由有权主体书面裁定。"
+  },
+  "verdict": "PASS",
+  "publish_files_checked": 0,
+  "publish_hit_total": 0,
+  "publish_detail": [],
+  "historical_files_checked": 7,
+  "historical_hit_total": 105,
+  "historical_detail": [
+    {
+      "file": "_tmp/audit_shared/docs/T1-B_v112_完善解决方案_首次具体编辑承接与双通道收窄_20261115.md",
+      "bytes": 15480,
+      "sha256": "a96a1d7f5c4e37659ca96cf4901cc1ba5042c287cc34f4f6180b23bd05e88d59",
+      "hits": [
+        {
+          "id": "V01",
+          "scope": "verbatim_clause",
+          "count": 7,
+          "note": "两版 R7 / FINAL-A / FINAL-B 条款起始串"
+        },
+        {
+          "id": "V02",
+          "scope": "verbatim_clause",
+          "count": 3,
+          "note": "FINAL-A 中段"
+        },
+        {
+          "id": "V03",
+          "scope": "verbatim_clause",
+          "count": 6,
+          "note": "FINAL-B 中段"
+        },
+        {
+          "id": "V04",
+          "scope": "verbatim_clause",
+          "count": 2,
+          "note": "FINAL-A 尾段"
+        },
+        {
+          "id": "V05",
+          "scope": "verbatim_clause",
+          "count": 2,
+          "note": "FINAL-B 尾段"
+        },
+        {
+          "id": "V12",
+          "scope": "verbatim_notice",
+          "count": 1,
+          "note": "v110 函通道声明"
+        },
+        {
+          "id": "V14",
+          "scope": "verbatim_body",
+          "count": 1,
+          "note": "对方函件正文结尾格式"
+        },
+        {
+          "id": "S03",
+          "scope": "signature",
+          "count": 3,
+          "note": "邮件头逐字字段（改用『线程承接标识』表述）"
+        }
+      ],
+      "hit_total": 25,
+      "mode": "HISTORICAL_SCOPE_ONLY"
+    },
+    {
+      "file": "_tmp/audit_shared/docs/T1-B_v112_表S_两版R7逐字对照与下一轮具体编辑靶子_20261115.md",
+      "bytes": 7505,
+      "sha256": "8d7722c28b0ddb5a4188acae90d4d340a8c74c14e93e22ae95231c0cdf678d95",
+      "hits": [
+        {
+          "id": "V01",
+          "scope": "verbatim_clause",
+          "count": 4,
+          "note": "两版 R7 / FINAL-A / FINAL-B 条款起始串"
+        },
+        {
+          "id": "V02",
+          "scope": "verbatim_clause",
+          "count": 2,
+          "note": "FINAL-A 中段"
+        },
+        {
+          "id": "V03",
+          "scope": "verbatim_clause",
+          "count": 4,
+          "note": "FINAL-B 中段"
+        },
+        {
+          "id": "V04",
+          "scope": "verbatim_clause",
+          "count": 1,
+          "note": "FINAL-A 尾段"
+        },
+        {
+          "id": "V05",
+          "scope": "verbatim_clause",
+          "count": 1,
+          "note": "FINAL-B 尾段"
+        }
+      ],
+      "hit_total": 12,
+      "mode": "HISTORICAL_SCOPE_ONLY"
+    },
+    {
+      "file": "_tmp/audit_shared/docs/T1-B_v112_Tom具体编辑逐句盘点_20261115.json",
+      "bytes": 9223,
+      "sha256": "79bbd73bd64436d8940d74fe0d05702ce60470366b4e588253bbb99a403c1b81",
+      "hits": [
+        {
+          "id": "V01",
+          "scope": "verbatim_clause",
+          "count": 4,
+          "note": "两版 R7 / FINAL-A / FINAL-B 条款起始串"
+        },
+        {
+          "id": "V02",
+          "scope": "verbatim_clause",
+          "count": 3,
+          "note": "FINAL-A 中段"
+        },
+        {
+          "id": "V03",
+          "scope": "verbatim_clause",
+          "count": 4,
+          "note": "FINAL-B 中段"
+        },
+        {
+          "id": "V04",
+          "scope": "verbatim_clause",
+          "count": 3,
+          "note": "FINAL-A 尾段"
+        },
+        {
+          "id": "V05",
+          "scope": "verbatim_clause",
+          "count": 3,
+          "note": "FINAL-B 尾段"
+        },
+        {
+          "id": "V12",
+          "scope": "verbatim_notice",
+          "count": 1,
+          "note": "v110 函通道声明"
+        },
+        {
+          "id": "V13",
+          "scope": "verbatim_body",
+          "count": 2,
+          "note": "对方函件正文开头格式"
+        },
+        {
+          "id": "V14",
+          "scope": "verbatim_body",
+          "count": 2,
+          "note": "对方函件正文结尾格式"
+        },
+        {
+          "id": "V16",
+          "scope": "verbatim_body",
+          "count": 2,
+          "note": "对方事故状态声明格式"
+        },
+        {
+          "id": "S03",
+          "scope": "signature",
+          "count": 2,
+          "note": "邮件头逐字字段（改用『线程承接标识』表述）"
+        }
+      ],
+      "hit_total": 26,
+      "mode": "HISTORICAL_SCOPE_ONLY"
+    },
+    {
+      "file": "_tmp/audit_shared/docs/T1-B_v112_闸门核查_20261115.json",
+      "bytes": 31138,
+      "sha256": "7c55e6a867aa18f4937d62cb35e4948e81fa4f0c25f26b95e5dd2e4dca749f28",
+      "hits": [
+        {
+          "id": "V01",
+          "scope": "verbatim_clause",
+          "count": 2,
+          "note": "两版 R7 / FINAL-A / FINAL-B 条款起始串"
+        },
+        {
+          "id": "V02",
+          "scope": "verbatim_clause",
+          "count": 1,
+          "note": "FINAL-A 中段"
+        },
+        {
+          "id": "V03",
+          "scope": "verbatim_clause",
+          "count": 1,
+          "note": "FINAL-B 中段"
+        },
+        {
+          "id": "V04",
+          "scope": "verbatim_clause",
+          "count": 1,
+          "note": "FINAL-A 尾段"
+        },
+        {
+          "id": "V05",
+          "scope": "verbatim_clause",
+          "count": 1,
+          "note": "FINAL-B 尾段"
+        },
+        {
+          "id": "V12",
+          "scope": "verbatim_notice",
+          "count": 2,
+          "note": "v110 函通道声明"
+        },
+        {
+          "id": "V16",
+          "scope": "verbatim_body",
+          "count": 1,
+          "note": "对方事故状态声明格式"
+        },
+        {
+          "id": "S03",
+          "scope": "signature",
+          "count": 4,
+          "note": "邮件头逐字字段（改用『线程承接标识』表述）"
+        }
+      ],
+      "hit_total": 13,
+      "mode": "HISTORICAL_SCOPE_ONLY"
+    },
+    {
+      "file": "_tmp/audit_shared/docs/T1-B_v112_验收卡_首次具体编辑承接_20261115.html",
+      "bytes": 11407,
+      "sha256": "b96df7454d9a2ccbe460d0545fa866b258daf2bee746147016b65d66cacd0932",
+      "hits": [
+        {
+          "id": "V01",
+          "scope": "verbatim_clause",
+          "count": 3,
+          "note": "两版 R7 / FINAL-A / FINAL-B 条款起始串"
+        },
+        {
+          "id": "V02",
+          "scope": "verbatim_clause",
+          "count": 2,
+          "note": "FINAL-A 中段"
+        },
+        {
+          "id": "V03",
+          "scope": "verbatim_clause",
+          "count": 3,
+          "note": "FINAL-B 中段"
+        },
+        {
+          "id": "V04",
+          "scope": "verbatim_clause",
+          "count": 1,
+          "note": "FINAL-A 尾段"
+        },
+        {
+          "id": "V05",
+          "scope": "verbatim_clause",
+          "count": 1,
+          "note": "FINAL-B 尾段"
+        }
+      ],
+      "hit_total": 10,
+      "mode": "HISTORICAL_SCOPE_ONLY"
+    },
+    {
+      "file": "_tmp/audit_shared/docs/T1-B_v114_完善解决方案_双通道补齐_状态同步非承接版_20261115.md",
+      "bytes": 18754,
+      "sha256": "96b7bcdd49716b7fd4588825e04cc4edd48a05e7759be98f7ac7de0c383b4041",
+      "hits": [
+        {
+          "id": "V01",
+          "scope": "verbatim_clause",
+          "count": 2,
+          "note": "两版 R7 / FINAL-A / FINAL-B 条款起始串"
+        },
+        {
+          "id": "V02",
+          "scope": "verbatim_clause",
+          "count": 2,
+          "note": "FINAL-A 中段"
+        },
+        {
+          "id": "V03",
+          "scope": "verbatim_clause",
+          "count": 2,
+          "note": "FINAL-B 中段"
+        },
+        {
+          "id": "V04",
+          "scope": "verbatim_clause",
+          "count": 1,
+          "note": "FINAL-A 尾段"
+        },
+        {
+          "id": "V05",
+          "scope": "verbatim_clause",
+          "count": 1,
+          "note": "FINAL-B 尾段"
+        },
+        {
+          "id": "V14",
+          "scope": "verbatim_body",
+          "count": 2,
+          "note": "对方函件正文结尾格式"
+        }
+      ],
+      "hit_total": 10,
+      "mode": "HISTORICAL_SCOPE_ONLY"
+    },
+    {
+      "file": "_tmp/audit_shared/docs/T1-B_v114_表T_双通道补齐_可就地编辑底本_20261115.md",
+      "bytes": 8932,
+      "sha256": "c957cd668ef0015796d40b1d2e9ae44d65c9bc40a57c32cb5e88fd81b7233760",
+      "hits": [
+        {
+          "id": "V01",
+          "scope": "verbatim_clause",
+          "count": 3,
+          "note": "两版 R7 / FINAL-A / FINAL-B 条款起始串"
+        },
+        {
+          "id": "V02",
+          "scope": "verbatim_clause",
+          "count": 2,
+          "note": "FINAL-A 中段"
+        },
+        {
+          "id": "V03",
+          "scope": "verbatim_clause",
+          "count": 2,
+          "note": "FINAL-B 中段"
+        },
+        {
+          "id": "V04",
+          "scope": "verbatim_clause",
+          "count": 1,
+          "note": "FINAL-A 尾段"
+        },
+        {
+          "id": "V05",
+          "scope": "verbatim_clause",
+          "count": 1,
+          "note": "FINAL-B 尾段"
+        }
+      ],
+      "hit_total": 9,
+      "mode": "HISTORICAL_SCOPE_ONLY"
+    }
+  ],
+  "note": "历史清点只用于出具范围核实报告，不改写、不删除、不 rewrite 任何既有对象；处置由有权主体书面裁定。"
+}

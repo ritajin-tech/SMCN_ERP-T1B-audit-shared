@@ -1,0 +1,101 @@
+{
+  "tool": "T1-B v115 可独立核验取数路径",
+  "generated_at_bj": "2026-11-15 14:48:20",
+  "generated_at_utc": "2026-11-15T06:48:20Z",
+  "note": "本清单只提供取数与复算路径，核验结论须由对方独立出具。我方在 v114 做过 GitHub 侧读回，那是我方读回，不等于对方已核验。",
+  "repository": {
+    "url": "https://github.com/ritajin-tech/SMCN_ERP-T1B-audit-shared.git",
+    "html": "https://github.com/ritajin-tech/SMCN_ERP-T1B-audit-shared",
+    "visibility": "public",
+    "private": false,
+    "default_branch": "main",
+    "evidence": "GitHub REST GET /repos/ritajin-tech/SMCN_ERP-T1B-audit-shared 只读，2026-11-15T06:31Z"
+  },
+  "fixed_commits": {
+    "pre_v115_head": "2a3ca06adb353c1800f603f8c93e06ba89f21f64",
+    "pre_v115_generation": "v114 (状态同步·非承接版，不计代数)",
+    "v112": "1b2dfca420caaad2f204edcfac2ec6f683e29460",
+    "v115": "见本次推送后 git ls-remote origin HEAD"
+  },
+  "commands": [
+    "git clone https://github.com/ritajin-tech/SMCN_ERP-T1B-audit-shared.git",
+    "cd SMCN_ERP-T1B-audit-shared",
+    "git checkout <commit_sha>",
+    "sha256sum docs/T1-B_v115_*",
+    "git log --oneline -3",
+    "git status --short"
+  ],
+  "raw_url_template": "https://raw.githubusercontent.com/ritajin-tech/SMCN_ERP-T1B-audit-shared/<commit_sha>/docs/<filename>",
+  "published_core_files": [
+    {
+      "filename": "T1-B_v115_完善解决方案_公开转录边界认领与自动设定撤销_第38代真承接_20261115.md",
+      "bytes": 26296,
+      "sha256": "860f9b5e92b2f9518f844563d50129fa3e1288ba495f9ad6b6c198cfcc8148a2",
+      "published_to_docs": true,
+      "raw_url_template": "https://raw.githubusercontent.com/ritajin-tech/SMCN_ERP-T1B-audit-shared/<v115_commit_sha>/docs/T1-B_v115_完善解决方案_公开转录边界认领与自动设定撤销_第38代真承接_20261115.md"
+    },
+    {
+      "filename": "T1-B_v115_表U_具体编辑靶子_可就地编辑底本_20261115.md",
+      "bytes": 7258,
+      "sha256": "865faf84f48daf0477817a38d74d942f52474995df1e3f130e9ee8d4837e497c",
+      "published_to_docs": true,
+      "raw_url_template": "https://raw.githubusercontent.com/ritajin-tech/SMCN_ERP-T1B-audit-shared/<v115_commit_sha>/docs/T1-B_v115_表U_具体编辑靶子_可就地编辑底本_20261115.md"
+    },
+    {
+      "filename": "T1-B_v115_受控边界处置说明_只增不删_20261115.md",
+      "bytes": 5289,
+      "sha256": "8a4d4acd83641e0af4f06a45632b84ce8e72f6a75c020046efe5c98849268c28",
+      "published_to_docs": true,
+      "raw_url_template": "https://raw.githubusercontent.com/ritajin-tech/SMCN_ERP-T1B-audit-shared/<v115_commit_sha>/docs/T1-B_v115_受控边界处置说明_只增不删_20261115.md"
+    },
+    {
+      "filename": "T1-B_v115_全盘逐源诊断_自动换算根因_20261115.json",
+      "bytes": 6992,
+      "sha256": "4442869e65caef49e279a80109fe09588878ebed550bb699a762737f3ca2ee1c",
+      "published_to_docs": true,
+      "raw_url_template": "https://raw.githubusercontent.com/ritajin-tech/SMCN_ERP-T1B-audit-shared/<v115_commit_sha>/docs/T1-B_v115_全盘逐源诊断_自动换算根因_20261115.json"
+    },
+    {
+      "filename": "T1-B_v115_公开转录范围核实_20261115.json",
+      "bytes": 11310,
+      "sha256": "855120ef6373d0d149f6c1c2d0e2811bb9f210bb532133f753d75e3ccd7a5196",
+      "published_to_docs": true,
+      "raw_url_template": "https://raw.githubusercontent.com/ritajin-tech/SMCN_ERP-T1B-audit-shared/<v115_commit_sha>/docs/T1-B_v115_公开转录范围核实_20261115.json"
+    },
+    {
+      "filename": "T1-B_v115_override留痕与外发授权_20261115.json",
+      "bytes": 3318,
+      "sha256": "7198b3c8731aa9b6b8e30ecb1b03f59f2216e83fac6719328154bb8bd3f182cf",
+      "published_to_docs": true,
+      "raw_url_template": "https://raw.githubusercontent.com/ritajin-tech/SMCN_ERP-T1B-audit-shared/<v115_commit_sha>/docs/T1-B_v115_override留痕与外发授权_20261115.json"
+    },
+    {
+      "filename": "T1-B_v115_闸门结论摘要_公开留痕版_20261115.json",
+      "bytes": 2384,
+      "sha256": "fe33dbe7c64683e306801b7a5900d845f022d1e0f053b60e7cf603af5eac7d5d",
+      "published_to_docs": true,
+      "raw_url_template": "https://raw.githubusercontent.com/ritajin-tech/SMCN_ERP-T1B-audit-shared/<v115_commit_sha>/docs/T1-B_v115_闸门结论摘要_公开留痕版_20261115.json"
+    },
+    {
+      "filename": "T1-B_v115_验收卡_第38代真承接_20261115.html",
+      "bytes": 9341,
+      "sha256": "5102e21ad67a98af7072ffb7b9ba31f06c69f3fa9b93a73f9ee8f97f302881a3",
+      "published_to_docs": true,
+      "raw_url_template": "https://raw.githubusercontent.com/ritajin-tech/SMCN_ERP-T1B-audit-shared/<v115_commit_sha>/docs/T1-B_v115_验收卡_第38代真承接_20261115.html"
+    }
+  ],
+  "additional_published_reports": [
+    "T1-B_v115_可独立核验取数路径_20261115.json (本文件，自身 hash 不内嵌)",
+    "T1-B_v115_公开转录硬闸_20261115.json",
+    "T1-B_v115_公开库边界检查_20261115.json"
+  ],
+  "local_controlled_only_not_published": [
+    "T1-B_v115_闸门核查_20261115.json",
+    "T1-B_v115_闸门核查_20261115.html",
+    "_tmp/gate_external_20261115_1435.json",
+    "tools/t1b_transcript_guard_patterns.json (指纹配置只留本地受控)"
+  ],
+  "local_only_reason": "闸门完整报告内嵌外部源原始注记，按本代零公开转录纪律只留本地受控目录；共享库改发一份只含判定结论的摘要。",
+  "historical_7_files": "逐件字节数与 SHA-256 见 T1-B_v115_公开转录范围核实_20261115.json 的 historical_detail",
+  "boundary": "本方不代对方核验、不代填核验结论、不因对方未回传结果推断其认可或放弃。协作者写权限 HTTP 403 仍标未核验。"
+}

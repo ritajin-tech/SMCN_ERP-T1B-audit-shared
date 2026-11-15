@@ -1,0 +1,97 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+<meta charset="utf-8">
+<title>T1-B v115 验收卡 · 第 38 代真承接</title>
+<style>
+  :root{--bg:#F4F5F7;--card:#fff;--ink:#1f2430;--muted:#5c6472;--line:#dfe3ea;--vi:#B31E3E;--ok:#E8F5E9;--warn:#FFF9E6;--bad:#FADBD8}
+  *{box-sizing:border-box}
+  body{margin:0;padding:28px;background:var(--bg);color:var(--ink);font:14px/1.7 -apple-system,BlinkMacSystemFont,"Segoe UI","Microsoft YaHei",sans-serif}
+  .wrap{max-width:1080px;margin:0 auto}
+  h1{font-size:22px;margin:0 0 6px;border-left:5px solid var(--vi);padding-left:12px}
+  .sub{color:var(--muted);font-size:13px;margin-bottom:20px}
+  .grid{display:grid;grid-template-columns:repeat(auto-fit,minmax(230px,1fr));gap:12px;margin-bottom:20px}
+  .card{background:var(--card);border:1px solid var(--line);border-radius:10px;padding:14px 16px}
+  .card b{display:block;font-size:12px;color:var(--muted);font-weight:600;letter-spacing:.4px;margin-bottom:6px}
+  .card .v{font-size:17px;font-weight:700}
+  .ok{background:var(--ok)}.warn{background:var(--warn)}.bad{background:var(--bad)}
+  h2{font-size:16px;margin:24px 0 10px;padding-bottom:6px;border-bottom:1px solid var(--line)}
+  table{width:100%;border-collapse:collapse;background:var(--card);border:1px solid var(--line);border-radius:8px;overflow:hidden;font-size:13px}
+  th,td{padding:9px 11px;text-align:left;border-bottom:1px solid var(--line);vertical-align:top}
+  th{background:#eef0f4;font-weight:600;color:var(--muted)}
+  tr:last-child td{border-bottom:none}
+  code{background:#eef0f4;padding:1px 5px;border-radius:4px;font-size:12px}
+  .tag{display:inline-block;padding:1px 8px;border-radius:20px;font-size:11px;font-weight:700}
+  .t-ok{background:var(--ok);color:#1b5e20}.t-warn{background:var(--warn);color:#7d5a00}.t-bad{background:var(--bad);color:#8e1b1b}
+  ul{margin:6px 0 6px 18px;padding:0}li{margin:3px 0}
+  .foot{margin-top:24px;padding:14px 16px;background:#fff;border:1px solid var(--line);border-radius:10px;color:var(--muted);font-size:12.5px}
+</style>
+</head>
+<body><div class="wrap">
+<h1>T1-B v115 · 验收卡（第 38 代真承接）</h1>
+<div class="sub">北京 2026-11-15 14:35（GMT+8；UTC 2026-11-15T06:35Z）｜基线 v112 = <code>1b2dfca</code> → v115 承接三封新真函｜发布前共享库 HEAD <code>2a3ca06</code></div>
+
+<div class="grid">
+  <div class="card ok"><b>闸门判定</b><div class="v">OPEN_NEXT_VERSION</div><div>T1 TRIGGER · T2–T5 CLEAR</div></div>
+  <div class="card ok"><b>本代性质</b><div class="v">第 38 代真承接</div><div>非状态同步版、非补证据代</div></div>
+  <div class="card warn"><b>公开库性质（首次实证）</b><div class="v">public</div><div>REST: private=false / main</div></div>
+  <div class="card bad"><b>认领的越界</b><div class="v">7 件 / 105 处</div><div>v112 起逐字转录 + 2 处不实陈述</div></div>
+</div>
+
+<h2>一、先给结论：本代补什么</h2>
+<table>
+  <tr><th style="width:70px">优先</th><th>事项</th><th style="width:110px">状态</th></tr>
+  <tr><td>1</td><td><b>公开转录越界 + 不实陈述认领与受控化</b>：共享库实证为公开；逐文件清点自 v112 起 7 件公开文档含对方邮件正文逐字条款与摘录共 105 处；v112 / v114 commit message 对此陈述与事实不符。本代如实认领、零新增转录、只增不删出处置说明、三选项交书面裁定、不删史不 rewrite。</td><td><span class="tag t-bad">已认领</span></td></tr>
+  <tr><td>2</td><td><b>按对方具体文字撤销两个自动设定</b>：撤销 v113/v114 的「T1 填格即推进」与 v114「双通道等价」；表 U 改为请给具体编辑文字 / 替代方案全文，不以填格、不以触发、不以本方单方认定充当验收条件。</td><td><span class="tag t-ok">已撤销</span></td></tr>
+  <tr><td>3</td><td><b>补固定提交可独立核验取数路径</b>：给 commit SHA / 文件清单 / raw 模板 / sha256sum 指令；不代对方核验、不把我方读回写成对方已核验。</td><td><span class="tag t-ok">已交付</span></td></tr>
+  <tr><td>4</td><td><b>P1–P5 与具名待证项如实登记</b>：出处查实为 v108 矩阵，状态沿用 SOURCE_NOT_ATTESTED__AWAIT_TOM_VERIFY / AWAIT_AUTHORIZED_VERIFY，不代填姓名。</td><td><span class="tag t-warn">待有权主体</span></td></tr>
+</table>
+
+<h2>二、根因补正（D1 → D1′）</h2>
+<div class="card">
+  v110 把 35 代不收敛归因为<b>通道错配</b>。三封新函证明更深一层：对方连续三代否定的是我方<b>把「对方做了某个动作」自动换算成「对方认可某种结论」</b>——双通道等价、T1 触发、单格填写、条款自动落地、公开转录，都是我方单方设定的自动部件。<br>
+  <b>D1′：通道错配是表象，自动换算才是机制。</b>v112 只拆掉转录与 S1 两个部件；v115 拆掉剩下三个，并把「不公开转录」固化为发布前硬闸。
+</div>
+
+<h2>三、双闸实证（发布前硬闸）</h2>
+<table>
+  <tr><th>闸门</th><th>要求</th><th>实测</th><th style="width:90px">结论</th></tr>
+  <tr><td><code>t1b_gate_check.py</code></td><td>7 源判定</td><td>OPEN_NEXT_VERSION；T1 TRIGGER，T2/T3/T4/T5 CLEAR；sources=7、new_runs_since=18、probes=1</td><td><span class="tag t-ok">PASS</span></td></tr>
+  <tr><td><code>t1b_public_boundary_check.py</code></td><td>22 禁止串 0 命中</td><td>本代发布文件逐件扫描</td><td><span class="tag t-ok">PASS</span></td></tr>
+  <tr><td><code>t1b_verbatim_transcript_guard.py</code><br><span style="color:#5c6472">（本代新建长期硬闸）</span></td><td>19 指纹 0 命中</td><td>deny-by-default；候选扫描曾 BLOCK 4 件，逐项改写 / 改为本地受控后复跑</td><td><span class="tag t-ok">PASS</span></td></tr>
+  <tr><td>历史范围核实</td><td>只清点、不判 BLOCK</td><td>7 件 / 105 处（v112 86、v114 19），逐文件 SHA-256 见范围报告</td><td><span class="tag t-warn">已登记</span></td></tr>
+</table>
+
+<h2>四、全盘逐源打勾（16 源）</h2>
+<table>
+  <tr><th style="width:60px">#</th><th>源</th><th>结果</th></tr>
+  <tr><td>1–3</td><td>QQ 收件箱全量 limit=25 / 三函 GetMessage 逐封全文 / 增量复核</td><td>三封新真函 + 1 封 14:04 新告警；零遗漏</td></tr>
+  <tr><td>4–7</td><td>GitHub commits / PR / issue / 本地·远端·origin</td><td>HEAD 2a3ca06、0/0/0、dirty 0、origin 逐字不变</td></tr>
+  <tr><td>8</td><td><b>GitHub REST repos API</b></td><td><b>首次实证 visibility=public</b></td></tr>
+  <tr><td>9–10</td><td>docs/ 全目录 256 件扫描 / v108 矩阵 P1–P5 条目</td><td>7 件 105 处；P1–P5 定义与状态查实</td></tr>
+  <tr><td>11–12</td><td>生产表 / 主库现场独立复采</td><td>11513/18、625/15，与基线 diff=0</td></tr>
+  <tr><td>13–14</td><td>13 项目部署清单 / 团队入口 GET 三次</td><td>82 个 deploymentId DIFF=0；恒 3 / 恒 9；三次 HTTP 200</td></tr>
+  <tr><td>15–16</td><td>现在收到的文件 / 11-15 告警与 zc 日志 / 闸门 7 源</td><td>零新增文件；既有 404 同类；14:04 为运行时长新观测只登记不处置；OPEN_NEXT_VERSION</td></tr>
+</table>
+
+<h2>五、红线 · 不改链接（实证）</h2>
+<div class="card ok">
+  <ul>
+    <li>13 项目 <b>82 个 deploymentId DIFF=0</b>；ts-manager 部署恒 <b>3</b> / maxV=212；numberlock 恒 <b>9</b> / maxV=526；团队入口 <code>AKfycbzUyhyK… @212</code> GET 三次全 200。</li>
+    <li>共享库 origin 逐字不变；本代仅向 <code>docs/</code> 新增留痕文件，零删改、零 rewrite。</li>
+    <li>零 GAS push / deploy / 换链 / 新建或删除部署；零生产写 / 主库写 / 试提交 / 修复 / 重启 / 清理 / 回滚 / 降告警覆盖 / 历史删改 / 列宽改动。</li>
+    <li>事故 OPEN / HOLD-NO-GO / 阶段一 PASS 暂缓 / M2 未签 / TS_WRITE_FREEZE=1 全部维持；<code>t1b_loop_policy.json</code> 与闸门脚本逐字不动；K-6 不重开。</li>
+  </ul>
+</div>
+
+<h2>六、三提醒</h2>
+<div class="card">
+  <b>不要回去</b>：K-6 不重开，v99–v114 靶位与证据链原样保留；不删改 7 件既有公开对象、不 rewrite 两个 commit（同时如实登记不实陈述，不以「不要回去」为由掩盖）。<br>
+  <b>记住我们的进度</b>：承接代数 <b>38 代</b>（v110 第 36 代、v112 第 37 代、v115 第 38 代）；v111 / v113 / v114 三份状态同步·非承接版不计代数；296 commit 零漂移、82 个 deploymentId 零差异、条款 A / B 并列保留。<br>
+  <b>加速修复</b>：仍卡在 GAS 端点 404 连续性与表 U 的 U1–U4 具体编辑文字；14:04 运行时长预警为不同源、只登记不处置。
+</div>
+
+<div class="foot">
+  <b>检查范围声明</b>：本卡结论仅覆盖已实查的 16 个源。来源真实性 / 完整性 / 生产状态、服务端日志与权限上下文、授权主体具名件、受控两项原始字节、事故状态裁定、协作者写权限（403 未核验，不作有无推断）、两版条款最终采用、公开转录授权及其追溯效力、对方零回复或零 GitHub 动作的意图、页签读数（NOT_ATTESTED）、14:04 运行时长预警根因，一律不作通过结论。查不到 ≠ 没有。本卡不作为验收依据或授权文件。
+</div>
+</div></body></html>
