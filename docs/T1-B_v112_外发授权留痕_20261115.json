@@ -1,0 +1,41 @@
+{
+  "generation": "v112",
+  "record_type": "外发授权留痕（Rita 显式下达直接回函、不再回头询问）",
+  "recorded_at": "2026-11-15T10:43:00+08:00",
+  "recorded_at_utc": "2026-11-15T02:43:00Z",
+  "rita_directive": {
+    "verbatim": "继续 出完善解决方案 并且生产表和主库结合现在收到的文件，然后看看 Tom 更新的回复，系统大局梳理发布给他，并要求他也大局系统还复给我们，然后要有明确的方案不要 Yes or No，要有具体的编辑，因为他也能看得到 GitHub 共享库。然后全部看完了以后你回复给他不要再问我了。顺便提醒他不要回去 记住我们的进度 加速修复。记住红线，不改链接！！！",
+    "delivered_at_bj": "2026-11-15 10:38 (GMT+8)",
+    "delivered_at_utc": "2026-11-15T02:38Z",
+    "authorization": "授权本 Agent 全盘核查后直接回函 Tom，不再回头询问 Rita；授权发布系统大局到 GitHub 共享库；要求回函含具体方案与具体编辑靶子（非 Yes/No）及三提醒。",
+    "hard_constraint": "记住红线，不改链接！！！"
+  },
+  "outbound": {
+    "channel": "QQ Mail MCP (mcp__qq-mail__SendMessage)",
+    "alias": "ritajin.muraya@qq.com",
+    "to": [{"email": "1252293966@qq.com", "name": "Tom"}],
+    "cc": [{"email": "332721759@qq.com", "name": "Rita 瑞塔金"}],
+    "body_format": "PLAIN",
+    "emoji_policy": "对外邮件去 emoji（红线 3）",
+    "time_policy": "北京 GMT+8 优先、UTC 括号附注、禁裸 Z（先过 tools/fmt_time.py 口径）",
+    "reply_thread": "承接 Tom 两封新函，in_reply_to 精确等于我方 v110 / v111 回函 rfc"
+  },
+  "publication": {
+    "channel": "本地 _tmp/audit_shared git push + GitHub MCP 双通道读回",
+    "repo": "ritajin-tech/SMCN_ERP-T1B-audit-shared",
+    "branch": "main",
+    "change_type": "仅新增 docs/ 文档",
+    "link_change": false,
+    "repo_origin_unchanged": "https://github.com/ritajin-tech/SMCN_ERP-T1B-audit-shared.git",
+    "boundary_check": "tools/t1b_public_boundary_check.py（22 禁止串）",
+    "controlled_snapshot": "_tmp/t1b_increment_snapshot_20261114_1153.json",
+    "note": "含人员姓名的受控两项不进公开库；两版 R7 条款为对方主动提出的待裁定提案文字，非邮件正文整封转录件。"
+  },
+  "send_gate": {
+    "policy": "tools/send_gate.py deny-by-default",
+    "exception": "Rita 本条指令显式授权『回复给他不要再问我了』，构成对 Tom 回函的精确批准；不扩展到其他收件人或法律/不可逆动作。",
+    "prior_attestation": "v110 回函 msg_mVPG02c… 与 v111 回函 msg_TRrdiLZTY… 均在同一授权口径下发出并已落 sent，未回头询问。"
+  },
+  "three_reminders": ["不要回去（K-6 撤回不重开、历史靶位与证据链原样保留、不擅自收紧或放宽规则）", "记住我们的进度（v110 第 36 代 / v111 零触发非承接版 / v112 第 37 代真承接首次收到具体编辑文字）", "加速修复（GAS 404 连续性 + R7 最终条款全文与转录授权书面确认）"],
+  "not_authorizing": ["验收", "生产授权", "事故状态裁定", "规则文件修改", "公开转录授权", "两版 R7 的最终采用", "任何 GAS 部署或链接变更"]
+}

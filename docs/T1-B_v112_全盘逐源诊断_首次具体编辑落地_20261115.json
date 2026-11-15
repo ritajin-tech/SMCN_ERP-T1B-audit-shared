@@ -1,0 +1,57 @@
+{
+  "generation": "v112",
+  "generation_type": "第 37 代真承接",
+  "compiled_at": "2026-11-15T10:43:00+08:00",
+  "compiled_at_utc": "2026-11-15T02:43:00Z",
+  "baseline": {"v110": "08d389ed36b17409c048122e79107ab1660ce9f5", "v111": "状态同步·非承接版（零触发，不计入承接代数，共享库零 commit）"},
+  "gate": {
+    "command": "python tools/t1b_gate_check.py --since 2026-11-15T02:22:26Z --external _tmp/gate_external_20261115_1043.json --generation v112 --out outputs/T1-B_v112_闸门核查_20261115",
+    "verdict": "OPEN_NEXT_VERSION",
+    "triggered": ["T1"],
+    "cleared": ["T2", "T3", "T4", "T5"],
+    "t1_value": 2,
+    "note": "与 v111 的 NO_TRIGGER 根本不同：两封 Tom 新真函构成实质触发。"
+  },
+  "source_checklist": [
+    {"id": 1, "source": "QQ Mail 收件箱增量", "method": "ListMessages dir=inbox after=2026-11-15T02:20:00Z limit=15", "result": "HIT 2 Tom 真函 + 4 封非 Tom 系统邮件（高德发票x2 / 招行信用管家 / 我方 v111 回函收件副本）；零附件", "tick": true},
+    {"id": 2, "source": "两封全文", "method": "GetMessage x2", "result": "全文 / rfc / in_reply_to / 收件人 / 附件数全部核实", "tick": true},
+    {"id": 3, "source": "线程承接反查", "method": "GetMessage 我方 v110/v111 回函取 rfc 逐字比对", "result": "函1 in_reply_to = v110 rfc <tencent_5E9FCF0B…@qq.com>；函2 in_reply_to = v111 rfc <tencent_3D5AFE32…@qq.com>；精确承接", "tick": true},
+    {"id": 4, "source": "GitHub commits", "method": "mcp__github__list_commits perPage=5", "result": "远端 HEAD 仍 08d389ed…(v110)，零新增零漂移", "tick": true},
+    {"id": 5, "source": "GitHub PR / issue", "method": "list_pull_requests(state=all) / list_issues(state=OPEN)", "result": "[] / totalCount=0", "tick": true},
+    {"id": 6, "source": "共享库本地 / 远端 / dirty", "method": "git rev-parse / ls-remote / status -s", "result": "08d389e / 08d389e / 0 行", "tick": true},
+    {"id": 7, "source": "表 R 回填", "method": "本地占位符计数 + GitHub 副本", "result": "6 处占位，共享库侧零回填；具体编辑全部走邮件正文", "tick": true},
+    {"id": 8, "source": "现场只读复采（生产表 + 主库）", "method": "tools/t1b_watch.py", "result": "production 11513/18、master_leave 625/15、页签 16/49、部署 3、main_sha 08d389e，与基线逐项一致", "tick": true},
+    {"id": 9, "source": "13 项目部署清单", "method": "tools/_probe_all_deployments.py + 逐字比对 _tmp/probe_deploy_now.json", "result": "82 个 deploymentId DIFF=0；ts-manager 恒 3 / numberlock 恒 9", "tick": true},
+    {"id": 10, "source": "团队入口 @212 活性", "method": "独立 GET x3（跟随 302）", "result": "HTTP 200 / 200 / 200", "tick": true},
+    {"id": 11, "source": "本地新收到文件 / 告警", "method": "find -mmin -60 + tools/_zc_logs/2026-11-15.log", "result": "全为我方脚本与日志，无 Tom 新件或附件；最新 FAIL 10:35:14 bd-drain(404) 仍同一事故类，零新根因", "tick": true}
+  ],
+  "structural_findings": [
+    {"id": "F1", "finding": "36 代以来首次收到具体编辑文字", "evidence": "R7 两版逐字条款 + R8 具体建议 + R2/R4 主体类别文字，见 T1-B_v112_Tom具体编辑逐句盘点_20261115.json", "impact": "v110 双通道方案 A 在 Tom 实际使用 35 代的邮件通道上首次生效；D1 通道错配诊断与解法方向得到实证"},
+    {"id": "F2", "finding": "对方书面限定拒绝自动部件", "evidence": "「不因此证明我方接受转录、触发条件或阶段验收安排」「涉及公开转录须先核实内容和授权」「单格填写、自动触发和邮件转录均不构成验收或生产授权」", "impact": "本代把 A 支柱的『自动转录 / S1 自动成立』收窄为『经内容与授权书面确认后转录 / 具体编辑已收到但不由本方单方宣告 S1』；不判为文档矛盾、不代判口径、规则文件逐字不动"},
+    {"id": "F3", "finding": "两版 R7 措辞不同，存在待裁定的条款文字分歧", "evidence": "R7-A 含『不以自动触发或单格填写作为通过条件』『仅在…重新审阅』；R7-B 含『停止重复承接』『再审阅』", "impact": "并列保留、不合并、不代选；提供草案 A/B/C 与表 S 的 S2 逐字粘贴格，须双方书面裁定"},
+    {"id": "F4", "finding": "更正 v110 的 D3 子结论", "evidence": "v111 闸门实际判 NO_TRIGGER（T1–T5 全 CLEAR），已证伪『NO_TRIGGER 永不可达』", "impact": "如实登记更正，不回改历史文档、不删改证据"},
+    {"id": "F5", "finding": "R1/R3/R5/R6 仍未落地，类②具名件仍缺", "evidence": "两函均写『尚未独立核验』『仍待只读核验』『现无法代填姓名或通过结论』", "impact": "不代填通过结论；表 S 保留 S3–S6 具体编辑靶子"}
+  ],
+  "boundary_disposition": {
+    "tom_constraint": "涉及公开转录须先核实内容和授权",
+    "this_generation_action": "未对两封邮件正文做整封公开转录；共享库文档只登记函件编号/时点/线程承接/提案文字与状态。两版 R7 条款作为『Tom 主动提出的待裁定提案』逐字引述（函1 原话即『具体建议：将终止条件写为…』，本为供采用/裁定的文字）。",
+    "withdrawal_option": "若 Tom 书面要求撤下，本方立即移除；若书面确认内容与授权，再按 A 支柱做逐字转录并 commit，标 source=邮件 msg_id 与时点。",
+    "rule_files": "t1b_loop_policy.json 逐字不动；K-6 WITHDRAWN_PER_TOM_1220 不重开、不推销；条款修订只以草案形式待裁定。"
+  },
+  "redline_evidence": {
+    "deployment_id_diff": 0,
+    "deployment_id_total": 82,
+    "projects": 13,
+    "ts_manager_deployments": 3,
+    "ts_manager_max_version": 212,
+    "numberlock_deployments": 9,
+    "team_entry": "AKfycbzUyhyK… @212",
+    "team_entry_get": [200, 200, 200],
+    "shared_repo_origin": "https://github.com/ritajin-tech/SMCN_ERP-T1B-audit-shared.git",
+    "forbidden_actions": ["GAS push", "deploy", "换链", "新建或删除部署", "生产写", "主库写", "试提交", "修复重启", "清理回滚", "降告警覆盖", "历史删改", "列宽改动"],
+    "forbidden_actions_count": 0,
+    "incident_state": ["OPEN", "HOLD-NO-GO", "阶段一 PASS 暂缓", "M2 未签", "TS_WRITE_FREEZE=1"],
+    "incident_state_action": "全部维持，只能由 Rita 裁定"
+  },
+  "scope_declaration": "本诊断仅覆盖上述 11 个实查源与现场只读复采。不作通过结论：来源真实性/完整性/生产状态、服务端日志与权限上下文、授权主体具名件、受控两项原始字节、事故状态裁定、协作者写权限（HTTP 403 未核验，不作有无推断）、两版 R7 的最终采用、公开转录授权。查不到不等于没有。本件不构成验收或授权。"
+}

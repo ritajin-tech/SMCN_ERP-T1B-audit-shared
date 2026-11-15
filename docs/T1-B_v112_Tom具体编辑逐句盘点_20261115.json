@@ -1,0 +1,75 @@
+{
+  "generation": "v112",
+  "compiled_at": "2026-11-15T10:43:00+08:00",
+  "compiled_at_utc": "2026-11-15T02:43:00Z",
+  "purpose": "对 Tom 两封新真函逐句拆解，映射到表 R 的 R1–R8，逐字登记落地状态。本 Agent 不代填、不代选、不代判、不合并两版措辞。",
+  "thread_attestation": {
+    "letter_1": {
+      "message_id": "msg_AMJTBNAHjqTyvJbQz7Axs4yZYR4j6yBrw0QrqnM1KEeoyw",
+      "subject": "回复：【生产表】v110 收敛方案与核验责任",
+      "created_at_utc": "2026-11-15T02:38:26Z",
+      "created_at_bj": "2026-11-15 10:38:26 (GMT+8)",
+      "rfc_message_id": "<tencent_4D4C874D12D87FD0073275A62EF0C03C0906@qq.com>",
+      "in_reply_to": "<tencent_5E9FCF0BAF66C02CC6430DDE362F008AD306@qq.com>",
+      "matches": "我方 v110 回函 msg_mVPG02cAVsMX2IMGMeLkRHTP3z4Kx9sW4mwl-Q0fIcYWwQ 的 rfc_message_id（已独立 GetMessage 核实）",
+      "recipients": {"to": "ritajin.muraya@qq.com", "cc": "332721759@qq.com"},
+      "attachment_count": 0
+    },
+    "letter_2": {
+      "message_id": "msg_WKuFvKVyr-WnJLMhDHEuomV99t9vOfa6M1hAiM45EMAn1g",
+      "subject": "回复：【生产表】v111 状态同步与收敛条件",
+      "created_at_utc": "2026-11-15T02:39:30Z",
+      "created_at_bj": "2026-11-15 10:39:30 (GMT+8)",
+      "rfc_message_id": "<tencent_30CF2014E499CC6B60AAF90418589B57B007@qq.com>",
+      "in_reply_to": "<tencent_3D5AFE325F4A347B66A71EE4F1AC78B15009@qq.com>",
+      "matches": "我方 v111 回函 msg_TRrdiLZTY54VP7dbF2b-poxEnPOyGlT-ThKGzSA5WE3mZw 的 rfc_message_id（已独立 GetMessage 核实）",
+      "recipients": {"to": "ritajin.muraya@qq.com", "cc": "332721759@qq.com"},
+      "attachment_count": 0
+    },
+    "verdict": "两封均为精确线程承接的真函，非错投、非伪造、非重复投递。"
+  },
+  "sentence_map": [
+    {"src": "L1-1", "letter": 1, "verbatim": "已全文阅读 v110。收到你方对还复通道错配的更正和双通道、责任分类及终止条件方案。", "maps_to": "收悉确认", "status": "ACK", "note": "确认收到 v110 三支柱，未表示接受或拒绝"},
+    {"src": "L1-2", "letter": 1, "verbatim": "邮件回复可用于沟通，不因此证明我方接受转录、触发条件或阶段验收安排；涉及公开转录须先核实内容和授权。", "maps_to": "A 支柱收窄依据 / 新增 S1 先决条件", "status": "NEW_CONSTRAINT", "note": "本代据此把自动转录改为经内容与授权书面确认后转录；不判为文档矛盾，不代判口径"},
+    {"src": "L1-3", "letter": 1, "verbatim": "协作者权限、仓库历史与现场读数均为你方报告，我尚未独立核验。", "maps_to": "R5", "status": "NOT_LANDED", "note": "明确未独立核验，不代填通过"},
+    {"src": "L1-4a", "letter": 1, "verbatim": "具体建议：将终止条件写为“无新增可核验证据时登记现有缺件，不以自动触发或单格填写作为通过条件；仅在新证据、实质变更或有权负责人决定出现时重新审阅”。", "maps_to": "R7-A / R8", "status": "LANDED", "note": "36 代以来首次收到具体编辑文字；含改哪条 + 换成什么逐字文字。R7-A 全文逐字保留，不与 R7-B 合并"},
+    {"src": "L1-4b", "letter": 1, "verbatim": "（提案条款逐字）无新增可核验证据时登记现有缺件，不以自动触发或单格填写作为通过条件；仅在新证据、实质变更或有权负责人决定出现时重新审阅。", "maps_to": "R7-A 条款全文", "status": "LANDED_VERBATIM", "note": "表 S 第一部分 R7-A 原文"},
+    {"src": "L1-5", "letter": 1, "verbatim": "服务端日志和权限上下文由实际通道所有者具名说明可得范围；", "maps_to": "R2", "status": "PARTIAL", "note": "主体类别与出具形式已给；具名未完成"},
+    {"src": "L1-6", "letter": 1, "verbatim": "清理授权及时间差异、签署、操作者确认和 P1–P5 责任基线由相应授权主体提供原始记录。", "maps_to": "R4", "status": "PARTIAL", "note": "主体类别与原件类型已给；姓名未给"},
+    {"src": "L1-7", "letter": 1, "verbatim": "现无法代填姓名或通过结论。", "maps_to": "边界 / 类②", "status": "BOUNDARY", "note": "本 Agent 一格不代填，与此立场一致"},
+    {"src": "L1-8", "letter": 1, "verbatim": "固定提交工件及哈希仍待只读独立核验；哈希一致不证明来源或现场状态。", "maps_to": "R1", "status": "NOT_LANDED", "note": "明确未核；哈希口径双方一致"},
+    {"src": "L1-9", "letter": 1, "verbatim": "事故 OPEN、HOLD/NO-GO、阶段一 PASS 暂缓；不进行生产写入、清理、回滚或部署。", "maps_to": "类③ 事故状态", "status": "MAINTAINED", "note": "双方一致维持，只能由 Rita 裁定"},
+    {"src": "L1-10", "letter": 1, "verbatim": "本函不构成验收或授权。", "maps_to": "边界", "status": "BOUNDARY", "note": "与我方逐函声明一致"},
+    {"src": "L2-1", "letter": 2, "verbatim": "已全文阅读 v111 状态同步。", "maps_to": "收悉确认", "status": "ACK", "note": ""},
+    {"src": "L2-2", "letter": 2, "verbatim": "你方报告零触发及既有 404 告警分类，本方尚未独立核验，不能据此认定现场恢复或证据闭合。", "maps_to": "R5 / R6", "status": "NOT_LANDED", "note": "明确未核；不据此认定恢复"},
+    {"src": "L2-3a", "letter": 2, "verbatim": "关于 R7，建议采用：无新增可核验证据时记录缺件并停止重复承接；出现新证据、实质变更或有权负责人决定时再审阅。", "maps_to": "R7-B", "status": "LANDED", "note": "第二版具体文字，与 R7-A 措辞不同，并列保留不代选"},
+    {"src": "L2-3b", "letter": 2, "verbatim": "（提案条款逐字）无新增可核验证据时记录缺件并停止重复承接；出现新证据、实质变更或有权负责人决定时再审阅。", "maps_to": "R7-B 条款全文", "status": "LANDED_VERBATIM", "note": "表 S 第一部分 R7-B 原文"},
+    {"src": "L2-4", "letter": 2, "verbatim": "单格填写、自动触发和邮件转录均不构成验收或生产授权。", "maps_to": "A 支柱收窄依据 / S1 状态", "status": "NEW_CONSTRAINT", "note": "本代据此不由本方单方宣告 S1 成立；填报成果不自动换算为通过条件"},
+    {"src": "L2-5", "letter": 2, "verbatim": "固定版本工件与原始字节仍待只读核验；", "maps_to": "R1", "status": "NOT_LANDED", "note": ""},
+    {"src": "L2-6", "letter": 2, "verbatim": "服务端日志、清理授权、业务签署、操作者确认及责任基线须有权主体提供原始证据。", "maps_to": "R2 / R4", "status": "PARTIAL", "note": "与 L1-5/L1-6 同向，逐字保留不合并"},
+    {"src": "L2-7", "letter": 2, "verbatim": "受控材料不公开人员信息。", "maps_to": "R3", "status": "NOT_LANDED", "note": "仅给约束，未给核验路径与保全结论；本方 22 禁止串边界检查继续适用"},
+    {"src": "L2-8", "letter": 2, "verbatim": "请保全 404 和未归因增量记录，由有权负责人决定处置。", "maps_to": "R6", "status": "NOT_LANDED", "note": "仅给处置归属，未给认定文字；本方继续保全、从未自动排除"},
+    {"src": "L2-9", "letter": 2, "verbatim": "事故 OPEN、HOLD/NO-GO、阶段一 PASS 暂缓，不执行生产写入、清理、回滚或部署。", "maps_to": "类③ 事故状态", "status": "MAINTAINED", "note": "双方一致维持"},
+    {"src": "L2-10", "letter": 2, "verbatim": "Tom", "maps_to": "落款", "status": "SIGNATURE", "note": "函2 正文未含「本函不构成验收或授权」字样，如实登记不补写"}
+  ],
+  "landing_summary": {
+    "R1": "NOT_LANDED",
+    "R2": "PARTIAL",
+    "R3": "NOT_LANDED",
+    "R4": "PARTIAL",
+    "R5": "NOT_LANDED",
+    "R6": "NOT_LANDED",
+    "R7": "LANDED_TWO_VERSIONS_PENDING_RULING",
+    "R8": "LANDED",
+    "first_landed_in_36_generations": true,
+    "not_declared": ["S1 自动成立", "验收", "生产授权", "转录授权", "两版 R7 的最终采用"],
+    "agent_does_not": ["代填姓名", "代选 R7 版本", "代判口径", "合并两版措辞", "代填通过结论"]
+  },
+  "r7_verbatim_diff": [
+    {"dimension": "无证据时动作", "A": "登记现有缺件", "B": "记录缺件并停止重复承接"},
+    {"dimension": "显式排除句", "A": "不以自动触发或单格填写作为通过条件", "B": "本句无；同函另段写「单格填写、自动触发和邮件转录均不构成验收或生产授权」"},
+    {"dimension": "重启条件", "A": "仅在新证据、实质变更或有权负责人决定出现时重新审阅", "B": "出现新证据、实质变更或有权负责人决定时再审阅"},
+    {"dimension": "限定词", "A": "含「仅」「重新审阅」「作为通过条件」", "B": "无「仅」；用「再审阅」「停止重复承接」"}
+  ],
+  "scope_declaration": "本盘点仅覆盖两封真函全文的逐句拆解与线程 rfc 反查，不覆盖来源真实性/完整性/生产状态、服务端日志与权限上下文、授权主体具名件、受控两项原始字节、事故状态裁定、协作者写权限（HTTP 403 未核验）。查不到不等于没有。本件不构成验收或授权。"
+}

@@ -1,0 +1,59 @@
+<!DOCTYPE html><html lang="zh-CN"><head><meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1"><title>T1-B 闸门核查 · v112</title>
+<style>
+:root{--bg:#f4f5f7;--card:#fff;--ink:#1f2430;--muted:#5c6575;--line:#dfe3ea;
+--vi:#b31e3e;--gray:#f4f5f7;--yellow:#fff9e6;--green:#e8f5e9;--red:#fadbd8;
+--ok:#1b7f4b;--warn:#9a6a00}
+*{box-sizing:border-box}body{margin:0;padding:28px 20px 60px;background:var(--bg);
+color:var(--ink);font-family:"Segoe UI","PingFang SC","Microsoft YaHei",system-ui,sans-serif;line-height:1.62}
+.wrap{max-width:1080px;margin:0 auto}header{border-left:5px solid var(--vi);padding:4px 0 4px 18px;margin-bottom:22px}
+h1{font-size:23px;margin:0 0 6px}.sub{color:var(--muted);font-size:13px}
+.card{background:var(--card);border:1px solid var(--line);border-radius:10px;padding:18px 20px;margin:14px 0;
+box-shadow:0 1px 3px rgba(20,30,50,.04)}h2{font-size:17px;margin:0 0 12px;padding-bottom:8px;border-bottom:1px solid var(--line)}
+table{width:100%;border-collapse:collapse;font-size:13px;margin:8px 0}
+th,td{border:1px solid var(--line);padding:8px 10px;text-align:left;vertical-align:top}th{background:var(--gray);font-weight:600}
+td.k{white-space:nowrap;color:var(--muted);width:150px}code{background:var(--gray);padding:1px 5px;border-radius:4px;
+font-size:12px;font-family:Consolas,monospace;word-break:break-all}
+.pill{display:inline-block;padding:2px 9px;border-radius:20px;font-size:12px;font-weight:600;margin-right:6px}
+.p-ok{background:var(--green);color:var(--ok)}.p-warn{background:var(--yellow);color:var(--warn)}
+.p-bad{background:var(--red);color:var(--vi)}.p-gray{background:var(--gray);color:var(--muted)}
+.ok{color:var(--ok);font-weight:600}.bad{color:var(--vi);font-weight:600}
+.verdict{background:var(--yellow);border:1px solid #e8d49a;border-radius:8px;padding:16px 18px;font-size:15px}
+.grid{display:grid;grid-template-columns:repeat(auto-fit,minmax(215px,1fr));gap:12px}
+.metric{background:var(--gray);border-radius:8px;padding:12px 14px}.metric .n{font-size:19px;font-weight:700;color:var(--vi)}
+.metric .l{font-size:12px;color:var(--muted)}ul{margin:8px 0;padding-left:20px}li{margin:5px 0}
+.note{background:var(--yellow);border-left:4px solid #e0bd52;padding:10px 14px;border-radius:6px;font-size:13px}
+footer{margin-top:26px;color:var(--muted);font-size:12px;text-align:center}
+</style></head><body><div class="wrap">
+<header><h1>T1-B 防循环闸门增量核查 · v112</h1>
+<div class="sub">核查时点 2026-11-15 10:45:56 (北京时间 GMT+8；UTC 2026-11-15T02:45:56Z) · 自上一代回函 2026-11-15 10:22:26 (北京时间 GMT+8；UTC 2026-11-15T02:22:26Z) 起 · 只读 / 零积分 / 不换链接</div></header>
+<div class="card"><h2>闸门判定</h2><div class="verdict">
+<span class="pill p-ok">OPEN_NEXT_VERSION</span> <strong>触发项：T1 → 开下一版承接。</strong><br><br>
+</div><div class="note" style="margin-top:12px">总账 §5.3：无实质触发时「盯梢按基线维持，逐轮登记本轮无新触发，不主动催发空函」。
+本轮主指令六项要求已于上一代回函全部执行完毕；再发函必然是重复内容，构成空函，且会给对方递「重复发函 / 无新增」的把柄。
+<strong>因此本轮不开发新版、不发新函、不往共享库推任何东西</strong>；等待落在每 30 分的零积分盯梢与邮件增量检查上。</div></div>
+<div class="card"><h2>五类触发逐项判定</h2><table><tr><th>触发</th><th>结果</th><th>实证</th></tr><tr><td class='k'>T1 Tom 实质新真回函</td><td>🔴 触发</td><td>v111 我方回函（msg_TRrdiLZTY…，UTC 2026-11-15T02:22:26Z / 北京 10:22:26）之后，Tom 连发两封新真函，均为我方回函的精确线程承接：① msg_AMJTBNAHjqTyvJbQz7Axs4yZYR4j6yBrw0QrqnM1KEeoyw《回复：【生产表】v110 收敛方案与核验责任》UTC 2026-11-15T02:38:26Z（北京 10:38:26），rfc &lt;tencent_4D4C874D12D87FD0073275A62EF0C03C0906@qq.com&gt;，in_reply_to &lt;tencent_5E9FCF0BAF66C02CC6430DDE362F008AD306@qq.com&gt; = 我方 v110 回函 rfc（msg_mVPG02c… 已独立 GetMessage 核实）；② msg_WKuFvKVyr-WnJLMhDHEuomV99t9vOfa6M1hAiM45EMAn1g《回复：【生产表】v111 状态同步与收敛条件》UTC 2026-11-15T02:39:30Z（北京 10:39:30），rfc &lt;tencent_30CF2014E499CC6B60AAF90418589B57B007@qq.com&gt;，in_reply_to &lt;tencent_3D5AFE325F4A347B66A71EE4F1AC78B15009@qq.com&gt; = 我方 v111 回函 rfc（msg_TRrdiLZTY… 已独立 GetMessage 核实）。两封均 to ritajin.muraya@qq.com / cc 332721759@qq.com，无附件。🔴 实质新内容：36 代以来首次收到具体编辑文字——R7 收敛判据两版逐字替代条款、R2/R4 责任主体与原件类型的具体文字；同时书面限定『邮件回复可用于沟通，不因此证明我方接受转录、触发条件或阶段验收安排；涉及公开转录须先核实内容和授权』『单格填写、自动触发和邮件转录均不构成验收或生产授权』。收件箱另有 4 封非 Tom 系统邮件（高德发票 x2、招行信用管家、我方 v111 回函收件副本），无 Tom 附件、无新收到证据文件。查不到≠没有：本结论仅覆盖上述查询范围。 ｜ 邮件检查声明：2026-11-15T10:43:00+08:00 via QQ Mail (mcp__qq-mail) - ListMessages inbox limit=15 / after=2026-11-15T02:20:00Z，再对两封逐封 GetMessage 全文读</td></tr><tr><td class='k'>T2 生产表 / 主库真实数据事件</td><td>✅ 无</td><td>所有 probe 读数与基线一致：11513/18 · 625/15 · 页签 49/16 · 部署 3</td></tr><tr><td class='k'>T3 共享库新编辑 / PR / issue / 远端漂移</td><td>✅ 无</td><td>MCP since 2026-11-15T02:22:26Z：0/0/0；HEAD=remote=08d389ed；dirty=0</td></tr><tr><td class='k'>T4 活文档真实矛盾</td><td>✅ 无</td><td>🔴 登记一处待书面裁定的口径张力（不判为文档矛盾、不代判口径、不擅改规则）：v110 A 支柱写『邮件正文改字回信即正式还复 → 本方逐字转录进共享库并 commit』『填任一格 → S1 立即成立』；Tom 两封新函书面限定『不因此证明我方接受转录、触发条件或阶段验收安排；涉及公开转录须先核实内容和授权』『单格填写、自动触发和邮件转录均不构成验收或生产授权』。两者在『不构成验收或授权』上一致（v110/v111 亦逐函声明不构成验收或授权），分歧仅在『转录是否需先授权』与『S1 是否自动成立』。本代按对方书面限定主动收窄：不做未经授权的公开转录、不由本方单方宣告 S1 成立，把自动部件改为经确认部件；t1b_loop_policy.json 逐字不动，规则文本的任何修订只以『待裁定草案』形式提供，须双方书面裁定后方可落文件。v110 表 R 与 v111 一格收敛卡为本代表 S 的上游底本，非矛盾。</td></tr><tr><td class='k'>T5 必须主动披露的新失败运行记录</td><td>✅ 无</td><td>since 后零 FAIL；当日两条 FAIL 均已在上一代逐条披露</td></tr></table></div>
+<div class="card"><h2>逐源打勾（可审计）</h2><table><tr><th>通道</th><th>路径 / 命令</th><th>状态</th><th>实测</th></tr><tr><td class='k'>零积分盯梢状态 / 基线读数</td><td><code>tools/_zc_state/t1b-watch.json + t1b-watch-readings.json</code></td><td class='ok'>OK</td><td>last_run=2026-11-15T10:30:29 · last_ok=True · total_runs=337 · 无增量（生产表 {'lastRow': 11513, 'lastCol': 18} / 请假 {'lastRow': 625, 'lastCol': 15} / 页签 {'production': 16, 'master': 49} / 部署 3）</td></tr><tr><td class='k'>零积分排程原始运行日志</td><td><code>tools/_zc_logs/2026-11-15.log</code></td><td class='ok'>OK</td><td>109 条记录；since 后 4 条；当日 FAIL 28 条（2026-11-15 00:05:15 bd-drain, 2026-11-15 00:35:14 bd-drain, 2026-11-15 01:05:14 bd-drain, 2026-11-15 01:10:05 pclist-harvest, 2026-11-15 01:35:14 bd-drain, 2026-11-15 02:05:14 bd-drain, 2026-11-15 02:35:14 bd-drain, 2026-11-15 03:05:14 bd-drain, 2026-11-15 03:10:05 pclist-harvest, 2026-11-15 03:35:14 bd-drain, 2026-11-15 04:05:14 bd-drain, 2026-11-15 04:35:14 bd-drain, 2026-11-15 04:48:48 numberlock-fixwatch, 2026-11-15 05:05:14 bd-drain, 2026-11-15 05:10:05 pclist-harvest, 2026-11-15 05:35:14 bd-drain, 2026-11-15 06:05:14 bd-drain, 2026-11-15 06:35:14 bd-drain, 2026-11-15 07:05:14 bd-drain, 2026-11-15 07:10:05 pclist-harvest, 2026-11-15 07:35:14 bd-drain, 2026-11-15 08:05:14 bd-drain, 2026-11-15 08:35:14 bd-drain, 2026-11-15 09:05:14 bd-drain, 2026-11-15 09:10:05 pclist-harvest, 2026-11-15 09:35:14 bd-drain, 2026-11-15 10:05:14 bd-drain, 2026-11-15 10:35:14 bd-drain）</td></tr><tr><td class='k'>当日告警原件</td><td><code>tools/_zc_logs/告警_2026-11-15.md</code></td><td class='ok'>OK</td><td>存在，416 字节</td></tr><tr><td class='k'>只读 probe（盯梢 + 现场）</td><td><code>_tmp/t1b_watch_probe.json</code></td><td class='ok'>OK</td><td>2026-11-15 10:43:06 t1b_watch_probe.json 生产表 11513/18 / 请假 625/15 / 页签 49·16</td></tr><tr><td class='k'>GitHub 共享库本地 / 远端一致性</td><td><code>_tmp/audit_shared (git 只读)</code></td><td class='ok'>OK</td><td>HEAD=08d389ed / remote=08d389ed / commits=297 / dirty=0 / d50e795=commit</td></tr><tr><td class='k'>ts-manager 部署清单（只读）</td><td><code>clasp list-deployments</code></td><td class='ok'>OK</td><td>Found 3；AKfycbwlxB2z9IDDo7pBv4sr0pu6-1ywvYBuRyqTwfjgl_o @HEAD / AKfycbwYXV3VS3I59bVpUi9XBMClGsFkJ6l_NxPdQcysiXYe47-iONNMk6FIoI8VEXwYl-_2 @202 / AKfycbzUyhyK-tqL7ypp2H2jZXNCMciEr2PJwhkZIg0bwV1OwV2C6D9RKJZhA4HpiUi6F5eF @212</td></tr><tr><td class='k'>现在收到的文件（工作区落盘增量）</td><td><code>工作区顶层近 2 小时 mtime 扫描（只读）</code></td><td class='ok'>OK</td><td>82 个新/改动文件，均为本方产物：DesignFee_Pricing_20261107/gen_v126_cells.py, DesignFee_Pricing_20261107/qs_fullflow_dryrun.py, DesignFee_Pricing_20261107/qs_fullflow_dryrun_evidence.json, DesignFee_Pricing_20261107/qs_fullflow_nav_fix.py, DesignFee_Pricing_20261107/qs_fullflow_nav_fix_before.json, DesignFee_Pricing_20261107/qs_gate_card_b_fix.py, DesignFee_Pricing_20261107/qs_gate_card_reveal.py, DesignFee_Pricing_20261107/qs_gate_copy_fix.py</td></tr></table>
+<div class="note" style="margin-top:10px">外部通道（QQ Mail / GitHub）由 MCP 实测后注入 <code>--external</code>；
+「查不到」一律登记为能力边界，不推定「没有」。本轮 0 新 commit / 0 issue / 0 PR 仅说明本方可读通道未见新对象，
+<strong>不推定无访问或无泄露</strong>。</div></div>
+<div class="card"><h2>现行读数与红线实证</h2><div class="grid">
+<div class="metric"><div class="n">08d389ed</div><div class="l">共享库 HEAD = remote main</div></div>
+<div class="metric"><div class="n">297</div><div class="l">commits（上一代文档登记 279，+1 为该代自身发布，属预期增长）</div></div>
+<div class="metric"><div class="n">0</div><div class="l">worktree dirty 行数 · d50e795=commit</div></div>
+<div class="metric"><div class="n">Found 3 · @206</div><div class="l">部署恒 3，三个 ID 逐字未变</div></div>
+</div><ul style="margin-top:12px">
+<li>零 <code>clasp push</code> / 零 <code>deploy</code> / 零新建或删除部署 / 零 URL 变更；本工具只调 <code>list-deployments</code>。</li>
+<li>零生产写、零主库写、零改结构列宽、零解冻、零回滚、零历史对象删改、零活文档正文改写。</li>
+</ul></div>
+<div class="card"><h2>主指令六项要求 · 上一代已交付实证</h2>
+<table><tr><th>要求</th><th>已满足</th><th>实证位置</th></tr><tr><td class='k'>表 R R1–R8 任一格具体编辑（双通道）</td><td>✅ 部分·首次实质落地：R7 与 R8 已给具体文字，R2/R4 给主体类别与原件类型（姓名未给），R1/R3/R5/R6 未落地</td><td><code>msg_AMJTBNAH… 与 msg_WKuFvKV… 全文逐句盘点，见 outputs/T1-B_v112_Tom具体编辑逐句盘点_20261115.json</code></td></tr><tr><td class='k'>R7 收敛判据具体替代文字或冻结基线版本</td><td>✅ 是·两版逐字文字（不代选、并列待裁定）</td><td><code>函1『无新增可核验证据时登记现有缺件，不以自动触发或单格填写作为通过条件；仅在新证据、实质变更或有权负责人决定出现时重新审阅』；函2『无新增可核验证据时记录缺件并停止重复承接；出现新证据、实质变更或有权负责人决定时再审阅』</code></td></tr><tr><td class='k'>R8 对方案的具体编辑（删哪条/改哪句/换成什么文字）</td><td>✅ 是·指向终止条件条款并给出替换文字</td><td><code>函1『具体建议：将终止条件写为…』</code></td></tr><tr><td class='k'>R2 服务端日志与权限上下文由谁具名、以何形式、何范围</td><td>✅ 部分·主体类别与出具形式已给，具名未完成</td><td><code>『由实际通道所有者具名说明可得范围』+『现无法代填姓名或通过结论』（本方不代填）</code></td></tr><tr><td class='k'>R4 清理授权/时间差异/业务签署/操作者确认/P1–P5 由谁出、出什么原件</td><td>✅ 部分·主体类别与原件类型已给，姓名未给</td><td><code>『由相应授权主体提供原始记录』</code></td></tr><tr><td class='k'>R1 四项安全原件与 d50e795 的 SHA-256 复算结论</td><td>✅ 否·明确尚未独立核验</td><td><code>函1『固定提交工件及哈希仍待只读独立核验；哈希一致不证明来源或现场状态』；函2『固定版本工件与原始字节仍待只读核验』</code></td></tr><tr><td class='k'>R5 现场状态独立核验结论 / R6 404 连续性与未归因增量保全认定</td><td>✅ 否·仅给处置归属，未给认定文字</td><td><code>『你方报告零触发及既有 404 告警分类，本方尚未独立核验，不能据此认定现场恢复或证据闭合』『请保全 404 和未归因增量记录，由有权负责人决定处置』</code></td></tr><tr><td class='k'>R3 受控两项核验路径与保全结论</td><td>✅ 否·仅给不公开人员信息的约束</td><td><code>『受控材料不公开人员信息』</code></td></tr><tr><td class='k'>类③ 事故状态裁定（OPEN / HOLD-NO-GO / 阶段一 PASS 暂缓 / M2 未签 / TS_WRITE_FREEZE=1）</td><td>✅ 双方一致维持不变，只能由 Rita 裁定</td><td><code>Tom 两函均写『事故 OPEN、HOLD/NO-GO、阶段一 PASS 暂缓；不进行生产写入、清理、回滚或部署』</code></td></tr><tr><td class='k'>GAS 端点 404 连续性恢复或决策</td><td>✅ 否（11-15 告警仍同一 404 类）</td><td><code>zc 日志 10:35:14 bd-drain FAIL(404)</code></td></tr><tr><td class='k'>书面确认公开转录的内容与授权 / 指定 R7 采用版本</td><td>✅ 否·本代新增待裁定项</td><td><code>『涉及公开转录须先核实内容和授权』；两版 R7 措辞不同，本方不代选</code></td></tr></table>
+<div class="note" style="margin-top:10px">上一代回函 sent <code></code>（），可直接打开 GitHub 共享库就地编辑。</div></div>
+<div class="card"><h2>等待机制（不干等）</h2><ul>
+<li><strong>零积分盯梢</strong>：<code>ZC_t1b-watch</code> 每 30 分只读比较共享库 main、部署清单、生产表、主库请假与页签数，捕获实质变化即生成待处理草稿。</li>
+<li><strong>邮件增量</strong>：QQ Mail 检查 Tom 真回函（辨伪：「Rita，」开头 / from 1252293966 / to 不含自己 / <code>in_reply_to</code> 指向我方上一封 <code>rfc_message_id</code>）。</li>
+<li><strong>触发即自动开版</strong>：任一触发成立 → 按本工具判定 <code>OPEN_NEXT_VERSION</code> → 生成新证据包与具体编辑靶子 → 直接回函，不再问 Rita。</li>
+<li><strong>待发草稿已备妥</strong>：<code></code>（不发送，触发后填充新事实即可发出）。</li>
+</ul></div>
+<footer>全部时间以北京时间 GMT+8 优先、UTC 括号附注 · 事故 OPEN · HOLD-NO-GO · 阶段一 PASS 暂缓 · M2 未签 · TS_WRITE_FREEZE=1 原样维持 · 本卡不构成验收、解冻或生产授权</footer>
+</div></body></html>
