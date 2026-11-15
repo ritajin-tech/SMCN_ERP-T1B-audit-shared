@@ -1,0 +1,60 @@
+<!DOCTYPE html>
+<html lang="zh-CN"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1"><title>T1-B v116 验收卡 · 第39代真承接</title>
+<style>
+:root{--vi:#B31E3E;--line:#e6e8ee;--card:#fff;--gray:#F4F5F7;--yellow:#FFF9E6;--green:#E8F5E9;--red:#FADBD8}
+*{box-sizing:border-box}body{font-family:-apple-system,"Segoe UI",Roboto,"Microsoft YaHei",sans-serif;background:var(--gray);margin:0;color:#1f2530;line-height:1.6}
+.wrap{max-width:980px;margin:0 auto;padding:22px}
+h1{font-size:20px;border-left:5px solid var(--vi);padding-left:14px;margin:0 0 16px}
+.card{background:var(--card);border:1px solid var(--line);border-radius:10px;padding:16px 18px;margin-bottom:14px}
+h2{font-size:15px;margin:0 0 10px;padding-bottom:8px;border-bottom:1px solid var(--line)}
+.verdict{background:var(--yellow);border:1px solid #e8d49a;border-radius:8px;padding:14px 16px;font-size:15px;font-weight:600}
+table{width:100%;border-collapse:collapse;font-size:13.5px}
+th,td{border:1px solid var(--line);padding:7px 9px;text-align:left;vertical-align:top}
+th{background:var(--gray);font-weight:600}
+.ok{background:var(--green)} .clr{background:#fff} .trig{background:var(--green)}
+.tag{display:inline-block;padding:1px 8px;border-radius:10px;font-size:12px;font-weight:600}
+.t-ok{background:var(--green);color:#1d6b34} .t-info{background:var(--gray);color:#445}
+.note{font-size:12.5px;color:#5a6573;margin-top:8px}
+ul{margin:6px 0;padding-left:20px;font-size:13.5px}
+</style></head>
+<body><div class="wrap">
+<h1>T1-B v116 验收卡 · 第 39 代真承接（OPEN_NEXT_VERSION）</h1>
+
+<div class="card"><div class="verdict">闸门判定：OPEN_NEXT_VERSION ｜ T1 TRIGGER（Tom 对 v115 实质新真回函）｜ T2/T3/T4 CLEAR ｜ T5 仅重登记既有 404 类周期告警（非新失败类型）</div></div>
+
+<div class="card"><h2>五类触发逐源打勾</h2>
+<table>
+<tr><th>触发</th><th>名称</th><th>判定</th><th>证据</th></tr>
+<tr class="trig"><td>T1</td><td>Tom 实质新真回函</td><td><span class="tag t-ok">TRIGGER</span></td><td>msg_QGRyStjW… 2026-11-15T07:40:54Z，正文以称呼 Rita 的句式开头、其线程承接标识指向 v115 回函 rfc，含四项新治理指令（停止公开转录/保全受控范围清单/处置权归有权负责人/不要扩大传播）</td></tr>
+<tr class="clr"><td>T2</td><td>生产表/主库真实数据事件</td><td><span class="tag t-ok">CLEAR</span></td><td>生产表 11513/18 · 请假 625/15 · 页签 49/16 · 部署 3，与基线一致</td></tr>
+<tr class="clr"><td>T3</td><td>共享库新编辑/PR/issue/漂移</td><td><span class="tag t-ok">CLEAR</span></td><td>HEAD=remote=2d8f065；0 新 commit/PR/issue；dirty 0</td></tr>
+<tr class="clr"><td>T4</td><td>活文档真实矛盾</td><td><span class="tag t-ok">CLEAR</span></td><td>v115 已缴回越界转录并设硬闸，无新矛盾</td></tr>
+<tr class="clr"><td>T5</td><td>必须披露的新失败运行</td><td><span class="tag t-ok">已登记</span></td><td>仅 bd-drain / pclist-harvest / numberlock-fixwatch 既有 404 类周期告警（已在上代逐条披露），非新失败类型</td></tr>
+</table></div>
+
+<div class="card"><h2>红线实证（不改链接）</h2>
+<table>
+<tr><th>项</th><th>结果</th></tr>
+<tr><td>共享库 origin 逐字不变 / 零 GAS push·deploy·换链</td><td class="ok">PASS</td></tr>
+<tr><td>零生产写 / 主库写 / 试提交 / 修复 / 重启 / 清理 / 回滚 / 降覆盖 / 历史删改</td><td class="ok">PASS</td></tr>
+<tr><td>零列宽改动</td><td class="ok">PASS</td></tr>
+<tr><td>ts-manager 部署恒 3 / maxV212；numberlock 恒 9 / maxV526</td><td class="ok">PASS</td></tr>
+<tr><td>团队入口 @212 GET 三次 200</td><td class="ok">PASS</td></tr>
+<tr><td>13 项目 82 deploymentId DIFF = 0</td><td class="ok">PASS</td></tr>
+</table></div>
+
+<div class="card"><h2>公开转录硬闸（19 指纹 deny-by-default）</h2>
+<p><span class="tag t-ok">PASS</span> 本代 3 件公开 docs 扫描 = 0 命中（零新增公开转录，遵守 Tom v115 指令）。配置只留本地受控，不随 docs 发布。</p></div>
+
+<div class="card"><h2>公开库边界（22 禁串 × 3 文件）</h2>
+<p><span class="tag t-ok">PASS</span> 0 命中（无人员明细 / 稳定键混入待发布文件）。</p></div>
+
+<div class="card"><h2>本代交付</h2>
+<ul>
+<li>公开：系统大局梳理主文档 / 表 V（要求 Tom 还复系统大局·可就地编辑） / 本验收卡 / 闸门核查</li>
+<li>受控（不发布）：受控访问范围清单 / Tom v115 回复全文留痕</li>
+<li>外发授权留痕（Rita「不要问我」授权）</li>
+</ul>
+<p class="note">检查范围声明见主文档第 5 节。本函不表示验收或授权之意。事故维持 OPEN / HOLD-NO-GO / 阶段一 PASS 暂缓。</p>
+</div>
+</div></body></html>

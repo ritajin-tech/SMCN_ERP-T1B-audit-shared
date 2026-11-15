@@ -1,0 +1,56 @@
+{
+  "tool": "t1b_verbatim_transcript_guard",
+  "version": "1.0",
+  "checked_at_bj": "2026-11-15 16:30:50",
+  "checked_at_utc": "2026-11-15T08:30:50Z",
+  "read_only": true,
+  "policy": "deny-by-default：public 共享库发布前，任一对方邮件正文/摘录指纹命中即 BLOCK",
+  "controlled_config": "tools\\t1b_transcript_guard_patterns.json",
+  "controlled_patterns": 19,
+  "controlled_sha256": "cbbfcf208ba03dee68df14cf591ce37e2574c6ffdf78c540c0236f32fddd3ef7",
+  "authority": [
+    "2026-11-15T04:52:05Z 对 v112 函：对公开转录持书面否定立场，范围涉及邮件正文或摘录，留痕保存在受控往来，并要求先核实已公开内容与范围",
+    "2026-11-15T04:53:13Z 对 v113 函：对公开转录持书面否定立场；不以填格或自动触发作为验收条件",
+    "2026-11-15T05:48:54Z 对 v114 函：对公开转录持书面否定立场，范围涉及邮件正文或摘录；固定提交与文件尚未由对方独立取得核验；双通道等价、T1 触发、条款自动落地不因该函成立"
+  ],
+  "historical_scope": {
+    "first_public_verbatim_commit": "1b2dfca420caaad2f204edcfac2ec6f683e29460",
+    "first_public_verbatim_generation": "v112",
+    "continued_in_generation": "v114",
+    "commit_2a3ca06": "2a3ca06adb353c1800f603f8c93e06ba89f21f64",
+    "handling": "历史对象不删改、不 rewrite；v115 起零新增转录，处置选项由有权主体书面裁定。"
+  },
+  "verdict": "PASS",
+  "publish_files_checked": 3,
+  "publish_hit_total": 0,
+  "publish_detail": [
+    {
+      "file": "outputs/T1-B_v116_系统大局梳理_第39代真承接_20261115.md",
+      "bytes": 10174,
+      "sha256": "0ec8d78bdd9668cf36f740b1fbb8141dc007e9cfa3eaa7ddfea76c2469882432",
+      "hits": [],
+      "hit_total": 0,
+      "mode": "PUBLISH_GATE"
+    },
+    {
+      "file": "outputs/T1-B_v116_表V_要求Tom还复系统大局_可就地编辑_20261115.md",
+      "bytes": 2849,
+      "sha256": "305fe0b1580dc73d4345f7b3be4ed295e9302d6977b2d4417aba18f4e4f93542",
+      "hits": [],
+      "hit_total": 0,
+      "mode": "PUBLISH_GATE"
+    },
+    {
+      "file": "outputs/T1-B_v116_验收卡_第39代真承接_20261115.html",
+      "bytes": 4822,
+      "sha256": "9e72f8cc8384c4d19737fb8c7a3fde1ff3bff3a55d4cb91bda163200a6ad667d",
+      "hits": [],
+      "hit_total": 0,
+      "mode": "PUBLISH_GATE"
+    }
+  ],
+  "historical_files_checked": 0,
+  "historical_hit_total": 0,
+  "historical_detail": [],
+  "note": "历史清点只用于出具范围核实报告，不改写、不删除、不 rewrite 任何既有对象；处置由有权主体书面裁定。"
+}
