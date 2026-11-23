@@ -1,0 +1,74 @@
+{
+  "tool": "T1-B v123 fixed-version index",
+  "generated_at_bj": "2026-11-23 18:25:00+08:00",
+  "generated_at_utc": "2026-11-23T10:25:00Z",
+  "generation": "v123",
+  "baseline_commit": "e8c239fe1aed5e11c8fd699ec763e1e47d63af7a",
+  "shared_repo": "ritajin-tech/SMCN_ERP-T1B-audit-shared",
+  "branch": "main",
+  "url_change": "NONE",
+  "history_rewrite": "NONE",
+  "baseline_published_files": [
+    {
+      "path": "docs/T1-B_v122_系统大局梳理_第44代真承接_20261122.md",
+      "sha256": "50bc6fd5055d174b23068b27454daa9c132369cad0d567d08497eb0ce3ac69c1",
+      "commit": "e8c239fe1aed5e11c8fd699ec763e1e47d63af7a"
+    },
+    {
+      "path": "docs/T1-B_v122_表AA_要求Tom系统大局还复_可就地编辑_20261122.md",
+      "sha256": "2f6538a7eaf415903524d217a2699f0362a9df474787a9d07e45488bcfaab682",
+      "commit": "e8c239fe1aed5e11c8fd699ec763e1e47d63af7a"
+    },
+    {
+      "path": "docs/T1-B_v122_闸门结论摘要_20261122.md",
+      "sha256": "5609dbf2e0e7c5487adb63d929157513a6447d5ba0ed0e75c80a30f9c3b014dc",
+      "commit": "e8c239fe1aed5e11c8fd699ec763e1e47d63af7a"
+    }
+  ],
+  "v123_publish_files": [
+    {
+      "source": "outputs/T1-B_v123_系统大局梳理_第45代真承接_20261123.md",
+      "target": "docs/T1-B_v123_系统大局梳理_第45代真承接_20261123.md",
+      "sha256": "96d9c0e46a15291e39d166ccde9adbbc6c174127666b47c4cca55eff5766453a"
+    },
+    {
+      "source": "outputs/T1-B_v123_表AB_要求Tom系统大局还复_可就地编辑_20261123.md",
+      "target": "docs/T1-B_v123_表AB_要求Tom系统大局还复_可就地编辑_20261123.md",
+      "sha256": "ad464ed5c9d7ab200f012616a0b423c50d51f44631508c2a90e1cc3d06f34fbf"
+    },
+    {
+      "source": "outputs/T1-B_v123_闸门结论摘要_20261123.md",
+      "target": "docs/T1-B_v123_闸门结论摘要_20261123.md",
+      "sha256": "ead2da1e86f25040132f315ff4747a1a7959074753373ed3afec760cec1ccbfd"
+    },
+    {
+      "source": "outputs/T1-B_v123_固定版本索引_20261123.json",
+      "target": "docs/T1-B_v123_固定版本索引_20261123.json",
+      "sha256": "SELF_REFERENCE_EXCLUDED"
+    }
+  ],
+  "controlled_local_evidence_not_published": [
+    {
+      "path": "outputs/T1-B_v123_闸门核查_20261123.json",
+      "sha256": "8e32877e209011539b4cfbf6a6c04423246bd7ea923e6ecbf8e9c7e52d28186d",
+      "reason": "含失败实例逐条登记与内部探针明细，仅本地受控留痕"
+    },
+    {
+      "path": "_tmp/gate_external_20261123_v123.json",
+      "sha256": "0487dd3ddb7e4ad0ab7a76e8a4476457a854f741cae736fdbab94d7700f1ee32",
+      "reason": "外部注入含邮件辨伪与授权原文摘要，仅本地受控留痕"
+    }
+  ],
+  "redlines": {
+    "link_change": false,
+    "new_deployment": false,
+    "delete_deployment": false,
+    "history_rewrite": false,
+    "column_width_change": false,
+    "verbatim_public_transcript": false
+  },
+  "verification": {
+    "method": "sha256sum逐文件比对 + 双硬闸0命中 + 本地与远端HEAD双读",
+    "status": "PENDING_PUBLISH_RECEIPT"
+  }
+}
